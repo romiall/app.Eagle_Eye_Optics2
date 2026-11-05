@@ -50,7 +50,7 @@ const status = computed<string | null>(() => {
         :disabled="state.searching"
         @click="checkForUpdate('manual')"
       >
-        Rechercher une nouvelle version
+        Vérifier les mises à jour
       </button>
     </p>
     <!-- Zone d'annonce toujours présente : un changement de texte y est lu, une zone qui apparaît ne l'est pas. -->

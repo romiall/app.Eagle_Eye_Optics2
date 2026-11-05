@@ -32,7 +32,7 @@ import { startUpdateProxy } from './support/update-proxy'
  * changement »), sur un profil persistant et deux versions de l'application derrière une origine (support/update-proxy.ts) :
  *
  *  1. la version PRÉCÉDENTE est installée, un poste préparé garde une pièce en attente (patient créé sur le poste) ;
- *  2. la version courante est « livrée » : la personne la cherche (pied de page « Rechercher une nouvelle version »), le
+ *  2. la version courante est « livrée » : la personne la cherche (pied de page « Vérifier les mises à jour »), le
  *     bandeau apparaît, collé en haut de l'écran ; serveur injoignable avec une pièce en attente : installation BLOQUÉE ;
  *  3. le serveur revient : installation à CONFIRMER (pièce en attente, aucun export) ; confirmée, la page se recharge sous
  *     la nouvelle version, l'ancien précache est retiré, rien n'est perdu (journal, profils, clés identiques à l'octet) ;
@@ -167,7 +167,7 @@ test.describe('mise à jour de l’application (O06, AT45)', () => {
       // sont servis) : avec une pièce en attente, le contrôle du poste ne peut pas vérifier la compatibilité.
       proxy.cut(/^\/api\//)
       proxy.serve('NEW')
-      await footer.getByRole('button', { name: 'Rechercher une nouvelle version' }).click()
+      await footer.getByRole('button', { name: 'Vérifier les mises à jour' }).click()
       await expect(banner).toBeVisible({ timeout: 90_000 })
       await expect(banner.getByRole('heading', { level: 2, name: BANNER_TITLE })).toBeVisible()
       await expect(banner).toContainText('Vous utilisez encore l’ancienne version')

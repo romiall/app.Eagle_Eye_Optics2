@@ -243,7 +243,7 @@ describe('pied de page « Version de l’application »', () => {
     expect(wrapper?.find('[role="status"]').exists()).toBe(true)
     expect(wrapper?.find('[role="status"]').text()).toBe('')
 
-    await button('Rechercher une nouvelle version')?.trigger('click')
+    await button('Vérifier les mises à jour')?.trigger('click')
     await flushPromises()
     expect(workbox.update).toHaveBeenCalledTimes(1)
     expect(wrapper?.find('[role="status"]').text()).toBe(
@@ -251,7 +251,7 @@ describe('pied de page « Version de l’application »', () => {
     )
 
     workbox.update.mockRejectedValueOnce(new TypeError('Failed to fetch'))
-    await button('Rechercher une nouvelle version')?.trigger('click')
+    await button('Vérifier les mises à jour')?.trigger('click')
     await flushPromises()
     expect(wrapper?.find('[role="status"]').text()).toContain('La recherche a échoué')
 
@@ -265,7 +265,7 @@ describe('pied de page « Version de l’application »', () => {
     resetAppUpdateForTests()
     watchServiceWorkerUpdates(null, environment)
     mountFooter()
-    expect(button('Rechercher une nouvelle version')).toBeUndefined()
+    expect(button('Vérifier les mises à jour')).toBeUndefined()
     expect(wrapper?.text()).toContain('Version de l’application')
   })
 })

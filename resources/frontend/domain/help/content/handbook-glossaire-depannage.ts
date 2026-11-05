@@ -813,7 +813,7 @@ export const TOPICS_GLOSSAIRE_DEPANNAGE: readonly HandbookTopic[] = [
           },
           {
             q: 'Comment savoir quelle version de l’application mon écran utilise ?',
-            a: 'En bas de chaque écran, la ligne « Version de l’application » donne le numéro de build et sa date. Après une mise en ligne, comparez-la avec celle que le prestataire vous annonce. Pour savoir s’il en existe une plus récente, cliquez sur « Rechercher une nouvelle version » : l’application le fait aussi quand vous revenez sur la fenêtre.',
+            a: 'En bas de chaque écran, la ligne « Version de l’application » donne le numéro de build et sa date. Après une mise en ligne, comparez-la avec celle que le prestataire vous annonce. Pour savoir s’il en existe une plus récente, cliquez sur « Vérifier les mises à jour » : l’application le fait aussi quand vous revenez sur la fenêtre.',
           },
           {
             q: 'Le bandeau dit « Cette page doit être rechargée ».',

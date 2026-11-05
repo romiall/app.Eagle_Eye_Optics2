@@ -41,7 +41,7 @@ Ce script exécute automatiquement :
 5. bascule atomique du lien `~/eeo` et contrôle HTTP de `https://app-eagleseye.com/up` ;
 6. affichage du build en ligne (`/build/build-info.json`, O06) : c'est l'identifiant que le pied de page de l'application montre à l'écran.
 
-**Après toute livraison, dire à la personne de cliquer sur « Installer la nouvelle version » dans le bandeau en haut de l'application** : son navigateur garde l'ancienne version tant qu'elle ne l'a pas fait (le 2026-10-30, des corrections livrées n'étaient pas visibles pour cette raison). Depuis O06, le bandeau est collé en haut de chaque écran, ne se masque pas et explique ce que l'installation fait ; l'application cherche aussi seule une nouvelle version quand on revient sur la fenêtre, et le pied de page propose « Rechercher une nouvelle version ». Le navigateur d'une personne qui a encore l'ANCIENNE application (avant O06) n'a que l'ancien bandeau, discret : il faut le lui montrer une fois.
+**Après toute livraison, dire à la personne de cliquer sur « Installer la nouvelle version » dans le bandeau en haut de l'application** : son navigateur garde l'ancienne version tant qu'elle ne l'a pas fait (le 2026-10-30, des corrections livrées n'étaient pas visibles pour cette raison). Depuis O06, le bandeau est collé en haut de chaque écran, ne se masque pas et explique ce que l'installation fait ; l'application cherche aussi seule une nouvelle version quand on revient sur la fenêtre, et le pied de page propose « Vérifier les mises à jour ». Le navigateur d'une personne qui a encore l'ANCIENNE application (avant O06) n'a que l'ancien bandeau, discret : il faut le lui montrer une fois.
 
 > Aucun mot de passe ni fichier `.env` ne doit jamais être écrit dans le dépôt Git public.
 

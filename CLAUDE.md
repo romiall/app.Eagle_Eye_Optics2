@@ -86,6 +86,8 @@ Tous les domaines/tables sont définis : la priorité L0 appartient au planning,
 - L’archive de livraison doit contenir `database/schema_catalog.json` et `database/05_integrity_checks.sql` (lus à l’exécution) ; `build-release.sh` le vérifie.
 - Pint et Prettier : appliquer Prettier à tout le dépôt après un lot de modifications de gabarits Vue (il peut ajouter une espace dans un `<summary>` ou un bouton ; contrôler les tests de texte exact).
 
+- Un bouton ou un texte présent sur CHAQUE écran (en-tête, pied de page, bandeau) rend ambigus les sélecteurs Playwright par sous-chaîne d'autres parcours : `getByRole('button', { name: 'Rechercher' })` trouvait aussi « Rechercher une nouvelle version » (violation du mode strict) dans `patients`, `forms-layout` et les parcours hors ligne, dont l'échec laissait la caisse hors ligne réservée et faisait échouer les suivants (CI du 2026-11-05). Choisir un libellé qui ne CONTIENT aucun nom de bouton déjà sélectionné (`tests/frontend/update/footer-selectors.test.ts` le contrôle pour le pied de page) et rejouer `patients`, `forms-layout` et les parcours hors ligne avant de pousser un élément global.
+
 ## Informations à demander à la cliente (ne jamais les inventer)
 
 **Reçues le 2026-10-28** (détail dans `docs/implementation/progress.md`) : horaires d’ouverture ; carnets papier sans référence, donc séries à démarrer de zéro et aucune créance à reprendre à ce stade ; références administratives (RCCM, avis d’imposition), conservées hors dépôt et saisies par la gérante dans Paramètres, Cabinet et documents.
