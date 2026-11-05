@@ -264,9 +264,11 @@
    "evidence": [
     "tests/Feature/Patients/PatientSearchTest.php",
     "resources/frontend/app/services/patients.ts",
+    "tests/e2e/offline-directory.spec.ts",
+    "tests/frontend/services/local-patients-directory.test.ts",
     "https://github.com/romiall/app.Eagle_Eye_Optics/actions/runs/39762595087"
    ],
-   "notes": "Recherche serveur et écran en ligne : nom (accents, casse, ordre), téléphone dans les deux sens, numéro de dossier, 25 par page, limite de débit. Annuaire préparé du poste, recherche rapide de l'en-tête et PatientPicker partagé restent à faire (hors-ligne)."
+   "notes": "Recherche serveur et écran en ligne : nom (accents, casse, ordre), téléphone dans les deux sens, numéro de dossier, 25 par page, limite de débit. Annuaire du poste (A2, 2026-10-30) : les fiches du serveur reçues par le pull se retrouvent par la recherche, s'ouvrent, se modifient et se facturent SANS réseau (tests/e2e/offline-directory.spec.ts) ; la recherche rapide de l'en-tête, le PatientPicker partagé, la fraîcheur affichée de l'annuaire et les factures du serveur restent à faire (hors-ligne)."
   },
   "B01": {
    "status": "IN_REVIEW",
@@ -347,7 +349,7 @@
    "notes": "Moteur PDF local jsPDF (modèle → plan → PDF/SVG reproductible), reçu, facture, devis, avoir, remboursement, relevé de caisse ; DocumentStore VOLATIL (coffre O01–O05 à brancher) ; polices standard (écart fichier 11 documenté). Vérification transversale de fin de phase 1 (2026-10-23, tools/dev/phase-check.sh --with-e2e) : contrats, Pint, PHPStan, PHPUnit complet, vue-tsc, ESLint, Prettier, Vitest complet, build, Playwright 47/47 verts sur le poste local ; CI GitHub verte (run 39879707020 sur 19d2bda). EN LIGNE seulement (hors-ligne O01–O05 non fait). Lot 2 (codé, non exécuté) : dépôt des originaux sur le serveur (StoreDocumentContent, stockage privé, READY immuable) et téléchargement sous Policy."
   },
   "G1": {
-   "status": "IN_REVIEW",
+   "status": "DONE",
    "evidence": [
     "docs/evidence/G1.md",
     "tests/e2e/first-slice.spec.ts",
@@ -360,9 +362,11 @@
     "tests/e2e/offline-invoice.spec.ts",
     "tests/frontend/billing/local-invoices.test.ts",
     "tests/frontend/billing/local-catalog.test.ts",
-    "tests/frontend/services/billing-local.test.ts"
+    "tests/frontend/services/billing-local.test.ts",
+    "tests/e2e/offline-directory.spec.ts",
+    "https://github.com/romiall/app.Eagle_Eye_Optics2/actions/runs/41039143341"
    ],
-   "notes": "Prouvé en local le 2026-10-28 sur un vrai profil persistant (Edge, Windows) : acompte 30 000 puis solde 50 000 sans réseau, deux reçus et PDF locaux, patient créé sur le poste, fermeture complète puis réouverture, ACK perdu puis rejoué sans doublon ni renumérotation (Vitest 2511 verts). Écart « Aucun encaissement » corrigé (la facture montre les encaissements du poste). Écarts déclarés dans G1.md : facture émise EN LIGNE puis attribuée au poste (LEVÉ le 2026-10-29 : catalogue figé, création, émission et lecture d'une facture sur le poste serveur arrêté, tests/e2e/offline-invoice.spec.ts, branche claude/facture-hors-ligne ; fiches patient : 2026-10-28, claude/lecture-locale-ecrans ; reste l'annuaire du serveur hors ligne, G2) ; démarrage sans réseau : écart LEVÉ le 2026-10-28 (écran public de déverrouillage, D14 et D27, tests/e2e/offline-start.spec.ts, branche claude/deverrouillage-hors-ligne) ; pas de parcours à horloge truquée (G2). CI verte : run 40688709991 sur dd41316 (PHP, Frontend, E2E : 62 parcours réussis dont first-slice) ; passage à DONE à arbitrer avec le demandeur. Module offline fermé en production."
+   "notes": "Prouvé en local le 2026-10-28 sur un vrai profil persistant (Edge, Windows) : acompte 30 000 puis solde 50 000 sans réseau, deux reçus et PDF locaux, patient créé sur le poste, fermeture complète puis réouverture, ACK perdu puis rejoué sans doublon ni renumérotation (Vitest 2511 verts). Écart « Aucun encaissement » corrigé (la facture montre les encaissements du poste). Écarts déclarés dans G1.md : facture émise EN LIGNE puis attribuée au poste (LEVÉ le 2026-10-29 : catalogue figé, création, émission et lecture d'une facture sur le poste serveur arrêté, tests/e2e/offline-invoice.spec.ts, branche claude/facture-hors-ligne ; fiches patient : 2026-10-28, claude/lecture-locale-ecrans ; annuaire du poste (fiches du serveur reçues par le pull, lues, modifiées et facturées sans réseau) : LEVÉ le 2026-10-30, tests/e2e/offline-directory.spec.ts, branche claude/annuaire-poste ; les factures du serveur restent en ligne, le pull n'en publie qu'un résumé) ; démarrage sans réseau : écart LEVÉ le 2026-10-28 (écran public de déverrouillage, D14 et D27, tests/e2e/offline-start.spec.ts, branche claude/deverrouillage-hors-ligne) ; pas de parcours à horloge truquée (G2). CI verte : run 40688709991 sur dd41316 (PHP, Frontend, E2E : 62 parcours réussis dont first-slice) ; G1 arbitré DONE par le demandeur le 2026-10-30 (dernier état vert : run 41039143341 sur 0ea7668, PHP, Frontend et E2E, branche claude/annuaire-poste). Module offline fermé en production."
   },
   "B06": {
    "status": "IN_REVIEW",

@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { NetworkUnavailable } from '@/app/api'
+import { localPatients } from '@/app/services/localPatients'
 import { getPatient, searchPatients } from '@/app/services/patients'
 import type { LocalPatient } from '@/domain/patients/local'
 
@@ -130,6 +131,14 @@ describe('getPatient', () => {
 
     await expect(getPatient(ID)).rejects.toBeInstanceOf(NetworkUnavailable)
   })
+
+  it('ne demande à l’annuaire du poste que la fiche lue, jamais l’annuaire entier', async () => {
+    fetchMock.mockResolvedValue(json(200, { data: patient(ID, 'Du serveur', 'EE-2026-0001') }))
+
+    await getPatient(ID)
+
+    expect(vi.mocked(localPatients)).toHaveBeenLastCalledWith({ ids: [ID] })
+  })
 })
 
 describe('searchPatients', () => {
@@ -189,5 +198,46 @@ describe('searchPatients', () => {
     const second = await searchPatients('Mbarga', 2, { includeLocal: true })
 
     expect(second.data).toEqual(page)
+  })
+
+  it('l’annuaire du poste n’est ouvert que serveur injoignable : serveur joint, seules les fiches du poste comptent', async () => {
+    fetchMock.mockRejectedValueOnce(new TypeError('Failed to fetch'))
+    await searchPatients('mbarga', 1, { includeLocal: true })
+    expect(vi.mocked(localPatients)).toHaveBeenLastCalledWith({ directory: true })
+
+    fetchMock.mockResolvedValueOnce(
+      json(200, { data: [], meta: { current_page: 1, last_page: 1, per_page: 25, total: 0 } }),
+    )
+    await searchPatients('mbarga', 1, { includeLocal: true })
+    expect(vi.mocked(localPatients)).toHaveBeenLastCalledWith({})
+  })
+
+  it('serveur injoignable : une fiche du serveur reçue par le pull se retrouve, une fiche fusionnée dans une autre jamais', async () => {
+    setLocal(ID, 'Ngono', 'EE-2026-0007', 'acknowledged')
+    locals.map.set(OTHER, {
+      patient: { ...patient(OTHER, 'Ngono', 'EE-2026-0008'), merged_into_patient_id: ID },
+      state: 'acknowledged',
+    })
+    fetchMock.mockRejectedValue(new TypeError('Failed to fetch'))
+
+    const result = await searchPatients('ngono', 1, { includeLocal: true })
+
+    expect(result.data.data.map((row) => row.id)).toEqual([ID])
+    expect(result.live).toBe(false)
+  })
+
+  it('serveur joint : une fiche du serveur déjà reçue par le pull n’est jamais ajoutée en double à la réponse du serveur', async () => {
+    setLocal(OTHER, 'Mbarga', 'EE-2026-0001', 'acknowledged')
+    fetchMock.mockResolvedValue(
+      json(200, {
+        data: [summary(OTHER, 'Mbarga', 'EE-2026-0001')],
+        meta: { current_page: 1, last_page: 1, per_page: 25, total: 1 },
+      }),
+    )
+
+    const result = await searchPatients('Mbarga', 1, { includeLocal: true })
+
+    expect(result.data.data.map((row) => row.id)).toEqual([OTHER])
+    expect(result.data.meta.total).toBe(1)
   })
 })

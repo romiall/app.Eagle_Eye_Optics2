@@ -16,8 +16,9 @@ import { SEX_CODES } from './identity'
  * ne change jamais ; rejouer tous les faits donne la même fiche à chaque lecture, quel que soit le nombre de
  * modifications (la projection de tête du poste ne garde que la dernière charge d'une modification).
  *
- * Seules les fiches CRÉÉES sur ce poste se reconstruisent : une fiche du serveur modifiée sur le poste n'a pas de base
- * locale (l'écran la lit sur le serveur). Règles pures : ni Vue, ni coffre, ni réseau (typage structurel du fait).
+ * Une fiche CRÉÉE sur ce poste se reconstruit seule. Une fiche du SERVEUR (annuaire du poste, A2 : projection reçue par le
+ * pull) sert de base aux modifications faites ici ; sans annuaire, une fiche du serveur modifiée sur le poste n'a pas de
+ * base locale (l'écran la lit sur le serveur). Règles pures : ni Vue, ni coffre, ni réseau (typage structurel du fait).
  */
 export interface LocalPatientFact {
   commandName: string
@@ -25,6 +26,8 @@ export interface LocalPatientFact {
   payload: Readonly<Record<string, unknown>>
   number: string | null
   recordedAt: string
+  /** Version affichée quand la commande a été prise ; absente des faits d'avant l'annuaire (le rejeu compte alors +1). */
+  expectedVersion?: number | null
 }
 
 export interface LocalPatientEntry {
@@ -44,12 +47,71 @@ export function isUnconsolidated(state: string): boolean {
   return state !== 'acknowledged' && state !== 'rejected'
 }
 
+/** État d'une fiche du serveur que ce poste n'a pas touchée : consolidée par définition, le serveur fait foi quand il répond. */
+const SERVER_STATE = 'acknowledged'
+
 function text(value: unknown): string | null {
   return typeof value === 'string' ? value : null
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function isInstant(value: string | null): value is string {
+  return value !== null && Number.isFinite(Date.parse(value))
+}
+
 function sexOf(value: unknown, fallback: PatientRecordsSex): PatientRecordsSex {
   return SEX_CODES.find((code) => code === value) ?? fallback
+}
+
+/**
+ * Fiche du serveur remise par le pull (même représentation que l'API en ligne), relue avec méfiance : une projection vide
+ * (entité disparue), d'une autre forme ou sans identité exploitable n'est pas une fiche (null), jamais une fiche à moitié.
+ */
+export function patientOfPulled(data: unknown): Patient | null {
+  if (!isRecord(data)) return null
+  const id = text(data['id'])
+  const recordNumber = text(data['record_number'])
+  const lastName = text(data['last_name'])
+  const sex = SEX_CODES.find((code) => code === data['sex'])
+  const version = data['version']
+  const merged = data['merged_into_patient_id']
+  if (id === null || id === '' || recordNumber === null || recordNumber === '') return null
+  if (lastName === null || lastName.trim() === '' || sex === undefined) return null
+  if (typeof version !== 'number' || !Number.isSafeInteger(version) || version < 1) return null
+  if (typeof data['archived'] !== 'boolean') return null
+  if (merged !== null && typeof merged !== 'string') return null
+  // Horodatages exigés par le contrat : l'écran les met en forme, une date illisible ferait échouer son rendu.
+  const createdAt = text(data['created_at'])
+  const updatedAt = text(data['updated_at'])
+  if (!isInstant(createdAt) || !isInstant(updatedAt)) return null
+  const guardian = data['guardian_contact']
+  return {
+    id,
+    record_number: recordNumber,
+    last_name: lastName,
+    first_names: text(data['first_names']),
+    sex,
+    birth_date: text(data['birth_date']),
+    phone_primary: text(data['phone_primary']),
+    archived: data['archived'],
+    merged_into_patient_id: merged,
+    version,
+    birth_date_missing_reason: text(data['birth_date_missing_reason']),
+    phone_secondary: text(data['phone_secondary']),
+    phone_missing_reason: text(data['phone_missing_reason']),
+    address: text(data['address']),
+    profession: text(data['profession']),
+    guardian_contact: isRecord(guardian) ? guardian : null,
+    legacy_record: data['legacy_record'] === true,
+    first_known_visit_on: text(data['first_known_visit_on']),
+    first_visit_certified: data['first_visit_certified'] === true,
+    legacy_record_number: text(data['legacy_record_number']),
+    created_at: createdAt,
+    updated_at: updatedAt,
+  }
 }
 
 function created(fact: LocalPatientFact): Patient {
@@ -85,7 +147,10 @@ function updated(base: Patient, fact: LocalPatientFact): Patient {
   const changes = fact.payload['changes']
   if (typeof changes !== 'object' || changes === null || Array.isArray(changes)) return base
   const fields = changes as Record<string, unknown>
-  const next: Patient = { ...base, version: base.version + 1, updated_at: fact.recordedAt }
+  // Version attendue par la commande + 1, comme le compteur d'entité du journal (même quand le pull a avancé la fiche du serveur).
+  const version =
+    (typeof fact.expectedVersion === 'number' ? fact.expectedVersion : base.version) + 1
+  const next: Patient = { ...base, version, updated_at: fact.recordedAt }
   const lastName = text(fields['last_name'])
   if (lastName !== null && lastName.trim() !== '') next.last_name = lastName
   if ('first_names' in fields) next.first_names = text(fields['first_names'])
@@ -104,19 +169,62 @@ function updated(base: Patient, fact: LocalPatientFact): Patient {
   return next
 }
 
-/** Fiches reconstruites, par identifiant ; les faits sont donnés dans l'ordre du journal. */
+/**
+ * Une modification acquittée est REPRISE par le pull quand la fiche du serveur a atteint la version qu'elle a produite
+ * (version attendue + 1) : la rejouer de nouveau défairait un changement plus récent du serveur sur les mêmes champs.
+ */
+function takenUpByPull(fact: LocalPatientFact, state: string, server: Patient): boolean {
+  return (
+    state === 'acknowledged' &&
+    typeof fact.expectedVersion === 'number' &&
+    server.version >= fact.expectedVersion + 1
+  )
+}
+
+/**
+ * Fiches reconstruites, par identifiant ; les faits sont donnés dans l'ordre du journal. `server` : fiches du serveur reçues
+ * par le pull (annuaire du poste), sans lesquelles une fiche du serveur n'a pas de base locale.
+ *
+ *  - une fiche du serveur que ce poste n'a pas touchée est rendue telle quelle, consolidée par définition ;
+ *  - une modification faite ici s'applique par-dessus la fiche du serveur (refusée, elle ne change rien ; déjà reprise par
+ *    le pull, elle n'est pas rejouée) ;
+ *  - une fiche créée ici puis reçue du serveur : la proposition du poste pas encore consolidée prime (AT42) ; consolidée,
+ *    la plus récente des deux fait foi.
+ */
 export function foldLocalPatients(
   entries: readonly LocalPatientEntry[],
+  server: ReadonlyMap<string, Patient> = new Map(),
 ): Map<string, LocalPatient> {
   const patients = new Map<string, LocalPatient>()
+  const fromServer = new Set<string>()
   for (const { fact, state } of entries) {
+    const id = fact.entityId
     if (fact.commandName === 'CreatePatient') {
-      patients.set(fact.entityId, { patient: created(fact), state })
-    } else if (fact.commandName === 'UpdatePatient') {
-      const current = patients.get(fact.entityId)
-      // Fiche du serveur modifiée sur ce poste : aucune base locale à rejouer.
-      if (current !== undefined)
-        patients.set(fact.entityId, { patient: updated(current.patient, fact), state })
+      patients.set(id, { patient: created(fact), state })
+      fromServer.delete(id)
+      continue
+    }
+    if (fact.commandName !== 'UpdatePatient') continue
+    const own = patients.get(id)
+    const base = server.get(id)
+    if (base !== undefined && (own === undefined || fromServer.has(id))) {
+      if (state === 'rejected') continue
+      const current = own?.patient ?? base
+      patients.set(id, {
+        patient: takenUpByPull(fact, state, base) ? current : updated(current, fact),
+        state,
+      })
+      fromServer.add(id)
+    } else if (own !== undefined) {
+      patients.set(id, { patient: updated(own.patient, fact), state })
+    }
+  }
+  for (const [id, patient] of server) {
+    const own = patients.get(id)
+    if (own === undefined) {
+      patients.set(id, { patient, state: SERVER_STATE })
+    } else if (!isUnconsolidated(own.state) && patient.version >= own.patient.version) {
+      patients.set(id, { patient, state: own.state })
     }
   }
   return patients
@@ -156,6 +264,8 @@ function digitsOf(value: string): string {
  * dans le numéro de dossier. Elle ne porte que sur les fiches de ce poste : un résultat vide n'affirme jamais l'absence.
  */
 export function matchesLocalSearch(patient: Patient, query: string): boolean {
+  // Comme le serveur : une fiche fusionnée dans une autre n'est jamais proposée.
+  if (patient.merged_into_patient_id !== null) return false
   const term = searchTerm(query)
   if (!term.ok) return false
   const wanted = plain(term.text)

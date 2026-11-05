@@ -634,3 +634,26 @@ Restent ouverts (non bloquants pour F02/F03, reportés) : `trustProxies`/`TrustH
 | Seconde revue | Vérificateur indépendant et adverse sur `36e380b` (finance, transport, vérité de l'interface, architecture et tests) : **pass=false**, 14 majeurs, 26 mineurs, 14 constats réfutés — « soldée » avec un crédit à rembourser, compte épinglé au premier envoi, session dégradée par une panne réseau au retour sur l'onglet, expulsion de la saisie, accueil accusant un manque de droits, boîte de reconnexion inaccessible, vide « certain » sans lecture serveur, confirmation du mot de passe (423) sans remède |
 | Traitement de la seconde revue | Traités avec test : `settled` / `creditDue`, compte épinglé à l'ouverture du formulaire, état `expired` et reconnexion sur place, `revalidateSession` (seul un 401/419 change une session ouverte), aucune navigation forcée, `ReadOutcome.live`, focus et erreurs de la boîte, double soumission, intention figée, époque de session, message « rien n'a été envoyé » ; 14 mutations ciblées tuées (une survivante tuée par un test ajouté). **Reportés avec motif et tâche** : confirmation du mot de passe (B06), contrôle serveur de l'acteur attendu (avant G1), 3 routes de `CreatePrescription` (C04), cohérence type/origine des faits financiers (B07), `SyncStatus`/fuseau/accords (O04, O05), règle ESLint (O01), `LocalCommandEngine` (O04), délais d'`api.ts` (D01) |
 | Reprise | M01, puis P01, P02, consultation et prescription selon la priorité du demandeur ; O01 à O05 ensuite |
+
+## Écarts de G1 : (a2) annuaire du poste : fiches du serveur lues, modifiées et facturées sans réseau (2026-10-30)
+
+Chantier de la branche `claude/annuaire-poste` (empilée sur `claude/facture-hors-ligne`). Lève la limite « les patients du serveur ne
+se lisent pas hors ligne » d'A1 : les fiches que le pull a scellées dans le coffre (`pulled_administrative`) sont lues par les écrans.
+Détail : `docs/implementation/vault.md`, « Implémentation (A2) » ; preuve : `docs/evidence/G1.md`.
+
+- **Code** : `Vault.listEntities(type, préfixe)` ; `pulledRecords` et `lastPullAt` (façade du coffre et service `vault`) ; `patientOfPulled`
+  et `foldLocalPatients(faits, annuaire)` (`domain/patients/local.ts`) ; `localPatients(portée)` avec annuaire gardé en mémoire
+  (`app/services/localPatients.ts`, oublié au verrouillage par `whenVaultLocks`) ; `searchPatients` ouvre l'annuaire serveur injoignable
+  seulement ; `getPatient` et l'identité des factures du poste lisent les fiches voulues seulement ; `LocalFact.expectedVersion`.
+- **Tests** : 14 cas ajoutés à `tests/frontend/patients/local-patients.test.ts` (rejeu par-dessus la fiche du serveur, modification déjà
+  reprise par le pull, fiche créée ici puis reçue, lecture défensive), `tests/frontend/services/local-patients-directory.test.ts`
+  (portées, repère, oubli au verrouillage), `patients-local.test.ts` (portée demandée par l'écran, fiche fusionnée jamais proposée),
+  `sync.test.ts` (liste par type, identifiants, dernier pull) ; `tests/e2e/offline-directory.spec.ts` : fiche créée EN LIGNE, reçue par le
+  pull, puis serveur arrêté : recherche, fiche, modification, facture émise avec l'identité du patient, fermeture complète, synchronisation
+  (le serveur connaît la profession et la facture de CE patient, même numéro).
+- **Incident de parcours** : un serveur d'aperçu d'une autre session occupait le port dérivé (8130) : les ports e2e se décalent avec
+  `EEO_E2E_PORT`.
+- **Limites** : couverture de l'annuaire non affichée, factures du serveur (résumés seulement), déchiffrement sans worker ; voir vault.md.
+- **Arbitrage** : le demandeur a passé G1 à DONE le 2026-10-30 (écarts 1 et 2 levés ; CI verte : run 41039143341 sur `0ea7668`).
+- **À faire ensuite** : afficher la fraîcheur et la couverture de l'annuaire ; « Factures de ce patient » (résumés du pull) ; O06 (mises à jour
+  PWA) puis G2.

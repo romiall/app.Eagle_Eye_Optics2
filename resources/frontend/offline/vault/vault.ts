@@ -1247,7 +1247,11 @@ export class Vault {
     }
   }
 
-  async listEntities<T>(type: string): Promise<{ entityId: string; version: number; value: T }[]> {
+  /** Entités d'un type, déchiffrées ; `idPrefix` : seules celles dont l'identifiant commence ainsi sont ouvertes. */
+  async listEntities<T>(
+    type: string,
+    idPrefix = '',
+  ): Promise<{ entityId: string; version: number; value: T }[]> {
     const compartment = this.compartmentOfType(type)
     this.keyFor(this.requireLive(), compartment)
     const rows = await this.db.encrypted_entities
@@ -1256,6 +1260,7 @@ export class Vault {
       .toArray()
     const out: { entityId: string; version: number; value: T }[] = []
     for (const row of rows) {
+      if (!row.entityId.startsWith(idPrefix)) continue
       const entry = await this.getEntity<T>(type, row.entityId)
       if (entry !== null) out.push({ entityId: row.entityId, ...entry })
     }

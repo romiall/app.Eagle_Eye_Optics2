@@ -21,7 +21,7 @@ import {
   SyncEngine,
   type SyncReport,
 } from './sync/engine'
-import { type PulledRecord, pulledRecord } from './sync/pull'
+import { lastPullAt, type PulledRecord, pulledRecord, pulledRecords } from './sync/pull'
 import type { SyncTransport } from './sync/transport'
 import { type DeviceExport, exportDevice } from './recovery/exportDevice'
 import { type OpenedExport, openExport } from './recovery/openArchive'
@@ -207,6 +207,17 @@ export interface OfflineVault {
    * administratif) : sa valeur brute, ou null s'il n'a jamais été remis. À lire avec `readLocalCatalog`.
    */
   catalogSnapshot(): Promise<unknown>
+  /**
+   * Annuaire du poste (A2) : projections du serveur reçues par le pull pour un type d'entité (les `ids` donnés seulement, ou
+   * toutes). Vide si le compartiment est fermé pour la session ; jamais le réseau.
+   */
+  pulledRecords(
+    compartment: Compartment,
+    entityType: string,
+    ids?: readonly string[],
+  ): Promise<PulledRecord[]>
+  /** Instant du dernier pull du compte ouvert (l'annuaire est à jour jusque-là) ; null s'il n'y en a jamais eu. */
+  lastPullAt(): Promise<string | null>
   onBeforeLock(hook: () => Promise<void> | void): () => void
   touch(): Promise<void>
   checkInactivity(): Promise<string | null>
@@ -334,6 +345,9 @@ export function openOfflineVault(options: OpenOfflineVaultOptions = {}): Offline
     localHeads: (headType) => localHeads(self(), headType),
     catalogSnapshot: async () =>
       (await self().getEntity<unknown>('catalog_snapshot', 'current'))?.value ?? null,
+    pulledRecords: (compartment, entityType, ids) =>
+      pulledRecords(self(), compartment, entityType, ids ?? null),
+    lastPullAt: () => lastPullAt(self()),
     onBeforeLock: (hook) => self().onBeforeLock(hook),
     touch: () => self().touch(),
     checkInactivity: () => self().checkInactivity(),

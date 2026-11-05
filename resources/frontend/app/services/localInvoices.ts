@@ -48,8 +48,18 @@ function clinicSnapshotOf(clinic: {
  */
 export async function localInvoices(): Promise<Map<string, LocalInvoice>> {
   const records = await localFinancialFacts()
-  if (!records.some((record) => record.fact.commandName === 'CreateInvoiceDraft')) return new Map()
-  const [catalog, patients] = await Promise.all([localCatalog(), localPatients()])
+  const drafts = records.filter((record) => record.fact.commandName === 'CreateInvoiceDraft')
+  if (drafts.length === 0) return new Map()
+  // Identité des patients des factures du poste : fiches créées ici ou fiches du serveur reçues par le pull (celles-là seules).
+  const patientIds = new Set<string>()
+  for (const { fact } of drafts) {
+    const patientId = fact.payload['patient_id']
+    if (typeof patientId === 'string') patientIds.add(patientId)
+  }
+  const [catalog, patients] = await Promise.all([
+    localCatalog(),
+    localPatients({ ids: [...patientIds] }),
+  ])
   const account = session.account
   const context: LocalInvoiceContext = {
     catalog,

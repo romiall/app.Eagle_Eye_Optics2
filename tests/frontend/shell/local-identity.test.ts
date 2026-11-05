@@ -77,7 +77,25 @@ interface FakeFact {
   state: string
 }
 
-function fakeVault(options: { retryAt?: number; permissions?: string[]; facts?: FakeFact[] } = {}) {
+/** Projection du serveur reçue par le pull (annuaire du poste, A2). */
+interface FakePulled {
+  entityType: string
+  entityId: string
+  entityVersion: number
+  changeKind: string
+  changeSequence: string
+  recordedAt: string
+  data: Record<string, unknown>
+}
+
+function fakeVault(
+  options: {
+    retryAt?: number
+    permissions?: string[]
+    facts?: FakeFact[]
+    pulled?: FakePulled[]
+  } = {},
+) {
   let opened: SessionInfo | null = null
   const vault = {
     status: vi.fn(async () => (opened === null ? 'locked' : 'unlocked')),
@@ -139,6 +157,17 @@ function fakeVault(options: { retryAt?: number; permissions?: string[]; facts?: 
     ),
     localHeads: vi.fn(async () => []),
     catalogSnapshot: vi.fn(async () => null),
+    pulledRecords: vi.fn(
+      async (_compartment: string, entityType: string, ids?: readonly string[]) =>
+        (options.pulled ?? []).filter(
+          (record) =>
+            record.entityType === entityType &&
+            (ids === undefined || ids.includes(record.entityId)),
+        ),
+    ),
+    lastPullAt: vi.fn(async () =>
+      options.pulled === undefined ? null : '2026-10-30T08:00:00.000Z',
+    ),
     touch: vi.fn(async () => undefined),
     checkInactivity: vi.fn(async () => null),
     dispose: vi.fn(),
@@ -472,6 +501,62 @@ describe('lecture locale des fiches patient en session locale (A1)', () => {
 
     expect(root.querySelector('h1')?.textContent).not.toContain('Mbarga')
     expect(root.textContent).not.toContain('EE-2026-0042')
+    unmount()
+  })
+
+  it('la fiche d’un patient du SERVEUR, reçue par le pull, s’ouvre aussi sans le serveur (A2) ; une fiche jamais reçue reste introuvable', async () => {
+    const SERVER = '01J9ZXK4M2Q8R7S6T5V4W3PB01'
+    fakeVault({
+      permissions: ['patient.read', 'patient.update', 'invoice.create', 'invoice.read'],
+      pulled: [
+        {
+          entityType: 'patient_records',
+          entityId: SERVER,
+          entityVersion: 3,
+          changeKind: 'UPDATED',
+          changeSequence: '11',
+          recordedAt: '2026-10-22T09:35:00.000Z',
+          data: {
+            id: SERVER,
+            record_number: 'EE-2026-0007',
+            last_name: 'Ngono',
+            first_names: 'Paul',
+            sex: 'M',
+            birth_date: '1979-06-12',
+            phone_primary: '+237 677 00 00 07',
+            archived: false,
+            merged_into_patient_id: null,
+            version: 3,
+            created_at: '2026-10-01T08:00:00.000Z',
+            updated_at: '2026-10-20T08:00:00.000Z',
+          },
+        },
+      ],
+    })
+    // Serveur ARRÊTÉ : toute requête échoue (le stub répondrait 404 aux routes qu'il ne connaît pas, ce qu'un serveur éteint ne fait pas).
+    stubServer({ me: 'unreachable' }).mockImplementation(async () => {
+      throw new TypeError('Failed to fetch')
+    })
+    const { root, router, unmount } = await openApp('/')
+    await unlock(root, CASHIER_PROFILE, GOOD_SECRET)
+
+    await router.push(`/patients/${SERVER}`)
+    await flushPromises()
+
+    expect(root.querySelector('h1')?.textContent).toContain('Ngono')
+    expect(root.textContent).toContain('EE-2026-0007')
+    expect(root.textContent).toContain('Données de ce poste seulement')
+    const links = [...root.querySelectorAll('main a')].map((link) => link.textContent?.trim())
+    expect(links).toContain('Modifier')
+    expect(links).toContain('Créer une facture')
+
+    await router.push(`/ventes/factures/nouvelle?patient=${SERVER}`)
+    await flushPromises()
+    expect(root.textContent).toContain('Ngono')
+
+    await router.push('/patients/01J9ZXK4M2Q8R7S6T5V4W3PB09')
+    await flushPromises()
+    expect(root.textContent).not.toContain('EE-2026-0007')
     unmount()
   })
 })

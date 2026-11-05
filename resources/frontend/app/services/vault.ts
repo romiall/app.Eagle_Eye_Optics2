@@ -20,6 +20,7 @@ import {
   openOfflineVault,
   type PreparedRecovery,
   type ProfileSummary,
+  type PulledRecord,
   type RecoveredPushReport,
   type RecoveryTransport,
   type ReleaseCompatibility,
@@ -52,6 +53,7 @@ export type {
   GrantClaims,
   ImportReport,
   PreparedRecovery,
+  PulledRecord,
   RecoveredPushReport,
   StorageHealth,
   UpdateReadiness,
@@ -166,6 +168,39 @@ export async function localCatalogSnapshot(): Promise<unknown> {
   if (!offlineModuleOpen() || instance === null || state.value.session === null) return null
   try {
     return await instance.catalogSnapshot()
+  } catch (error) {
+    if (isVaultError(error)) return null
+    throw error
+  }
+}
+
+/**
+ * Annuaire du poste (A2) : projections du serveur reçues par le pull pour un type d'entité du compartiment administratif
+ * (`ids` : ces entités seulement). Vide si le module `offline` est fermé, le coffre fermé ou le compartiment fermé pour la
+ * session. Lecture seule, jamais le réseau.
+ */
+export async function localPulledRecords(
+  entityType: string,
+  ids?: readonly string[],
+): Promise<PulledRecord[]> {
+  if (!offlineModuleOpen() || instance === null || state.value.session === null) return []
+  try {
+    return await instance.pulledRecords('ADMINISTRATIVE', entityType, ids)
+  } catch (error) {
+    if (isVaultError(error)) return []
+    throw error
+  }
+}
+
+/**
+ * Repère de l'annuaire du poste : session ouverte + dernier pull. Il change à chaque déverrouillage et à chaque page de pull
+ * validée ; null quand rien ne peut être lu (module fermé, coffre fermé) : l'annuaire gardé en mémoire doit alors être oublié.
+ */
+export async function localPullStamp(): Promise<string | null> {
+  const session = state.value.session
+  if (!offlineModuleOpen() || instance === null || session === null) return null
+  try {
+    return `${session.sessionId}:${(await instance.lastPullAt()) ?? 'jamais'}`
   } catch (error) {
     if (isVaultError(error)) return null
     throw error
@@ -297,10 +332,18 @@ export async function checkVaultSession(): Promise<boolean> {
   return true
 }
 
-/** Ce que le verrouillage défait côté application : moteur, synchronisation, conservation des PDF en mémoire. */
+/** Oublis à faire quand le coffre se referme (D12) : ce qu'un service garde déchiffré en mémoire, l'annuaire du poste par exemple. */
+const lockListeners = new Set<() => void>()
+
+export function whenVaultLocks(forget: () => void): void {
+  lockListeners.add(forget)
+}
+
+/** Ce que le verrouillage défait côté application : moteur, synchronisation, conservation des PDF en mémoire, annuaire. */
 function afterLock(): void {
   commands = null
   sync = null
+  for (const forget of lockListeners) forget()
   // Coffre verrouillé : retour à la conservation volatile (l'écran le dit, comme avant).
   installDocumentStore(new MemoryDocumentStore(), { persistent: false })
 }

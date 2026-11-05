@@ -23,8 +23,9 @@ import type { ReadOutcome } from './reads'
  *
  * Fiches de CE poste (créées ou modifiées hors ligne, `localPatients`) : une fiche pas encore consolidée prime sur
  * le serveur (F10, AT42) ; serveur injoignable, la copie du poste répond, avec une fraîcheur qui dit « données de ce
- * poste seulement » (`serverAsOf` null, `live` faux : jamais une absence affirmée). La recherche ne retombe sur le poste
- * que si l'écran le demande (`includeLocal`) : la détection de doublons, elle, exige le serveur.
+ * poste seulement » (`serverAsOf` null, `live` faux : jamais une absence affirmée). L'annuaire du poste (fiches du serveur
+ * reçues par le pull) répond de même, et n'est jamais ouvert tant que le serveur répond. La recherche ne retombe sur le
+ * poste que si l'écran le demande (`includeLocal`) : la détection de doublons, elle, exige le serveur.
  */
 function answered<T>(data: T): ReadOutcome<T> {
   return { data, freshness: { serverAsOf: new Date().toISOString(), complete: true }, live: true }
@@ -57,7 +58,9 @@ export async function searchPatients(
   }
   if (options.includeLocal !== true) return answered(response as PatientPage)
 
-  const local = [...(await localPatients()).values()]
+  // Serveur injoignable : l'annuaire du poste (fiches reçues par le pull) répond avec les fiches de ce poste ; serveur joint,
+  // seules les fiches du poste pas encore consolidées comptent, l'annuaire n'est pas ouvert.
+  const local = [...(await localPatients(response === null ? { directory: true } : {})).values()]
   if (response === null) {
     const matches = local.filter((entry) => matchesLocalSearch(entry.patient, query))
     return fromThisDevice(
@@ -88,7 +91,7 @@ export async function searchPatients(
 
 /** Fiche d'un patient. Identité seulement : aucune donnée clinique. */
 export async function getPatient(id: string): Promise<ReadOutcome<Patient>> {
-  const local = (await localPatients()).get(id) ?? null
+  const local = (await localPatients({ ids: [id] })).get(id) ?? null
   // Proposition du poste pas encore consolidée : elle prime sur le serveur, qui ne la connaît pas encore (F10).
   if (local !== null && isUnconsolidated(local.state)) return fromThisDevice(local.patient)
   try {

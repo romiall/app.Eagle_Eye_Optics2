@@ -186,6 +186,40 @@ export async function pullChanges(
   return report
 }
 
+/**
+ * Projections du serveur d'un type d'entité (annuaire du poste, A2) : celles des `ids` donnés (une lecture chacune, le
+ * reste du coffre n'est pas déchiffré) ou, sans `ids`, toutes. Vide si le profil n'ouvre pas le compartiment : jamais une
+ * entité d'un compartiment fermé. Une ligne altérée fait échouer toute la lecture (`ROW_DECRYPT_FAILED`) : rien n'est
+ * montré à moitié.
+ */
+export async function pulledRecords(
+  vault: Vault,
+  compartment: Compartment,
+  entityType: string,
+  ids: readonly string[] | null = null,
+): Promise<PulledRecord[]> {
+  const session = vault.session()
+  if (session === null || !session.compartments.includes(compartment)) return []
+  if (ids !== null) {
+    const found = await Promise.all(
+      ids.map((entityId) => pulledRecord(vault, compartment, entityType, entityId)),
+    )
+    return found.filter((record): record is PulledRecord => record !== null)
+  }
+  const entries = await vault.listEntities<PulledRecord>(
+    PULLED_TYPES[compartment],
+    `${entityType}/`,
+  )
+  return entries.map((entry) => entry.value)
+}
+
+/** Instant du dernier échange de pull du compte ouvert (jusque-là, l'annuaire est à jour) ; null s'il n'y en a jamais eu. */
+export async function lastPullAt(vault: Vault): Promise<string | null> {
+  const session = vault.session()
+  if (session === null) return null
+  return (await vault.localTables().pull_cursors.get(session.userId))?.pulledAt ?? null
+}
+
 /** Projection du serveur d'une entité, si le profil sait l'ouvrir ; null sinon. */
 export async function pulledRecord(
   vault: Vault,

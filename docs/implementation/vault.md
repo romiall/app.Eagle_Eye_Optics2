@@ -660,9 +660,9 @@ création : `tests/frontend/patients/create-page.test.ts`.
 
 ### Limites déclarées
 
-1. **Fiches du poste seulement** : seules les fiches CRÉÉES sur ce poste se reconstruisent. Une fiche du serveur modifiée sur le
-   poste n'a pas de base locale (sans le serveur, elle est introuvable) et l'annuaire du serveur n'est pas lu (projections du
-   pull non lues : lot suivant).
+1. **Fiches du poste seulement** : levé par A2 (section « Implémentation (A2) » plus bas) : les fiches du SERVEUR reçues par le
+   pull se lisent aussi et servent de base aux modifications faites sur le poste. Une fiche du serveur que ce poste n'a jamais
+   reçue reste introuvable sans le serveur.
 2. **Pas de doublons hors ligne** : la ressemblance se cherche sur le serveur seulement (voulu : « aucune fiche proche » sans le
    serveur serait une absence affirmée à tort).
 3. **Recherche approchée** : jumelle simplifiée de celle du serveur (mêmes règles de casse, d'accents et de chiffres), sans
@@ -707,9 +707,9 @@ lectures : `tests/frontend/services/billing-local.test.ts` ; éditeur : `tests/f
 
 ### Limites déclarées
 
-1. **Patients du serveur** : l'identité figée à l'émission vient des fiches CRÉÉES sur ce poste. Pour un patient du serveur, une facture
-   émise sur le poste n'est pas relisible hors ligne tant que l'annuaire du poste (projections du pull) n'est pas lu : la pièce reste
-   au journal et part à la synchronisation.
+1. **Patients du serveur** : levé par A2 (section « Implémentation (A2) » plus bas) quand la fiche a été reçue par le pull. Pour un
+   patient du serveur que ce poste n'a jamais reçu, une facture émise sur le poste n'est pas relisible hors ligne : la pièce reste au
+   journal et part à la synchronisation.
 2. **Articles stockés** : leur émission sur le poste exige un quota de stock du poste (AT40, G2) ; sans quota, la commande n'est pas
    prise sur le poste. Le parcours e2e emploie des articles non stockés (examen, verres sur mesure).
 3. **En-tête du cabinet** : nom, fuseau, monnaie et « document de test » seulement (limite 2 du déverrouillage public) ; le libellé d'une
@@ -728,5 +728,51 @@ lectures : `tests/frontend/services/billing-local.test.ts` ; éditeur : `tests/f
    (elle redevient « introuvable » sur le serveur).
 10. **Facture déjà consolidée lue en repli** (serveur injoignable après l'ACK) : ses encaissements acquittés sont repris du journal ; la
     mention « en attente de synchronisation » peut rester affichée à tort.
-11. **Patient du serveur, émission** : la facture émise sur le poste n'est pas relisible ici ; l'éditeur le dit, se verrouille (aucune
-    seconde émission) et la pièce part à la synchronisation.
+11. **Patient du serveur, émission** : si la fiche n'a pas été reçue par le pull (A2), la facture émise sur le poste n'est pas
+    relisible ici ; l'éditeur le dit, se verrouille (aucune seconde émission) et la pièce part à la synchronisation.
+
+## Implémentation (A2) — annuaire du poste : fiches du serveur lues, modifiées et facturées sur le poste — 2026-10-30
+
+Lève la limite « les patients du serveur ne se lisent pas hors ligne » d'A1. Preuve en navigateur réel :
+`tests/e2e/offline-directory.spec.ts` (fiche créée en ligne, reçue par le pull, serveur RÉELLEMENT arrêté, deux fermetures complètes, synchronisation à la fin ; vert en local le 2026-10-30 sur Edge). Règles pures : `tests/frontend/patients/local-patients.test.ts` ; lectures :
+`tests/frontend/services/local-patients-directory.test.ts` et `patients-local.test.ts` ; coffre : `tests/frontend/offline/sync.test.ts`.
+
+### Comportement
+
+- **Source** : les projections que le pull a scellées dans `pulled_administrative` (`patient_records/<id>`, même représentation que l'API
+  en ligne). La façade du coffre les liste par type sans déchiffrer le reste (`pulledRecords`, avec ou sans identifiants) et dit jusqu'où
+  l'annuaire est à jour (`lastPullAt`) ; un compartiment fermé pour la session rend une liste vide. Une projection vide (entité disparue),
+  d'une autre forme ou dont l'identité ne correspond pas à sa clé est écartée (`patientOfPulled`), jamais corrigée.
+- **Rejeu** (`foldLocalPatients(faits, annuaire)`) : une fiche du serveur que le poste n'a pas touchée est lue telle que reçue, état
+  `acknowledged` ; une modification faite ici s'applique par-dessus (version = version attendue + 1, comme le compteur d'entité du
+  journal), sauf si le serveur l'a refusée (elle ne change rien) ou si le pull l'a déjà REPRISE (acquittée, et fiche du serveur à la
+  version qu'elle a produite : la rejouer défairait un changement plus récent du serveur sur les mêmes champs).
+  `LocalFact.expectedVersion` (nouveau, absent des faits d'avant A2 : ils comptent alors +1 et ne sont jamais tenus pour repris) porte la
+  version attendue. Une fiche créée ici puis reçue du serveur : non consolidée, la proposition du poste prime (AT42) ; consolidée, la
+  plus récente des deux fait foi.
+- **Portée de la lecture** (`localPatients(portée)`) : sans portée, les seuls faits du journal (serveur joint : les fiches non
+  consolidées s'ajoutent en tête de la première page) ; `ids` : ces fiches du serveur seulement (fiche lue, identité des factures du
+  poste : une lecture chacune) ; `directory` : l'annuaire entier, demandé seulement serveur injoignable (recherche). L'annuaire entier
+  est gardé en mémoire le temps de la session et du dernier pull (repère « session + dernier pull »), relu dès que le repère change et
+  oublié à chaque verrouillage du coffre (D12 ; la mémoire physique n'est pas effacée, comme pour les clés).
+- **Recherche** : serveur injoignable, elle porte sur les fiches du poste ET celles de l'annuaire, avec les règles du serveur (nom et
+  prénoms sans casse, accents ni ordre ; chiffres du téléphone ; numéro de dossier) ; une fiche fusionnée dans une autre n'est jamais
+  proposée, une fiche archivée l'est. Serveur joint : l'annuaire n'est jamais ouvert (aucun coût en ligne).
+- **Facture** : l'identité du patient d'une facture du poste est lue par les identifiants de ses brouillons (annuaire et fiches créées
+  ici) : une facture émise sur le poste pour un patient du serveur se relit avec son identité, sans écran verrouillé.
+
+### Limites déclarées
+
+1. **Couverture** : l'annuaire est ce que les échanges de synchronisation ont déjà reçu (un échange : 20 pages de 100 changements). Un
+   poste neuf sur un cabinet au journal long peut demander plusieurs échanges ; l'écran ne dit pas encore si l'annuaire est complet :
+   un résultat vide n'affirme jamais l'absence.
+2. **Fraîcheur** : l'annuaire date du dernier pull (`lastPullAt`, non affiché). Une fiche modifiée depuis sur un autre poste n'y est pas.
+3. **Compartiment** : le compartiment administratif doit être ouvert pour la session ; sinon la lecture est vide.
+4. **Factures du serveur** : le pull ne publie qu'un RÉSUMÉ de chaque facture (numéro, statut, total, reste dû ; ni lignes ni
+   encaissements). Une facture du serveur ne se relit donc pas hors ligne ; une liste « Factures du patient » faite de ces résumés est
+   possible, non faite.
+5. **Pas de worker** (E6) : l'annuaire est déchiffré sur le fil principal, une fois par pull et par session ; non mesuré jusqu'à la borne
+   visée de 20 000 fiches.
+6. **Doublons** : la détection de ressemblance à la création exige toujours le serveur.
+7. **Intégrité** : une ligne altérée de l'annuaire fait échouer toute la lecture (la recherche hors ligne est alors vide) : rien n'est
+   montré à moitié.
