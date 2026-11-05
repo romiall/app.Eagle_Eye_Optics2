@@ -37,6 +37,8 @@ npm run build
 
 Le build n'est pas octet pour octet identique d'une exécution à l'autre : la révision de précache de la coquille `/` change à chaque build (c'est voulu, pour que le service worker recharge la coquille). Définir `EEO_BUILD_ID=<identifiant>` fixe cette révision pour un build reproductible.
 
+**Identité du build (O06).** Chaque build porte un identifiant et une date de construction, écrits dans le code (`define` de `vite.config.ts` : `__EEO_BUILD_ID__` et `__EEO_BUILD_AT__`, lus par `resources/frontend/app/release.ts`) et dans `public/build/build-info.json` (`{ "id": "…", "builtAt": "…" }`). `EEO_BUILD_ID` (la livraison : `tools/deploy/build-release.sh` y met le commit court) et `EEO_BUILD_AT` (date ISO, que `build-release.sh` fixe aussi) les imposent ; sans `EEO_BUILD_ID`, l'identifiant est `local-` suivi de la date et de l'heure de construction. L'application les affiche en bas de chaque écran (`components/update/AppVersion.vue`) : c'est ainsi que la personne sait quelle version son navigateur exécute (le 2026-10-30, un navigateur gardait l'ancienne version sans que rien ne le dise). `tools/deploy/smoke.sh` vérifie que `/build/build-info.json` est servi et `tools/deploy/deploy-hostinger.sh` affiche le build mis en ligne.
+
 Ensuite, sur le serveur ou avant téléversement :
 
 ```text
@@ -84,7 +86,7 @@ En développement (`npm run dev`), le service worker n'est pas enregistré : tes
 - Le service worker est généré dans `public/build/sw.js` mais **servi à `/sw.js`** par une route Laravel (`routes/spa.php`) avec `Service-Worker-Allowed: /` et `Cache-Control: no-cache`, afin que sa portée couvre toute l'origine. Le manifeste est servi à `/manifest.webmanifest`. Sans `public/build/`, ces deux URL répondent 404 : le build fait partie du déploiement.
 - Les requêtes qui ne correspondent pas à un fichier doivent atteindre `public/index.php` (réécriture fournie par `public/.htaccess` pour Apache ; sous nginx : `try_files $uri /index.php?$query_string`).
 - `/up` est une route maison (`HealthController`), non le `health:` de Laravel : la vue par défaut de ce dernier charge un script Tailwind depuis `cdn.jsdelivr.net` et des fontes depuis `fonts.bunny.net`, sur la même origine que la SPA, le service worker et le futur coffre local. Un test e2e vérifie qu'aucune requête ne sort de l'origine.
-- Le service worker ne met **jamais** en cache `/api` (stratégie `NetworkOnly` explicite) et ne sert jamais la coquille SPA pour `/api`, `/up`, `/build/`, `/storage/` ni pour une URL ressemblant à un fichier. Il précache seulement la coquille `/`, les icônes locales et les fichiers versionnés de `public/build/assets/`. Les mises à jour attendent une confirmation (`registerType: 'prompt'`) : un nouveau service worker ne prend pas le contrôle d'une session ouverte (une commande locale en attente ne doit jamais être interrompue).
+- Le service worker ne met **jamais** en cache `/api` (stratégie `NetworkOnly` explicite) et ne sert jamais la coquille SPA pour `/api`, `/up`, `/build/`, `/storage/` ni pour une URL ressemblant à un fichier. Il précache seulement la coquille `/`, les icônes locales et les fichiers versionnés de `public/build/assets/`. Les mises à jour attendent une confirmation (`registerType: 'prompt'` ; bandeau, version affichée et recherche au retour : `shell.md`, « Mise à jour de l'application (O06) ») : un nouveau service worker ne prend pas le contrôle d'une session ouverte (une commande locale en attente ne doit jamais être interrompue).
 - HTTPS est obligatoire : les service workers, Web Crypto et les cookies `Secure` exigent un contexte sécurisé.
 - La coquille est servie **hors du groupe middleware `web`** : pas de session, pas de cookie, réponse identique pour tous.
 
@@ -105,6 +107,7 @@ Selon l'hébergeur, ou si un CDN est placé devant le site, le navigateur parle 
 3. Ouvrir `/` : titre « Eagle’s Eye Optics — Gestion du cabinet », console du navigateur vide (aucun « Mixed Content »). En ligne de commande : `curl -fsS https://<domaine>/ | grep -Eo '(src|href)="[^"]*/build/[^"]*"'` ne retourne que des attributs dont la valeur commence par `/build/assets/` (aucun `http://`, aucun nom d'hôte).
 4. Outils de développement du navigateur, Application, Service Workers : script `/sw.js`, portée `/`, état « activated ».
 5. Couper le réseau et recharger `/` : la coquille s'affiche (précache) ; `/api/…` n'affiche jamais la coquille.
+6. `curl -fsS https://<domaine>/build/build-info.json` donne l'identifiant et la date du build en ligne (ils sont aussi écrits en bas de chaque écran de l'application). Un navigateur qui a déjà ouvert l'application garde l'ancienne version jusqu'à ce que la personne clique sur « Installer la nouvelle version » dans le bandeau en haut de l'écran.
 
 Les tests automatisés équivalents sont dans `tests/Feature/Http/SpaShellTest.php`, `tests/Feature/Http/SpaShellOriginTest.php`, `tests/e2e/smoke.spec.ts` et `tests/e2e/https-origin.spec.ts` (voir `testing.md`).
 

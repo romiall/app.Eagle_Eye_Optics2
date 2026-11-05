@@ -545,7 +545,7 @@ générateurs de contrats ont été lancés (`build_resources.py`, `build_openap
 
 ### Reste à faire après O05
 
-O06 (mise à jour PWA et schéma local), G2 (risques financiers, concurrence, reprise complète). O07 et G1 (tranche
+O06 (mise à jour PWA et schéma local : prouvée en navigateur, voir « Implémentation (O06) » plus bas), G2 (risques financiers, concurrence, reprise complète). O07 et G1 (tranche
 de base) sont prouvés en local ; le numéro de reçu hors ligne (G1) et l'écran public de déverrouillage (D14, D27) sont
 faits. Plus : dépôt des PDF locaux après l'ACK de leur pièce (D01, compteurs `documentsToUpload` à zéro tant qu'il
 n'est pas branché), lecture des projections du pull par les écrans hors ligne (fiche patient, liste, recherche,
@@ -776,3 +776,53 @@ Lève la limite « les patients du serveur ne se lisent pas hors ligne » d'A1. 
 6. **Doublons** : la détection de ressemblance à la création exige toujours le serveur.
 7. **Intégrité** : une ligne altérée de l'annuaire fait échouer toute la lecture (la recherche hors ligne est alors vide) : rien n'est
    montré à moitié.
+
+## Implémentation (O06) — mises à jour de l’application et du schéma local — 2026-11-05
+
+Fiche O06 (« Sécuriser mises à jour PWA et schéma local » ; AT45 ; EE042, EE044). Le code existait déjà en partie (règles `offline/update/updateGate.ts` et
+`updateCheck.ts`, registre additif `offline/migrations/registry.ts`, `pwa.config.ts`, `contracts/compatibility.json`) mais AUCUN critère de sortie n’était prouvé
+dans un navigateur et la tâche restait NOT_STARTED. Ce passage audite, complète et prouve ; **O06 n’est pas déclarée DONE** (écarts en fin de section).
+
+### Audit : ce qui existait, ce qui manquait
+
+| Élément | Constat | Suite |
+| --- | --- | --- |
+| `pwa.config.ts` : `registerType: 'prompt'`, `skipWaiting: false`, `clientsClaim: false`, `/api` en `NetworkOnly`, liste de refus du repli SPA | Correct, testé en Vitest seulement | Prouvé aussi sur le service worker construit et dans Chromium (e2e) |
+| `updateGate.ts` (`decideUpdate`) et `updateCheck.ts` | Correct (bloqué, à confirmer, libre ; pièces, profil verrouillé, export, stockage) | Inchangé ; prouvé de bout en bout par l’e2e |
+| `registry.ts` : schéma local additif, `assertAdditive`, `declareLocalSchema` | Correct ; un seul palier testé (v4 → v5) | Tous les paliers N-1 → N testés, puis en vrai Chromium |
+| `contracts/compatibility.json` | Correct ; aucune garde contre le RETRAIT d’une version publiée | Garde ajoutée (`compatibility-guard.test.ts`) |
+| Bandeau `UpdatePrompt.vue` | En haut de la page seulement, repliable par « Plus tard », rien pour savoir quelle version tourne | Refait (voir `shell.md`, « Mise à jour de l’application ») |
+| Recherche d’une nouvelle version | Aucune : le navigateur ne cherche qu’à l’ouverture d’une page | Au retour sur l’application, périodique, sur demande |
+| Installation qui ne prend jamais la main, autre onglet qui installe | Non gérés (bouton « Installation… » sans fin ; ancien code qui reste dans l’autre onglet) | `installStalled` après 20 s, `reloadNeeded` |
+
+### Critères de sortie et preuves
+
+| Critère (fiche) | Preuve |
+| --- | --- |
+| Aucune purge automatique | `update.test.ts` (aucun `deleteDatabase`, `Dexie.delete`, `db.delete()`, `caches.delete`, `localStorage.clear` dans le code de l’application) ; e2e : journal, profils, enveloppes de clés et données chiffrées **identiques à l’octet** (empreintes SHA-256) avant et après l’installation, version IndexedDB inchangée ; `sw.js` sans `indexedDB` ni `clients.claim()` et avec un seul `skipWaiting()`, sur message de la page. Le seul `caches.delete` du service worker est le nettoyage de Workbox : il retire les fichiers de l’ANCIENNE version de l’application du précache (vérifié : l’ancien fichier d’entrée n’est plus en cache, le nouveau l’est), jamais une donnée du poste ni une réponse de l’API (aucune adresse `/api` dans les caches) |
+| Commandes de l’ancienne version encore reprises | e2e : une fiche créée sur le poste sous la version PRÉCÉDENTE (en attente) est envoyée par la NOUVELLE version puis acceptée par le serveur (recherche du patient côté serveur) ; `compatibility-guard.test.ts` : la déclaration courante garde toutes les versions de règles, de commandes, d’événements, de coffre, de schéma et de modèles de chaque release publiée (`tests/frontend/offline/published/`) ; `decideUpdate` bloque si une pièce en attente n’est plus reprise |
+| API et fichiers privés exclus du repli SPA | `pwa-config.test.ts` (liste de refus : `/api`, `/up`, `/build/`, `/storage`, `/sw.js`, le manifeste, tout chemin à extension) ; e2e, serveur COUPÉ et service worker de la nouvelle version : `/storage/…`, `/api/…` et un fichier inconnu de `/build/` échouent (`net::ERR_`) au lieu de rendre la coquille, alors qu’une adresse du routeur (`/patients`) vient du précache ; `smoke.spec.ts` (déjà) pour l’API |
+| Migration du coffre additive, anciens modèles et règles conservés | `migrations.test.ts` : CHAQUE palier N-1 → N du registre (base remplie, deux lignes par table, puis ouverte par le client courant : lignes identiques, index conservés, tables ajoutées vides), coupure pendant la migration (base intacte), client plus ancien que la base (refus sans purge) ; e2e : base réelle en v4, coupure AU MILIEU de la migration (`AbortError`, base inchangée), puis migration par l’application sans perdre une ligne ni un index ; anciens modèles et règles : `documents/registry.test.ts` (les modèles déclarés dans la compatibilité sont exactement ceux du registre du client) et `domain/rule-vectors.test.ts` (la version de règles du client est déclarée), plus la garde de compatibilité |
+
+### AT45 (fichier 14) : pièces pendantes, profil verrouillé, dashboard distant
+
+- **Pièces pendantes** : une fiche en attente, créée sous la version précédente ; le bandeau la compte, demande une confirmation et la conserve.
+- **Profil verrouillé** : le poste est verrouillé avant l’installation ; le bandeau le signale (« appartiennent à un profil verrouillé ») ; après l’installation la pièce n’est envoyée qu’à l’ouverture du profil (e2e).
+- **Pas de texte clair** : après l’installation, le nom du patient est introuvable dans la base du poste (chaînes et octets de toutes les tables), avec un témoin (le login d’un profil, métadonnée en clair, est retrouvé).
+- **Totaux distants incomplets** : `FreshnessNote` (F10), éprouvé par `tests/frontend/components/sync.test.ts` ; non lié au service worker.
+
+### Règles de montée de version retenues
+
+1. Une version publiée du registre ne se modifie plus : la suivante s’ajoute à la fin (`assertAdditive`) et se déclare dans `local_schema_versions` ; aucune fonction `upgrade` qui supprime ou réécrit une ligne.
+2. Après une mise en ligne, copier `contracts/compatibility.json` dans `tests/frontend/offline/published/compatibility-<commit>.json` : la release suivante ne pourra plus retirer une version qu’un poste détient encore.
+3. Le navigateur applique la migration d’IndexedDB dans UNE transaction `versionchange` : une coupure l’annule entièrement (prouvé dans Chromium, pas seulement en simulation).
+4. Une nouvelle version ne s’installe que sur demande de la personne ; elle ne s’installe pas malgré un blocage (serveur injoignable avec des pièces en attente, version non reprise).
+
+### Limites et écarts déclarés
+
+- **« Ancienne version » de commande** : toutes les commandes sont aujourd’hui en version « 1 » ; il n’existe donc pas de seconde version à rejouer. La garde est mécanique (aucune version publiée ne peut disparaître) mais le chemin « le serveur reprend une commande dont la version est plus ancienne que la sienne » n’a pas de cas réel à exécuter ; à prouver dès qu’une version 2 existera.
+- **Version précédente du test e2e** : c’est le build courant avec d’autres noms de fichiers et une autre identité de build (`tests/e2e/support/update-proxy.ts`), pas une autre génération du code. Le schéma local entre deux générations du code est prouvé à part (paliers du registre, base réelle en v4).
+- **Un onglet ouvert sur l’ancien code pendant qu’un autre migre la base** : Dexie ferme la connexion de l’ancien onglet (événement `versionchange`) et le client plus ancien refuse de rouvrir une base plus récente (`VAULT_FORMAT_TOO_NEW`) sans rien purger. Le bandeau « Cette page doit être rechargée » s’affiche dans cet onglet quand le service worker change (cas courant). Une base plus récente rouverte par un onglet que le service worker ne contrôle pas n’a pas de message dédié.
+- **Service worker en attente à la fermeture de tous les onglets** : le navigateur l’active alors sans demander (comportement de la plateforme, documenté dans `appUpdate.ts`) ; sans danger tant que les versions publiées restent déclarées.
+- **Module `offline` fermé en production** : `updateReadinessForThisDevice` rend « libre » quand le module est fermé (aucune pièce locale n’existe) ; le contrôle du poste n’a donc de conséquence en production qu’à l’ouverture du module.
+- **Rotation des clés de compartiment** : toujours non planifiée (voir « Écarts de planning ») ; une montée de version ne la déclenche pas.
