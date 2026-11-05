@@ -86,6 +86,12 @@ if [[ "$UP_BODY" != *'"status":"ok"'* ]]; then
 fi
 echo "  OK      ${APP_URL}/up -> ${UP_BODY}"
 
+# Identité du build en ligne (écrite par la construction, O06) : celle que le pied de page de l'application affiche.
+BUILD_INFO="$(curl -fsS "${APP_URL}/build/build-info.json" 2>/dev/null | tr -d '\r\n ' || true)"
+echo "  Build en ligne : ${BUILD_INFO:-inconnu}"
+echo "  Chaque navigateur garde l'ancienne version jusqu'à ce que la personne clique sur « Installer la nouvelle version »"
+echo "  dans le bandeau en haut de l'application ; le pied de page de chaque écran indique la version affichée."
+
 if [[ -n "${EEO_SMOKE_PASSWORD:-}" ]]; then
   echo "==> 5/5 Contrôle de fumée complet (smoke.sh)…"
   bash tools/deploy/smoke.sh "$APP_URL" "${EEO_SMOKE_LOGIN:-gerante}"

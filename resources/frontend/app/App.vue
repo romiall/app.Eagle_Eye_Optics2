@@ -28,6 +28,7 @@ import ReauthDialog from '@/components/session/ReauthDialog.vue'
 import SyncStatus from '@/components/SyncStatus.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
+import AppVersion from '@/components/update/AppVersion.vue'
 import UpdatePrompt from '@/components/update/UpdatePrompt.vue'
 
 import { useNavigationCatalog, visibleModules } from './navigation'
@@ -231,6 +232,8 @@ const initials = computed(() =>
     >Aller au contenu</a
   >
   <div class="flex min-h-screen flex-col">
+    <!-- Nouvelle version proposée, jamais imposée, mais collée en haut de CHAQUE écran tant qu'elle attend (O06). -->
+    <UpdatePrompt />
     <header class="border-b border-line bg-surface shadow-card">
       <div aria-hidden="true" class="h-1 bg-gold"></div>
       <div
@@ -377,12 +380,13 @@ const initials = computed(() =>
         >
           <span aria-hidden="true">⚠ </span>{{ logoutError }}
         </div>
-        <!-- Nouvelle version proposée, jamais imposée (O06). -->
-        <UpdatePrompt class="mb-4" />
         <!-- Coffre verrouillé sans identité : la coquille métier est démontée, seul le déverrouillage reste (D14). -->
         <RouterView v-if="!unlockRequired || route.meta.public === true" />
       </main>
     </div>
+
+    <!-- Version exécutée par ce navigateur et recherche d'une nouvelle version (O06). -->
+    <AppVersion />
 
     <nav
       v-if="modules.length > 0"

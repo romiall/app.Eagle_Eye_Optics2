@@ -47,7 +47,8 @@ trap 'rm -rf "$WORK"' EXIT
 
 if [[ "$SKIP_BUILD" == "0" ]]; then
   [[ -d node_modules ]] || { echo "node_modules/ absent : lancer « npm ci »." >&2; exit 2; }
-  EEO_BUILD_ID="$SHORT" npm run build >/dev/null
+  # L'identifiant (le commit) et la date de construction s'affichent en bas de chaque écran de l'application (O06).
+  EEO_BUILD_ID="$SHORT" EEO_BUILD_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)" npm run build >/dev/null
 fi
 [[ -f public/build/manifest.json ]] || { echo "public/build/manifest.json absent : le frontend n'est pas construit." >&2; exit 2; }
 

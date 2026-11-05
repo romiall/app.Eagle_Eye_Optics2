@@ -796,6 +796,32 @@ export const TOPICS_GLOSSAIRE_DEPANNAGE: readonly HandbookTopic[] = [
         ],
       },
       {
+        kind: 'faq',
+        title: 'Version de l’application et mises à jour',
+        items: [
+          {
+            q: 'Un bandeau « Une nouvelle version de l’application est prête » s’affiche en haut de l’écran. Que faire ?',
+            a: 'Votre écran affiche encore l’ancienne version : les corrections récentes n’y apparaissent pas. Terminez ou enregistrez ce que vous faisiez, puis cliquez sur « Installer la nouvelle version ». La page se recharge en quelques secondes. Rien n’est supprimé, et vous restez connecté. Si le poste était déverrouillé, il se verrouille : saisissez de nouveau votre secret local. Le bandeau reste affiché tant que vous n’avez pas installé.',
+          },
+          {
+            q: 'Le bouton « Installer la nouvelle version » est grisé.',
+            a: 'L’application a repéré un point à régler avant l’installation : il est écrit en rouge sous le titre du bandeau. Le plus fréquent est un poste qui garde des pièces à envoyer pendant que le serveur ne répond pas. Attendez que l’en-tête redise « En ligne », puis cliquez sur « Vérifier de nouveau ».',
+          },
+          {
+            q: 'Le bandeau demande « Confirmer l’installation ».',
+            a: 'Des pièces attendent encore leur envoi au serveur, ou le dernier export du poste est ancien. Lisez les points affichés : les pièces sont conservées, mais envoyez-les d’abord si vous le pouvez. Cliquez ensuite sur « Confirmer l’installation », ou sur « Annuler » pour attendre.',
+          },
+          {
+            q: 'Comment savoir quelle version de l’application mon écran utilise ?',
+            a: 'En bas de chaque écran, la ligne « Version de l’application » donne le numéro de build et sa date. Après une mise en ligne, comparez-la avec celle que le prestataire vous annonce. Pour savoir s’il en existe une plus récente, cliquez sur « Rechercher une nouvelle version » : l’application le fait aussi quand vous revenez sur la fenêtre.',
+          },
+          {
+            q: 'Le bandeau dit « Cette page doit être rechargée ».',
+            a: 'L’application a été mise à jour dans une autre fenêtre ou un autre onglet. Cliquez sur « Recharger la page », ou appuyez sur la touche F5. Rien n’est supprimé.',
+          },
+        ],
+      },
+      {
         kind: 'table',
         title: 'Qui contacter selon ce que vous voyez',
         head: ['Ce que vous voyez', 'Qui agit', 'Comment'],
@@ -854,6 +880,12 @@ export const TOPICS_GLOSSAIRE_DEPANNAGE: readonly HandbookTopic[] = [
       'document de test',
       'mot de passe oublié',
       'connexion',
+      'mise à jour',
+      'nouvelle version',
+      'bandeau',
+      'version',
+      'installer',
+      'ancienne version',
       'imprimer',
       'écart de caisse',
       'stock',
