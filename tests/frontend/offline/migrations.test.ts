@@ -207,4 +207,76 @@ describe('schéma local du poste (O06)', () => {
     expect(await counts(again)).toEqual(before)
     again.close()
   })
+
+  it('CHAQUE palier N-1 → N du registre conserve toutes les lignes et tous les index (rien n’est réécrit)', async () => {
+    // Pour chaque version k du registre : une base k remplie (deux lignes dans chaque table, d'après la déclaration),
+    // puis ouverte par le client courant. Un palier qui supprimerait une table, réécrirait une ligne ou retirerait un
+    // index ferait échouer ce test ; un palier ajouté plus tard est couvert sans rien écrire.
+    expect(LOCAL_SCHEMA_VERSION).toBeGreaterThanOrEqual(2)
+    for (let k = 1; k < LOCAL_SCHEMA_VERSION; k += 1) {
+      const factory = new IDBFactory()
+      const name = `eeo-device-palier-${k}`
+      const previous = new VaultDatabase(name, options(factory), k)
+      await previous.open()
+      expect(previous.verno, `base ouverte en v${k}`).toBe(k)
+
+      const tables = tablesAt(k)
+      for (const table of tables) {
+        const spec = LOCAL_SCHEMA.slice(0, k)
+          .map((entry) => entry.stores[table])
+          .filter((candidate): candidate is string => candidate !== undefined)
+          .at(-1)
+        await previous
+          .table(table)
+          .bulkAdd([sampleRow(table, spec ?? '', 1), sampleRow(table, spec ?? '', 2)])
+      }
+      const rowsBefore = new Map<string, unknown[]>()
+      const indexesBefore = new Map<string, string[]>()
+      for (const table of tables) {
+        rowsBefore.set(table, await previous.table(table).toArray())
+        indexesBefore.set(
+          table,
+          previous.table(table).schema.indexes.map((index) => index.name),
+        )
+        expect(rowsBefore.get(table), `${table} remplie en v${k}`).toHaveLength(2)
+      }
+      previous.close()
+
+      const current = new VaultDatabase(name, options(factory))
+      await current.open()
+      expect(current.verno, `migration v${k} → v${LOCAL_SCHEMA_VERSION}`).toBe(LOCAL_SCHEMA_VERSION)
+      for (const table of tables) {
+        expect(await current.table(table).toArray(), `${table} après v${k} → courante`).toEqual(
+          rowsBefore.get(table),
+        )
+        const indexesAfter = current.table(table).schema.indexes.map((index) => index.name)
+        expect(indexesAfter, `index de ${table} après v${k} → courante`).toEqual(
+          expect.arrayContaining(indexesBefore.get(table) ?? []),
+        )
+      }
+      for (const table of tablesAt(LOCAL_SCHEMA_VERSION).filter((t) => !tables.includes(t))) {
+        expect(await current.table(table).count(), `${table} ajoutée après v${k}`).toBe(0)
+      }
+      current.close()
+    }
+  })
 })
+
+/**
+ * Ligne d'exemple pour une table d'après sa déclaration Dexie (`'commandId, &deviceSequence, [entityType+entityId]'`) :
+ * chaque champ nommé (clé primaire, index simples, index composés) reçoit une valeur propre à la ligne ; une clé
+ * auto-incrémentée (`++seq`) est laissée à IndexedDB.
+ */
+function sampleRow(table: string, spec: string, n: number): Record<string, string> {
+  const tokens = spec
+    .split(',')
+    .map((token) => token.trim())
+    .filter((token) => token !== '')
+  const row: Record<string, string> = {}
+  tokens.forEach((token, position) => {
+    if (position === 0 && token.startsWith('++')) return
+    const bare = token.replace(/^(\+\+|&|\*)/, '').replace(/[[\]]/g, '')
+    for (const field of bare.split('+')) if (field !== '') row[field] = `${table}.${field}.${n}`
+  })
+  return row
+}

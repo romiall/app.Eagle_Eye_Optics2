@@ -26,6 +26,12 @@ export const INVOICE_OFFLINE_PORT = MAIN_PORT + 6
 /** Serveur arrêté par le test de l'annuaire du poste (fiche et facture d'un patient du serveur sans réseau). */
 export const DIRECTORY_OFFLINE_PORT = MAIN_PORT + 7
 
+/** Serveur PHP en HTTP simple, derrière le proxy du test de mise à jour de l'application (O06). */
+export const UPDATE_BACKEND_PORT = MAIN_PORT + 8
+
+/** Proxy à deux versions de l'application du test de mise à jour (O06) : c'est lui que le navigateur interroge. */
+export const UPDATE_PROXY_PORT = MAIN_PORT + 9
+
 /**
  * Nom d'hôte du cabinet pour le test d'origine HTTPS. Il se termine par « .test » (TLD réservé,
  * jamais résolu sur Internet) et playwright.config.ts le fait pointer vers 127.0.0.1 dans Chromium.
