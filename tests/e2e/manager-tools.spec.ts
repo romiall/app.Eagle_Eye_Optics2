@@ -38,24 +38,50 @@ async function switchTo(page: Page, context: BrowserContext, role: string): Prom
   await signIn(page, role)
 }
 
-test('l’aide ne présente que les écrans du profil', async ({ page, context }) => {
+test('la documentation ne présente que les écrans du profil', async ({ page, context }) => {
+  const nav = page.getByRole('navigation', { name: 'Sommaire de la documentation' })
+  const search = page
+    .getByRole('searchbox', { name: 'Chercher dans la documentation' })
+    .or(page.getByRole('textbox', { name: 'Chercher dans la documentation' }))
+  // Toute fiche d'écran affichée dans la « Référence des écrans » s'ouvre sur cette rubrique (ancre #/ecran/…).
+  const sheet = page.getByRole('heading', { name: 'Vous êtes ici' })
+  // Mots que la documentation ne prononce jamais : l'application n'affirme ni « payé » ni « soldé » ni « gratuit »
+  // ni un enregistrement sur le poste (« impayé » n'est pas visé : seul le début d'un mot compte).
+  const forbidden = ['payé', 'soldé', 'gratuit', 'enregistré sur ce poste'].map(
+    (word) => new RegExp(`(?<!\\p{L})${word}`, 'u'),
+  )
+  const expectWording = async (what: string): Promise<void> => {
+    const text = (await page.getByRole('main').innerText()).toLowerCase()
+    for (const word of forbidden) expect(text, `${what} : ${word}`).not.toMatch(word)
+  }
+
   await signIn(page, 'RECEPTION')
   await page.goto('/aide')
-  await expect(page.getByRole('heading', { level: 1, name: 'Aide' })).toBeVisible()
-  const nav = page.getByRole('navigation', { name: 'Sommaire' })
-  await expect(nav.getByRole('button', { name: 'Enregistrer une arrivée' })).toBeVisible()
-  await expect(nav.getByRole('button', { name: /Examen/ })).toHaveCount(0)
-  await expect(nav.getByRole('button', { name: /Facturer/ })).toHaveCount(0)
+  await expect(page.getByRole('heading', { level: 1, name: 'Documentation' })).toBeVisible()
+  await expect(nav).toBeVisible()
+  await expect(search).toBeVisible()
+  await expect(page.getByRole('main')).toContainText('Référence des écrans')
 
-  await switchTo(page, context, 'CLINICIAN')
-  await page.goto('/aide')
-  await expect(
-    page.getByRole('navigation', { name: 'Sommaire' }).getByRole('button', { name: /Examen/ }),
-  ).toBeVisible()
-  const text = (await page.getByRole('main').innerText()).toLowerCase()
-  for (const forbidden of ['payé', 'soldé', 'gratuit', 'enregistré sur ce poste']) {
-    expect(text, forbidden).not.toContain(forbidden)
+  // L'accueil lit la fiche de « Enregistrer une arrivée » ; ni celle des examens ni celles de la facturation.
+  await page.goto('/aide#/ecran/arrivee')
+  await expect(sheet).toBeVisible()
+  await expectWording('accueil, arrivée')
+  for (const route of ['consultations', 'factures', 'facture-nouvelle']) {
+    await page.goto(`/aide#/ecran/${route}`)
+    await expect(sheet, `fiche « ${route} » pour l’accueil`).toHaveCount(0)
   }
+
+  // Le professionnel lit la fiche des examens, pas celle des factures.
+  await switchTo(page, context, 'CLINICIAN')
+  await page.goto('/aide#/ecran/consultations')
+  await expect(sheet).toBeVisible()
+  await expectWording('professionnel, consultations')
+  await page.goto('/aide#/ecran/factures')
+  await expect(sheet, 'fiche « factures » pour le professionnel').toHaveCount(0)
+
+  await page.goto('/aide')
+  await expect(nav).toBeVisible()
+  await expectWording('professionnel, documentation')
 })
 
 test('les statistiques sont séparées par droits', async ({ page, context }) => {

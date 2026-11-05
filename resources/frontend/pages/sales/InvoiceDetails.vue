@@ -6,21 +6,36 @@
  * et des reçus générés sur ce poste. Rien n'y est modifiable : une erreur se corrige par une pièce liée
  * (contre-écriture, avoir, remboursement : `CorrectionsPanel`). Jamais « payé », « soldé » ni « acquitté » :
  * un reste nul se lit avec ses reçus. Remise au patient et retours physiques (I01, I02) : `DeliveriesPanel`.
+ *
+ * Facture lue sur la copie de CE poste (`local`, G1) : créée et émise sans réseau, le serveur ne la connaît pas encore.
+ * Les encaissements se font sur le poste ; remises au patient, avoirs et corrections demandent le serveur et ne sont
+ * pas offerts (aucun panneau qui échouerait), l'écran le dit.
  */
-import { computed, ref, shallowRef } from 'vue'
+import { computed, onMounted, ref, shallowRef, watch } from 'vue'
 
 import { formatInstantFr } from '@/app/clinicTime'
 import { getCurrentCashSession } from '@/app/services/billing'
 import type { RenderedDocument } from '@/app/services/documents'
+import {
+  collectionBlockedByReview,
+  countedLocal,
+  effectiveBalance,
+  effectiveLedgerVersion,
+  loadLocalPayments,
+  type LocalPayment,
+  localReceiptOf,
+  notYetOnServer,
+} from '@/app/services/localPayments'
 import { invoiceDocument } from '@/app/services/salesDocuments'
 import { vaultView } from '@/app/services/vault'
-import { canOnScreen } from '@/app/session'
+import { canOnScreen, session as appSession } from '@/app/session'
 import BalanceSummary from '@/components/billing/BalanceSummary.vue'
 import DocumentPreview from '@/components/documents/DocumentPreview.vue'
 import StateMessage from '@/components/feedback/StateMessage.vue'
+import SyncBadge from '@/components/feedback/SyncBadge.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import { heldByDevice } from '@/domain/billing/issueInvoice'
-import type { CashSession, Invoice } from '@/domain/contracts/generated'
+import type { CashSession, Invoice, Receipt } from '@/domain/contracts/generated'
 import { patientDisplayName } from '@/domain/patients/identity'
 import { useServerRead } from '@/pages/today/useServerRead'
 
@@ -30,7 +45,9 @@ import { formatMoney, paymentMethodLabel, quantityLabel, rateLabel, unitLabel } 
 import PaymentForm from './PaymentForm.vue'
 import ReceiptPanel from './ReceiptPanel.vue'
 
-const props = defineProps<{ invoice: Invoice }>()
+const props = withDefaults(defineProps<{ invoice: Invoice; local?: boolean }>(), {
+  local: false,
+})
 
 const emit = defineEmits<{ reload: [] }>()
 
@@ -46,7 +63,61 @@ const heldHere = computed(
     props.invoice.write_owner?.device_id === vaultView.value.deviceId,
 )
 const held = computed(() => heldByDevice(props.invoice) && !heldHere.value)
-const amountDue = computed(() => Math.max(0, props.invoice.balance.balance_due))
+
+/**
+ * Encaissements enregistrés sur CE poste préparé (coffre ouvert), relus au chargement, au déverrouillage et après
+ * chaque commit local. Le serveur ne les connaît qu'après la synchronisation : ils s'affichent à part, avec l'état de
+ * leur commande, et le reste à encaisser comme la version du grand livre attendue en tiennent compte (G1).
+ */
+const localPayments = ref<LocalPayment[]>([])
+const pendingLocal = computed(() => notYetOnServer(localPayments.value, props.invoice.payments))
+const countedPendingTotal = computed(() =>
+  countedLocal(pendingLocal.value).reduce((total, payment) => total + payment.amount, 0),
+)
+const reviewBlocked = computed(() => collectionBlockedByReview(pendingLocal.value))
+const effectiveInvoice = computed<Invoice>(() => ({
+  ...props.invoice,
+  balance: effectiveBalance(props.invoice.balance, pendingLocal.value),
+  ledger_version: effectiveLedgerVersion(props.invoice.ledger_version, pendingLocal.value),
+}))
+const amountDue = computed(() => Math.max(0, effectiveInvoice.value.balance.balance_due))
+
+async function loadLocal(): Promise<void> {
+  try {
+    localPayments.value = await loadLocalPayments(props.invoice.id)
+  } catch {
+    localPayments.value = []
+  }
+}
+onMounted(() => void loadLocal())
+watch(
+  () => [
+    props.invoice.id,
+    props.invoice.payments.length,
+    props.invoice.ledger_version,
+    vaultView.value.session !== null,
+  ],
+  () => void loadLocal(),
+)
+
+/** Reçus des encaissements du poste, au format du serveur, pour en produire le PDF sans réseau. */
+const localReceipts = computed(() => {
+  const receipts = new Map<string, Receipt>()
+  const account = appSession.account
+  if (account === null) return receipts
+  for (const payment of pendingLocal.value) {
+    const receipt = localReceiptOf({
+      invoice: props.invoice,
+      pending: pendingLocal.value,
+      payment,
+      cashier: { userId: account.id, displayName: account.display_name },
+    })
+    if (receipt !== null) receipts.set(payment.paymentId, receipt)
+  }
+  return receipts
+})
+/** Dernier encaissement enregistré sur ce poste depuis cet écran (message, numéro du reçu). */
+const localNotice = ref<{ receiptNumber: string | null } | null>(null)
 const patient = computed(() => props.invoice.patient_snapshot)
 const testDocument = computed(() => props.invoice.clinic_snapshot?.test_document === true)
 
@@ -97,8 +168,16 @@ function onRecorded(receipt: { receiptId: string; receiptNumber: string | null }
   void cash.reload()
 }
 
+async function onRecordedLocal(): Promise<void> {
+  await loadLocal()
+  const last = pendingLocal.value[pendingLocal.value.length - 1] ?? null
+  localNotice.value = { receiptNumber: last?.receiptNumber ?? null }
+  showPaymentForm.value = false
+}
+
 function newPayment(): void {
   paymentGeneration.value += 1
+  localNotice.value = null
   showPaymentForm.value = true
 }
 
@@ -150,7 +229,11 @@ async function previewInvoice(): Promise<void> {
       (données fictives).
     </StateMessage>
 
-    <BalanceSummary :balance="props.invoice.balance" />
+    <BalanceSummary :balance="effectiveInvoice.balance" />
+    <p v-if="countedPendingTotal > 0" class="text-sm text-muted">
+      Dont {{ formatMoney(countedPendingTotal) }} enregistrés sur ce poste, en attente de
+      synchronisation avec le serveur.
+    </p>
 
     <section aria-labelledby="titre-lignes-figees" class="space-y-3">
       <h2 id="titre-lignes-figees" class="text-lg font-semibold">Lignes (figées à l’émission)</h2>
@@ -192,7 +275,7 @@ async function previewInvoice(): Promise<void> {
 
     <section aria-labelledby="titre-encaissements" class="space-y-3">
       <h2 id="titre-encaissements" class="text-lg font-semibold">Encaissements et reçus</h2>
-      <p v-if="confirmedPayments.length === 0" class="text-base">
+      <p v-if="confirmedPayments.length === 0 && pendingLocal.length === 0" class="text-base">
         Aucun encaissement enregistré sur cette facture.
       </p>
       <ul v-else class="space-y-3">
@@ -227,6 +310,42 @@ async function previewInvoice(): Promise<void> {
             :receipt-id="payment.receipt_id"
           />
         </li>
+        <li
+          v-for="payment in pendingLocal"
+          :key="payment.paymentId"
+          class="space-y-2 rounded-xl border border-line bg-surface shadow-card p-3"
+        >
+          <p class="flex flex-wrap items-baseline justify-between gap-x-3">
+            <span class="font-semibold break-words">
+              Reçu {{ payment.receiptNumber ?? '(numéro non reçu)' }}</span
+            >
+            <span class="tabular-nums">{{ formatMoney(payment.amount) }}</span>
+          </p>
+          <p class="text-sm text-muted">
+            {{ paymentMethodLabel(payment.method) }} · {{ formatInstantFr(payment.effectiveAt) }}
+          </p>
+          <p class="flex flex-wrap items-center gap-2 text-sm">
+            <SyncBadge :state="payment.state" />
+            <span v-if="countedLocal([payment]).length > 0"
+              >Enregistré sur ce poste, en attente de synchronisation avec le serveur.</span
+            >
+          </p>
+          <template v-if="localReceipts.get(payment.paymentId)">
+            <AppButton
+              variant="secondary"
+              :accessible-name="`${openedReceipts.includes(payment.paymentId) ? 'Masquer le reçu' : 'Voir le reçu'} ${payment.receiptNumber ?? ''}`"
+              @click="toggleReceipt(payment.paymentId)"
+              >{{
+                openedReceipts.includes(payment.paymentId) ? 'Masquer le reçu' : 'Voir le reçu'
+              }}</AppButton
+            >
+            <ReceiptPanel
+              v-if="openedReceipts.includes(payment.paymentId)"
+              :receipt-id="payment.receiptId ?? payment.paymentId"
+              :local="localReceipts.get(payment.paymentId) ?? null"
+            />
+          </template>
+        </li>
       </ul>
       <p v-if="otherPayments.length > 0" class="text-sm text-muted">
         {{ otherPayments.length }} encaissement(s) non confirmé(s) : ils ne comptent pas dans le
@@ -242,7 +361,20 @@ async function previewInvoice(): Promise<void> {
       <ReceiptPanel :key="lastReceiptId" :receipt-id="lastReceiptId" highlight />
     </section>
 
-    <StateMessage v-if="held" state="conflict" title="Facture détenue par un poste préparé">
+    <section v-if="localNotice" aria-live="polite" class="space-y-3">
+      <StateMessage state="offline" title="Encaissement noté sur ce poste">
+        Encaissement enregistré sur ce poste, en attente de synchronisation avec le serveur. Reçu
+        {{ localNotice.receiptNumber ?? '' }} pris dans la plage de ce poste : son numéro ne
+        changera pas. Reste à encaisser maintenant : {{ formatMoney(amountDue) }}.
+      </StateMessage>
+    </section>
+
+    <StateMessage v-if="reviewBlocked" state="conflict" title="Encaissement du poste à revoir">
+      Un encaissement enregistré sur ce poste est en conflit : aucun nouvel encaissement sans la
+      décision de la gérante.
+    </StateMessage>
+
+    <StateMessage v-else-if="held" state="conflict" title="Facture détenue par un poste préparé">
       Un poste préparé détient cette facture : l’encaissement se fait sur ce poste, pas depuis cet
       écran.
     </StateMessage>
@@ -251,27 +383,34 @@ async function previewInvoice(): Promise<void> {
       <PaymentForm
         v-if="showPaymentForm"
         :key="paymentGeneration"
-        :invoice="props.invoice"
+        :invoice="effectiveInvoice"
         :cash-session-id="cashSessionId"
         :cash-session-read="cashSessionRead"
         @recorded="onRecorded"
+        @recorded-local="onRecordedLocal"
         @stale="emit('reload')"
         @recheck-cash="recheckCash"
       />
       <AppButton v-else variant="primary" @click="newPayment">Nouvel encaissement</AppButton>
     </template>
 
-    <DeliveriesPanel
-      :key="`remises-${props.invoice.ledger_version ?? 0}`"
-      :invoice="props.invoice"
-    />
+    <StateMessage v-if="props.local" state="offline" title="Facture de ce poste">
+      Cette facture est enregistrée sur ce poste, en attente de synchronisation : la remise au
+      patient, les avoirs et les corrections se feront après l’envoi au serveur.
+    </StateMessage>
+    <template v-else>
+      <DeliveriesPanel
+        :key="`remises-${props.invoice.ledger_version ?? 0}`"
+        :invoice="props.invoice"
+      />
 
-    <CorrectionsPanel
-      :invoice="props.invoice"
-      :cash-session-id="cashSessionId"
-      :cash-session-read="cashSessionRead"
-      @reload="emit('reload')"
-    />
+      <CorrectionsPanel
+        :invoice="props.invoice"
+        :cash-session-id="cashSessionId"
+        :cash-session-read="cashSessionRead"
+        @reload="emit('reload')"
+      />
+    </template>
 
     <section aria-labelledby="titre-pdf-facture" class="space-y-3">
       <h2 id="titre-pdf-facture" class="text-lg font-semibold">Document de la facture</h2>

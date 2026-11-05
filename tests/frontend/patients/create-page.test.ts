@@ -358,11 +358,18 @@ describe('enregistrement en ligne', () => {
 
   it('une commande enregistrée par le journal du poste est dite « sur ce poste », jamais synchronisée', async () => {
     const api = creatingServer()
+    const sent: string[] = []
     const dispatcher: MutationDispatcher = {
-      dispatch: async () => ({ kind: 'saved-local', at: '2026-10-15T09:42:00.000Z' }),
+      dispatch: async (request) => {
+        sent.push(String(request.payload['patient_id']))
+        return { kind: 'saved-local', at: '2026-10-15T09:42:00.000Z' }
+      },
     }
     const { root, router, unmount } = await openApp('/patients/nouveau', { dispatcher })
     await fillValidIdentity(root)
+    const linkNamed = (label: string): HTMLAnchorElement | undefined =>
+      [...root.querySelectorAll('a')].find((anchor) => anchor.textContent?.trim() === label)
+    expect(linkNamed('Annuler')?.getAttribute('href')).toBe('/patients')
 
     await submitForm(root)
 
@@ -370,6 +377,11 @@ describe('enregistrement en ligne', () => {
     expect(textOf(root)).not.toContain('Synchronisé')
     expect(posts(api)).toHaveLength(0)
     expect(router.currentRoute.value.name).toBe('patient-nouveau')
+    // La fiche s'ouvre sur le poste, par le lien qui remplace « Annuler » : la saisie est enregistrée.
+    expect(sent).toHaveLength(1)
+    expect(isUlid(sent[0] ?? '')).toBe(true)
+    expect(linkNamed('Ouvrir la fiche')?.getAttribute('href')).toBe(`/patients/${sent[0]}`)
+    expect(linkNamed('Annuler')).toBeUndefined()
     unmount()
   })
 })
@@ -518,6 +530,7 @@ describe('ressemblances : signalées sans fusion', () => {
     expect(dialog.open).toBe(true)
     expect(textOf(dialog)).toContain('Vérification des doublons impossible')
     expect(textOf(dialog)).toContain('peut produire un doublon')
+    expect(textOf(dialog)).toContain('le serveur n’est pas joignable (pas de connexion)')
     expect(posts(api)).toHaveLength(0)
     expect(buttonByName(dialog, 'Créer sans vérification')).not.toBeNull()
 
@@ -537,6 +550,7 @@ describe('ressemblances : signalées sans fusion', () => {
     await submitForm(root)
 
     expect(textOf(dialogOf(root))).toContain('Vérification des doublons impossible')
+    expect(textOf(dialogOf(root))).toContain('le serveur n’a pas répondu comme attendu')
     unmount()
   })
 

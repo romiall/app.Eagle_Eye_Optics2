@@ -12,7 +12,7 @@ import { assembleCore, eventHash } from '@/offline/command-journal/core'
 import { CommandJournal } from '@/offline/command-journal/journal'
 import { LocalCommandBus } from '@/offline/LocalCommandBus'
 import { SyncEngine } from '@/offline/sync/engine'
-import { pullChanges, pulledRecord } from '@/offline/sync/pull'
+import { lastPullAt, pullChanges, pulledRecord, pulledRecords } from '@/offline/sync/pull'
 import { pushJournal } from '@/offline/sync/push'
 import { SyncRefused, type SyncTransport } from '@/offline/sync/transport'
 import { thumbprint, verifyCompact } from '@/offline/signing/jws'
@@ -426,11 +426,24 @@ describe('pull des changements', () => {
       },
     ]
     const engine = new SyncEngine(device.vault, { transport: server, now })
+    expect(await lastPullAt(device.vault)).toBeNull()
 
     const report = await engine.syncNow()
 
     expect(report.pull).toMatchObject({ pages: 2, changes: 2 })
     expect(server.pulls).toEqual([null, 'curseur-signe-1'])
+    // Annuaire du poste (A2) : la liste d'un type ne rend que ce type, ou les seuls identifiants demandés.
+    const directory = await pulledRecords(device.vault, 'ADMINISTRATIVE', 'patient_records')
+    expect(directory.map((record) => record.entityId)).toEqual(['01J9ZXK4M2Q8R7S6T5V4W3PB01'])
+    expect(
+      await pulledRecords(device.vault, 'ADMINISTRATIVE', 'patient_records', [
+        '01J9ZXK4M2Q8R7S6T5V4W3PB01',
+        '01J9ZXK4M2Q8R7S6T5V4W3PB09',
+      ]),
+    ).toHaveLength(1)
+    expect(await pulledRecords(device.vault, 'ADMINISTRATIVE', 'catalog_items')).toHaveLength(1)
+    expect(await pulledRecords(device.vault, 'ADMINISTRATIVE', 'visits')).toEqual([])
+    expect(await lastPullAt(device.vault)).toMatch(/^\d{4}-\d{2}-\d{2}T/)
     const patient = await pulledRecord(
       device.vault,
       'ADMINISTRATIVE',

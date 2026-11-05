@@ -57,10 +57,13 @@ test.describe('agenda (S01) sur la vraie application', () => {
     await page.goto(`/agenda/nouveau?patient=${patientId}`)
     await expect(page.getByRole('heading', { level: 1, name: 'Nouveau rendez-vous' })).toBeVisible()
     await expect(page.getByRole('main')).toContainText('Agenda Parcours')
-    await page.getByLabel('Prestation').selectOption({ index: 1 })
-    await page.getByLabel('Professionnel ou salle').selectOption({ index: 1 })
+    // Le jour d'abord : le jour par défaut est AUJOURD'HUI, et avant l'ouverture du cabinet ses créneaux
+    // s'affichent dès le choix de la ressource ; le test cocherait alors un créneau d'aujourd'hui (le
+    // rendez-vous serait pris le jour même, selon l'heure à laquelle tourne le test).
     await page.getByLabel('Jour (obligatoire)').fill(day.french)
     await page.getByLabel('Jour (obligatoire)').blur()
+    await page.getByLabel('Prestation').selectOption({ index: 1 })
+    await page.getByLabel('Professionnel ou salle').selectOption({ index: 1 })
     const firstSlot = page.locator('input[name="rdv-creneau"]').first()
     await expect(firstSlot).toBeVisible()
     await firstSlot.check()

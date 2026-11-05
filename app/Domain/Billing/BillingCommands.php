@@ -20,6 +20,7 @@ use App\Domain\Billing\LegacyBalances\Handlers\ImportLegacyBalancesHandler;
 use App\Domain\Billing\LegacyBalances\Handlers\StoreLegacyEvidenceHandler;
 use App\Domain\Billing\Quotes\Handlers\ConvertQuoteHandler;
 use App\Domain\Billing\Quotes\Handlers\CreateQuoteDraftHandler;
+use App\Domain\Billing\Quotes\Handlers\DeleteQuoteDraftHandler;
 use App\Domain\Billing\Quotes\Handlers\IssueQuoteHandler;
 use App\Domain\Billing\Quotes\Handlers\RecordQuoteDecisionHandler;
 use App\Domain\Billing\Quotes\Handlers\ReviseQuoteHandler;
@@ -194,6 +195,15 @@ final class BillingCommands
                 null,
                 true,
                 'schemas/requests/http.json#/$defs/UpdateQuoteDraftRequest',
+            ),
+            // Suppression d'un brouillon de devis jamais émis (chantier « CRUD des écrans »), en ligne seulement.
+            new CommandDefinition(
+                DeleteQuoteDraftHandler::COMMAND,
+                DeleteQuoteDraftHandler::class,
+                $onlineOnly,
+                null,
+                true,
+                'schemas/requests/http.json#/$defs/DeleteQuoteDraftRequest',
             ),
             new CommandDefinition(
                 IssueQuoteHandler::COMMAND,

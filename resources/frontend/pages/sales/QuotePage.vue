@@ -7,7 +7,7 @@
  * copie présentée comme actuelle. L'identifiant de l'adresse est un ULID opaque : aucune donnée personnelle dans l'URL.
  */
 import { computed, ref, shallowRef, watch } from 'vue'
-import { RouterLink, useRoute } from 'vue-router'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 
 import { clinicTimeZone } from '@/app/clinicTime'
 import type { MutationOutcome } from '@/app/services/mutations'
@@ -41,6 +41,7 @@ import QuoteRevisions from './QuoteRevisions.vue'
 import SalesReadMessage from './SalesReadMessage.vue'
 
 const route = useRoute()
+const router = useRouter()
 const id = computed(() => String(route.params['id']))
 const flash = shallowRef<string | null>(takeSalesFlash())
 const timeZone = clinicTimeZone()
@@ -68,6 +69,11 @@ function reload(): void {
   revising.value = false
   converting.value = false
   void read.reload()
+}
+
+/** Brouillon supprimé : le devis n'existe plus, retour à la liste (le message du résultat est déjà passé à l'écran). */
+function leaveDeleted(): void {
+  void router.push({ name: 'devis' })
 }
 
 // --- Réponse du client ----------------------------------------------------------------------------
@@ -191,6 +197,7 @@ async function retryDecision(): Promise<void> {
         :key="`brouillon-${quote.id}`"
         :initial="quote"
         @issued="show"
+        @deleted="leaveDeleted"
         @stale="reload"
       />
 

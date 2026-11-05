@@ -6,6 +6,8 @@ use App\Application\CommandDefinition;
 use App\Domain\Clinical\Handlers\AmendConsultationHandler;
 use App\Domain\Clinical\Handlers\CompleteConsultationHandler;
 use App\Domain\Clinical\Handlers\CreatePrescriptionHandler;
+use App\Domain\Clinical\Handlers\DeleteConsultationDraftHandler;
+use App\Domain\Clinical\Handlers\DeletePrescriptionDraftHandler;
 use App\Domain\Clinical\Handlers\SaveClinicalStepHandler;
 use App\Domain\Clinical\Handlers\StartConsultationHandler;
 use App\Domain\Clinical\Handlers\UpdatePrescriptionDraftHandler;
@@ -23,6 +25,9 @@ use App\Domain\Shared\CommandSource;
  *
  * `UpdatePrescriptionDraft` n'est PAS une commande du catalogue F06 : modification d'un brouillon en ligne seulement
  * (hors-ligne, une correction est une nouvelle version), sans schéma de commande ; son corps est validé par l'action.
+ *
+ * `DeleteConsultationDraft` (suppression d'un examen resté brouillon) n'en est pas une non plus : en ligne seulement,
+ * comme le démarrage d'un examen, sans charge de poste ; son corps est validé contre sa requête HTTP.
  */
 final class ClinicalCommands
 {
@@ -89,6 +94,22 @@ final class ClinicalCommands
                 $onlineOnly,
                 null,
                 true,
+            ),
+            new CommandDefinition(
+                DeleteConsultationDraftHandler::COMMAND,
+                DeleteConsultationDraftHandler::class,
+                $onlineOnly,
+                null,
+                true,
+                'schemas/requests/http.json#/$defs/DeleteConsultationDraftRequest',
+            ),
+            new CommandDefinition(
+                DeletePrescriptionDraftHandler::COMMAND,
+                DeletePrescriptionDraftHandler::class,
+                $onlineOnly,
+                null,
+                true,
+                'schemas/requests/http.json#/$defs/DeletePrescriptionDraftRequest',
             ),
         ];
     }

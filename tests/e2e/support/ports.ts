@@ -17,6 +17,15 @@ export const HTTPS_PROXY_PORT = MAIN_PORT + 3
 /** Serveur arrêté par le test « /api authentifiée jamais servie hors ligne ». */
 export const AUTH_OFFLINE_PORT = MAIN_PORT + 4
 
+/** Serveur arrêté puis relancé par le test de démarrage sans réseau d'un poste préparé (AT36). */
+export const START_OFFLINE_PORT = MAIN_PORT + 5
+
+/** Serveur arrêté par le test de facturation sans réseau d'un poste préparé (AT37 à la lettre). */
+export const INVOICE_OFFLINE_PORT = MAIN_PORT + 6
+
+/** Serveur arrêté par le test de l'annuaire du poste (fiche et facture d'un patient du serveur sans réseau). */
+export const DIRECTORY_OFFLINE_PORT = MAIN_PORT + 7
+
 /**
  * Nom d'hôte du cabinet pour le test d'origine HTTPS. Il se termine par « .test » (TLD réservé,
  * jamais résolu sur Internet) et playwright.config.ts le fait pointer vers 127.0.0.1 dans Chromium.

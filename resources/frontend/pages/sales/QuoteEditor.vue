@@ -17,7 +17,7 @@ import { clinicTimeZone } from '@/app/clinicTime'
 import { getQuote, quotePath } from '@/app/services/quotes'
 import type { MutationOutcome } from '@/app/services/mutations'
 import { useMutation } from '@/app/services/useMutation'
-import { canOnScreen, moduleOpenOnScreen, revalidateSession } from '@/app/session'
+import { canOnScreen, knownAccountId, moduleOpenOnScreen, revalidateSession } from '@/app/session'
 import { useUnsavedChangesGuard } from '@/app/unsavedChanges'
 import ConfirmDialog from '@/components/feedback/ConfirmDialog.vue'
 import ErrorSummary, { type FieldErrorItem } from '@/components/feedback/ErrorSummary.vue'
@@ -46,11 +46,13 @@ import {
   type QuoteRecipientInput,
   validateQuoteLines,
 } from '@/domain/billing/quote'
+import { canDeleteQuoteDraft } from '@/domain/clinical/draftDeletion'
 import type { CatalogItem, Quote, QuoteResponse } from '@/domain/contracts/generated'
 import { formatMoney } from '@/domain/values/money'
 import { newUlid } from '@/domain/values/ulid'
 
 import CatalogPicker from './CatalogPicker.vue'
+import DeleteQuoteDraftDialog from './DeleteQuoteDraftDialog.vue'
 import DraftLineCard from './DraftLineCard.vue'
 import { salesFailureView } from './failureView'
 import { setSalesFlash } from './flash'
@@ -72,6 +74,8 @@ const emit = defineEmits<{
   revised: [quote: Quote]
   /** Le devis a changé d'état ailleurs : l'écran parent le relit. */
   stale: []
+  /** Le brouillon a été supprimé sur le serveur : l'écran parent quitte le devis. */
+  deleted: []
   cancel: []
 }>()
 
@@ -121,11 +125,43 @@ const dirty = computed(
     validUntil.value !== savedValidUntil.value ||
     (revising.value && reason.value.trim() !== ''),
 )
-useUnsavedChangesGuard(dirty)
+// Après la suppression du brouillon, ce qui était saisi et non enregistré n'a plus d'objet : on quitte sans demander.
+const leaving = ref(false)
+useUnsavedChangesGuard(() => dirty.value && !leaving.value)
 
 const saving = computed(() => saveMutation.state.value === 'saving')
 const issuing = computed(() => issueMutation.state.value === 'saving')
 const busy = computed(() => saving.value || issuing.value)
+
+/**
+ * « Supprimer le brouillon » : un brouillon jamais émis seulement, pour son créateur ou la gérante
+ * (`domain/clinical/draftDeletion`) ; le serveur applique la règle et refuse tout autre cas. Après la suppression, le
+ * devis n'existe plus : l'écran parent le quitte (liste des devis, avec le message du résultat).
+ */
+const deleteOpen = ref(false)
+const deleteProblem = ref<string | null>(null)
+const canDelete = computed(
+  () =>
+    !revising.value &&
+    baseline.value !== null &&
+    canDeleteQuoteDraft(
+      { status: baseline.value.status, createdBy: baseline.value.created_by },
+      { accountId: knownAccountId(), can: canOnScreen },
+    ),
+)
+
+function onDeleted(message: string): void {
+  leaving.value = true
+  deleteOpen.value = false
+  setSalesFlash(message)
+  emit('deleted')
+}
+
+function onNotDeleted(message: string): void {
+  deleteOpen.value = false
+  deleteProblem.value = message
+  emit('stale')
+}
 const saveFailure = computed(() =>
   saveMutation.state.value === 'conflict' ? null : salesFailureView(saveMutation.state.value),
 )
@@ -556,6 +592,10 @@ const saveStatus = computed(() => {
       </template>
     </StateMessage>
 
+    <StateMessage v-if="deleteProblem" state="conflict" title="Brouillon non supprimé">
+      {{ deleteProblem }}
+    </StateMessage>
+
     <StateMessage v-if="saveFailure" :state="saveFailure.state" :title="saveFailure.title">
       {{ saveMutation.failureMessage.value }}
       <template v-if="saveFailure.retry" #action>
@@ -669,6 +709,14 @@ const saveStatus = computed(() => {
         <AppButton v-if="revising" variant="ghost" :disabled="busy" @click="emit('cancel')"
           >Annuler la révision</AppButton
         >
+        <AppButton
+          v-if="canDelete"
+          variant="danger"
+          :disabled="busy"
+          accessible-name="Supprimer le brouillon de ce devis"
+          @click="deleteOpen = true"
+          >Supprimer le brouillon</AppButton
+        >
         <SaveStatus :state="saveStatus" :at="savedAt" :time-zone="timeZone" />
       </div>
       <p v-if="!revising && baseline && dirty" class="text-sm text-muted">
@@ -678,6 +726,16 @@ const saveStatus = computed(() => {
         Indiquez une date de validité et enregistrez pour pouvoir émettre le devis.
       </p>
     </form>
+
+    <DeleteQuoteDraftDialog
+      v-if="deleteOpen && baseline !== null"
+      :quote-id="baseline.id"
+      :version="baseline.version"
+      :lines="baseline.lines.length"
+      @deleted="onDeleted"
+      @stale="onNotDeleted"
+      @close="deleteOpen = false"
+    />
 
     <ConfirmDialog
       :open="confirmingIssue"

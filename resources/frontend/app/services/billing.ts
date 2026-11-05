@@ -1,4 +1,4 @@
-import { apiRequest } from '@/app/api'
+import { apiRequest, NetworkUnavailable } from '@/app/api'
 import { sha256Hex } from '@/documents/engine/hash'
 import type {
   CashDayReport,
@@ -34,8 +34,11 @@ import type {
   TaxRuleList,
 } from '@/domain/contracts/generated'
 import { displayedLinesFingerprint } from '@/domain/billing/issueInvoice'
+import { searchLocalCatalog } from '@/domain/billing/localCatalog'
 import { isUlid } from '@/domain/values/ulid'
 
+import { localCatalog } from './localCatalog'
+import { isUnconsolidatedInvoice, localInvoices } from './localInvoices'
 import type { ReadOutcome } from './reads'
 
 /**
@@ -45,12 +48,19 @@ import type { ReadOutcome } from './reads'
  * résultat » (`useRead`). Une erreur du serveur est propagée telle quelle (404 d'un module fermé ou
  * d'une pièce inconnue, 403, 422) ; un réseau coupé reste `NetworkUnavailable`, jamais une liste vide.
  *
- * Aucun solde n'est calculé ici : la projection (`balance`, `ledger_version`) vient du serveur. Rien
- * n'est conservé sur le poste (ni cache, ni stockage) : le coffre local (O01 à O05) n'alimente pas
- * encore ces écrans et ne s'ajoutera pas sans le dire.
+ * Aucun solde n'est calculé ici : la projection (`balance`, `ledger_version`) vient du serveur.
+ *
+ * Deux lectures seulement savent aussi répondre depuis CE poste (coffre ouvert, module hors-ligne ouvert), et le disent
+ * (fraîcheur « ce poste », `live` faux : jamais une absence affirmée) : le catalogue figé pour le choix d'un article
+ * (`includeLocal`, jamais pour la gestion du catalogue) et une facture CRÉÉE sur ce poste (`getInvoice`).
  */
 function answered<T>(data: T): ReadOutcome<T> {
   return { data, freshness: { serverAsOf: new Date().toISOString(), complete: true }, live: true }
+}
+
+/** Donnée lue sur CE poste seulement : fraîcheur « ce poste », jamais un vide affirmé (`live` faux). */
+function fromThisDevice<T>(data: T): ReadOutcome<T> {
+  return { data, freshness: { serverAsOf: null, complete: false }, live: false }
 }
 
 function assertId(id: string, what: string): void {
@@ -82,12 +92,14 @@ export async function getSalesSettings(): Promise<ReadOutcome<SalesSettings>> {
 
 /**
  * Recherche du catalogue (référence, nom, marque ou modèle, 2 caractères au moins ; sans texte : les
- * articles actifs). `includeInactive` n'a d'effet que pour la gérante (le serveur l'ignore sinon).
+ * articles actifs). `includeInactive` n'a d'effet que pour la gérante (le serveur l'ignore sinon). `includeLocal`
+ * (choix d'un article de facture) : serveur injoignable, le catalogue FIGÉ du poste répond (articles actifs, prix et
+ * règles fiscales de sa préparation) ; sans catalogue sur le poste, le réseau coupé reste signalé tel quel.
  */
 export async function searchCatalog(
   query: string,
   page = 1,
-  options: { includeInactive?: boolean } = {},
+  options: { includeInactive?: boolean; includeLocal?: boolean } = {},
 ): Promise<ReadOutcome<CatalogPage>> {
   assertPage(page)
   const text = query.trim()
@@ -97,7 +109,14 @@ export async function searchCatalog(
   const parameters = new URLSearchParams({ page: String(page) })
   if (text !== '') parameters.set('query', text)
   if (options.includeInactive === true) parameters.set('include_inactive', 'true')
-  return answered(await apiRequest<CatalogPage>('GET', `/api/v1/catalog?${parameters}`))
+  try {
+    return answered(await apiRequest<CatalogPage>('GET', `/api/v1/catalog?${parameters}`))
+  } catch (error) {
+    if (!(options.includeLocal === true && error instanceof NetworkUnavailable)) throw error
+    const catalog = await localCatalog()
+    if (catalog === null) throw error
+    return fromThisDevice(searchLocalCatalog(catalog, text, page))
+  }
 }
 
 export async function listTaxRules(): Promise<ReadOutcome<TaxRule[]>> {
@@ -139,14 +158,25 @@ export async function listInvoices(
   return answered(await apiRequest<InvoicePage>('GET', `/api/v1/invoices?${parameters}`))
 }
 
-/** Facture, lignes, encaissements et solde projeté ; snapshots figés pour une facture émise. */
+/**
+ * Facture, lignes, encaissements et solde projeté ; snapshots figés pour une facture émise. Une facture CRÉÉE sur ce poste
+ * et pas encore consolidée PRIME sur le serveur, qui ne la connaît pas encore (F10, AT42) ; consolidée, le serveur fait foi
+ * quand il répond et la copie du poste répond quand il ne répond pas. Une erreur du serveur n'est jamais remplacée.
+ */
 export async function getInvoice(id: string): Promise<ReadOutcome<Invoice>> {
   assertId(id, 'facture')
-  const response = await apiRequest<InvoiceResponse>(
-    'GET',
-    `/api/v1/invoices/${encodeURIComponent(id)}`,
-  )
-  return answered(response.data)
+  const local = (await localInvoices()).get(id) ?? null
+  if (local !== null && isUnconsolidatedInvoice(local.state)) return fromThisDevice(local.invoice)
+  try {
+    const response = await apiRequest<InvoiceResponse>(
+      'GET',
+      `/api/v1/invoices/${encodeURIComponent(id)}`,
+    )
+    return answered(response.data)
+  } catch (error) {
+    if (local !== null && error instanceof NetworkUnavailable) return fromThisDevice(local.invoice)
+    throw error
+  }
 }
 
 /** Reçu d'un encaissement : pièce immuable, snapshot figé (source de son PDF). */

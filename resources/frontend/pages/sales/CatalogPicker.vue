@@ -29,7 +29,8 @@ const generation = ref(0)
 const value = ref<string | null>(null)
 
 async function search(query: string): Promise<ComboboxSearchResult> {
-  const result = await searchCatalog(query)
+  // Serveur injoignable : le catalogue FIGÉ du poste répond (articles actifs, prix de la préparation du poste).
+  const result = await searchCatalog(query, 1, { includeLocal: true })
   const options: ComboboxOption[] = []
   for (const item of result.data.data) {
     if (!item.active) continue
@@ -41,9 +42,15 @@ async function search(query: string): Promise<ComboboxSearchResult> {
     })
   }
   const meta = result.data.meta
-  return meta.last_page > 1
-    ? { options, notice: `${meta.total} articles correspondent : précisez la recherche.` }
-    : options
+  const notices: string[] = []
+  if (result.freshness.serverAsOf === null) {
+    notices.push(
+      'Catalogue de ce poste (serveur non consulté) : articles et prix de la préparation du poste.',
+    )
+  }
+  if (meta.last_page > 1)
+    notices.push(`${meta.total} articles correspondent : précisez la recherche.`)
+  return notices.length > 0 ? { options, notice: notices.join(' ') } : options
 }
 
 function onSelect(option: ComboboxOption | null): void {

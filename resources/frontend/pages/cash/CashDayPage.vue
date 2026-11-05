@@ -70,14 +70,14 @@ function signedVariance(amount: number): string {
     <form
       role="search"
       aria-label="Choisir le jour"
-      class="flex flex-wrap items-end gap-3"
+      class="flex flex-col gap-3 sm:flex-row sm:items-start"
       @submit.prevent="show"
     >
       <div class="min-w-0 flex-1">
         <DateField v-model="day" label="Jour" control-id="caisse-jour-date" />
       </div>
-      <AppButton type="submit" variant="secondary">Afficher</AppButton>
-      <AppButton variant="ghost" @click="today">Aujourd’hui</AppButton>
+      <AppButton type="submit" variant="secondary" class="field-action">Afficher</AppButton>
+      <AppButton variant="ghost" class="field-action" @click="today">Aujourd’hui</AppButton>
     </form>
 
     <SalesReadMessage

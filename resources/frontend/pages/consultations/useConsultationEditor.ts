@@ -10,6 +10,7 @@ import {
   type CompletionSummary,
   completionSummary,
 } from '@/domain/clinical/completion'
+import { CONTROL_IDS } from '@/domain/clinical/controls'
 import { cleanText } from '@/domain/clinical/fields'
 import {
   DELIVERED_STEPS,
@@ -152,6 +153,19 @@ export function useConsultationEditor(consultationId: string) {
     if (saved === null) return false
     const data = saved.steps as unknown as { [S in DeliveredStep]: StepDataByName[S] }
     return isStepDirty(step, drafts.value[step], data[step] as never)
+  }
+
+  /**
+   * Vrai quand SEUL l'écart pupillaire total du centrage a changé depuis la dernière lecture : il se saisit
+   * dans le bloc de l'autoréfracteur (étape « Réfraction ») et s'enregistre alors avec elle, sans repasser par
+   * le centrage. Toute autre saisie du centrage reste à enregistrer depuis son étape.
+   */
+  function pdOnlyDirty(): boolean {
+    const saved = baseline.value
+    if (saved === null || !dirtyOf('CENTERING')) return false
+    const data = (saved.steps as unknown as { CENTERING: StepDataByName['CENTERING'] }).CENTERING
+    const total = draftFromData('CENTERING', data).pdTotal
+    return !isStepDirty('CENTERING', { ...drafts.value.CENTERING, pdTotal: total }, data)
   }
 
   const dirtySteps = computed(() => DELIVERED_STEPS.filter((step) => dirtyOf(step)))
@@ -410,14 +424,29 @@ export function useConsultationEditor(consultationId: string) {
       await showErrors(validation.errors)
       return
     }
+    // L'écart pupillaire saisi dans le bloc de l'autoréfracteur est enregistré avec la réfraction (deux
+    // commandes, l'une après la réponse de l'autre) : il est vérifié AVANT d'envoyer quoi que ce soit.
+    const withCentering = step === 'REFRACTION' && pdOnlyDirty()
+    if (withCentering) {
+      const centering = validateStep('CENTERING', drafts.value.CENTERING)
+      if (!centering.ok) {
+        // Une erreur sur le seul écart total se lit sous son champ ; toute autre mène à l'étape « Centrage ».
+        if (centering.errors.some((error) => error.controlId !== CONTROL_IDS.pdTotal)) {
+          goTo('CENTERING')
+        }
+        await showErrors(centering.errors)
+        return
+      }
+    }
     errors.value = []
     if (!dirtyOf(step)) {
-      if (advanceAfter) advance()
+      if (withCentering) await run('CENTERING', advanceAfter)
+      else if (advanceAfter) advance()
       else notice.value = 'Aucune modification à enregistrer sur cette étape.'
       return
     }
     operation.value = null
-    pending.value = { step, advance: advanceAfter }
+    pending.value = { step, advance: advanceAfter && !withCentering }
     lastSent = { step, data: validation.data as StepDataByName[DeliveredStep] }
     rebased.value = null
     await afterOutcome(
@@ -428,6 +457,10 @@ export function useConsultationEditor(consultationId: string) {
         expectedVersion: saved.version,
       }),
     )
+    // Le centrage suit la réfraction une fois celle-ci enregistrée par le serveur (rien, sinon).
+    if (withCentering && pending.value === null && !needsReload.value) {
+      await run('CENTERING', advanceAfter)
+    }
   }
 
   /** « Enregistrer » : valide et enregistre l'étape affichée. */

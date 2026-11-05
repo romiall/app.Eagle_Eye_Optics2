@@ -84,7 +84,7 @@ function goToPage(page: number): void {
     <form
       role="search"
       aria-label="Rechercher un patient"
-      class="card flex flex-col gap-3 border-t-4 border-t-gold p-4 sm:flex-row sm:items-end sm:p-6"
+      class="card flex flex-col gap-3 border-t-4 border-t-gold p-4 sm:flex-row sm:items-start sm:p-6"
       novalidate
       @submit.prevent="search"
     >
@@ -99,7 +99,9 @@ function goToPage(page: number): void {
           :error="error"
         />
       </div>
-      <AppButton type="submit"><AppIcon name="search" :size="18" />Rechercher</AppButton>
+      <AppButton type="submit" class="field-action"
+        ><AppIcon name="search" :size="18" />Rechercher</AppButton
+      >
     </form>
 
     <p role="status" aria-live="polite" class="sr-only">{{ announcement }}</p>

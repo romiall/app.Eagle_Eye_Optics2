@@ -21,7 +21,7 @@ import { listConsultationFollowUps } from '@/app/services/agenda'
 import { getConsultation } from '@/app/services/consultations'
 import type { MutationOutcome } from '@/app/services/mutations'
 import { useMutation } from '@/app/services/useMutation'
-import { canOnScreen, moduleOpenOnScreen, revalidateSession } from '@/app/session'
+import { canOnScreen, knownAccountId, moduleOpenOnScreen, revalidateSession } from '@/app/session'
 import { FOLLOW_UP_STATUS_TONES } from '@/components/agenda/tones'
 import StateMessage from '@/components/feedback/StateMessage.vue'
 import CheckboxField from '@/components/form/CheckboxField.vue'
@@ -45,6 +45,7 @@ import {
   INTERVAL_PRESETS,
   PREFERRED_CHANNELS,
 } from '@/domain/agenda/agenda'
+import { canCancelFollowUp } from '@/domain/clinical/draftDeletion'
 import type {
   Consultation,
   FollowUpPlan,
@@ -52,8 +53,11 @@ import type {
   FollowUpPlansIntervalUnit,
   FollowUpPlansReason,
 } from '@/domain/contracts/generated'
+import { patientDisplayName } from '@/domain/patients/identity'
 import { CivilDate } from '@/domain/values/civilDate'
 import { useServerRead } from '@/pages/today/useServerRead'
+
+import CancelFollowUpDialog from './CancelFollowUpDialog.vue'
 
 const props = defineProps<{ consultationId: string }>()
 
@@ -84,6 +88,25 @@ function openForm(): void {
 }
 const flash = ref<string | null>(null)
 const error = ref<string | null>(null)
+
+// Annulation d'un contrôle encore actif (motif obligatoire) : une seule boîte pour tout le panneau.
+const cancelling = ref<FollowUpPlan | null>(null)
+const cancelProblem = ref<string | null>(null)
+
+function cancellable(plan: FollowUpPlan): boolean {
+  return canCancelFollowUp(plan, { accountId: knownAccountId(), can: canOnScreen })
+}
+
+function planPatient(plan: FollowUpPlan): string {
+  return patientDisplayName(plan.patient.last_name, plan.patient.first_names)
+}
+
+function afterCancel(message: string, success: boolean): void {
+  cancelling.value = null
+  flash.value = success ? message : null
+  cancelProblem.value = success ? null : message
+  void plans.reload()
+}
 
 const reason = ref<string | null>('ROUTINE')
 const anchorKind = ref<string | null>('CONSULTATION')
@@ -232,6 +255,7 @@ async function save(): Promise<void> {
 
     <div class="space-y-4">
       <StateMessage v-if="flash" state="success" :title="flash" />
+      <StateMessage v-if="cancelProblem" state="conflict" :title="cancelProblem" />
 
       <p
         v-if="plans.state.value === 'ready' && (plans.data.value ?? []).length === 0"
@@ -279,8 +303,25 @@ async function save(): Promise<void> {
             <AppIcon name="calendar-plus" />
             Programmer un rendez-vous
           </LinkButton>
+          <AppButton
+            v-if="cancellable(plan)"
+            variant="ghost"
+            :accessible-name="`Annuler le contrôle de ${planPatient(plan)}`"
+            @click="cancelling = plan"
+            >Annuler le contrôle</AppButton
+          >
         </li>
       </ul>
+
+      <CancelFollowUpDialog
+        v-if="cancelling"
+        :plan-id="cancelling.id"
+        :version="cancelling.version"
+        :patient-name="planPatient(cancelling)"
+        @cancelled="afterCancel($event, true)"
+        @stale="afterCancel($event, false)"
+        @close="cancelling = null"
+      />
 
       <form
         v-if="open"

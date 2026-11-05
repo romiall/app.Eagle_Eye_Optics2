@@ -70,4 +70,18 @@ test('transcrire une ordonnance externe depuis le dossier patient, puis la valid
   await page.reload()
   await expect(page.getByRole('main')).toContainText('Dr Externe Fictif')
   await expect(page.getByRole('main')).toContainText('+1,50')
+
+  // Une nouvelle version en brouillon se supprime après confirmation ; la version VALIDÉE reste, jamais supprimée.
+  await page.getByRole('button', { name: 'Créer une nouvelle version' }).click()
+  await page.getByRole('button', { name: 'Enregistrer le brouillon' }).click()
+  await expect(page.getByRole('main')).toContainText('Version 2 (brouillon)')
+  await page.getByRole('button', { name: 'Supprimer le brouillon' }).click()
+  const confirm = page.getByRole('dialog', { name: 'Supprimer le brouillon de la version 2 ?' })
+  await expect(confirm).toContainText('Une prescription validée ne se supprime pas')
+  await confirm.getByRole('button', { name: 'Supprimer le brouillon' }).click()
+  await expect(page.getByRole('main')).toContainText('Brouillon supprimé')
+  await expect(page.getByRole('main')).toContainText('Validée')
+  await expect(page.getByRole('main')).toContainText('Dr Externe Fictif')
+  await expect(page.getByRole('main')).not.toContainText('Version 2 (brouillon)')
+  await expect(page.getByRole('button', { name: 'Supprimer le brouillon' })).toHaveCount(0)
 })

@@ -14,7 +14,7 @@
 import { computed } from 'vue'
 import { RouterLink } from 'vue-router'
 
-import { canOnScreen, moduleOpenOnScreen } from '@/app/session'
+import { canOnScreen, moduleOpenOnScreen, session } from '@/app/session'
 import AppIcon from '@/components/ui/AppIcon.vue'
 
 const props = defineProps<{
@@ -22,10 +22,15 @@ const props = defineProps<{
   current: 'identite' | 'activite' | 'prescriptions'
 }>()
 
+// Session locale (serveur non joint) : l'activité et les prescriptions se lisent sur le serveur, leurs onglets sont masqués.
 const TABS = computed(() => [
   { key: 'identite', label: 'Identité', route: 'patient', icon: 'id-card' },
-  { key: 'activite', label: 'Activité', route: 'patient-activite', icon: 'history' },
-  ...(canOnScreen('clinical.read') && moduleOpenOnScreen('consultations')
+  ...(session.status === 'local'
+    ? []
+    : [{ key: 'activite', label: 'Activité', route: 'patient-activite', icon: 'history' }]),
+  ...(session.status !== 'local' &&
+  canOnScreen('clinical.read') &&
+  moduleOpenOnScreen('consultations')
     ? [
         {
           key: 'prescriptions',

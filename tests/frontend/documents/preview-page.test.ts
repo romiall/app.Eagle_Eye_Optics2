@@ -109,7 +109,8 @@ describe('écran d’aperçu des documents (données fictives)', () => {
     await flushPromises()
 
     expect(vi.mocked(renderDocument).mock.calls).toHaveLength(calls)
-    expect(wrapper.find('svg').exists()).toBe(false)
+    // L'aperçu est le seul `svg[role="img"]` : le chevron décoratif de la liste n'en est pas un.
+    expect(wrapper.find('svg[role="img"]').exists()).toBe(false)
     expect(wrapper.text()).toContain('Choisissez un document pour l’afficher')
   })
 
@@ -160,7 +161,7 @@ describe('écran d’aperçu des documents (données fictives)', () => {
     const loading = wrapper.get('[aria-busy="true"]')
 
     expect(loading.text()).toContain('Génération du PDF…')
-    expect(wrapper.find('svg').exists()).toBe(false)
+    expect(wrapper.find('svg[role="img"]').exists()).toBe(false)
   })
 
   it('une erreur de données est dite avec son message sûr', async () => {

@@ -121,8 +121,9 @@ test.describe('consultation (C01) sur la vraie application', () => {
     await expect(page.getByRole('heading', { level: 2, name: /Étape 3 sur 7/ })).toBeVisible()
     await expect(page.getByRole('main')).toContainText('Échelles de démonstration')
     await page
-      .getByLabel('Acuité de loin : échelle utilisée')
-      .selectOption({ label: 'Dixièmes (X/10) — DÉMONSTRATION' })
+      .getByRole('group', { name: 'Acuité de loin : échelle utilisée' })
+      .getByLabel('Dixièmes (X/10) — DÉMONSTRATION')
+      .check()
     await page.getByLabel('Acuité de loin, sans correction, OD').fill('8/10')
     await page.getByLabel('Acuité de loin, sans correction, OG').fill('0')
     await page.getByRole('button', { name: 'Suivant' }).click()

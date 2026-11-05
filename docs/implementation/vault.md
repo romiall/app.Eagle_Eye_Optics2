@@ -360,10 +360,10 @@ fichiers ; la passe de vérification les lancera.
 4. Validité des grants : 72 h par défaut, plafond 168 h (fichier 19, à confirmer avec la politique du cabinet).
 5. Bibliothèque JWS serveur ajoutée : `firebase/php-jwt` ^7 (signature JWA R||S et conversions DER par la
    bibliothèque, exigence du fichier 23).
-6. Non fait dans cette passe : écran de verrouillage qui remplace la coquille et route publique de déverrouillage
-   avant la connexion (D14, D27 : avec O04, quand une commande pourra s'écrire hors ligne), annuaire administratif
-   en mémoire, identité d'action unique (`app/actor.ts`), preuves Playwright du coffre (`tests/e2e/vault.spec.ts`),
-   rotation des clés de compartiment (R-rotation, non planifiée).
+6. Non fait dans cette passe : annuaire administratif en mémoire, preuves Playwright du coffre
+   (`tests/e2e/vault.spec.ts`), rotation des clés de compartiment (R-rotation, non planifiée). L'écran de
+   verrouillage qui remplace la coquille, la route publique de déverrouillage avant la connexion et l'identité
+   d'action (D14, D27) sont faits le 2026-10-28 : voir « Implémentation (D14, D27) » plus bas.
 
 ### Pour O03 à O05
 
@@ -545,9 +545,234 @@ générateurs de contrats ont été lancés (`build_resources.py`, `build_openap
 
 ### Reste à faire après O05
 
-O06 (mise à jour PWA et schéma local), O07 (export et restauration du poste), G1 (preuve de la tranche urgente :
-patient, facture, deux paiements, PDF et ACK rejouable sur poste réel). Plus : dépôt des PDF locaux après l'ACK de leur
-pièce (D01, compteurs `documentsToUpload` à zéro tant qu'il n'est pas branché), lecture des projections du pull par
-les écrans hors ligne (fiche, facture), numéro de reçu affiché à l'encaissement hors ligne, `GET /devices/{id}/health`,
-écran de verrouillage et route publique de déverrouillage (D14, D27), réserves sous quota testées de bout en bout,
-ouverture du module `offline` en production seulement après G1.
+O06 (mise à jour PWA et schéma local), G2 (risques financiers, concurrence, reprise complète). O07 et G1 (tranche
+de base) sont prouvés en local ; le numéro de reçu hors ligne (G1) et l'écran public de déverrouillage (D14, D27) sont
+faits. Plus : dépôt des PDF locaux après l'ACK de leur pièce (D01, compteurs `documentsToUpload` à zéro tant qu'il
+n'est pas branché), lecture des projections du pull par les écrans hors ligne (fiche patient, liste, recherche,
+catalogue, création et lecture d'une facture : `offlineCapable` n'est posé que sur les écrans qui savent travailler
+sur le poste), `GET /devices/{id}/health`, réserves sous quota testées de bout en bout, ouverture du module `offline`
+en production seulement après G2.
+
+## Implémentation (D14, D27) — déverrouillage public et session locale — 2026-10-28
+
+Lève l'écart 2 de G1 (démarrage SANS réseau, AT36 à la lettre). Preuve en navigateur réel : `tests/e2e/offline-start.spec.ts`
+(profil persistant, serveur RÉELLEMENT arrêté puisque Playwright n'applique pas « hors ligne » aux requêtes du service
+worker). Règles : `tests/frontend/shell/local-identity.test.ts`, `tests/frontend/offline/clinic-summary.test.ts`.
+
+### Comportement
+
+| Coffre de ce navigateur | Session du serveur | Ce que fait l'application |
+| --- | --- | --- |
+| absent (aucune base `eeo-device`) | quelconque | Flux d'avant (connexion au serveur) ; IndexedDB n'est même pas ouverte |
+| verrouillé, endommagé ou trop récent | aucune identité (inconnue, anonyme, non vérifiée) | Route publique `/deverrouiller` AVANT `/connexion` : profils listés (identifiant et nom), secret local ; coffre illisible : écran d'état explicite, aucune écriture |
+| verrouillé | ouverte ou expirée | Rien n'est imposé : le serveur est l'identité ; le coffre se déverrouille depuis « Poste » ou `/deverrouiller` |
+| déverrouillé par la personne | aucune ou injoignable | Session **locale** (`session.status === 'local'`) : profil du coffre, droits SIGNÉS de son grant, seuls les écrans `offlineCapable` s'ouvrent |
+| déverrouillé | ouverte, même compte | Droits du serveur ; le coffre reste ouvert à côté |
+| déverrouillé | ouverte, AUTRE compte | Droits du serveur ; divergence signalée dans l'en-tête ; aucune commande n'est écrite sur le poste (`localCommandsOrNull()` rend null) |
+
+### Décisions d'application
+
+- **Détection sans création** : `vaultDatabaseExists()` (façade) interroge `indexedDB.databases()` au démarrage, avant la garde
+  du routeur. Un navigateur qui ne sait pas lister ses bases suit le flux d'avant (module ouvert par le serveur). Sans
+  coffre, rien ne change : aucune ouverture d'IndexedDB, le module `offline` fermé en production reste sans effet.
+- **Identité d'action unique (D27)** : réalisée dans `session.ts` (statut `local`) et `app/services/localIdentity.ts`, sans
+  module `actor.ts` séparé : `can()`, `useMutation`, `ReauthDialog` et la garde lisent déjà `session.account`, qui porte
+  le compte du serveur OU, faute de serveur, celui du coffre. Le serveur reprend la main dès qu'il répond avec une session ;
+  son silence ou l'absence de session chez lui ne retire jamais le profil local (`readSession`).
+- **Compte local** (`localAccountOfSession`) : identité et permissions viennent du grant signé de la session du coffre
+  (`GrantSummary.permissions`, jamais d'une saisie) ; sans grant valide, aucun droit (le profil s'ouvre mais ne peut rien
+  faire, l'accueil l'explique). Le résumé du cabinet (nom, fuseau, monnaie, modules) est celui de la dernière session
+  du serveur, retenu dans `vault_meta.clinic_summary` (non secret, écrit même coffre verrouillé, forme contrôlée à la
+  lecture : une valeur altérée est ignorée). `offline` figure toujours dans les modules d'une session locale.
+- **Écrans** : la méta `offlineCapable` marque les écrans qui savent travailler sur le poste (accueil, aide, accès refusé,
+  introuvable, « Poste », et les écrans patient de la section « Implémentation (A1) »). Les autres restent fermés en session locale : l'accueil dit « « X » demande le
+  serveur ». Les droits du grant s'appliquent comme en ligne (`acces-refuse`).
+- **Coquille démontée (D14)** : sans identité et avec un coffre à ouvrir, `RouterView` n'est plus rendu (menu, compte,
+  déconnexion et contenu disparaissent), seul l'écran de déverrouillage subsiste ; les erreurs du coffre sont traduites
+  (secret vidé après chaque essai, message uniforme, heure de la prochaine tentative après des échecs répétés).
+- **Verrouillage (D12, D15)** : « Verrouiller le poste » (en-tête) ferme le coffre sans quitter le serveur ; « Se
+  déconnecter » verrouille d'abord, sans réseau, puis ferme la session du serveur s'il y en a une (en session locale, il
+  n'y en a pas : le poste se verrouille et s'arrête là).
+- **Inactivité (D13)** : `installVaultWatch()` prolonge la session du coffre à chaque activité (écriture limitée à 15 s par le
+  coffre) et contrôle toutes les 15 s, au retour du focus et de l'onglet : 30 minutes sans activité, horloge reculée ou
+  session terminée par un autre onglet verrouillent ici aussi.
+- **Envoi des pièces** : la synchronisation passe par la session du serveur (Sanctum). En session locale, l'en-tête offre
+  « Se connecter au serveur » dès que le réseau est là ; le poste envoie ensuite (« Synchroniser » ou échange
+  automatique). Un échec d'envoi sans session ne retire rien du journal.
+
+### Limites déclarées
+
+1. **Lecture locale des écrans** : seuls les écrans listés ci-dessus s'ouvrent hors serveur. La fiche patient, la recherche et
+   la modification d'une fiche du poste, le choix d'un article du catalogue figé, la création, l'émission et la lecture d'une
+   facture du poste sont faits (A1, plus bas) ; la liste des factures et les autres écrans de vente relisent encore le serveur.
+2. **Identité du cabinet des PDF** : après un redémarrage sans serveur, `currentDocumentClinic` retombe sur le nom du cabinet
+   retenu (les autres mentions restent « à renseigner » sur un document de test). Les pièces financières émises gardent leur
+   identité figée. Les mentions complètes hors ligne se retiennent avec les écrans locaux.
+3. **Inactivité** : la logique (30 minutes, horloge reculée) est celle du coffre, éprouvée par `vault.test.ts` ; le parcours
+   en navigateur n'attend pas 30 minutes (aucune horloge truquée), à rejouer en G2.
+4. **Plusieurs profils sur un même poste** : l'écran liste tous les profils actifs ; la bascule d'un profil à l'autre
+   (verrouiller puis déverrouiller) est couverte par le coffre, pas par un parcours dédié (G2, P04).
+5. **Aide intégrée** : les sections « À savoir » et « Pas encore disponible » disent encore que le travail sans Internet
+   n'est pas livré (module `offline` fermé) ; une section dédiée s'ajoutera à l'ouverture du module, après G2.
+6. **Issue `vault-locked` du répartiteur** (D27) : non ajoutée. Coffre verrouillé, la propriété des factures du poste n'est
+   pas lisible, donc une commande qui retomberait sur la route directe n'est pas distinguée d'une autre ; le serveur,
+   lui, refuse tout encaissement direct d'une facture détenue par un poste (`WRITE_OWNER_REQUIRED`) : aucune double
+   écriture. Un message plus précis (« déverrouillez le poste ») est à ajouter avec G2.
+7. **Pièce enregistrée pendant un échange** (observé, pas introduit ici) : un seul échange à la fois (`SyncEngine.syncNow`
+   rejoint l'échange en cours). Une pièce créée pendant un échange lent n'en fait pas partie et ne part qu'à l'échange
+   suivant (au plus 60 s, ou un nouveau clic) : le clic « Synchroniser » ne relance pas un second échange. C'est la cause de
+   l'intermittence de `device-recovery.spec.ts` (« Conflits à revoir : 1 ») sur un serveur de test lent, confirmée par la
+   trace (envoi de 4 s) et par le même échec sur le code d'avant ce chantier ; le test attend désormais la fin de
+   l'échange d'ouverture avant de couper le réseau. À traiter avec G2 (concurrence).
+
+## Implémentation (A1) — lecture locale des fiches patient — 2026-10-28
+
+Première tranche de l'écart 1 de G1 (lecture locale des écrans patient et facture) : la fiche d'un patient, la recherche et la
+modification d'une fiche répondent depuis le coffre quand le serveur ne répond pas. Preuve en navigateur réel :
+`tests/e2e/offline-start.spec.ts` (serveur RÉELLEMENT arrêté, deux fermetures complètes). Règles pures :
+`tests/frontend/patients/local-patients.test.ts` ; lectures : `tests/frontend/services/patients-local.test.ts` ; écran de
+création : `tests/frontend/patients/create-page.test.ts`.
+
+### Comportement
+
+- **Source** : les fiches de CE poste sont reconstruites par REJEU des faits ADMINISTRATIFS du journal local
+  (`domain/patients/local.ts`, `app/services/localPatients.ts`, `localAdministrativeFacts`) : `CreatePatient` pose la fiche
+  (numéro de dossier de la plage du poste), chaque `UpdatePatient` y applique ses champs (champ vidé : null ; le nom ne devient
+  jamais vide). Un fait ne change jamais : rejouer tous les faits donne la même fiche à chaque lecture, alors que la projection
+  de tête du journal ne garde que la dernière charge d'une modification. La version affichée vaut « 1 + nombre de
+  modifications », comme le compteur d'entité du journal (la modification suivante attend donc la bonne version).
+- **Priorité** (F10, AT42) : une proposition du poste ni consolidée ni rejetée (`local`, `pending`, `waiting_dependency`,
+  `conflict`) PRIME sur le serveur, qui ne la connaît pas encore. Consolidée (`acknowledged`), le serveur fait foi quand il
+  répond, et la copie du poste répond quand il ne répond pas. Une erreur du serveur (404, 403…) n'est jamais remplacée par la
+  copie du poste.
+- **Fraîcheur** : une lecture du poste porte `serverAsOf` null et `live` faux. La fiche et la liste disent « Données de ce poste
+  seulement : le serveur n'a pas été consulté » ; un résultat vide n'est jamais « Aucun résultat » (« Recherche serveur
+  indisponible »), car il ne dit rien de la clinique entière.
+- **Recherche** : `searchPatients(query, page, { includeLocal: true })`, demandé par l'écran « Patients » seulement. Serveur
+  injoignable : les fiches du poste qui correspondent (nom et prénoms sans casse, accents ni ordre des mots ; téléphone par ses
+  chiffres ; numéro de dossier ; 25 par page, triées par nom). Serveur joint : les fiches du poste pas encore consolidées
+  s'ajoutent en tête de la première page. La détection des doublons à la création n'utilise jamais le poste : sans le serveur,
+  elle dit « Vérification des doublons impossible » et demande une confirmation.
+- **Écrans** (`offlineCapable`) : liste et recherche, fiche, modification. En session locale, la fiche ne montre que l'onglet
+  « Identité » et l'action « Modifier » ; arrivée, facture, fusion, export, activité et prescriptions (serveur) ne sont pas
+  offerts (aucun lien vers un écran fermé). Après un enregistrement sur le poste, « Ouvrir la fiche » remplace « Annuler » à
+  côté du statut « Enregistré sur ce poste ».
+
+### Limites déclarées
+
+1. **Fiches du poste seulement** : levé par A2 (section « Implémentation (A2) » plus bas) : les fiches du SERVEUR reçues par le
+   pull se lisent aussi et servent de base aux modifications faites sur le poste. Une fiche du serveur que ce poste n'a jamais
+   reçue reste introuvable sans le serveur.
+2. **Pas de doublons hors ligne** : la ressemblance se cherche sur le serveur seulement (voulu : « aucune fiche proche » sans le
+   serveur serait une absence affirmée à tort).
+3. **Recherche approchée** : jumelle simplifiée de celle du serveur (mêmes règles de casse, d'accents et de chiffres), sans
+   classement de pertinence ; l'ordre est alphabétique.
+4. **Facture** : levé par les tranches 2 et 3 (section suivante).
+
+## Implémentation (A1, tranches 2 et 3) — facture créée, émise et lue sur le poste — 2026-10-29
+
+Lève l'écart 1 de G1 : AT37 à la lettre (« Sans réseau : facture 80 000, acompte 30 000/reçu, solde 50 000/reçu, PDF/impression »).
+Preuve en navigateur réel : `tests/e2e/offline-invoice.spec.ts` (profil persistant, serveur RÉELLEMENT arrêté, deux fermetures
+complètes, synchronisation à la fin). Règles pures : `tests/frontend/billing/local-invoices.test.ts` et `local-catalog.test.ts` ;
+lectures : `tests/frontend/services/billing-local.test.ts` ; éditeur : `tests/frontend/billing/invoice-draft.test.ts`.
+
+### Comportement
+
+- **Catalogue figé** (`domain/billing/localCatalog.ts`, `app/services/localCatalog.ts`, `catalogSnapshot()` de la façade du coffre) :
+  le contenu remis à la préparation du poste (articles, règles fiscales, jamais de coût d'achat) est lu dans l'entité scellée
+  `catalog_snapshot`. `searchCatalog(query, page, { includeLocal: true })` (choix d'un article de facture seulement) répond avec lui quand
+  le serveur ne répond pas : articles ACTIFS, mots cherchés dans la référence et le nom (casse, accents, ponctuation et ordre
+  ignorés), 25 par page ; la liste dit « Catalogue de ce poste (serveur non consulté) ». Une règle fiscale n'est appliquée que si
+  elle est active, avec un taux ET validée par la gérante (comme `TaxRegime::applicable`) : sinon `NO_TAX_CONFIGURED` et aucune taxe
+  ventilée, jamais zéro.
+- **Factures du poste** (`domain/billing/localInvoices.ts`, `app/services/localInvoices.ts`) : rejeu des faits FINANCIERS du journal
+  local. `CreateInvoiceDraft` pose le brouillon, chaque `UpdateDraft` remplace ses lignes (version du brouillon +1), `IssueInvoice`
+  l'émet avec le numéro de la plage du poste (jamais renuméroté). La facture rendue a la forme de celle du serveur (`Invoice`) :
+  lignes figées d'après le catalogue figé (référence, catégorie, unité ; ligne libre : `OTHER` et `UNIT`), montants des MÊMES règles
+  pures que le serveur (`computeLineAmounts`), identité du patient, en-tête du cabinet et règles fiscales relus à chaque affichage d'après l'état COURANT du poste (le serveur
+  fige les siens à la synchronisation : avant, rien n'est figé côté poste),
+  version du grand livre 1 à l'émission (comme le compteur du journal). Les encaissements s'y ajoutent comme pour une facture du
+  serveur (`localPayments`).
+- **Priorité** (F10, AT42) : `getInvoice` rend la copie du poste tant que sa dernière commande de brouillon ou d'émission n'est ni
+  consolidée ni rejetée ; consolidée, le serveur fait foi quand il répond et la copie répond quand il ne répond pas. Une erreur du
+  serveur n'est jamais remplacée. La fraîcheur dit « Données de ce poste seulement ».
+- **Éditeur** : `saved-local` (poste préparé, coffre ouvert, serveur ou non) est géré pour `CreateInvoiceDraft`, `UpdateDraft` et
+  `IssueInvoice` : « Brouillon de facture enregistré sur ce poste, en attente de synchronisation », « Facture émise sur ce poste :
+  numéro … » (jamais « sur le serveur »), la facture est relue dans le coffre. Si elle ne peut pas y être reconstruite, la pièce reste au
+  journal et le message dit de ne pas la refaire. L'abandon d'un brouillon (serveur seulement) n'est pas offert pour une facture
+  du poste ; la fiche d'une facture du poste remplace les panneaux « remises, avoirs, corrections » (serveur) par une note.
+- **Écrans** (`offlineCapable`) : nouvelle facture et facture ; la fiche du patient propose « Créer une facture » en session locale ;
+  la recherche du patient de la nouvelle facture répond avec les fiches du poste. En session locale, « Retour aux factures » n'est
+  pas offert (la liste des factures demande le serveur).
+
+### Limites déclarées
+
+1. **Patients du serveur** : levé par A2 (section « Implémentation (A2) » plus bas) quand la fiche a été reçue par le pull. Pour un
+   patient du serveur que ce poste n'a jamais reçu, une facture émise sur le poste n'est pas relisible hors ligne : la pièce reste au
+   journal et part à la synchronisation.
+2. **Articles stockés** : leur émission sur le poste exige un quota de stock du poste (AT40, G2) ; sans quota, la commande n'est pas
+   prise sur le poste. Le parcours e2e emploie des articles non stockés (examen, verres sur mesure).
+3. **En-tête du cabinet** : nom, fuseau, monnaie et « document de test » seulement (limite 2 du déverrouillage public) ; le libellé d'une
+   règle fiscale est son code (le libellé n'est pas dans le catalogue figé).
+4. **Règles de vente du compte** (plafond de remise, modes de règlement) : lues sur le serveur ; sans lui, l'écran garde ses textes
+   génériques et le serveur tranche à la synchronisation (prix ou remise au-delà des droits).
+5. **Serveur seulement** : liste des factures, abandon d'un brouillon, avoirs, remboursements, contre-écritures, remise au patient.
+6. **Catalogue figé, serveur vivant** : le serveur revalide les brouillons contre son catalogue ACTUEL (prix, taxes, article actif), pas
+   contre celui du poste ; un prix, une taxe ou un article modifié depuis la préparation peut faire refuser la pièce à la
+   synchronisation (elle passe alors en revue). Aucun plafond de remise ni autorité de prix n'est contrôlé sur le poste.
+7. **Espèces hors ligne** : la session de caisse se lit sur le serveur seulement ; sans lui, seuls les modes qui n'en demandent pas
+   (mobile money, virement…) s'encaissent.
+8. **Pas de liste des factures du poste** : une facture se rouvre depuis son adresse ou l'historique du navigateur ; une liste « Factures
+   de ce poste » sur la fiche du patient est à faire.
+9. **État de synchronisation** : seul celui des encaissements s'affiche ; une facture rejetée ou en conflit n'a pas encore d'écran dédié
+   (elle redevient « introuvable » sur le serveur).
+10. **Facture déjà consolidée lue en repli** (serveur injoignable après l'ACK) : ses encaissements acquittés sont repris du journal ; la
+    mention « en attente de synchronisation » peut rester affichée à tort.
+11. **Patient du serveur, émission** : si la fiche n'a pas été reçue par le pull (A2), la facture émise sur le poste n'est pas
+    relisible ici ; l'éditeur le dit, se verrouille (aucune seconde émission) et la pièce part à la synchronisation.
+
+## Implémentation (A2) — annuaire du poste : fiches du serveur lues, modifiées et facturées sur le poste — 2026-10-30
+
+Lève la limite « les patients du serveur ne se lisent pas hors ligne » d'A1. Preuve en navigateur réel :
+`tests/e2e/offline-directory.spec.ts` (fiche créée en ligne, reçue par le pull, serveur RÉELLEMENT arrêté, deux fermetures complètes, synchronisation à la fin ; vert en local le 2026-10-30 sur Edge). Règles pures : `tests/frontend/patients/local-patients.test.ts` ; lectures :
+`tests/frontend/services/local-patients-directory.test.ts` et `patients-local.test.ts` ; coffre : `tests/frontend/offline/sync.test.ts`.
+
+### Comportement
+
+- **Source** : les projections que le pull a scellées dans `pulled_administrative` (`patient_records/<id>`, même représentation que l'API
+  en ligne). La façade du coffre les liste par type sans déchiffrer le reste (`pulledRecords`, avec ou sans identifiants) et dit jusqu'où
+  l'annuaire est à jour (`lastPullAt`) ; un compartiment fermé pour la session rend une liste vide. Une projection vide (entité disparue),
+  d'une autre forme ou dont l'identité ne correspond pas à sa clé est écartée (`patientOfPulled`), jamais corrigée.
+- **Rejeu** (`foldLocalPatients(faits, annuaire)`) : une fiche du serveur que le poste n'a pas touchée est lue telle que reçue, état
+  `acknowledged` ; une modification faite ici s'applique par-dessus (version = version attendue + 1, comme le compteur d'entité du
+  journal), sauf si le serveur l'a refusée (elle ne change rien) ou si le pull l'a déjà REPRISE (acquittée, et fiche du serveur à la
+  version qu'elle a produite : la rejouer défairait un changement plus récent du serveur sur les mêmes champs).
+  `LocalFact.expectedVersion` (nouveau, absent des faits d'avant A2 : ils comptent alors +1 et ne sont jamais tenus pour repris) porte la
+  version attendue. Une fiche créée ici puis reçue du serveur : non consolidée, la proposition du poste prime (AT42) ; consolidée, la
+  plus récente des deux fait foi.
+- **Portée de la lecture** (`localPatients(portée)`) : sans portée, les seuls faits du journal (serveur joint : les fiches non
+  consolidées s'ajoutent en tête de la première page) ; `ids` : ces fiches du serveur seulement (fiche lue, identité des factures du
+  poste : une lecture chacune) ; `directory` : l'annuaire entier, demandé seulement serveur injoignable (recherche). L'annuaire entier
+  est gardé en mémoire le temps de la session et du dernier pull (repère « session + dernier pull »), relu dès que le repère change et
+  oublié à chaque verrouillage du coffre (D12 ; la mémoire physique n'est pas effacée, comme pour les clés).
+- **Recherche** : serveur injoignable, elle porte sur les fiches du poste ET celles de l'annuaire, avec les règles du serveur (nom et
+  prénoms sans casse, accents ni ordre ; chiffres du téléphone ; numéro de dossier) ; une fiche fusionnée dans une autre n'est jamais
+  proposée, une fiche archivée l'est. Serveur joint : l'annuaire n'est jamais ouvert (aucun coût en ligne).
+- **Facture** : l'identité du patient d'une facture du poste est lue par les identifiants de ses brouillons (annuaire et fiches créées
+  ici) : une facture émise sur le poste pour un patient du serveur se relit avec son identité, sans écran verrouillé.
+
+### Limites déclarées
+
+1. **Couverture** : l'annuaire est ce que les échanges de synchronisation ont déjà reçu (un échange : 20 pages de 100 changements). Un
+   poste neuf sur un cabinet au journal long peut demander plusieurs échanges ; l'écran ne dit pas encore si l'annuaire est complet :
+   un résultat vide n'affirme jamais l'absence.
+2. **Fraîcheur** : l'annuaire date du dernier pull (`lastPullAt`, non affiché). Une fiche modifiée depuis sur un autre poste n'y est pas.
+3. **Compartiment** : le compartiment administratif doit être ouvert pour la session ; sinon la lecture est vide.
+4. **Factures du serveur** : le pull ne publie qu'un RÉSUMÉ de chaque facture (numéro, statut, total, reste dû ; ni lignes ni
+   encaissements). Une facture du serveur ne se relit donc pas hors ligne ; une liste « Factures du patient » faite de ces résumés est
+   possible, non faite.
+5. **Pas de worker** (E6) : l'annuaire est déchiffré sur le fil principal, une fois par pull et par session ; non mesuré jusqu'à la borne
+   visée de 20 000 fiches.
+6. **Doublons** : la détection de ressemblance à la création exige toujours le serveur.
+7. **Intégrité** : une ligne altérée de l'annuaire fait échouer toute la lecture (la recherche hors ligne est alors vide) : rien n'est
+   montré à moitié.

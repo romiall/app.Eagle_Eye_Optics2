@@ -835,6 +835,7 @@ encaissements). Code : `app/Domain/Billing/{Quotes,QuoteReader}.php`, `app/Domai
 | `GET /quotes`, `GET /quotes/{id}` | — | `invoice.read` | liste (filtres état, dont EXPIRED calculé, et patient), détail avec révisions figées et provenance |
 | `POST /quotes` | `CreateQuoteDraft` | `invoice.create` | brouillon : patient OU prospect (`prospect_contacts`, origine MANUAL, nom et téléphone) |
 | `PATCH /quotes/{id}` | `UpdateQuoteDraft` | `invoice.create` | lignes et validité d'un brouillon ; créateur ou gérante |
+| `POST /quotes/{id}/delete` | `DeleteQuoteDraft` | `invoice.create` | supprime un brouillon JAMAIS ÉMIS et ses lignes (chantier « CRUD des écrans », tranche 3a) ; créateur ou gérante ; version attendue ; devis émis, accepté, refusé, expiré ou converti : 409 (il se révise) ; audit `quote.draft_deleted`, pierre tombale `ARCHIVED` ; aucun numéro consommé |
 | `POST /quotes/{id}/issue` | `IssueQuote` | `invoice.create` | numéro série `QUOTE` (`TEST-DEV-AAAA-NNNNNN`), révision 1 immuable, document PENDING |
 | `POST /quotes/{id}/revisions` | `ReviseQuote` | `invoice.create` | révision N+1 avec motif, numéro inchangé, anciennes révisions et documents intacts |
 | `POST /quotes/{id}/decision` | `RecordQuoteDecision` | `invoice.create` | ACCEPTED (émis et valable) ou DECLINED ; aucune facture, aucun paiement |

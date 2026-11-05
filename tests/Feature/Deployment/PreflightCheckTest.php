@@ -26,6 +26,7 @@ final class PreflightCheckTest extends TestCase
         return [
             'MariaDB (version)' => ['10.11.6-MariaDB', '', PreflightResult::BLOCKING],
             'MariaDB (commentaire)' => ['10.6.12', 'mariadb.org binary distribution', PreflightResult::BLOCKING],
+            'MariaDB 11.8 (Hostinger)' => ['11.8.9-MariaDB-log', '', PreflightResult::OK],
             'MySQL 5.7' => ['5.7.44', '', PreflightResult::BLOCKING],
             'MySQL 8.0.15 sans CHECK' => ['8.0.15', '', PreflightResult::BLOCKING],
             'MySQL 8.0.16' => ['8.0.16', '', PreflightResult::WARNING],

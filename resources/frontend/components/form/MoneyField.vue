@@ -2,7 +2,8 @@
 /**
  * Montant en FCFA entiers (règle F08 : chiffres seuls ou groupes de trois, ni virgule ni point).
  * Lu à la sortie du champ ou à Entrée. Vide → null, jamais 0 ; une saisie refusée est conservée
- * pour correction. L'unité affichée à côté est aussi annoncée par les lecteurs d'écran.
+ * pour correction. L'unité, affichée à droite DANS le champ, est aussi annoncée par les lecteurs
+ * d'écran (aria-describedby).
  * `commit()` est exposé pour qu'un formulaire lise le champ avant son envoi.
  */
 import { ref, watch } from 'vue'
@@ -96,7 +97,7 @@ defineExpose({ commit })
     :required="props.required"
     :control-id="props.controlId"
   >
-    <div class="flex items-center gap-2">
+    <div class="relative">
       <input
         :id="id"
         v-model="text"
@@ -107,11 +108,17 @@ defineExpose({ commit })
         :disabled="props.disabled"
         :aria-invalid="invalid ? 'true' : undefined"
         :aria-describedby="describedWithUnit(describedBy, id)"
-        :class="controlClasses(invalid, 'text-right tabular-nums')"
+        :class="controlClasses(invalid, 'peer pr-15 text-right tabular-nums')"
         @blur="commit"
         @keydown.enter="commit"
       />
-      <span :id="`${id}-unite`" class="text-base font-medium text-muted">FCFA</span>
+      <!-- L'unité est DANS le champ, à droite : la zone de saisie garde la largeur qu'avait le texte
+           « FCFA » posé à côté (une colonne de 143 px laisse encore ≈ 69 px aux chiffres). -->
+      <span
+        :id="`${id}-unite`"
+        class="pointer-events-none absolute inset-y-0 right-3.5 flex items-center text-sm font-semibold text-muted peer-disabled:text-disabled-ink"
+        >FCFA</span
+      >
     </div>
   </FieldShell>
 </template>

@@ -14,7 +14,7 @@ import { computed, ref } from 'vue'
 
 import { clinicTimeZone, clinicToday, formatDayFr } from '@/app/clinicTime'
 import { listContactTasks, listFollowUps } from '@/app/services/agenda'
-import { canOnScreen } from '@/app/session'
+import { canOnScreen, knownAccountId } from '@/app/session'
 import {
   DUE_LOOKS,
   type DueState,
@@ -37,12 +37,14 @@ import {
   FOLLOW_UP_STATUS_LABELS,
   isOpenTask,
 } from '@/domain/agenda/agenda'
+import { canCancelFollowUp } from '@/domain/clinical/draftDeletion'
 import type { ContactTask, FollowUpPlan } from '@/domain/contracts/generated'
 import { patientDisplayName } from '@/domain/patients/identity'
 import { CivilDate } from '@/domain/values/civilDate'
 import SalesReadMessage from '@/pages/sales/SalesReadMessage.vue'
 import { useServerRead } from '@/pages/today/useServerRead'
 
+import CancelFollowUpDialog from './CancelFollowUpDialog.vue'
 import ContactTaskCard from './ContactTaskCard.vue'
 
 const timeZone = clinicTimeZone()
@@ -82,6 +84,23 @@ function staled(message: string): void {
 
 function planName(plan: FollowUpPlan): string {
   return patientDisplayName(plan.patient.last_name, plan.patient.first_names)
+}
+
+/** Annulation d'un contrôle encore actif (motif obligatoire) : une seule boîte pour toute la liste. */
+const cancelling = ref<FollowUpPlan | null>(null)
+
+function cancellable(plan: FollowUpPlan): boolean {
+  return canCancelFollowUp(plan, { accountId: knownAccountId(), can: canOnScreen })
+}
+
+function afterCancel(message: string): void {
+  cancelling.value = null
+  recorded(message)
+}
+
+function cancelRefused(message: string): void {
+  cancelling.value = null
+  staled(message)
 }
 
 /** Nombre de tâches encore à traiter et, parmi elles, en retard (jour civil du cabinet). */
@@ -240,9 +259,27 @@ function planDue(plan: FollowUpPlan): DueState {
               <AppIcon name="calendar-plus" />
               Programmer un rendez-vous
             </LinkButton>
+            <AppButton
+              v-if="cancellable(plan)"
+              variant="ghost"
+              class="self-start"
+              :accessible-name="`Annuler le contrôle de ${planName(plan)}`"
+              @click="cancelling = plan"
+              >Annuler le contrôle</AppButton
+            >
           </article>
         </div>
       </template>
     </section>
+
+    <CancelFollowUpDialog
+      v-if="cancelling"
+      :plan-id="cancelling.id"
+      :version="cancelling.version"
+      :patient-name="planName(cancelling)"
+      @cancelled="afterCancel"
+      @stale="cancelRefused"
+      @close="cancelling = null"
+    />
   </section>
 </template>

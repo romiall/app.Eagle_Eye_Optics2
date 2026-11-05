@@ -10,6 +10,17 @@ html {
   -webkit-text-size-adjust: 100%;
 }
 
+/*
+ * Étiquette d'un champ (FieldShell) : une ligne de 20 px puis 6 px avant la saisie. Un bouton posé à
+ * côté d'un champ (recherche, filtre) descend de `--field-label-offset` pour s'aligner sur la saisie
+ * (`.toolbar`, `.field-action`) : l'aide et l'erreur sont sous la saisie et ne le déplacent plus.
+ */
+:root {
+  --field-label-height: 1.25rem;
+  --field-label-gap: 0.375rem;
+  --field-label-offset: calc(var(--field-label-height) + var(--field-label-gap));
+}
+
 body {
   margin: 0;
   line-height: 1.5;
@@ -149,11 +160,37 @@ body {
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
   }
 
-  /* Barre d'outils (filtres, choix du jour) : empilée sur téléphone, en ligne ensuite. */
+  /*
+   * Barre d'outils (filtres, choix du jour) : empilée sur téléphone, en ligne ensuite. Les champs
+   * sont alignés en haut ; le bouton ou le lien posé à côté descend de la hauteur de l'étiquette
+   * (`--field-label-offset`) pour s'aligner sur la saisie, qu'un champ porte une aide ou non. Ce
+   * décalage suppose que le bouton partage sa ligne avec le champ : le conteneur d'un champ est
+   * donc souple (`sm:flex-1`, plafonné par `sm:max-w-*`) et ne force pas le retour à la ligne.
+   */
   .toolbar {
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
+  }
+
+  /*
+   * Bouton (ou case à cocher) posé à côté d'un champ, hors `.toolbar` ou dans un `div` d'une
+   * barre : même alignement sur la saisie dès 640 px. Sous 640 px la rangée doit être empilée
+   * (`flex-col sm:flex-row`), sinon le décalage garde le bouton trop haut.
+   */
+  @media (min-width: 40rem) {
+    .field-action {
+      margin-top: var(--field-label-offset);
+    }
+  }
+
+  /* Étiquette d'un champ (FieldShell) : discrète et nette, au-dessus de la saisie de 16 px. */
+  .field-label {
+    margin-bottom: var(--field-label-gap);
+    color: var(--color-ink);
+    font-size: 0.875rem;
+    line-height: var(--field-label-height);
+    font-weight: 600;
   }
 
   /* Titre de section hors carte : court filet doré vertical devant le texte (décoratif). */
@@ -196,11 +233,56 @@ body {
     overflow-wrap: break-word;
   }
 
-  /* Champs d'un formulaire : une colonne sur téléphone, deux ensuite (`col-span-full` : long). */
+  /*
+   * Champs d'un formulaire : une colonne sur téléphone, deux ensuite (`col-span-full` : long).
+   * Alignés en haut : l'aide et l'erreur sont sous la saisie (FieldShell), si bien que les saisies
+   * d'une même rangée commencent à la même hauteur, avec ou sans aide.
+   */
   .form-grid {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
-    gap: 1rem 1.25rem;
+    align-items: start;
+    gap: 1.25rem 1.5rem;
+  }
+
+  /*
+   * Titre d'un groupe de champs dans une carte (`legend` d'un `fieldset`) : pastille d'icône et
+   * titre, puis un filet gris au bas qui porte un court segment doré (repère de la marque, comme
+   * sous le titre d'écran, décoratif). La légende flotte sur toute la largeur pour porter son
+   * filet ; l'élément qui la suit (la grille des champs) passe dessous.
+   */
+  .form-legend {
+    position: relative;
+    float: left;
+    width: 100%;
+    padding: 0 0 1rem;
+    border-bottom: 1px solid var(--color-line);
+    color: var(--color-ink);
+    font-size: 1.125rem;
+    line-height: 2.25rem;
+    font-weight: 600;
+  }
+
+  .form-legend::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    width: 2.5rem;
+    height: 2px;
+    background-color: var(--color-gold);
+  }
+
+  /* Contraste forcé : un fond doré serait ramené à la couleur de fond et trouerait le filet. */
+  @media (forced-colors: active) {
+    .form-legend::after {
+      background-color: CanvasText;
+    }
+  }
+
+  .form-legend + * {
+    clear: both;
+    padding-top: 1.25rem;
   }
 
   /* Boutons d'un formulaire : sous un filet, pleine largeur sur téléphone, en ligne ensuite. */
@@ -208,7 +290,7 @@ body {
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
-    padding-top: 1rem;
+    padding-top: 1.25rem;
     border-top: 1px solid var(--color-line);
   }
 
@@ -223,6 +305,29 @@ body {
   .text-link:hover {
     text-decoration-color: var(--color-gold);
     text-decoration-thickness: 2px;
+  }
+
+  /*
+   * Libellé d'écran cité dans l'aide (`HelpText`, « Enregistrer le patient ») : la puce distingue au
+   * premier coup d'œil le NOM d'un bouton, d'un champ ou d'un message du reste de la phrase, pour que le
+   * personnel retrouve à l'écran exactement ce que le texte nomme. Fond doré léger, bordure fine et
+   * graisse 600 ; les guillemets restent dans le texte, donc le sens ne repose jamais sur la teinte.
+   * Texte `primary` sur `primary-soft` (13,18:1, association déjà vérifiée par palette.test.ts). La puce
+   * reste en ligne et passe à la ligne si le libellé est long (aucun défilement horizontal à 360 px,
+   * même dans une cellule qui interdirait la coupure) ; `box-decoration-break: clone` redessine fond,
+   * bordure et marges intérieures sur chaque fragment au lieu de laisser une puce coupée en deux.
+   */
+  .help-label {
+    padding: 0.0625rem 0.375rem;
+    border: 1px solid var(--color-line);
+    border-radius: 0.375rem;
+    background-color: var(--color-primary-soft);
+    color: var(--color-primary);
+    font-weight: 600;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
   }
 
   /*
@@ -330,7 +435,11 @@ body {
     }
 
     .toolbar {
-      align-items: flex-end;
+      align-items: flex-start;
+    }
+
+    .toolbar > :is(button, a) {
+      margin-top: var(--field-label-offset);
     }
 
     .form-actions {
@@ -363,6 +472,34 @@ body {
   outline: 3px solid var(--color-primary);
   outline-offset: 2px;
   box-shadow: 0 0 0 2px var(--color-surface);
+}
+
+/*
+ * Champ de saisie (texte, liste, zone de texte : classe `field-control` de `controlClasses`) : le
+ * contour de 2 px à l'encre tient lieu de bordure, le halo doré léger n'est que décoratif
+ * (l'indicateur de focus est le contour, ≥ 3:1 sur la surface). Hors couche et plus spécifique que
+ * `:focus-visible` : il remplace le contour commun sans jamais le supprimer ; en contraste forcé,
+ * le contour reste dessiné.
+ *
+ * Champ invalide : sa bordure et son anneau rouges (2 px) existent déjà au repos ; un contour rouge
+ * posé dessus ne changerait rien. Le focus reprend donc le dessin du focus commun, en rouge : un
+ * contour de 3 px décalé de 2 px, séparé de l'anneau par un liseré blanc.
+ */
+.field-control:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -1px;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 4px rgb(141 120 39 / 0.28);
+}
+
+.field-control[aria-invalid='true']:focus-visible {
+  outline-color: var(--color-danger);
+  outline-width: 3px;
+  outline-offset: 2px;
+  border-color: var(--color-danger);
+  box-shadow:
+    0 0 0 1px var(--color-danger),
+    0 0 0 2px var(--color-surface);
 }
 
 /*

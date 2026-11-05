@@ -1801,6 +1801,36 @@
         }
       }
     },
+    "QuoteDeletion": {
+      "description": "Résultat de la suppression d'un brouillon de devis jamais émis : le devis et ses lignes n'existent plus.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "quote_id",
+        "lines"
+      ],
+      "properties": {
+        "quote_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "lines": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "DeleteQuoteDraftResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/QuoteDeletion"
+        }
+      }
+    },
     "QuotePage": {
       "type": "object",
       "additionalProperties": false,

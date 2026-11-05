@@ -311,7 +311,7 @@ function columnLabel(column: string | null): string {
 
     <section aria-labelledby="titre-justificatif" class="space-y-2">
       <h3 id="titre-justificatif" class="text-lg font-semibold">1. Justificatif scanné</h3>
-      <label for="creance-justificatif" class="block font-medium"
+      <label for="creance-justificatif" class="field-label block"
         >Scan de la pièce ou de la page du carnet (PDF, JPEG ou PNG)</label
       >
       <input
@@ -405,7 +405,7 @@ function columnLabel(column: string | null): string {
           deja_paye (vide = 0), date_piece. Une ligne par créance, au plus 500.
         </p>
         <AppButton variant="secondary" @click="downloadTemplate">Télécharger le modèle</AppButton>
-        <label for="creance-fichier" class="block font-medium">Fichier CSV des créances</label>
+        <label for="creance-fichier" class="field-label block">Fichier CSV des créances</label>
         <input
           id="creance-fichier"
           type="file"

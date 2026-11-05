@@ -479,13 +479,122 @@ describe('droits et module', () => {
     unmount()
   })
 
+  it('un examen terminé propose « Transmettre à la caisse » (facture avec patient et visite déjà renseignés) à qui peut facturer', async () => {
+    const done = consultation({
+      status: 'COMPLETED',
+      current_revision: 1,
+      completed_at: '2026-10-22T09:50:00.000Z',
+    })
+    stubConsultationApi({ permissions: [...CLINICIAN, 'invoice.create'], consultation: done })
+    const { root, unmount } = await openConsultation()
+
+    const invoice = [...root.querySelectorAll('a')].find(
+      (link) => link.textContent?.trim() === 'Transmettre à la caisse',
+    )
+    expect(invoice?.getAttribute('href')).toBe(
+      `/ventes/factures/nouvelle?patient=${ID_A}&visite=${done.visit_id}`,
+    )
+    expect(invoice?.getAttribute('aria-label')).toMatch(
+      /^Transmettre à la caisse : créer la facture de /,
+    )
+    // Qui peut facturer n'a pas besoin qu'on lui dise où la caisse crée la facture.
+    expect(textOf(root)).not.toContain('Le patient peut passer à la caisse')
+    unmount()
+  })
+
+  it('sans droit de facturer (professionnel seul), aucun bouton : l’écran dit où la caisse crée la facture', async () => {
+    stubConsultationApi({
+      permissions: CLINICIAN,
+      consultation: consultation({
+        status: 'COMPLETED',
+        current_revision: 1,
+        completed_at: '2026-10-22T09:50:00.000Z',
+      }),
+    })
+    const { root, unmount } = await openConsultation()
+
+    expect(textOf(root)).toContain('Examen terminé')
+    expect(buttonByName(root, 'Transmettre à la caisse')).toBeNull()
+    expect([...root.querySelectorAll('a')].map((link) => link.textContent?.trim())).not.toContain(
+      'Transmettre à la caisse',
+    )
+    expect(textOf(root)).toContain(
+      'Le patient peut passer à la caisse : la facture se crée depuis « Aujourd’hui », avec « Créer une facture ».',
+    )
+    unmount()
+  })
+
+  it('le module des ventes fermé : ni bouton, ni phrase sur la caisse', async () => {
+    stubConsultationApi({
+      permissions: [...CLINICIAN, 'invoice.create'],
+      modules: ['today', 'patients', 'consultations'],
+      consultation: consultation({
+        status: 'COMPLETED',
+        current_revision: 1,
+        completed_at: '2026-10-22T09:50:00.000Z',
+      }),
+    })
+    const { root, unmount } = await openConsultation()
+
+    expect(textOf(root)).toContain('Examen terminé')
+    expect(textOf(root)).not.toContain('caisse')
+    unmount()
+  })
+
+  it('pendant l’examen, un bloc mène à la prescription optique ; terminé, le lien est dans « Examen terminé »', async () => {
+    stubConsultationApi({ permissions: CLINICIAN })
+    const running = await openConsultation()
+    const card = running.root.querySelector('section[aria-labelledby="titre-prescription"]')
+    expect(card?.querySelector('h2')?.textContent?.trim()).toBe('Prescription optique')
+    expect(card?.querySelector('a')?.getAttribute('href')).toBe(
+      `/consultations/${CONSULTATION_ID}/prescriptions`,
+    )
+    expect(textOf(card as Element)).toContain('Elle ne copie jamais la réfraction d’elle-même')
+    running.unmount()
+
+    resetEverything()
+    stubConsultationApi({
+      permissions: CLINICIAN,
+      consultation: consultation({
+        status: 'COMPLETED',
+        current_revision: 1,
+        completed_at: '2026-10-22T09:50:00.000Z',
+      }),
+    })
+    const done = await openConsultation()
+    expect(done.root.querySelector('section[aria-labelledby="titre-prescription"]')).toBeNull()
+    expect(linkTo(done.root, `/consultations/${CONSULTATION_ID}/prescriptions`)).not.toBeNull()
+    done.unmount()
+  })
+
+  it('l’en-tête porte la profession du dossier quand elle est connue, rien sinon', async () => {
+    stubConsultationApi({ permissions: CLINICIAN })
+    const known = await openConsultation()
+    const banner = known.root.querySelector('[aria-label="Patient et consultation"]') as Element
+    expect(textOf(banner)).toContain('Profession : Enseignante')
+    known.unmount()
+
+    resetEverything()
+    stubConsultationApi({
+      permissions: CLINICIAN,
+      consultation: consultation({ patient: { ...patientSummary(), profession: null } }),
+    })
+    const unknown = await openConsultation()
+    const emptyBanner = unknown.root.querySelector(
+      '[aria-label="Patient et consultation"]',
+    ) as Element
+    expect(textOf(emptyBanner)).not.toContain('Profession :')
+    unknown.unmount()
+  })
+
   it('le professionnel (CLINICIAN) voit les boutons Précédent, Enregistrer et Suivant', async () => {
     stubConsultationApi({ permissions: CLINICIAN })
     const { root, unmount } = await openConsultation()
 
-    const labels = [...root.querySelectorAll('main form button')].map((button) =>
-      button.textContent?.replace(/\s+/g, ' ').trim(),
-    )
+    // Hors boutons d'aide à la saisie (symptômes courants), que les groupes `role="group"` portent.
+    const labels = [...root.querySelectorAll('main form button')]
+      .filter((button) => button.closest('[role="group"]') === null)
+      .map((button) => button.textContent?.replace(/\s+/g, ' ').trim())
     expect(labels).toEqual(['Précédent', 'Enregistrer', 'Suivant'])
     expect((buttonByName(root, 'Précédent') as HTMLButtonElement).disabled).toBe(true)
     expect(textOf(root)).toContain(

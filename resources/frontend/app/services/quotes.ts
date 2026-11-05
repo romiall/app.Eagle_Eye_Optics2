@@ -48,7 +48,7 @@ export async function getQuote(id: string): Promise<ReadOutcome<Quote>> {
 /** Chemin (relatif à `/api/v1`) d'une écriture sur un devis, pour la route explicite du répartiteur. */
 export function quotePath(
   id: string,
-  action: '' | 'issue' | 'revisions' | 'decision' | 'conversions',
+  action: '' | 'issue' | 'revisions' | 'decision' | 'conversions' | 'delete',
 ): string {
   if (!isUlid(id)) throw new RangeError('Identifiant de devis invalide.')
   const base = `/quotes/${encodeURIComponent(id)}`

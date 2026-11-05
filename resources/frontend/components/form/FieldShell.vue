@@ -3,6 +3,14 @@
  * Enveloppe commune des champs : vrai libellé, aide et erreur reliées au contrôle par
  * aria-describedby, état invalide annoncé (aria-invalid) et jamais signalé par la seule couleur.
  * Le contrôle reçoit ses attributs par la fente : `{ id, describedBy, invalid }`.
+ *
+ * Ordre d'affichage : libellé, contrôle, erreur, aide. L'erreur et l'aide sont SOUS le contrôle :
+ * dans une rangée à deux colonnes, les contrôles de tous les champs commencent à la même hauteur,
+ * qu'un champ porte une aide ou non, et l'erreur reste contre sa saisie même quand l'aide est
+ * longue (l'ordre de lecture par aria-describedby ne change pas : aide puis erreur). Le libellé
+ * tient sur une ligne de `--field-label-height` (limite connue : un libellé qui passe sur deux
+ * lignes décale la saisie de son voisin de rangée) ; un bouton posé à côté d'un champ prend
+ * `.field-action` (base.css) pour s'aligner sur la saisie.
  */
 import { computed, useId } from 'vue'
 
@@ -30,21 +38,29 @@ const describedBy = computed(
 </script>
 
 <template>
-  <div class="flex flex-col gap-1">
+  <div class="group/field flex flex-col">
     <label
       :for="id"
       :class="[
-        'text-base font-medium text-ink',
+        'field-label transition-colors group-focus-within/field:text-gold-ink',
         props.hideLabel ? 'sr-only' : props.hideLabelWide ? 'sm:sr-only' : '',
       ]"
     >
       {{ props.label
-      }}<span v-if="props.required" class="font-normal text-danger"> (obligatoire)</span>
+      }}<span v-if="props.required" class="text-[0.8125rem] font-normal text-danger">
+        (obligatoire)</span
+      >
     </label>
-    <p v-if="props.hint" :id="hintId" class="text-sm text-muted">{{ props.hint }}</p>
     <slot :id="id" :described-by="describedBy" :invalid="Boolean(props.error)" />
-    <p v-if="props.error" :id="errorId" class="text-sm font-medium text-danger">
-      <span aria-hidden="true">⚠ </span>{{ props.error }}
+    <p
+      v-if="props.error"
+      :id="errorId"
+      class="mt-1.5 flex items-start gap-1.5 text-sm leading-5 font-medium text-danger"
+    >
+      <span aria-hidden="true" class="shrink-0">⚠ </span><span>{{ props.error }}</span>
+    </p>
+    <p v-if="props.hint" :id="hintId" class="mt-1.5 text-sm leading-5 text-muted">
+      {{ props.hint }}
     </p>
   </div>
 </template>

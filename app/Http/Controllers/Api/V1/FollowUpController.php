@@ -70,6 +70,35 @@ final class FollowUpController extends CommandController
         return new JsonResponse(['data' => SchedulingPresenter::followUp($row, $actor->can('clinical.read'))], 201);
     }
 
+    /**
+     * Annulation d'un contrôle recommandé encore actif (en ligne seulement) : rend le contrôle relu après le commit
+     * (statut `CANCELLED`), le motif n'étant conservé que dans l'audit.
+     */
+    public function cancel(Request $request, string $id, AgendaReader $reader): JsonResponse
+    {
+        [$payload, $expected, $present] = $this->directBody($request);
+        $errors = [];
+        if (($payload['follow_up_plan_id'] ?? null) !== $id) {
+            $errors['follow_up_plan_id'] = ['L\'identifiant du contrôle du corps doit être celui de l\'adresse.'];
+        }
+        if (! $present) {
+            $errors['expected_version'] = ['Champ obligatoire absent (version du contrôle).'];
+        }
+        if ($errors !== []) {
+            throw BusinessError::validation($errors);
+        }
+
+        $this->dispatchCommand($request, new Command('CancelFollowUp', $payload, $id, $expected));
+
+        $actor = $this->actor($request);
+        $row = $reader->followUp($actor->clinic_id, $id);
+        if ($row === null) {
+            throw BusinessError::notFound();
+        }
+
+        return new JsonResponse(['data' => SchedulingPresenter::followUp($row, $actor->can('clinical.read'))]);
+    }
+
     private function actor(Request $request): User
     {
         $user = $request->user();

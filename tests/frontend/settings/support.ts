@@ -132,6 +132,7 @@ export function consultationSummary(
     effective_at: '2026-10-22T09:20:00.000Z',
     completed_at: null,
     current_revision: 0,
+    version: 2,
     patient: {
       id: '01J9ZXK4M2Q8R7S6T5V4W30P11',
       record_number: 'EE-2026-0042',

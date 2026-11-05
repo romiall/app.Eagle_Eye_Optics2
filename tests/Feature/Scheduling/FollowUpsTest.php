@@ -125,4 +125,139 @@ final class FollowUpsTest extends TestCase
         $other = $this->seedPatient($this->clinicId, 'Autre Fictif');
         $this->book(['patient_id' => $other, 'follow_up_id' => $plan])->assertStatus(422);
     }
+
+    // ------------------------------------------------------------------------------------------------------------
+    // Annulation d'un contrôle recommandé (chantier « CRUD des écrans », tranche 3a)
+    // ------------------------------------------------------------------------------------------------------------
+
+    /**
+     * @param  array<string, mixed>  $overrides
+     */
+    private function cancelFollowUp(string $planId, int $version = 1, array $overrides = [], ?User $as = null, ?string $key = null): TestResponse
+    {
+        return $this->send($as ?? $this->clinician, 'POST', "/api/v1/follow-ups/$planId/cancel", array_merge([
+            'expected_version' => $version,
+            'follow_up_plan_id' => $planId,
+            'reason' => 'Patient suivi ailleurs (fictif)',
+        ], $overrides), $key);
+    }
+
+    /**
+     * @return array<string, int>
+     */
+    private function followUpCounts(): array
+    {
+        $count = fn (string $table): int => DB::table($table)->where('clinic_id', $this->clinicId)->count();
+
+        return ['audit' => $count('audit_events'), 'changes' => $count('sync_change_log'), 'tasks' => $count('contact_tasks'), 'idempotency' => $count('idempotency_requests')];
+    }
+
+    public function test_un_controle_actif_s_annule_avec_son_motif_et_ses_rappels_sont_clos(): void
+    {
+        $plan = (string) $this->create()->assertCreated()->json('data.id');
+        $this->assertSame('PENDING', DB::table('contact_tasks')->where('follow_up_id', $plan)->value('status'));
+
+        $response = $this->cancelFollowUp($plan)->assertOk();
+
+        $this->assertMatchesContract($response, 'schemas/resources/scheduling.json#/$defs/FollowUpPlanResponse');
+        $response->assertJsonPath('data.id', $plan)->assertJsonPath('data.status', 'CANCELLED')->assertJsonPath('data.version', 2);
+        $this->assertSame('CANCELLED', DB::table('follow_up_plans')->where('id', $plan)->value('status'));
+        $this->assertSame('CANCELLED', DB::table('contact_tasks')->where('follow_up_id', $plan)->value('status'), 'Les rappels ouverts sont clos.');
+
+        $audit = DB::table('audit_events')->where('action', 'follow_up.cancelled')->where('target_id', $plan)->first();
+        $this->assertNotNull($audit, 'L\'annulation est tracée avec son motif.');
+        $this->assertSame($this->clinician->id, $audit->actor_id);
+        $this->assertSame('Patient suivi ailleurs (fictif)', $audit->reason);
+        $this->assertStringNotContainsString('SENTINELLE', (string) $audit->sanitized_diff, 'aucun texte clinique dans l\'audit');
+        $change = DB::table('sync_change_log')->where('entity_type', 'follow_up_plans')->where('entity_id', $plan)->orderByDesc('change_sequence')->first();
+        $this->assertNotNull($change);
+        $this->assertSame(['UPDATED', 2], [$change->change_kind, (int) $change->entity_version]);
+
+        // Le contrôle annulé disparaît de la liste des patients à revoir mais reste lisible dans sa consultation.
+        $this->read($this->clinician, '/api/v1/follow-ups?from=2027-01-01&to=2027-01-31')->assertOk()->assertJsonCount(0, 'data');
+        $this->read($this->clinician, '/api/v1/follow-ups?consultation_id='.$this->consultationId)->assertJsonPath('data.0.status', 'CANCELLED');
+    }
+
+    public function test_un_controle_programme_par_un_rendez_vous_ne_s_annule_pas_avant_le_rendez_vous(): void
+    {
+        $plan = (string) $this->create()->assertCreated()->json('data.id');
+        $this->book(['follow_up_id' => $plan, 'starts_at' => '2026-10-26T07:00:00.000Z', 'ends_at' => '2026-10-26T07:30:00.000Z'])->assertCreated();
+        $before = $this->followUpCounts();
+
+        $this->cancelFollowUp($plan, 2)
+            ->assertStatus(409)
+            ->assertJsonPath('error.code', 'STATE_TRANSITION_REFUSED')
+            ->assertJsonPath('error.details.current_status', 'SCHEDULED');
+
+        $this->assertSame('SCHEDULED', DB::table('follow_up_plans')->where('id', $plan)->value('status'));
+        $this->assertSame($before, $this->followUpCounts(), 'Un refus ne laisse aucun effet.');
+    }
+
+    public function test_un_controle_deja_annule_ou_une_version_perimee_est_refuse(): void
+    {
+        $plan = (string) $this->create()->assertCreated()->json('data.id');
+        $this->cancelFollowUp($plan, 7)
+            ->assertStatus(409)
+            ->assertJsonPath('error.code', 'VERSION_CONFLICT')
+            ->assertJsonPath('error.details.current_version', 1);
+        $this->assertSame('ACTIVE', DB::table('follow_up_plans')->where('id', $plan)->value('status'));
+
+        $this->cancelFollowUp($plan)->assertOk();
+        $this->cancelFollowUp($plan, 2)
+            ->assertStatus(409)
+            ->assertJsonPath('error.code', 'STATE_TRANSITION_REFUSED')
+            ->assertJsonPath('error.details.current_status', 'CANCELLED');
+    }
+
+    public function test_le_motif_est_obligatoire_et_le_corps_porte_l_identifiant_de_l_adresse(): void
+    {
+        $plan = (string) $this->create()->assertCreated()->json('data.id');
+        $before = $this->followUpCounts();
+
+        $this->cancelFollowUp($plan, 1, ['reason' => 'ok'])->assertStatus(422)->assertJsonStructure(['error' => ['fields' => ['reason']]]);
+        $this->cancelFollowUp($plan, 1, ['reason' => null])->assertStatus(422);
+        $this->cancelFollowUp($plan, 1, ['follow_up_plan_id' => Ulid::generate()])->assertStatus(422);
+        $this->send($this->clinician, 'POST', "/api/v1/follow-ups/$plan/cancel", ['follow_up_plan_id' => $plan, 'reason' => 'Motif valable'])->assertStatus(422);
+
+        $this->assertSame('ACTIVE', DB::table('follow_up_plans')->where('id', $plan)->value('status'));
+        $this->assertSame($before, $this->followUpCounts());
+    }
+
+    public function test_droits_de_l_annulation_d_un_controle(): void
+    {
+        $plan = (string) $this->create()->assertCreated()->json('data.id');
+        $before = $this->followUpCounts();
+
+        // Accueil et caisse n'ont pas follow_up.write ; la lecture clinique est exigée en plus.
+        $this->cancelFollowUp($plan, 1, [], $this->reception)->assertForbidden();
+        $this->cancelFollowUp($plan, 1, [], $this->cashier)->assertForbidden();
+        DB::table('user_permissions')->insert([
+            'id' => Ulid::generate(), 'clinic_id' => $this->clinicId, 'user_id' => $this->clinician->id, 'permission_code' => 'clinical.read',
+            'allowed' => false, 'assigned_by' => $this->manager->id, 'reason' => 'Test', 'expires_at' => null,
+            'created_at' => '2026-01-01 00:00:00.000000', 'updated_at' => '2026-01-01 00:00:00.000000',
+        ]);
+        $this->app->make(EffectivePermissions::class)->forget($this->clinician);
+        $this->cancelFollowUp($plan)->assertForbidden();
+        $this->assertSame($before, $this->followUpCounts());
+        $this->assertSame('ACTIVE', DB::table('follow_up_plans')->where('id', $plan)->value('status'));
+
+        // La gérante peut annuler.
+        $this->cancelFollowUp($plan, 1, [], $this->manager)->assertOk();
+    }
+
+    public function test_le_rejeu_de_la_meme_cle_rend_la_reponse_d_origine_et_un_autre_cabinet_ne_voit_rien(): void
+    {
+        $plan = (string) $this->create()->assertCreated()->json('data.id');
+        $key = Ulid::generate();
+
+        $first = $this->cancelFollowUp($plan, 1, [], null, $key)->assertOk();
+        $second = $this->cancelFollowUp($plan, 1, [], null, $key)->assertOk();
+        $this->assertEquals($first->json('data'), $second->json('data'));
+        $this->assertSame(1, DB::table('audit_events')->where('action', 'follow_up.cancelled')->count());
+
+        $this->cancelFollowUp(Ulid::generate())->assertNotFound();
+        $other = $this->otherClinic();
+        $foreign = $this->makeStaff($other['clinic'], 'MANAGER', 'gerante.c');
+        $this->cancelFollowUp($plan, 2, [], $foreign)->assertNotFound();
+    }
 }

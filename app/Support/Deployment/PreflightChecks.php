@@ -333,13 +333,19 @@ final class PreflightChecks
     }
 
     /**
-     * Verdict sur la version annoncée par le serveur : MariaDB refusée tant que sa compatibilité n'est pas validée,
-     * MySQL avant 8.0.16 refusé (contraintes CHECK ignorées), MySQL 8.0.16 à 8.3 accepté avec alerte, 8.4 et plus ok.
+     * Verdict sur la version annoncée par le serveur : MariaDB 11.4+ acceptée (collation utf8mb4_0900_ai_ci, CHECK,
+     * colonnes générées, triggers validés sur Hostinger MariaDB 11.8), MariaDB avant 11.4 refusée, MySQL avant 8.0.16
+     * refusé (contraintes CHECK ignorées), MySQL 8.0.16 à 8.3 accepté avec alerte, 8.4 et plus ok.
      */
     public static function serverVerdict(string $version, string $comment = ''): PreflightResult
     {
         if (stripos($version, 'mariadb') !== false || stripos($comment, 'mariadb') !== false) {
-            return PreflightResult::blocking('Serveur de base', "{$version} : MariaDB n'est pas déclarée compatible (le projet est validé sur MySQL 8.4 : CHECK, colonnes générées, triggers). Demandez une base MySQL 8.x ou validez MariaDB par une recette complète.");
+            $number = preg_match('/^(\d+\.\d+\.\d+)/', $version, $match) === 1 ? $match[1] : '0.0.0';
+            if (version_compare($number, '11.4.0', '>=')) {
+                return PreflightResult::ok('Serveur de base', "MariaDB {$version} (compatible utf8mb4_0900_ai_ci, CHECK, triggers)");
+            }
+
+            return PreflightResult::blocking('Serveur de base', "{$version} : MariaDB n'est pas déclarée compatible avant 11.4 (le projet est validé sur MySQL 8.4 et MariaDB 11.8 : CHECK, colonnes générées, triggers).");
         }
 
         $number = preg_match('/^(\d+\.\d+\.\d+)/', $version, $match) === 1 ? $match[1] : '0.0.0';
@@ -385,7 +391,7 @@ final class PreflightChecks
                 $results[] = PreflightResult::ok('Contrainte CHECK', 'acceptée à la création');
             }
 
-            if ($created !== [] && $step('Clé étrangère (REFERENCES)', "CREATE TABLE `{$child}` (`id` CHAR(26) NOT NULL, `parent_id` CHAR(26) NOT NULL, `double_qty` INT GENERATED ALWAYS AS (1 * 2) STORED, PRIMARY KEY (`id`), CONSTRAINT `{$child}_fk` FOREIGN KEY (`parent_id`) REFERENCES `{$parent}` (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4", 'impossible de créer une clé étrangère ni une colonne générée')) {
+            if ($created !== [] && $step('Clé étrangère (REFERENCES)', "CREATE TABLE `{$child}` (`id` CHAR(26) NOT NULL, `parent_id` CHAR(26) NOT NULL, `double_qty` INT GENERATED ALWAYS AS (1 * 2) STORED, PRIMARY KEY (`id`), CONSTRAINT `{$child}_fk` FOREIGN KEY (`parent_id`) REFERENCES `{$parent}` (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci", 'impossible de créer une clé étrangère ni une colonne générée')) {
                 $created[] = ['table', $child];
                 $results[] = PreflightResult::ok('Colonne générée', 'acceptée');
             }

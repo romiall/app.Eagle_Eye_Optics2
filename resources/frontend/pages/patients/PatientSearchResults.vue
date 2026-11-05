@@ -5,7 +5,9 @@
  * recrée pour chaque recherche ou page, si bien qu'une réponse tardive d'une recherche précédente
  * ne peut jamais s'afficher à la place de la courante. « Aucun résultat » n'est dit que si le
  * serveur a répondu à cette recherche (`useRead` : état « vide ») ; sans réponse, c'est « Recherche
- * serveur indisponible ». Identité administrative seulement : aucun résumé médical.
+ * serveur indisponible ». Identité administrative seulement : aucun résumé médical. Serveur injoignable,
+ * les fiches de CE poste répondent et une note le dit (« Données de ce poste seulement ») : la liste n'est
+ * alors pas celle de toute la clinique.
  *
  * Présentation : une carte de rangées séparées par un filet ; chaque rangée est un lien vers la fiche
  * (pastille d'initiales, nom en gras, dossier, âge, téléphone, puces « archivée » et « fusionnée »).
@@ -13,9 +15,10 @@
 import { computed, nextTick, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 
-import { clinicToday } from '@/app/clinicTime'
+import { clinicTimeZone, clinicToday } from '@/app/clinicTime'
 import { searchPatients } from '@/app/services/patients'
 import { can } from '@/app/session'
+import FreshnessNote from '@/components/feedback/FreshnessNote.vue'
 import StateMessage from '@/components/feedback/StateMessage.vue'
 import EmptyState from '@/components/layout/EmptyState.vue'
 import StatusChip from '@/components/layout/StatusChip.vue'
@@ -42,12 +45,15 @@ const props = withDefaults(
 
 const emit = defineEmits<{ page: [page: number]; summary: [text: string] }>()
 
-const read = usePatientRead<PatientPage>(() => searchPatients(props.query, props.page), {
-  isEmpty: (result) => result.data.length === 0,
-})
+// Serveur injoignable : les fiches de CE poste répondent (jamais un « aucun résultat » affirmé : `live` faux).
+const read = usePatientRead<PatientPage>(
+  () => searchPatients(props.query, props.page, { includeLocal: true }),
+  { isEmpty: (result) => result.data.length === 0 },
+)
 
 const heading = ref<HTMLElement | null>(null)
 const today = clinicToday()
+const timeZone = clinicTimeZone()
 const canCreate = computed(() => can('patient.create'))
 
 const result = computed(() => read.data.value)
@@ -185,6 +191,12 @@ function age(patient: PatientPage['data'][number]): string {
           </RouterLink>
         </li>
       </ul>
+
+      <FreshnessNote
+        v-if="read.freshness.value && read.freshness.value.serverAsOf === null"
+        :freshness="read.freshness.value"
+        :time-zone="timeZone"
+      />
 
       <div class="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
         <PaginationControls

@@ -993,6 +993,21 @@ export class Vault {
     await this.db.vault_meta.put({ key: 'server_time', value: serverIso })
   }
 
+  /**
+   * Résumé du cabinet lu à la dernière session serveur (nom, fuseau, modules ouverts…) : il permet d'ouvrir une session
+   * locale quand le serveur est injoignable au démarrage (D27). Aucune donnée de santé ni secret ; écrit même coffre
+   * verrouillé. La forme est contrôlée à la lecture : une valeur altérée est ignorée, jamais crue.
+   */
+  async noteClinic(summary: Readonly<Record<string, unknown>>): Promise<void> {
+    await this.db.vault_meta.put({ key: 'clinic_summary', value: { ...summary } })
+  }
+
+  async clinicSummary(): Promise<Record<string, unknown> | null> {
+    const value = (await this.db.vault_meta.get('clinic_summary'))?.value
+    if (typeof value !== 'object' || value === null || Array.isArray(value)) return null
+    return value as Record<string, unknown>
+  }
+
   // --- Commit local (O04) : phase A hors transaction, phase C dans UNE transaction ----------------------------
 
   /**
@@ -1232,7 +1247,11 @@ export class Vault {
     }
   }
 
-  async listEntities<T>(type: string): Promise<{ entityId: string; version: number; value: T }[]> {
+  /** Entités d'un type, déchiffrées ; `idPrefix` : seules celles dont l'identifiant commence ainsi sont ouvertes. */
+  async listEntities<T>(
+    type: string,
+    idPrefix = '',
+  ): Promise<{ entityId: string; version: number; value: T }[]> {
     const compartment = this.compartmentOfType(type)
     this.keyFor(this.requireLive(), compartment)
     const rows = await this.db.encrypted_entities
@@ -1241,6 +1260,7 @@ export class Vault {
       .toArray()
     const out: { entityId: string; version: number; value: T }[] = []
     for (const row of rows) {
+      if (!row.entityId.startsWith(idPrefix)) continue
       const entry = await this.getEntity<T>(type, row.entityId)
       if (entry !== null) out.push({ entityId: row.entityId, ...entry })
     }

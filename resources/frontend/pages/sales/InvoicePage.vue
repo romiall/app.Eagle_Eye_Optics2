@@ -12,7 +12,7 @@ import { RouterLink, useRoute } from 'vue-router'
 import { clinicTimeZone } from '@/app/clinicTime'
 import { getInvoice } from '@/app/services/billing'
 import { getPatient } from '@/app/services/patients'
-import { canOnScreen } from '@/app/session'
+import { canOnScreen, session } from '@/app/session'
 import FreshnessNote from '@/components/feedback/FreshnessNote.vue'
 import StateMessage from '@/components/feedback/StateMessage.vue'
 import LinkButton from '@/components/ui/LinkButton.vue'
@@ -53,9 +53,19 @@ watch(
   { immediate: true },
 )
 
-function onIssued(issued: Invoice): void {
+/** Vrai tant que la facture affichée est la copie de CE poste (le serveur ne la connaît pas encore). */
+const onDevice = shallowRef(false)
+watch(
+  () => read.freshness.value,
+  (freshness) => {
+    onDevice.value = freshness !== null && freshness.serverAsOf === null
+  },
+)
+
+function onIssued(issued: Invoice, issuedOnDevice: boolean): void {
   flash.value = takeSalesFlash()
   read.data.value = issued
+  onDevice.value = issuedOnDevice
 }
 
 function onAbandoned(abandoned: Invoice): void {
@@ -107,11 +117,17 @@ function reload(): void {
         :patient-id="invoice.patient_id"
         :visit-id="invoice.visit_id"
         :initial="invoice"
+        :local="onDevice"
         @issued="onIssued"
         @abandoned="onAbandoned"
         @stale="reload"
       />
-      <InvoiceDetails v-else-if="invoice.status === 'ISSUED'" :invoice="invoice" @reload="reload" />
+      <InvoiceDetails
+        v-else-if="invoice.status === 'ISSUED'"
+        :invoice="invoice"
+        :local="onDevice"
+        @reload="reload"
+      />
       <StateMessage v-else state="empty" title="Facture abandonnée">
         Ce brouillon a été abandonné : il n’a ni numéro ni effet financier.
       </StateMessage>
@@ -137,6 +153,15 @@ function reload(): void {
       />
     </template>
 
-    <LinkButton :to="{ name: 'factures' }" variant="ghost">Retour aux factures</LinkButton>
+    <!-- Session locale : la liste des factures demande le serveur, le retour va à la fiche du patient. -->
+    <LinkButton v-if="session.status !== 'local'" :to="{ name: 'factures' }" variant="ghost"
+      >Retour aux factures</LinkButton
+    >
+    <LinkButton
+      v-else-if="invoice"
+      :to="{ name: 'patient', params: { id: invoice.patient_id } }"
+      variant="ghost"
+      >Retour à la fiche du patient</LinkButton
+    >
   </section>
 </template>

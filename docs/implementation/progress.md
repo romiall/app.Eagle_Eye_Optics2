@@ -5,12 +5,69 @@ Initialisé le 2026-10-14 depuis `specifications/developpement/JOURNAL.md`. Le b
 ## État courant
 
 - Branche : `claude/developpement-l0` (dépôt public : données fictives uniquement). Le travail cloud F01–F06 a été poussé sur `claude/developpement-l0-3pkhne`, dont l'historique est repris tel quel ; le développement se poursuit sur un poste local depuis le 2026-10-15 (une seule session à la fois dans ce dossier).
-- Lot et gate visés : L0 ; **G0 acquis** (voir `docs/evidence/G0.md`), prochain gate G1.
+- Lot et gate visés : L0 ; **G0 acquis** (voir `docs/evidence/G0.md`) ; **G1 prouvé sur la tranche de base le 2026-10-28** (`docs/evidence/G1.md`, écarts déclarés, CI à consigner) ; prochain gate G2 après O06.
 - Tâche courante (2026-10-24) : **lot 2 vérifié** (voir la section « Vérification de fin de lot 2 ») : tout vert en local et en CI (run 40044078785, commit `cb7a008`) ; archive de livraison construite ; prochaine étape : mise en ligne sur Hostinger (H01, `docs/implementation/deploiement.md`). Phase 1 : CI verte, run 39879707020. F10 est DONE (CI verte, run 39702365074). Priorité du demandeur du 2026-10-22 : écrans de base d'abord (section suivante).
 - Dernière preuve acquise : F09 — CI GitHub verte sur `7de8e2b` (run 38782531589 : PHP, Frontend, Playwright Linux 27/27) après revue contradictoire traitée ; Vitest 621. F07 et F08 : CI verte sur `78d9cb2` et `2a83599`. La validation SQL d'origine (`database/VALIDATION.md`) et G0 restent **distincts d'une recette applicative**.
 - Tâches DONE : F01, F02, F03, F04, G0, F05, F06, F07, F08, F09, F10.
 - Blocages externes : Q01–Q04/Q14 (production seulement) ; développement fictif possible.
 - Prochaine action concrète : CI de F10, puis M01 (interrupteur de mise en service des modules), P01 et P02 (patients), consultation par étapes, prescription et impression ; O01–O05 (hors-ligne) ensuite, sans changer G1.
+
+## Présentation des formulaires (2026-10-28)
+
+Chantier demandé par le demandeur (« champs mal alignés, formulaire qui n'inspire pas grand-chose »), indépendant du hors-ligne : branche `claude/formulaires-presentation` partie de `origin/main`, travaillée d'abord dans un worktree séparé pour ne pas marcher sur la session du chantier de déverrouillage. À la demande du demandeur (2026-10-29, qui ne veut pas de worktree supplémentaire), la branche a été fusionnée EN LOCAL dans `claude/facture-hors-ligne` du dossier principal (commit de fusion `213d913`, sans conflit, rien poussé) et le worktree supprimé ; la branche reste sur `origin`. Aucune logique métier, aucun libellé et aucune validation ne change.
+
+- **Cause du désalignement** : l'aide d'un champ était placée entre l'étiquette et la saisie (`FieldShell`) ; dans une rangée à deux colonnes, la saisie d'un champ avec aide descendait sous celle de son voisin. Correction à la racine, donc pour tous les formulaires : étiquette, saisie, puis erreur et aide sous la saisie ; `form-grid` aligné en haut ; les boutons posés à côté d'un champ (recherche, filtres) restent alignés sur la saisie (`toolbar`, `field-action`, variable `--field-label-offset`). Écrans réalignés : liste des patients, catalogue, caisse du jour (empilée sous 640 px), agenda, statistiques, suivis, Aujourd'hui (navigation du jour sur sa propre ligne ; date et « Actualiser la file » empilées jusqu'à 1024 px), exports (empilés jusqu'à 1024 px), nouveau rendez-vous, case « Ressource active ». La CI Linux, aux polices plus larges que Windows, a fait échouer à 768 px deux des nouveaux tests de mise en page (étiquette de la colonne de la date et « Contenu de l'export » sur deux lignes) : ces deux rangées sont empilées jusqu'à 1024 px, et la mesure se refait en local avec une police large (Verdana imposée à la page, CSP contournée) avant de pousser. Incident de CI (run 40812949605) : le serveur PHP de test a fait un « Segmentation fault (core dumped) » à `POST /api/v1/consultations/{id}/complete`, puis 52 tests ont reçu « connexion refusée » ; les runs précédents de la branche passaient cette étape et rien n'avait changé côté serveur. La branche partait d'avant le correctif `fee510e` de la chaîne hors ligne (`tests/e2e/support/php.ts` coupe le JIT d'OPcache du serveur de test : voir « erreur de segmentation » plus bas dans ce journal) : c'est très probablement le même plantage, que l'arbre fusionné couvre désormais, donc aucune piste à tenter ; la preuve sera la CI de la pile qui contient la fusion.
+- **Présentation** : étiquettes de 14 px demi-gras, marque « (obligatoire) » discrète, focus propre aux champs (contour à l'encre, halo doré ; contour rouge de 3 px décalé et liseré blanc pour un champ invalide), état invalide plus net (fond `danger-soft`), liste déroulante à chevron, icône du téléphone, unité « FCFA » dans le champ de montant, légendes de carte à filet doré dans le formulaire patient (segment doré remplacé par `CanvasText` en contraste forcé). Bug annexe : `CheckboxGroup` et `YesNoField` annulaient l'espacement de leur parent (`m-0`).
+- **Audit contradictoire (2026-10-29)** : 80 gabarits Vue, 8 lots de captures (dont les parcours de vente et les étapes de consultation) et le diff, relus par 19 agents indépendants, puis chaque constat attaqué par deux sceptiques (par défaut : réfuté). 49 constats bruts, 38 distincts, 23 confirmés, tous traités : unité « FCFA » rognant les montants à 768 px (`DraftLineCard`, devis) ; caisse du jour non empilée sous 640 px ; case « Ressource active » en `self-end` ; barre « Aujourd'hui » dont le décalage suivait le bouton à la ligne ; exports sur tablette ; remplissage `px-3.5` trop large pour le tableau optique à 768 px (retour à `px-3`) ; erreur désormais contre sa saisie, avant l'aide ; focus d'un champ invalide ; étiquettes de champs fichier et légende de la mention d'absence de correction restées à l'ancien style ; contraste forcé du filet de légende ; tests et docs resserrés (jetons exacts, `muted` sur `danger-soft`, garde des blocs `@media`, nouveau `tests/e2e/forms-layout.spec.ts`). Découverte annexe, sans lien avec le chantier : `tests/e2e/agenda.spec.ts` dépendait de l'heure (le jour par défaut est aujourd'hui, dont les créneaux s'affichent avant l'ouverture du cabinet : le test cochait un créneau d'aujourd'hui, la trace le montre) ; il saisit maintenant le jour AVANT la prestation et la ressource.
+- **Preuves** : captures avant/après (Edge, 1280 et 360 px), `vue-tsc`, ESLint, Prettier, Vitest (`fields.test.ts`, `choice-fields.test.ts`, `form-styles.test.ts`, `palette.test.ts`), Playwright (`patients.spec.ts` et `forms-layout.spec.ts` : alignement mesuré dans le navigateur à 360, 768, 1024 et 1280 px). CI : verte sur le dernier commit de la branche (runs lisibles par l'API publique : /repos/romiall/app.Eagle_Eye_Optics2/actions/runs?branch=claude/formulaires-presentation). Détail : `docs/implementation/shell.md` ; prompt de reprise : `docs/prompts/reprise-apres-formulaires.md`.
+- **Fusion et vérification (2026-10-29)** : sur l'arbre fusionné `213d913` (aucune CI : rien n'est poussé), `composer audit --locked`, `vue-tsc`, ESLint et Prettier passent ; Vitest : 136 fichiers et 2 514 tests (trois fichiers dont le worker n'avait pas démarré sur le poste saturé, relancés seuls : verts) ; Playwright : 73 parcours, 71 verts en 3,3 h sur un poste saturé, les deux autres (`forms-layout.spec.ts` : délai de 60 s ; `legacy-balances.spec.ts` : la page de caisse n'affichait rien en 20 s) verts à la relance sur un poste calme. Revue contradictoire de la fusion (6 relecteurs, 2 sceptiques par constat, lecture seule) : un seul constat, documentaire (la piste « couper le JIT » ci-dessus), corrigé ; aucune collision de classes, de tests ni de composants. Écran de déverrouillage et création de patient sur le poste vérifiés à l'écran à 1280, 768 et 360 px (captures dans le dossier de notes des sessions). Écarts relevés, du côté hors ligne et hors de ce chantier : à 360 px, poste déverrouillé, l'en-tête déborde de 26 px (rangée « Aide, Verrouiller le poste, Se déconnecter » de `App.vue`, sans retour à la ligne) ; dans `DevicePreparationPage.vue`, l'étiquette « Numéros de dossiers patients » passe sur deux lignes à 768 px et décale sa saisie de celles de ses voisines (`sm:grid-cols-3`) ; l'introduction de `PatientCreatePage.vue` dit que le numéro de dossier est attribué par le serveur alors que le poste hors ligne le tire de sa plage.
+
+## Chantier « CRUD des écrans », tranche 1 : modifier et supprimer un examen (2026-10-30)
+
+Demande du demandeur : « préparer les CRUD pour la plupart des opérations… on supprime une consultation quand elle est
+encore en brouillon, uniquement en brouillon pour l'instant », après avoir créé en production un examen de test resté en
+brouillon que rien ne permettait de retirer (aucune donnée de production n'a été touchée : c'est la fonction livrée qui
+le lui permettra). Branche `claude/crud-ecrans`, coupée de `origin/claude/facture-hors-ligne` (`2f659dc`, ce que la
+production exécute) ; avec l'accord du demandeur le dossier principal a été basculé sur cette branche (aucun worktree) ; la
+branche locale `claude/facture-hors-ligne` et son `wip(clinic)` (non vérifié, jamais poussé) restent intacts. Détail
+technique : `clinical.md`, « Modifier et supprimer un examen » ; droits : `access.md`, « Qui supprime un brouillon d'examen ».
+
+- **Fonction** : commande `DeleteConsultationDraft` (chemin central, en ligne seulement, `POST /consultations/{id}/delete`) ;
+  brouillon seulement (aucune rubrique enregistrée), par son professionnel ou la gérante ; défait la visite (retour à
+  l'état d'avant, l'examen peut être redémarré) et les prescriptions brouillon ; refuse en 409 tout examen en cours ou
+  terminé, une prescription validée ou utilisée, un contrôle recommandé, une version périmée ; audit `consultation.deleted`
+  sans contenu clinique ; pierre tombale `ARCHIVED` au journal des changements. Écrans : « Modifier » et « Supprimer » sur
+  chaque carte de la liste, « Supprimer le brouillon » dans l'éditeur, `?corriger=1` pour ouvrir un examen terminé en
+  correction. Aide intégrée mise à jour. Aucune permission nouvelle, aucune table ni migration.
+- **Question laissée au demandeur** : étendre la suppression aux examens « En cours » (des rubriques saisies, non validées) ?
+  Recommandation : non pour l'instant (il a dit « uniquement en brouillon »).
+- **Preuves (poste Windows, avant CI)** : PHPUnit `DeleteConsultationDraftTest` (22 cas) et 2 cas billed ;
+  sous-ensemble de 1 704 tests (clinique, contrats, chemin central, patients, accès, HTTP, unitaires) verts ; Vitest 153
+  fichiers, 3 202 tests ; `vue-tsc`, ESLint, Prettier, PHPStan, Pint, contrats `--check`, build verts ; Playwright
+  `consultation-suppression.spec.ts` sur la vraie application (suppression, redémarrage, refus d'un examen en cours et d'un
+  examen terminé par le serveur, correction depuis « Modifier ») ; captures 1366 et 360 px.
+
+## Chantier « CRUD des écrans », tranches 2 et 3a : inventaire, brouillons et annulation (2026-10-30)
+
+Branche `claude/crud-ecrans-suite`, empilée sur `claude/crud-ecrans`. La tranche 1 a été mise en ligne le 2026-10-30 à la demande
+du demandeur (release `eeo-20261030T1628Z-6d1b2bb`, CI verte run 41079465699). Tranches 2 et 3a : CI verte (run 41106310621 sur `2f195fb`, puis run 41110470924 sur `bbd83c4`) ; PHPUnit complet 2 491 OK ; mises en ligne le 2026-10-30 à la demande du demandeur (release `eeo-20261030T1916Z-bbd83c4`, aucune migration, sauvegarde préalable de la base ; contrôles anonymes : `/up`, les trois routes nouvelles répondent 401 sans session, assets de `/build/` identiques).
+
+- **Tranche 2** : `docs/implementation/crud.md`, matrice entité par entité (créer, lire, modifier, supprimer ou équivalent),
+  ce qui existe côté serveur et écran, règle de suppression retenue et justifiée par les sources, décisions proposées pour la
+  tranche 3. Constat : la plupart des gestes existent déjà (annuler une visite, abandonner un brouillon de facture, annuler
+  ou déplacer un rendez-vous, désactiver un article, un compte, une ressource) ; il manquait la suppression d'un brouillon de
+  prescription et de devis, l'annulation d'un contrôle recommandé et l'archivage d'un patient.
+- **Tranche 3a** : trois commandes en ligne seulement, par le chemin central, sans permission nouvelle ni migration :
+  `DeletePrescriptionDraft` (brouillon jamais utilisé, jeton `expected_updated_at`, la validée reste), `DeleteQuoteDraft`
+  (brouillon jamais émis, créateur ou gérante, version attendue, lignes supprimées avec lui), `CancelFollowUp` (contrôle
+  `ACTIF`, motif obligatoire, rappels clos, le contrôle reste lisible). Tous : 409 hors état, 403 hors droit, audit sans contenu
+  clinique, pierre tombale `ARCHIVED`, rejeu idempotent. Écrans : « Supprimer le brouillon » (prescription d'une consultation,
+  ordonnances externes, devis), « Annuler le contrôle » (panneau de la consultation, patients à revoir). Aide intégrée à jour.
+  Détail : `clinical.md`, `billing.md`, `agenda.md`, `access.md`.
+- **3b écartée (2026-10-30)** : le demandeur répond « Non, fusion seule » à l'archivage du patient (`ArchivePatient`, `RestorePatient`), proposé avec sa
+  recommandation (gérante, motif, réversible, garde-fous de la fusion). Rien n'est écrit : la fusion des doublons (`MergePatients`) reste le seul moyen de retirer une fiche, qui n'est jamais supprimée.
+- **Leçon d'outillage** : un MySQL de test arrêté fait SAUTER les tests PHPUnit (« Skipped ») au lieu d'échouer quand
+  `EEO_REQUIRE_MYSQL` n'est pas posé : toujours lire la ligne « Skipped » du résumé, ou poser `EEO_REQUIRE_MYSQL=1`. Une nouvelle route se déclare aussi dans la matrice de `BillingRoutesGateTest` (ventes) : rejouer la suite PHPUnit COMPLÈTE avant de pousser (le premier run CI de la 3a était rouge pour cette ligne manquante, corrigée par `2f195fb`).
 
 ## Priorité du demandeur (2026-10-22), réestimation et écarts de planning
 
@@ -138,6 +195,123 @@ vue-tsc, ESLint, Prettier ; build ; Playwright complet (patients, file du jour, 
 documents, facturation) ; rendu des PDF de démonstration (golden) relu ; corrections, puis seconde
 passe si nécessaire ; commit, push et CI.
 
+## G1 — Tranche urgente persistante et rejouable (2026-10-28)
+
+Chantier de la branche `claude/preuve-g1` (empilée sur `claude/reprise-poste` tant que les PR #1 et #2 du dépôt de
+travail ne sont pas fusionnées). Preuve détaillée, écarts et limites : `docs/evidence/G1.md`.
+
+- **Code** : la page de la facture lit les encaissements enregistrés sur le poste (coffre ouvert), les affiche « en
+  attente de synchronisation » et les compte dans le reste à encaisser ; version du grand livre attendue alignée sur le
+  journal local (second encaissement possible) ; numéro du reçu affiché hors ligne et PDF du reçu produit sur le poste.
+- **Test** : `tests/e2e/first-slice.spec.ts` (profil persistant `tests/e2e/support/profile.ts`, route d'envoi à trois
+  modes cut, ack-lost, open) ; règles pures `tests/frontend/billing/local-payments.test.ts`.
+- **Vérification locale (2026-10-28)** : vue-tsc, ESLint, Prettier verts ; Vitest 133 fichiers, 2511 tests ; Playwright
+  `first-slice.spec.ts` vert (2,7 min) ; non-régression : voir ci-dessous.
+- **Non-régression locale** : Playwright billing (3), deliveries, legacy-balances et quotes verts ; offline-sync et device-recovery verts lancés seuls et dans l'ordre de la CI après first-slice (la restitution des ressources du poste en fin de parcours est nécessaire : une seule caisse hors ligne détient les numéros financiers). Un enchaînement local de device-recovery a échoué une fois sur « Conflits à revoir : 1 » (course entre la reprise automatique et le clic de synchronisation, repassé seul) : à surveiller en CI.
+- **CI de la branche** : [run 40688709991](https://github.com/romiall/app.Eagle_Eye_Optics2/actions/runs/40688709991) sur `dd41316` : verte (PHP, Frontend, E2E : 62 parcours réussis en 2,7 min, `first-slice.spec.ts` compris, aucune exclusion). Le run 40688437248 sur `d660b98` a été annulé par le push suivant (`cancel-in-progress`), sans résultat. `device-recovery.spec.ts` est passé dans ce run ; son intermittence locale reste à surveiller.
+- **État des PR (2026-10-28)** : #1 (O05, `claude/parcours-hors-ligne` vers `main`) et #2 (O07, vers `claude/parcours-hors-ligne`)
+  toujours ouvertes, sans conflit, CI verte sur leurs têtes (runs 40247535133 et 40286960787). `claude/preuve-g1` est en
+  avance sur `main` des commits de #1, de #2 et de G1, et en retard d'un seul (`966b5a8`, les originaux de la cliente : cinq fichiers binaires,
+  aucun recoupement avec le code). Ordre de fusion, à faire par le demandeur : #1 en « Create a merge commit », base de #2
+  changée vers `main`, puis #2, puis la PR de `claude/preuve-g1` vers `main`.
+- **À faire ensuite** : arbitrer les écarts 1 et 2 pour passer G1 à DONE (facture créée hors ligne par
+  les écrans, déverrouillage public hors ligne) ; O06 puis G2.
+
+## Écarts de G1 : (a2) déverrouillage public du poste (2026-10-28)
+
+Chantier de la branche `claude/deverrouillage-hors-ligne` (empilée sur `claude/preuve-g1`, elle-même sur `claude/reprise-poste`).
+Lève l'écart 2 de G1 : le démarrage du navigateur SANS réseau (AT36 à la lettre). Détail : `docs/implementation/vault.md`,
+« Implémentation (D14, D27) » ; preuve : `docs/evidence/G1.md`.
+
+- **Code** : détection du coffre au démarrage sans le créer (`vaultDatabaseExists`) ; route publique `/deverrouiller` avant la
+  connexion quand un coffre existe et qu'aucune identité n'est connue ; statut de session `local` (profil du coffre, droits
+  signés de son grant, résumé du cabinet retenu) ; écrans `offlineCapable` seulement (accueil, aide, nouveau patient, « Poste ») ;
+  « Verrouiller le poste » et déconnexion qui verrouille d'abord ; coquille démontée coffre verrouillé ; inactivité (30 min),
+  horloge et autre onglet surveillés ; divergence de compte signalée (aucune commande écrite au nom d'un autre compte).
+- **Tests** : `tests/frontend/shell/local-identity.test.ts` (11), `tests/frontend/offline/clinic-summary.test.ts` (6), décompte
+  des routes de `bootstrap.test.ts` ; `tests/e2e/offline-start.spec.ts` : serveur RÉELLEMENT arrêté (Playwright n'applique pas
+  « hors ligne » aux requêtes du service worker), profil persistant, trois fermetures complètes ; `first-slice.spec.ts` entre
+  désormais par `/connexion`.
+- **Vérification locale (2026-10-28)** : vue-tsc, ESLint, Prettier, Vitest complet et build verts ; `offline-start.spec.ts` vert (2,6 min). Playwright complet (`phase-check`) : 58 réussis sur 63 ; les échecs viennent de `device-recovery.spec.ts` (course connue de l'échange, aggravée par un serveur de test lent ; MÊME échec sur le code d'avant ce chantier, vérifié) et de ses effets en cascade (poste non libéré : first-slice, offline-start, offline-sync ne peuvent plus réserver leurs numéros), plus un plantage du processus Playwright sous Windows (code 0xC0000409) sur `auth-session.spec.ts`. Relancés : `auth-session`, `first-slice`, `offline-start` et `offline-sync` verts ; `device-recovery` vert seul après durcissement du test (il attend la fin de l'échange d'ouverture avant la coupure) ; un échec isolé à l'enrôlement, sous lenteur du serveur, n'est pas revenu à la relance.
+- **CI de la branche** : [run 40739327255](https://github.com/romiall/app.Eagle_Eye_Optics2/actions/runs/40739327255) sur `6773678` : PHP et Frontend verts ; E2E 62 réussis sur 63, `offline-start.spec.ts` compris ; seul `legacy-balances.spec.ts` échoue (1ʳᵉ tentative : « Justificatif conservé sur le serveur » jamais affiché après le dépôt du scan ; la relance échoue ensuite à la création du patient, déjà créé à la 1ʳᵉ tentative). Spec verte en local dans la même suite et verte sur les six runs précédents de la pile (aucun lien visible avec ce chantier : pas de coffre dans ce parcours). Cause probable : le test rechoisissait le scan sans attendre la fin de la confirmation du mot de passe (le dépôt pouvait partir avec l'ancienne session) ; il attend désormais la fermeture de la boîte et un échec dit les réponses du dépôt. Run 40740587950 sur `c8f3554` : même échec. [Run 40743665486](https://github.com/romiall/app.Eagle_Eye_Optics2/actions/runs/40743665486) sur `d314567` : **vert** (PHP, Frontend, E2E 63 parcours dont `offline-start.spec.ts` et `legacy-balances.spec.ts`), avec un seul parcours instable relancé avec succès : `settings.spec.ts` (création d'un compte, « Compte créé sur le serveur » non affiché à la 1ʳᵉ tentative, après la confirmation du mot de passe) ; aucun lien trouvé avec ce chantier, à surveiller aux runs suivants. Run 40745241271 sur `54fd0a0` (documentation seulement) : `legacy-balances.spec.ts` échoue de nouveau (la boîte « Confirmer votre mot de passe » reste affichée après « Confirmer et reprendre ») ; diagnostics ajoutés à ce test (`5707f31` : réponses de la réauthentification et du dépôt) ; [run 40748097450](https://github.com/romiall/app.Eagle_Eye_Optics2/actions/runs/40748097450) sur `5707f31` : **vert** (PHP, Frontend, E2E). L'instabilité de `legacy-balances.spec.ts` (confirmation du mot de passe) reste non expliquée : si elle revient, lire les appels consignés par le test.
+- **Contexte** : pendant ce chantier, le demandeur a mis l'application en ligne sur Hostinger (H01, commits de déploiement sur
+  `claude/preuve-g1`) ; le module `offline` y reste fermé : le code de ce chantier est dormant en production (aucun coffre,
+  aucun changement de comportement).
+- **À faire ensuite** : écart 1 de G1 (lecture locale des écrans patient, liste, recherche, catalogue et facture ; création de
+  facture sans réseau) ; O06 puis G2 (issue `vault-locked`, deux onglets, horloge truquée, aide intégrée du hors-ligne).
+
+## Écarts de G1 : (a1) lecture locale des écrans, tranche 1 : fiches patient (2026-10-28)
+
+Chantier de la branche `claude/lecture-locale-ecrans` (empilée sur `claude/deverrouillage-hors-ligne`). Première tranche de l'écart 1
+de G1 : la fiche d'un patient, la recherche et la modification d'une fiche répondent depuis le coffre quand le serveur ne répond
+pas. Détail : `docs/implementation/vault.md`, « Implémentation (A1) » ; preuve : `docs/evidence/G1.md`.
+
+- **Code** : rejeu des faits administratifs du journal local en fiches (`domain/patients/local.ts`, `app/services/localPatients.ts`) ;
+  `getPatient` et `searchPatients` (option `includeLocal`) lisent le poste quand le serveur ne répond pas, et la proposition du poste
+  pas encore consolidée prime sur le serveur ; écrans `offlineCapable` : liste et recherche, fiche, modification ; en session locale,
+  la fiche ne propose ni arrivée, ni facture, ni fusion, ni export, ni onglets du serveur ; « Ouvrir la fiche » après un
+  enregistrement sur le poste ; note « Données de ce poste seulement » sous les résultats de recherche locaux.
+- **Tests** : `tests/frontend/patients/local-patients.test.ts` (rejeu, recherche, pagination), `tests/frontend/services/patients-local.test.ts`
+  (lectures, priorité du poste, erreurs du serveur jamais remplacées), `create-page.test.ts` (lien « Ouvrir la fiche ») ;
+  `tests/e2e/offline-start.spec.ts` étendu : fiche ouverte, modifiée (profession) et retrouvée par la recherche SERVEUR ARRÊTÉ,
+  relue après une fermeture complète, puis profession connue du serveur après la synchronisation.
+- **Correctifs de la vérification** : le nom d'une fiche locale ne devient jamais vide ; la garde « aucun flottant » du domaine
+  refusait la pagination (division entière `intDiv` désormais) ; la recherche locale emploie la clé de recherche du serveur
+  (`searchKey` : minuscules, sans accents ni ponctuation) ; le test de l'écran fermé en session locale vise la liste des factures.
+- **À faire ensuite** (tranches 2 et 3 de l'écart 1) : lecture locale de la facture (rejeu de `CreateInvoiceDraft`, `UpdateDraft`,
+  `IssueInvoice`), catalogue figé et règles de vente locaux, éditeur de facture et émission sur le poste, puis un parcours e2e de
+  facture créée serveur arrêté.
+
+## Écarts de G1 : (a1) lecture locale des écrans, tranches 2 et 3 : facture sur le poste (2026-10-29)
+
+Chantier de la branche `claude/facture-hors-ligne-seule` (base : les formulaires fusionnés, `claude/formulaires-presentation`, plus la
+facture sur le poste ; extraite de `claude/facture-hors-ligne`, branche partagée avec l'aide intégrée en cours, pour être vérifiée
+par la CI sans elle). Lève l'écart 1 de G1 : AT37 à la lettre, une facture
+créée, émise et encaissée SANS réseau. Détail : `docs/implementation/vault.md`, « Implémentation (A1, tranches 2 et 3) » ; preuve :
+`docs/evidence/G1.md`.
+
+- **Code** : catalogue figé lu dans le coffre (`domain/billing/localCatalog.ts`) ; rejeu des faits financiers en factures
+  (`domain/billing/localInvoices.ts`, `app/services/localInvoices.ts`) ; `getInvoice` et `searchCatalog` (option `includeLocal`)
+  répondent depuis le poste ; l'éditeur de facture gère `saved-local` (brouillon, modification, émission : numéro de la plage du poste) ;
+  écrans `offlineCapable` : nouvelle facture et facture ; « Créer une facture » depuis la fiche en session locale ; la fiche d'une
+  facture du poste remplace les panneaux du serveur par une note.
+- **Tests** : `tests/frontend/billing/local-invoices.test.ts`, `local-catalog.test.ts`, `tests/frontend/services/billing-local.test.ts`,
+  quatre cas ajoutés à `invoice-draft.test.ts` ; `tests/e2e/offline-invoice.spec.ts` : patient et facture de 80 000 créés puis émis
+  serveur arrêté, acompte de 30 000 et solde de 50 000, deux reçus, PDF de la facture et d'un reçu, aucune requête hors de l'origine,
+  fermeture complète (tout est retrouvé), puis synchronisation sans renumérotation.
+- **Découverte annexe** : l'audit Composer de la CI échouait sur toutes les branches depuis l'avis symfony/mime du 2026-10-28 (CVE-2026-45070) ;
+  le correctif (mise à jour de `symfony/mime`, 7.4.22) vient de la session « formulaires » et a été reporté sur `claude/lecture-locale-ecrans`.
+- **CI de la branche de vérification** `claude/facture-hors-ligne-seule` (formulaires fusionnés et facture sur le poste, sans l'aide
+  intégrée en cours) : [run 40958516757](https://github.com/romiall/app.Eagle_Eye_Optics2/actions/runs/40958516757) sur `fb09518` :
+  **vert** (PHP, Frontend, E2E : 74 parcours dont `offline-invoice.spec.ts`, AT37 à la lettre). La branche partagée
+  `claude/facture-hors-ligne` (même contenu plus l'aide intégrée en cours de rédaction par l'autre session) reste rouge tant que
+  cette aide n'est pas terminée (tests de contenu) ; elle doit recevoir les correctifs de la branche de vérification par fusion.
+- **Incidents de parcours (causes et correctifs)** : (1) un serveur Vite de développement lancé dans le dossier (`public/hot`) faisait
+  charger la page depuis lui, sans service worker : garde dans `AppServiceProvider` (environnements `e2e` et `demo`) ; (2) un serveur de
+  test resté actif sur le port dédié après un délai dépassé faussait l'essai suivant : arrêt manuel, et l'attente du service worker est
+  bornée à 60 s ; (3) la limite de 5 confirmations de mot de passe par minute et par compte (429) faisait échouer `offline-start` quand il
+  suivait `offline-invoice`, puis `offline-sync` en cascade (poste non libéré) : `EEO_RATE_REAUTHENTICATE` (5 par défaut, relevée pour les
+  e2e), très probablement aussi la cause de l'instabilité de `legacy-balances.spec.ts` (boîte de confirmation restée affichée) ; (4) deux
+  assertions de parcours à corriger (note du catalogue en double dans l'annonce vocale, lien « Créer une facture » désormais offert).
+- **Démonstration locale** : `node tools/dev/demo-local.mjs` (base dédiée `eeo_demo_test`, comptes fictifs à mots de passe aléatoires dans
+  `storage/framework/testing/demo-accounts.json`, jamais touchés par les e2e).
+
+## Réponses de la cliente (2026-10-28)
+
+- **Horaires d'ouverture** (à saisir par la gérante dans les paramètres de l'agenda) : lundi, mardi, mercredi 8 h 30 à
+  17 h ; jeudi 10 h 30 à 17 h ; vendredi 8 h 30 à 17 h ; samedi 8 h 30 à 13 h, ainsi que les jours fériés (lecture : même
+  plage que le samedi, à confirmer). Dimanche non précisé (supposé fermé, à confirmer). L'application n'a pas de
+  calendrier des jours fériés : des exceptions datées sont à saisir avant d'ouvrir le module `agenda`.
+- **Carnets papier** : aucune référence ni numéro à reprendre, les séries de pièces démarrent de zéro ; aucune créance
+  papier à reprendre à ce stade (à reconfirmer : pas de dette en cours à reporter). La reprise des créances (X01) reste
+  livrée mais inutilisée au lancement.
+- **Références administratives** : le demandeur a transmis l'immatriculation au RCCM (photo) et l'avis d'imposition de
+  la DGI. Dépôt public : ces valeurs ne sont PAS recopiées ici ; la gérante les saisit dans Paramètres, Cabinet et
+  documents, à la mise en ligne. Restent à confirmer avec la cliente : dénomination légale exacte (celle de l'avis
+  diffère du nom commercial de l'application), capital, objet de l'activité, adresse précise, téléphone, e-mail, régime
+  fiscal à valider avec le comptable avant de configurer une taxe, préfixes des séries. Les documents restent marqués
+  TEST (`PRODUCTION_DOCUMENTS_ENABLED=false`) tant que ces points ne sont pas validés.
+
 ## Lot 2 — codé en parallèle, vérification en fin de lot (2026-10-23)
 
 Même règle que la phase 1 : chaque chantier est codé jusqu'au bout sans exécution, puis une vérification
@@ -158,7 +332,7 @@ toute aide destinée à la cliente est intégrée à l'interface (jamais un docu
 | Import contrôlé du catalogue et stock d'ouverture par fichier | X01 (partie catalogue et stock) | Vérifié en local et en CI (run 40044078785) |
 | Créances papier | X01 (partie créances) | Vérifié en local et en CI (série `LEGACY_BALANCE`, justificatif scanné, hors chiffre d'affaires) |
 | Originaux PDF conservés sur le serveur, logo sur les documents | D01 | Vérifié en local et en CI (run 40044078785) |
-| Push, pull, ACK et conflits | O05 | Serveur vérifié (PHPUnit) ; parcours e2e différé (`test.fixme`) jusqu'à la preuve G1 ; module `offline` fermé |
+| Push, pull, ACK et conflits | O05 | Serveur vérifié (PHPUnit) ; parcours e2e `offline-sync.spec.ts` réactivé et vert en local le 2026-10-25 (section « Parcours hors-ligne réactivé ») ; module `offline` fermé |
 | Exports contrôlés | X02 | Vérifié en local et en CI (`operations.md`, tâche planifiée `eeo:exports:process`) |
 | Sauvegardes chiffrées, restauration vérifiée et réconciliation | X03 | Vérifié ; répétition locale PASS (`docs/evidence/restore-rehearsal.md`) ; exercice réel sur l'hébergement à faire |
 | Seconde passe visuelle des écrans (hors ventes, caisse, stock, hors-ligne) | hors backlog (demande du demandeur) | Faite ; vérifiée par vue-tsc, ESLint, Vitest et Playwright |
@@ -186,8 +360,8 @@ Défauts réels trouvés et corrigés par cette vérification (jamais vus avant,
   (exports, `eeo:restore:verify`) ; `build-release.sh` les garde et refuse une archive qui en manque.
 
 Écarts connus, tous hors de la mise en ligne L0 :
-- `tests/e2e/offline-sync.spec.ts` est en `test.fixme` : le coffre ne s'ouvre pas dans les 20 s. Preuve G1/G2 à produire ensuite ;
-- O06/O07 (mises à jour PWA, export/restauration d'un poste) : code partiel, non terminé, module `offline` fermé ;
+- ~~`tests/e2e/offline-sync.spec.ts` est en `test.fixme`~~ : réactivé le 2026-10-25 (voir « Parcours hors-ligne réactivé ») ; preuve G1/G2 à produire ensuite ;
+- O06 (mises à jour PWA) : code partiel, non terminé ; O07 (export et reprise d'un poste) prouvé en local le 2026-10-26 (section « Reprise d'un poste ») ; module `offline` fermé ;
 - L1D01–L1D03 (chaîne stock L1) mis de côté hors du dépôt ; L1D06 abandonné pour l'instant ;
 - tests e2e : les changements de compte quittent la page avant d'effacer les cookies (une requête en vol recréait la session) ;
 - poste Windows : `OPENSSL_CONF` à exporter pour les clés EC P-256 (sans effet en CI Linux).
@@ -202,6 +376,67 @@ Logo : le demandeur a fourni le logo vectoriel de la marque (« logo EEOM », Il
 (aigle et nom) et l'aigle seul en sont extraits sans le cadre ni les coordonnées
 (`resources/frontend/assets/brand/`), icônes de l'application régénérées depuis l'aigle. Dépendance ajoutée
 par O02 : `firebase/php-jwt` ^7 (signature des grants, exigée par le fichier 23).
+
+## Parcours hors-ligne réactivé (2026-10-25)
+
+`tests/e2e/offline-sync.spec.ts` (O05) n'est plus en `test.fixme` : **CI verte, run 40246904670** sur `fee510e` (PHP,
+Frontend, E2E) ; il passe aussi en local (Chromium, 13,7 s) de bout en
+bout : préparation du poste, encaissement mobile money et création d'un patient réseau coupé, fermeture de la page,
+retour du réseau, synchronisation, ACK ; un seul paiement et un seul patient sur le serveur, numéros dans les plages du
+poste, seconde synchronisation sans effet. Le coffre s'ouvrait bien : quatre défauts arrêtaient le parcours.
+
+- Test : la ligne « Coffre ouvert : … » commence par une espace dans le gabarit, l'ancre `^` du sélecteur ne la
+  trouvait jamais (d'où les « 20 s ») ; la décision d'ouvrir le coffre après sa création était prise avant la fin de
+  la création.
+- Test : les lectures de contrôle par `context.request` n'envoyaient ni `Origin` ni `Referer` : Sanctum ne reconnaissait
+  pas la session.
+- Application (`PaymentForm.vue`) : un encaissement enregistré sur le poste restait « saisie non enregistrée » ; la
+  confirmation de sortie bloquait toute navigation après un encaissement hors ligne.
+- Application (`PatientCreatePage.vue`) : sans connexion, la boîte « Vérification des doublons impossible » disait que
+  « le serveur n'a pas répondu comme attendu » ; elle dit maintenant que le serveur n'est pas joignable (pas de
+  connexion) et invite à vérifier la liste au retour du réseau. Test Vitest ajouté pour les deux messages.
+- Outillage : `tests/e2e/support/chromium.ts` trouve aussi le Chromium préinstallé sous `chrome-linux64/`.
+- Outillage : premier passage en CI rouge (run 40246100245) : erreur de segmentation du serveur PHP sur
+  `GET /api/v1/sync/pull`, puis connexion refusée pour tous les tests suivants. Cause : le JIT d'OPcache, actif par défaut
+  sur la CI (setup-php). Reproduit en local avec `opcache.jit=1235` (TypeError « CarbonImmutable attendu, CarbonImmutable
+  reçu » dans `PrepareGrant`) ; `tests/e2e/support/php.ts` coupe le JIT du serveur de test, le parcours repasse. Consigne
+  ajoutée à `deploiement.md` : JIT désactivé sur l'hébergement.
+
+Écart constaté, non corrigé ici : après un encaissement enregistré sur le poste, la page de la facture affiche encore
+« Aucun encaissement » et le reste dû du serveur (seul le message d'état dit l'enregistrement local). Ce n'est pas faux
+(le serveur n'a rien reçu) mais l'affichage des pièces en attente sur la facture reste à faire. Module `offline`
+toujours fermé en production : ce parcours vert ne remplace pas la preuve G1 sur l'hébergement.
+
+## Reprise d'un poste sur un poste neuf (O07, 2026-10-26)
+
+Le code d'export chiffré et de reprise existait (client `offline/recovery/`, écran « Préparer ce poste » étapes 6 et 7,
+serveur `ReplaceDevice`, `recovered-push`, `ReconcileReplacement`) mais n'avait aucune preuve. Ajouté :
+
+- `tests/e2e/device-recovery.spec.ts` (vraie application, deux contextes de navigateur) : poste A préparé, facture
+  attribuée, encaissement réseau coupé, export (le fichier ne contient pas la référence en clair) ; poste B préparé sans
+  numéros, import avec la clé de récupération de A, déclaration, transmission, clôture ; un seul paiement, reçu dans la
+  plage de A, A n'est plus `ACTIVE`, B réserve des plages disjointes ; A réapparaît, crée un patient hors ligne : le
+  serveur refuse, « Conflits à revoir : 1 », le patient n'existe pas ; B rechargé affiche « ancien poste clôturé ».
+- `tests/frontend/offline/recovery.test.ts` (Vitest, 4 tests) : rien en clair, refus (mauvaise clé, illisible, autre
+  version, altéré, même poste), rangement idempotent sans aucun droit recopié, transmission telle quelle puis rien.
+- `tests/Feature/Offline/DeviceReplacementTest.php` (MySQL, 4 tests) : reprise et clôture (numéros restants `UNUSED`),
+  clôture prématurée `SYNC_INCOMPLETE`, refus (avant remplacement, soi-même, inconnu, second remplacement, rôle caisse),
+  poste réapparu en revue et pull refusé.
+- `tests/e2e/support/device.ts` : préparation de poste, facture attribuée, encaissement hors ligne et lectures de
+  contrôle partagés avec `offline-sync.spec.ts`.
+- Runbook d'exploitation : `docs/runbooks/local-recovery.md`.
+
+Corrections et écarts :
+
+- Application : un refus du serveur à la synchronisation (poste remplacé, autorisation retirée) s'affichait comme
+  « échange impossible pour le moment », comme une simple coupure. `app/services/syncFailure.ts` distingue maintenant
+  coupure, autorisation expirée et refus (avec le motif du serveur) ; tests Vitest ajoutés.
+- Test : `prepare-env.mjs` règle `EEO_MAX_CLOCK_SKEW=2` pour le serveur e2e. Avec la tolérance de production (300 s),
+  une action du poste réapparu faite quelques secondes après la révocation est, à juste titre, mise en revue et non
+  refusée nettement ; le test resterait sinon 5 minutes à attendre. La valeur de production n'est pas changée.
+- Test : `setInputFiles` avec un chemin contenant « ’ » échouait ; le fichier est passé par un tampon mémoire.
+
+Module `offline` toujours fermé en production ; O07 reste à confirmer par la gate G2.
 
 ## Environnement de développement (cloud)
 
@@ -399,3 +634,26 @@ Restent ouverts (non bloquants pour F02/F03, reportés) : `trustProxies`/`TrustH
 | Seconde revue | Vérificateur indépendant et adverse sur `36e380b` (finance, transport, vérité de l'interface, architecture et tests) : **pass=false**, 14 majeurs, 26 mineurs, 14 constats réfutés — « soldée » avec un crédit à rembourser, compte épinglé au premier envoi, session dégradée par une panne réseau au retour sur l'onglet, expulsion de la saisie, accueil accusant un manque de droits, boîte de reconnexion inaccessible, vide « certain » sans lecture serveur, confirmation du mot de passe (423) sans remède |
 | Traitement de la seconde revue | Traités avec test : `settled` / `creditDue`, compte épinglé à l'ouverture du formulaire, état `expired` et reconnexion sur place, `revalidateSession` (seul un 401/419 change une session ouverte), aucune navigation forcée, `ReadOutcome.live`, focus et erreurs de la boîte, double soumission, intention figée, époque de session, message « rien n'a été envoyé » ; 14 mutations ciblées tuées (une survivante tuée par un test ajouté). **Reportés avec motif et tâche** : confirmation du mot de passe (B06), contrôle serveur de l'acteur attendu (avant G1), 3 routes de `CreatePrescription` (C04), cohérence type/origine des faits financiers (B07), `SyncStatus`/fuseau/accords (O04, O05), règle ESLint (O01), `LocalCommandEngine` (O04), délais d'`api.ts` (D01) |
 | Reprise | M01, puis P01, P02, consultation et prescription selon la priorité du demandeur ; O01 à O05 ensuite |
+
+## Écarts de G1 : (a2) annuaire du poste : fiches du serveur lues, modifiées et facturées sans réseau (2026-10-30)
+
+Chantier de la branche `claude/annuaire-poste` (empilée sur `claude/facture-hors-ligne`). Lève la limite « les patients du serveur ne
+se lisent pas hors ligne » d'A1 : les fiches que le pull a scellées dans le coffre (`pulled_administrative`) sont lues par les écrans.
+Détail : `docs/implementation/vault.md`, « Implémentation (A2) » ; preuve : `docs/evidence/G1.md`.
+
+- **Code** : `Vault.listEntities(type, préfixe)` ; `pulledRecords` et `lastPullAt` (façade du coffre et service `vault`) ; `patientOfPulled`
+  et `foldLocalPatients(faits, annuaire)` (`domain/patients/local.ts`) ; `localPatients(portée)` avec annuaire gardé en mémoire
+  (`app/services/localPatients.ts`, oublié au verrouillage par `whenVaultLocks`) ; `searchPatients` ouvre l'annuaire serveur injoignable
+  seulement ; `getPatient` et l'identité des factures du poste lisent les fiches voulues seulement ; `LocalFact.expectedVersion`.
+- **Tests** : 14 cas ajoutés à `tests/frontend/patients/local-patients.test.ts` (rejeu par-dessus la fiche du serveur, modification déjà
+  reprise par le pull, fiche créée ici puis reçue, lecture défensive), `tests/frontend/services/local-patients-directory.test.ts`
+  (portées, repère, oubli au verrouillage), `patients-local.test.ts` (portée demandée par l'écran, fiche fusionnée jamais proposée),
+  `sync.test.ts` (liste par type, identifiants, dernier pull) ; `tests/e2e/offline-directory.spec.ts` : fiche créée EN LIGNE, reçue par le
+  pull, puis serveur arrêté : recherche, fiche, modification, facture émise avec l'identité du patient, fermeture complète, synchronisation
+  (le serveur connaît la profession et la facture de CE patient, même numéro).
+- **Incident de parcours** : un serveur d'aperçu d'une autre session occupait le port dérivé (8130) : les ports e2e se décalent avec
+  `EEO_E2E_PORT`.
+- **Limites** : couverture de l'annuaire non affichée, factures du serveur (résumés seulement), déchiffrement sans worker ; voir vault.md.
+- **Arbitrage** : le demandeur a passé G1 à DONE le 2026-10-30 (écarts 1 et 2 levés ; CI verte : run 41039143341 sur `0ea7668`).
+- **À faire ensuite** : afficher la fraîcheur et la couverture de l'annuaire ; « Factures de ce patient » (résumés du pull) ; O06 (mises à jour
+  PWA) puis G2.

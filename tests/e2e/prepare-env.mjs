@@ -48,6 +48,13 @@ const overrides = {
   // Les parcours e2e se connectent souvent, vite : la limite de 20 connexions par minute et par adresse IP
   // (production) les bloquerait sur une machine rapide.
   EEO_RATE_LOGIN_IP: '1000',
+  // Préparer un poste confirme quatre ou cinq fois le mot de passe de la gérante ; deux parcours enchaînés dépasseraient
+  // la limite de 5 par minute et par compte (production) et recevraient « Trop de tentatives » (429).
+  EEO_RATE_REAUTHENTICATE: '1000',
+  // Tolérance d'horloge des commandes de poste réduite à 2 s (production : 300 s). Navigateur et serveur partagent ici la
+  // même horloge ; sans cela, un encaissement fait quelques secondes avant le remplacement de son poste (reprise O07,
+  // device-recovery.spec.ts) tomberait « autour de la révocation » et passerait en revue, comme prévu en production.
+  EEO_MAX_CLOCK_SKEW: '2',
 }
 
 const lines = readFileSync(join(root, '.env.example'), 'utf8')

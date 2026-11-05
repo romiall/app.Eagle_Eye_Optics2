@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, type Locator, test, type Page } from '@playwright/test'
 
 import { demoAccount } from './support/accounts'
 
@@ -148,5 +148,52 @@ test.describe('patients (P01, P02) sur la vraie application', () => {
     await page.goto('/patients')
     await expect(page.getByRole('searchbox', { name: 'Rechercher un patient' })).toBeVisible()
     expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0)
+  })
+
+  test('formulaire : les saisies d’une même rangée sont alignées, l’aide est sous la saisie', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 900 })
+    await signIn(page, 'RECEPTION')
+    await page.goto('/patients/nouveau')
+    await expect(page.getByLabel('Nom (obligatoire)')).toBeVisible()
+
+    const box = async (locator: Locator): Promise<{ x: number; y: number; height: number }> => {
+      const found = await locator.boundingBox()
+      if (found === null) throw new Error('Champ invisible : pas de position à comparer.')
+      return found
+    }
+    const top = async (label: string): Promise<number> =>
+      (await box(page.getByLabel(label, { exact: true }))).y
+
+    // Une aide par champ de gauche ou de droite ne décale plus la saisie voisine : même hauteur.
+    for (const [left, right] of [
+      ['Nom (obligatoire)', 'Prénom(s)'],
+      ['Sexe', 'Date de naissance'],
+      ['Téléphone principal', 'Téléphone secondaire'],
+    ] as const) {
+      expect(
+        Math.abs((await top(left)) - (await top(right))),
+        `${left} / ${right}`,
+      ).toBeLessThanOrEqual(1)
+    }
+
+    // L'aide est SOUS sa saisie, jamais entre l'étiquette et la saisie.
+    for (const [label, hint] of [
+      ['Prénom(s)', 'Facultatif : un prénom peut être inconnu.'],
+      ['Téléphone principal', 'Un même téléphone peut servir à plusieurs patients.'],
+    ] as const) {
+      const input = await box(page.getByLabel(label, { exact: true }))
+      const help = await box(page.getByText(hint, { exact: true }))
+      expect(help.y, `aide de « ${label} »`).toBeGreaterThanOrEqual(input.y + input.height)
+    }
+
+    // Recherche : le bouton reste aligné sur la saisie, avec son aide sous elle.
+    await page.goto('/patients')
+    const search = await box(page.getByRole('searchbox', { name: 'Rechercher un patient' }))
+    const button = await box(page.getByRole('button', { name: 'Rechercher' }))
+    expect(
+      Math.abs(search.y + search.height / 2 - (button.y + button.height / 2)),
+    ).toBeLessThanOrEqual(2)
   })
 })

@@ -52,14 +52,8 @@ function toggle(option: CheckboxOption, checked: boolean): void {
 </script>
 
 <template>
-  <fieldset
-    :id="id"
-    tabindex="-1"
-    :aria-describedby="describedBy"
-    class="m-0 min-w-0 space-y-1 border-0 p-0"
-  >
-    <legend class="mb-1 p-0 text-base font-medium text-ink">{{ props.legend }}</legend>
-    <p v-if="props.hint" :id="hintId" class="text-sm text-muted">{{ props.hint }}</p>
+  <fieldset :id="id" tabindex="-1" :aria-describedby="describedBy" class="min-w-0">
+    <legend class="mb-1.5 p-0 text-sm leading-5 font-semibold text-ink">{{ props.legend }}</legend>
     <ul class="grid gap-2 sm:grid-cols-2">
       <li v-for="option in props.options" :key="option.value">
         <label
@@ -79,8 +73,15 @@ function toggle(option: CheckboxOption, checked: boolean): void {
         <slot name="option" :option="option" :checked="props.modelValue.includes(option.value)" />
       </li>
     </ul>
-    <p v-if="props.error" :id="errorId" class="text-sm font-medium text-danger">
-      <span aria-hidden="true">⚠ </span>{{ props.error }}
+    <p
+      v-if="props.error"
+      :id="errorId"
+      class="mt-1.5 flex items-start gap-1.5 text-sm leading-5 font-medium text-danger"
+    >
+      <span aria-hidden="true" class="shrink-0">⚠ </span><span>{{ props.error }}</span>
+    </p>
+    <p v-if="props.hint" :id="hintId" class="mt-1.5 text-sm leading-5 text-muted">
+      {{ props.hint }}
     </p>
   </fieldset>
 </template>

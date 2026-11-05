@@ -2,6 +2,8 @@ import { webcrypto } from 'node:crypto'
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import type { MutationDispatcher } from '@/app/services/mutations'
+
 import {
   apiError,
   buttonByName,
@@ -346,6 +348,190 @@ describe('émission', () => {
     await click(buttonByName(root, 'Ajouter une ligne hors catalogue'))
     expect(textOf(root)).toContain('hors catalogue')
 
+    unmount()
+  })
+})
+
+describe('poste préparé : brouillon et émission enregistrés sur le poste (G1, AT37)', () => {
+  /** Journal du poste simulé : la commande est « enregistrée sur ce poste », jamais envoyée au serveur. */
+  function deviceJournal(onCommit: (name: string) => void = () => undefined): {
+    dispatcher: MutationDispatcher
+    names: string[]
+  } {
+    const names: string[] = []
+    return {
+      names,
+      dispatcher: {
+        dispatch: async (request) => {
+          names.push(request.name)
+          onCommit(request.name)
+          return { kind: 'saved-local', at: '2026-10-15T09:42:00.000Z' }
+        },
+      },
+    }
+  }
+
+  it('le brouillon est dit « enregistré sur ce poste », relu dans le coffre, et la facture s’ouvre', async () => {
+    const api = server()
+    api.on('GET', /^\/api\/v1\/invoices\/([^/]+)$/, (_request, match) =>
+      json(200, { data: draftInvoice({ id: match[1] ?? INVOICE_ID }) }),
+    )
+    const journal = deviceJournal()
+
+    const { root, router, unmount } = await openApp(
+      `/ventes/factures/nouvelle?patient=${PATIENT_ID}`,
+      { dispatcher: journal.dispatcher },
+    )
+    await addCatalogLine(root)
+    await click(buttonByName(root, 'Enregistrer le brouillon'))
+
+    await vi.waitFor(() => expect(router.currentRoute.value.name).toBe('facture'))
+    await vi.waitFor(() => expect(textOf(root)).toContain('Brouillon de facture enregistré'))
+    expect(journal.names).toEqual(['CreateInvoiceDraft'])
+    expect(callsTo(api, 'POST', /^\/api\/v1\/invoices$/)).toHaveLength(0)
+    expect(textOf(root)).toContain(
+      'Brouillon de facture enregistré sur ce poste, en attente de synchronisation.',
+    )
+    expect(textOf(root)).not.toContain('enregistré sur le serveur')
+    expect(forbiddenWordsIn(root)).toEqual([])
+
+    unmount()
+  })
+
+  it('une modification du brouillon reste sur le poste : « Enregistré sur ce poste », aucune requête d’écriture', async () => {
+    const api = server()
+    api.on('GET', /^\/api\/v1\/invoices\/([^/]+)$/, () => json(200, { data: draftInvoice() }))
+    const journal = deviceJournal()
+
+    const { root, unmount } = await openApp(`/ventes/factures/${INVOICE_ID}`, {
+      dispatcher: journal.dispatcher,
+    })
+    const quantity = root.querySelector<HTMLInputElement>('input[id$="-quantity"]')
+    if (quantity === null) throw new Error('Champ de quantité introuvable.')
+    await typeInto(root, quantity.id, '3')
+    await click(buttonByName(root, 'Enregistrer le brouillon'))
+
+    await vi.waitFor(() => expect(journal.names).toEqual(['UpdateDraft']))
+    await vi.waitFor(() => expect(textOf(root)).toContain('Enregistré sur ce poste'))
+    expect(callsTo(api, 'PATCH', /^\/api\/v1\/invoices\//)).toHaveLength(0)
+    expect(textOf(root)).not.toContain('Enregistré sur le serveur')
+
+    unmount()
+  })
+
+  it('l’émission porte le numéro de la plage du poste, sans « serveur », et la fiche dit que la facture est celle du poste', async () => {
+    const api = server()
+    let issued = false
+    api.on('GET', /^\/api\/v1\/invoices\/([^/]+)$/, () =>
+      json(200, { data: issued ? issuedInvoice() : draftInvoice() }),
+    )
+    api.on('GET', /^\/api\/v1\/cash-sessions\/current$/, () => json(200, { data: null }))
+    const journal = deviceJournal((name) => {
+      if (name === 'IssueInvoice') issued = true
+    })
+
+    const { root, unmount } = await openApp(`/ventes/factures/${INVOICE_ID}`, {
+      dispatcher: journal.dispatcher,
+    })
+    await click(buttonByName(root, 'Émettre la facture'))
+    await click(dialogButton(root, 'Émettre la facture'))
+    await vi.waitFor(() => expect(journal.names).toEqual(['IssueInvoice']))
+    await vi.waitFor(() => expect(textOf(root)).toContain('Facture émise sur ce poste : numéro'))
+
+    expect(callsTo(api, 'POST', /issue$/)).toHaveLength(0)
+    expect(textOf(root)).toContain(
+      'Facture émise sur ce poste : numéro TEST-FAC-2026-000001, en attente de synchronisation.',
+    )
+    expect(root.querySelector('h1')?.textContent).toContain('Facture TEST-FAC-2026-000001')
+    // Facture du poste : remises au patient, avoirs et corrections demandent le serveur et ne sont pas offerts.
+    expect(textOf(root)).toContain('Facture de ce poste')
+    expect(textOf(root)).toContain('se feront après l’envoi au serveur')
+    expect(textOf(root)).not.toContain('Facture émise : numéro')
+    expect(forbiddenWordsIn(root)).toEqual([])
+
+    unmount()
+  })
+
+  it('la pièce enregistrée sur le poste mais non relisible n’est jamais refaite : message, rien d’autre', async () => {
+    const api = server()
+    api.on('GET', /^\/api\/v1\/invoices\/([^/]+)$/, () =>
+      json(404, {
+        error: { code: 'RESOURCE_NOT_FOUND', message: 'Ressource introuvable.' },
+        correlation_id: 'corr-test-0404',
+      }),
+    )
+    const journal = deviceJournal()
+
+    const { root, router, unmount } = await openApp(
+      `/ventes/factures/nouvelle?patient=${PATIENT_ID}`,
+      { dispatcher: journal.dispatcher },
+    )
+    await addCatalogLine(root)
+    await click(buttonByName(root, 'Enregistrer le brouillon'))
+
+    await vi.waitFor(() =>
+      expect(textOf(root)).toContain('part à la synchronisation, ne la refaites pas'),
+    )
+    expect(router.currentRoute.value.name).toBe('facture-nouvelle')
+    expect(journal.names).toEqual(['CreateInvoiceDraft'])
+
+    unmount()
+  })
+})
+
+describe('poste préparé : relecture vérifiée et état d’enregistrement exact (revue A1)', () => {
+  function journalOf(names: string[]): MutationDispatcher {
+    return {
+      dispatch: async (request) => {
+        names.push(request.name)
+        return { kind: 'saved-local', at: '2026-10-15T09:42:00.000Z' }
+      },
+    }
+  }
+
+  it('une émission sur le poste dont la relecture ne rend que le brouillon du serveur n’est jamais présentée comme émise, et plus rien ne s’édite', async () => {
+    const api = server()
+    // Patient du serveur seulement : le poste ne sait pas reconstruire la facture émise, le serveur ne connaît que le brouillon.
+    api.on('GET', /^\/api\/v1\/invoices\/([^/]+)$/, () => json(200, { data: draftInvoice() }))
+    const names: string[] = []
+
+    const { root, unmount } = await openApp(`/ventes/factures/${INVOICE_ID}`, {
+      dispatcher: journalOf(names),
+    })
+    await click(buttonByName(root, 'Émettre la facture'))
+    await click(dialogButton(root, 'Émettre la facture'))
+
+    await vi.waitFor(() => expect(names).toEqual(['IssueInvoice']))
+    await vi.waitFor(() => expect(textOf(root)).toContain('Ne l’émettez pas de nouveau'))
+    expect(textOf(root)).not.toContain('Facture émise sur ce poste : numéro')
+    expect(root.querySelector('h1')?.textContent).not.toContain('TEST-FAC')
+    expect(buttonByName(root, 'Émettre la facture')?.disabled).toBe(true)
+    // Une seconde demande d’émission n’envoie rien de plus.
+    await click(buttonByName(root, 'Émettre la facture'))
+    expect(names).toEqual(['IssueInvoice'])
+
+    unmount()
+  })
+
+  it('« Enregistré sur ce poste » disparaît dès qu’une nouvelle saisie n’est pas enregistrée', async () => {
+    const api = server()
+    api.on('GET', /^\/api\/v1\/invoices\/([^/]+)$/, () => json(200, { data: draftInvoice() }))
+    const names: string[] = []
+
+    const { root, unmount } = await openApp(`/ventes/factures/${INVOICE_ID}`, {
+      dispatcher: journalOf(names),
+    })
+    const quantity = root.querySelector<HTMLInputElement>('input[id$="-quantity"]')
+    if (quantity === null) throw new Error('Champ de quantité introuvable.')
+    await typeInto(root, quantity.id, '3')
+    await click(buttonByName(root, 'Enregistrer le brouillon'))
+    await vi.waitFor(() => expect(textOf(root)).toContain('Enregistré sur ce poste'))
+
+    const next = root.querySelector<HTMLInputElement>('input[id$="-quantity"]')
+    if (next === null) throw new Error('Champ de quantité introuvable.')
+    await typeInto(root, next.id, '4')
+
+    expect(textOf(root)).not.toContain('Enregistré sur ce poste')
     unmount()
   })
 })

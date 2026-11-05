@@ -143,8 +143,67 @@
         }
       }
     },
+    "ConsultationHeaderPatient": {
+      "description": "Identité administrative de base du patient de la consultation ouverte, avec sa profession (donnée du dossier administratif que le cabinet note dans son carnet), pour l’en-tête de l’écran. La liste des examens (ConsultationSummary) ne porte pas la profession.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "record_number",
+        "last_name",
+        "first_names",
+        "sex",
+        "birth_date",
+        "profession"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "record_number": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "last_name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "first_names": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 180
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "sex": {
+          "$ref": "../../schemas/enums.json#/$defs/patient_records.sex"
+        },
+        "birth_date": {
+          "$ref": "../../schemas/common.json#/$defs/NullableCivilDate"
+        },
+        "profession": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 180
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
     "Consultation": {
-      "description": "Consultation complète : professionnel et gérante seulement (clinical.read). patient : identité administrative de base, pour l’en-tête (sans dépendre du module Patients).",
+      "description": "Consultation complète : professionnel et gérante seulement (clinical.read). patient : identité administrative de base et profession, pour l’en-tête (sans dépendre du module Patients).",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -215,7 +274,7 @@
           "$ref": "../../schemas/common.json#/$defs/Version"
         },
         "patient": {
-          "$ref": "#/$defs/ConsultationPatient"
+          "$ref": "#/$defs/ConsultationHeaderPatient"
         },
         "steps": {
           "$ref": "../../schemas/clinical-steps.json#/$defs/AllSteps"
@@ -265,7 +324,7 @@
       }
     },
     "ConsultationSummary": {
-      "description": "Examen dans la liste du cabinet : patient (identité administrative de base), état, dates, révision et professionnel. Aucune valeur clinique.",
+      "description": "Examen dans la liste du cabinet : patient (identité administrative de base), état, dates, révision, version (attendue par la suppression d'un brouillon) et professionnel. Aucune valeur clinique.",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -276,6 +335,7 @@
         "effective_at",
         "completed_at",
         "current_revision",
+        "version",
         "patient",
         "clinician"
       ],
@@ -301,6 +361,10 @@
         "current_revision": {
           "type": "integer",
           "minimum": 0
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1
         },
         "patient": {
           "$ref": "#/$defs/ConsultationPatient"
@@ -697,6 +761,82 @@
       "properties": {
         "data": {
           "$ref": "#/$defs/Consultation"
+        }
+      }
+    },
+    "ConsultationDeletion": {
+      "description": "Résultat de la suppression d'un examen resté brouillon : la consultation n'existe plus ; la visite est remise dans son état d'avant l'examen (ARRIVED, ou READY_FOR_EXAM / AWAITING_EXAM_FEE quand le paiement de l'examen est contrôlé) avec sa nouvelle version.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "consultation_id",
+        "visit_id",
+        "visit_status",
+        "visit_version"
+      ],
+      "properties": {
+        "consultation_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "visit_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "visit_status": {
+          "$ref": "../../schemas/enums.json#/$defs/visits.status"
+        },
+        "visit_version": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "DeleteConsultationDraftResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/ConsultationDeletion"
+        }
+      }
+    },
+    "PrescriptionDeletion": {
+      "description": "Résultat de la suppression d'un brouillon de prescription : la prescription n'existe plus (version_no : celle qu'elle portait ; la dernière version validée de sa série redevient la plus récente).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "prescription_id",
+        "patient_id",
+        "consultation_id",
+        "version_no"
+      ],
+      "properties": {
+        "prescription_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "patient_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "consultation_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "version_no": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "DeletePrescriptionDraftResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/PrescriptionDeletion"
         }
       }
     },

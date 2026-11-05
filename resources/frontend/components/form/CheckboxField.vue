@@ -46,9 +46,13 @@ const describedBy = computed(
       />
       <span>{{ props.label }}</span>
     </label>
-    <p v-if="props.hint" :id="hintId" class="text-sm text-muted">{{ props.hint }}</p>
-    <p v-if="props.error" :id="errorId" class="text-sm font-medium text-danger">
-      <span aria-hidden="true">⚠ </span>{{ props.error }}
+    <p
+      v-if="props.error"
+      :id="errorId"
+      class="flex items-start gap-1.5 text-sm leading-5 font-medium text-danger"
+    >
+      <span aria-hidden="true" class="shrink-0">⚠ </span><span>{{ props.error }}</span>
     </p>
+    <p v-if="props.hint" :id="hintId" class="text-sm leading-5 text-muted">{{ props.hint }}</p>
   </div>
 </template>

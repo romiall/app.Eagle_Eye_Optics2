@@ -6,6 +6,7 @@ use App\Application\CommandDefinition;
 use App\Domain\Communication\Handlers\RecordContactAttemptHandler;
 use App\Domain\Scheduling\Handlers\AddResourceExceptionHandler;
 use App\Domain\Scheduling\Handlers\CancelAppointmentHandler;
+use App\Domain\Scheduling\Handlers\CancelFollowUpHandler;
 use App\Domain\Scheduling\Handlers\CreateAppointmentHandler;
 use App\Domain\Scheduling\Handlers\CreateFollowUpHandler;
 use App\Domain\Scheduling\Handlers\MarkAppointmentNoShowHandler;
@@ -45,6 +46,9 @@ final class SchedulingCommands
                 null, true, $http.'RescheduleAppointmentRequest'),
             new CommandDefinition(CancelAppointmentHandler::COMMAND, CancelAppointmentHandler::class, $direct,
                 null, true, $http.'CancelAppointmentRequest'),
+            // Annulation d'un contrôle recommandé (chantier « CRUD des écrans »), en ligne seulement.
+            new CommandDefinition(CancelFollowUpHandler::COMMAND, CancelFollowUpHandler::class, $direct,
+                null, true, $http.'CancelFollowUpRequest'),
             new CommandDefinition(MarkAppointmentNoShowHandler::COMMAND, MarkAppointmentNoShowHandler::class, $direct,
                 null, true, $http.'MarkAppointmentNoShowRequest'),
             new CommandDefinition(SaveSchedulingResourceHandler::COMMAND, SaveSchedulingResourceHandler::class, $direct,

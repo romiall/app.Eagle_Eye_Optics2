@@ -18,7 +18,7 @@ import { RouterLink, useRoute } from 'vue-router'
 
 import { clinicTimeZone, clinicToday, formatInstantFr } from '@/app/clinicTime'
 import { getPatient } from '@/app/services/patients'
-import { can, enabledModules } from '@/app/session'
+import { can, enabledModules, session } from '@/app/session'
 import FreshnessNote from '@/components/feedback/FreshnessNote.vue'
 import StateMessage from '@/components/feedback/StateMessage.vue'
 import { formatDateFr } from '@/components/form/format'
@@ -44,6 +44,13 @@ const flash = takeFlash()
 
 const read = usePatientRead<Patient>(() => getPatient(id.value))
 
+/**
+ * Session locale (profil du coffre, serveur non joint) : seules les actions qui s'enregistrent sur le poste
+ * restent offertes (modifier la fiche, créer une facture). Arrivée, fusion et export demandent le serveur : aucun
+ * lien vers un écran fermé.
+ */
+const localSession = computed(() => session.status === 'local')
+
 // Le même écran sert une autre fiche quand l'adresse change : relire, sans garder la précédente.
 watch(id, () => void read.reload())
 
@@ -62,6 +69,7 @@ const canEdit = computed(
  */
 const canRegisterArrival = computed(
   () =>
+    !localSession.value &&
     can('visit.register') &&
     enabledModules.value.includes('today') &&
     patient.value !== null &&
@@ -75,6 +83,7 @@ const canRegisterArrival = computed(
  */
 const canMerge = computed(
   () =>
+    !localSession.value &&
     can('patient.merge') &&
     patient.value !== null &&
     !patient.value.archived &&
@@ -87,7 +96,10 @@ const mergedRecords = computed(() => patient.value?.merged_records ?? [])
 /** « Exporter le dossier » (X02) : droit clinical.export, module « settings » ouvert (page des exports). */
 const canExportRecord = computed(
   () =>
-    can('clinical.export') && enabledModules.value.includes('settings') && patient.value !== null,
+    !localSession.value &&
+    can('clinical.export') &&
+    enabledModules.value.includes('settings') &&
+    patient.value !== null,
 )
 
 /**

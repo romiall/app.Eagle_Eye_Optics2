@@ -23,6 +23,7 @@ import {
   syncDeviceNow,
 } from '@/app/services/deviceSync'
 import { listStaff } from '@/app/services/staff'
+import { syncFailureMessage } from '@/app/services/syncFailure'
 import {
   addLocalProfile,
   enrollThisDevice,
@@ -261,9 +262,8 @@ async function synchronize(): Promise<void> {
   syncProblem.value = null
   try {
     await syncDeviceNow()
-  } catch {
-    syncProblem.value =
-      'Échange impossible pour le moment : les pièces restent enregistrées sur ce poste et repartiront au prochain essai.'
+  } catch (error) {
+    syncProblem.value = syncFailureMessage(error)
   } finally {
     syncing.value = false
   }

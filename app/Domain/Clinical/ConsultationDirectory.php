@@ -104,6 +104,7 @@ final class ConsultationDirectory
                 'consultations.effective_at',
                 'consultations.status',
                 'consultations.current_revision',
+                'consultations.version',
                 'consultations.completed_at',
                 'patient_records.record_number as patient_record_number',
                 'patient_records.last_name as patient_last_name',

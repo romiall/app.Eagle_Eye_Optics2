@@ -207,7 +207,7 @@ function reconcile(): Promise<void> {
       </StateMessage>
       <template v-else>
         <div class="space-y-1">
-          <label for="reprise-fichier" class="block font-medium">Export de l’ancien poste</label>
+          <label for="reprise-fichier" class="field-label block">Export de l’ancien poste</label>
           <input
             id="reprise-fichier"
             type="file"

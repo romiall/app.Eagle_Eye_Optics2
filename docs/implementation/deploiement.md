@@ -1,15 +1,48 @@
 # Déploiement sur l'hébergement (Hostinger, accès SSH)
 
-Procédure pour mettre en ligne une version de l'application sur un hébergement web simple (sans VPS) auquel on accède
-par **SSH**. Elle a été **répétée de bout en bout sur ce poste** à partir de l'archive seule : extraction dans un
-dossier neuf, base MySQL 8.4 vierge, diagnostic, migrations (40 s), création du cabinet et de la gérante,
-vérification du schéma, démarrage, contrôle de fumée (connexion, recherche de patients, file du jour). Elle n'a
-**pas encore été exécutée sur le serveur Hostinger** : l'offre exacte (version de PHP, base MySQL ou MariaDB, droits,
-racine web) n'est pas connue. C'est le rôle de l'étape 1.
+Procédure de mise en ligne et de mise à jour de l'application sur l'hébergement web Hostinger (**`https://app-eagleseye.com`**).
+L'application a été **installée et vérifiée en production sur Hostinger le 2026-10-27** (PHP 8.3.36, LiteSpeed,
+MariaDB 11.8.9, base `u720123645_eagleseye`, 117 tables métier, 464 clés étrangères, 484 contraintes CHECK, 10 vues,
+88 triggers, sauvegarde chiffrée active, `eeo:preflight` 0 point bloquant et `smoke.sh` 100 % réussi).
 
-> Hostinger propose selon l'offre MySQL ou MariaDB. Le projet est validé sur **MySQL 8.4** (88 triggers, contraintes
-> CHECK, colonnes générées). Si le diagnostic annonce MariaDB ou refuse les triggers, **ne pas installer** : voir
-> « Si le diagnostic bloque ».
+## 0. Mise à jour rapide depuis ce poste Windows (pour Claude / l'exploitant)
+
+Sur le poste local du demandeur, **l'accès SSH sans mot de passe est déjà configuré** dans `~/.ssh/config` :
+
+- Alias SSH : `eagleseye` (ou `scei`)
+- Hôte : `145.79.20.169` · Port : `65002` · Utilisateur : `u720123645`
+- Clé privée locale : `~/.ssh/scei_hostinger_deploy`
+- Arborescence sur le serveur :
+  - `~/eeo` → lien symbolique vers la version active `~/eeo-releases/eeo-AAAAMMJJTHHMMZ-<commit>`
+  - `~/eeo/.env` → configuration de production en place (copiée automatiquement lors d'une mise à jour)
+  - `~/.eeo-backup.key` → clé de chiffrement des sauvegardes (`0600`)
+  - `~/eeo-backups/` → sauvegardes chiffrées quotidiennes et pré-déploiement
+  - `~/domains/app-eagleseye.com/public_html` → lien symbolique vers `~/eeo/public`
+
+Pour déployer **toute nouvelle modification validée (commit propre)** en une seule commande :
+
+- Depuis **PowerShell** :
+
+```powershell
+.\tools\deploy\deploy-hostinger.ps1
+```
+
+- Depuis **Git Bash** (ou PowerShell après rechargement du profil) :
+
+```bash
+bash tools/deploy/deploy-hostinger.sh
+```
+
+Ce script exécute automatiquement :
+1. `bash tools/deploy/build-release.sh` (build Vite PWA + `composer install --no-dev` + archive `.tar.gz` et `.sha256` dans `release/`) ;
+2. sauvegarde chiffrée préalable sur le serveur (`tools/deploy/backup.sh`) ;
+3. envoi par `scp` vers `eagleseye:~/`, contrôle `sha256sum -c`, extraction dans `~/eeo-releases/<nom>`, copie de `~/eeo/.env` ;
+4. `php artisan eeo:preflight`, `php artisan migrate --force`, `php artisan config:cache`, `route:cache`, `view:cache` ;
+5. bascule atomique du lien `~/eeo` et contrôle HTTP de `https://app-eagleseye.com/up`.
+
+> Aucun mot de passe ni fichier `.env` ne doit jamais être écrit dans le dépôt Git public.
+
+---
 
 ## Vue d'ensemble
 
@@ -59,6 +92,11 @@ toucher aux tables de l'application. Sortie : `OK`, `ALERTE` (à lire, ne bloque
 
 Les alertes (`expose_php`, OPcache, taille d'envoi) se règlent dans le panneau (PHP, Options) ou un fichier
 `.user.ini`.
+
+Garder le **JIT d'OPcache désactivé** (`opcache.jit=disable` ou `opcache.jit_buffer_size=0`, valeur par défaut de PHP) :
+en développement, avec le JIT actif, les chemins du hors-ligne (autorisations des postes, synchronisation) ont produit
+une erreur de type impossible (PHP 8.3.6) et une erreur de segmentation du serveur (CI). Le cache d'opcodes OPcache,
+lui, reste recommandé.
 
 ## 2. Construire l'archive (poste de développement)
 

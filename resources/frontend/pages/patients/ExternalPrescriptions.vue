@@ -11,7 +11,7 @@
  * Présentation : titre de section, saisie dans une carte avec sa barre d'actions, dernière version en
  * tête et versions précédentes repliées ; sans ordonnance, un état vide propose la transcription.
  */
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 
 import { clinicTimeZone } from '@/app/clinicTime'
 import { useUnsavedChangesGuard } from '@/app/unsavedChanges'
@@ -22,6 +22,7 @@ import EmptyState from '@/components/layout/EmptyState.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
 import { RX_IDS } from '@/domain/clinical/prescriptions'
+import DeletePrescriptionDraftDialog from '@/pages/consultations/DeletePrescriptionDraftDialog.vue'
 import { failureView } from '@/pages/consultations/failureView'
 import PrescriptionForm from '@/pages/consultations/PrescriptionForm.vue'
 import PrescriptionView from '@/pages/consultations/PrescriptionView.vue'
@@ -48,6 +49,7 @@ const {
   canWrite,
   canAmend,
   canValidate,
+  canDeleteDraft,
 } = editor
 const { failureMessage, recordedAt, state } = mutation
 
@@ -77,6 +79,16 @@ const heading = computed(() => {
 
 useUnsavedChangesGuard(dirty)
 
+// Suppression du brouillon enregistré : jamais une ordonnance validée (elle se corrige par une nouvelle version).
+const deleteOpen = ref(false)
+const deletion = ref<{ state: 'success' | 'conflict'; message: string } | null>(null)
+
+async function afterDeleteAttempt(state: 'success' | 'conflict', message: string): Promise<void> {
+  deleteOpen.value = false
+  deletion.value = { state, message }
+  await editor.forgetDraft()
+}
+
 function bindSummary(element: unknown): void {
   summaryBox.value = element as { focus: () => Promise<void> } | null
 }
@@ -91,6 +103,14 @@ function bindSummary(element: unknown): void {
         prescriptions faites au cabinet se trouvent dans chaque consultation.
       </p>
     </div>
+
+    <StateMessage
+      v-if="deletion !== null"
+      :state="deletion.state"
+      :title="deletion.state === 'success' ? 'Brouillon supprimé' : 'Brouillon non supprimé'"
+    >
+      {{ deletion.message }}
+    </StateMessage>
 
     <StateMessage
       v-if="listRead.state.value === 'loading'"
@@ -174,6 +194,14 @@ function bindSummary(element: unknown): void {
             >Valider la prescription</AppButton
           >
           <AppButton variant="ghost" :disabled="busy" @click="editor.cancelEdit">Annuler</AppButton>
+          <AppButton
+            v-if="canDeleteDraft"
+            variant="danger"
+            :disabled="busy"
+            :accessible-name="`Supprimer le brouillon de la version ${saved?.version_no ?? 1}`"
+            @click="deleteOpen = true"
+            ><AppIcon name="trash" :size="18" />Supprimer le brouillon</AppButton
+          >
           <SaveStatus :state="saveState" :at="recordedAt" :time-zone="timeZone" />
         </div>
       </form>
@@ -222,6 +250,16 @@ function bindSummary(element: unknown): void {
           </details>
         </template>
       </template>
+
+      <DeletePrescriptionDraftDialog
+        v-if="deleteOpen && saved !== null"
+        :prescription-id="saved.id"
+        :updated-at="saved.updated_at"
+        :version-no="saved.version_no"
+        @deleted="afterDeleteAttempt('success', $event)"
+        @stale="afterDeleteAttempt('conflict', $event)"
+        @close="deleteOpen = false"
+      />
     </template>
   </section>
 </template>

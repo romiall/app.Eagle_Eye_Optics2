@@ -100,7 +100,7 @@ async function save(): Promise<void> {
       />
       <CheckboxField
         v-model="active"
-        class="sm:self-end"
+        class="field-action"
         label="Ressource active (proposée à la prise de rendez-vous)"
         :control-id="`${ids}-active`"
       />

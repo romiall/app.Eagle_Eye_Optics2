@@ -105,7 +105,9 @@ final class ConsultationReader
     }
 
     /**
-     * Identité administrative de base du patient de la consultation (en-tête de l'écran), jamais de donnée clinique.
+     * Identité administrative de base du patient de la consultation (en-tête de l'écran) et sa profession, que le
+     * cabinet note dans son carnet : jamais de donnée clinique ni de coordonnée. Le snapshot d'une révision n'en
+     * retient que son identité (`RevisionSnapshot`) : la profession n'entre pas dans l'empreinte.
      *
      * @return array<string, mixed>
      */
@@ -114,7 +116,7 @@ final class ConsultationReader
         $patient = DB::table('patient_records')
             ->where('clinic_id', $consultation->clinic_id)
             ->where('id', $consultation->patient_id)
-            ->first(['id', 'record_number', 'last_name', 'first_names', 'sex', 'birth_date']);
+            ->first(['id', 'record_number', 'last_name', 'first_names', 'sex', 'birth_date', 'profession']);
         if (! $patient instanceof stdClass) {
             // Clé étrangère composite : une consultation a toujours son patient.
             throw BusinessError::notFound();
@@ -127,6 +129,7 @@ final class ConsultationReader
             'first_names' => $patient->first_names === null ? null : (string) $patient->first_names,
             'sex' => (string) $patient->sex,
             'birth_date' => $patient->birth_date === null ? null : (string) $patient->birth_date,
+            'profession' => $patient->profession === null ? null : (string) $patient->profession,
         ];
     }
 

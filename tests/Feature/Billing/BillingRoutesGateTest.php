@@ -59,6 +59,9 @@ final class BillingRoutesGateTest extends TestCase
             'POST quotes' => ['POST', 'quotes', $invoices],
             'GET quotes/{id}' => ['GET', 'quotes/{id}', $invoices],
             'PATCH quotes/{id}' => ['PATCH', 'quotes/{id}', $invoices],
+            // Suppression d'un brouillon jamais émis (chantier « CRUD des écrans ») : même porte que la modification ; la règle
+            // « créateur ou gérante » est celle de la commande (DeleteQuoteDraftTest).
+            'POST quotes/{id}/delete' => ['POST', 'quotes/{id}/delete', $invoices],
             'POST quotes/{id}/issue' => ['POST', 'quotes/{id}/issue', $invoices],
             'POST quotes/{id}/revisions' => ['POST', 'quotes/{id}/revisions', $invoices],
             'POST quotes/{id}/decision' => ['POST', 'quotes/{id}/decision', $invoices],

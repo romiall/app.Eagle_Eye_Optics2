@@ -69,6 +69,12 @@ navigateur arrive avec le premier écran livré (P01, P02).
   le serveur est muet ou répond par une erreur (5xx, maintenance). Ce n'est jamais pris pour une
   déconnexion. L'accueil dit lequel des deux cas se produit (« Serveur injoignable » ou « Session
   non vérifiée »). La coquille relit la session au retour du réseau, puis toutes les 30 secondes.
+  `expired` : la session ouverte sur cet écran a reçu 401 ou 419 (saisies conservées, reconnexion sur place).
+  `local` (vault.md D27) : aucune session du serveur n'est vérifiée et le profil du coffre de ce poste,
+  déverrouillé par la personne sur l'écran public `/deverrouiller`, fait foi (droits de son grant signé,
+  dernier résumé du cabinet connu) ; seuls les écrans marqués `offlineCapable` s'ouvrent, l'accueil dit
+  pourquoi un autre reste fermé. Le serveur reprend la main dès qu'il répond avec une session ; son
+  silence ou l'absence de session chez lui ne retire jamais le profil local.
 - **Garde du routeur** : sans session, la connexion s'ouvre avec `suite` = le chemin demandé, sans
   ses paramètres de requête (aucun nom, téléphone ni filtre dans l'URL). Ce chemin peut contenir un
   identifiant opaque (ULID d'une facture), jamais une donnée personnelle ; après la connexion, seul
@@ -87,22 +93,26 @@ navigateur arrive avec le premier écran livré (P01, P02).
   signalés sans appel au serveur. Un refus du serveur (422 sur `login`) s'affiche sous le champ et
   dans le résumé focalisé, et le mot de passe est à ressaisir. « Trop de tentatives » (429) et «
   Serveur injoignable » sont dits tels quels. Après la connexion, seul un chemin interne est suivi,
-  jamais `//autre-origine`. Le déverrouillage hors-ligne d'un poste préparé appartient à O01 et O02.
+  jamais `//autre-origine`. Sur un navigateur qui a un coffre et sans identité connue, l'écran public
+  `/deverrouiller` passe AVANT la connexion (vault.md, D14 et D27).
 - **Accessibilité de la coquille** : lien « Aller au contenu » en premier arrêt du clavier. Après
   chaque navigation, sauf au premier affichage, le focus va au contenu principal pour que le lecteur
   d'écran annonce le nouvel écran. L'onglet prend le titre de l'écran (« Accueil – Eagle’s Eye
   Optics Medical »). Le défilement remonte en haut de l'écran. Le focus clavier est toujours visible
-  (contour de 3 px doublé de blanc) et aucun utilitaire ne peut le retirer.
+  (contour de 3 px doublé de blanc, règle commune `:focus-visible`) et aucun utilitaire ne peut le
+  retirer ; seuls les champs de saisie ont leur propre contour, tout aussi visible (voir « Contrôles
+  de saisie » ci-dessous).
 
 ## Composants pour les écrans patient et caisse
 
 | Composant | Usage et garanties |
 | --- | --- |
 | `AppButton` | Libellé qui dit la conséquence ; cible ≥ 44 px ; pendant la commande : désactivé, `aria-busy`, libellé « … en cours » (l'idempotence reste la vraie protection) ; désactivé lisible (teintes pleines, jamais d'opacité) |
-| `FieldShell` | Vrai `label`, aide et erreur reliées par `aria-describedby`, `aria-invalid`, « (obligatoire) » écrit, erreur avec symbole et texte ; identifiant imposable (cible du résumé d'erreurs) |
-| `TextField`, `SelectField` | Saisie conservée telle quelle ; liste native avec option vide explicite (null) |
+| `FieldShell` | Vrai `label` (`.field-label` : 14 px demi-gras, une ligne de 20 px), puis la saisie, puis l'erreur et l'aide **sous la saisie** : les saisies d'une rangée commencent à la même hauteur, avec ou sans aide (aide placée entre l'étiquette et la saisie avant le 2026-10-28, ce qui décalait le champ voisin), et l'erreur reste contre sa saisie même quand l'aide est longue. `CheckboxGroup`, `YesNoField` et `CheckboxField` suivent le même ordre. Reliées par `aria-describedby` (aide puis erreur : l'ordre de lecture ne change pas), `aria-invalid`, « (obligatoire) » écrit (13 px, rouge d'erreur), erreur avec symbole et texte ; l'étiquette passe à `gold-ink` quand le champ a le focus ; identifiant imposable (cible du résumé d'erreurs). Limite connue : une étiquette qui passe sur deux lignes décale la saisie de son voisin de rangée (aucun cas retenu par l'audit du 2026-10-29) |
+| Contrôles de saisie (`controlClasses`, classe `field-control`) | Cible ≥ 44 px, texte de 16 px, remplissage horizontal de 12 px (`px-3`, celui des cellules étroites du tableau optique), bordure `field` (≥ 3:1), survol : bordure à l'encre ; focus : contour de 2 px à l'encre et halo doré décoratif, règle hors couche plus spécifique que le focus commun (le contour reste dessiné en contraste forcé) ; invalide : bordure, anneau et fond `danger-soft` en plus du message, et un focus qui reprend le dessin du focus commun en rouge (contour de 3 px décalé de 2 px, liseré blanc), car un contour posé sur la bande rouge du repos ne se verrait pas ; désactivé : teintes pleines lisibles |
+| `TextField`, `SelectField` | Saisie conservée telle quelle ; `TextField` : `icon` facultatif (icône décorative au début du champ, par exemple le téléphone) ; `SelectField` : liste native avec option vide explicite (null), flèche remplacée par un chevron décoratif (`appearance-none`, `AppIcon`) |
 | `DecimalField` | Mesures et quantités exactes par les règles F08 (virgule ou point) ; trop de décimales refusé, jamais arrondi ; vide = null, jamais 0 ; lu à la sortie du champ **et à Entrée** (avant l'envoi du formulaire) ; `commit()` exposé ; pavé décimal pour une valeur positive, clavier texte pour une dioptrie (le pavé décimal de l'iPhone n'a pas de « - ») |
-| `MoneyField` | FCFA entiers (« 80 000 »), décimales et séparateurs ambigus refusés ; unité annoncée aux lecteurs d'écran ; affichage relu sans dérive |
+| `MoneyField` | FCFA entiers (« 80 000 »), décimales et séparateurs ambigus refusés ; unité annoncée aux lecteurs d'écran (« FCFA » à droite, DANS le champ : la zone de saisie garde la largeur qu'avait le texte posé à côté, une colonne de 143 px laisse ≈ 69 px aux chiffres) ; affichage relu sans dérive |
 | `DateField` | JJ/MM/AAAA, ISO ou 8 chiffres JJMMAAAA (pavé numérique de l'iPhone, sans « / ») ; date inexistante refusée ; jamais de date inventée |
 | Saisie refusée (`DecimalField`, `MoneyField`, `DateField`) | Message sous le champ, saisie conservée pour correction, et valeur du parent remise à null : l'ancienne valeur valide ne part jamais à la place de ce que l'écran affiche ; le formulaire bloque l'envoi sur l'événement `invalid` ou le retour de `commit()` |
 | `ComboboxField` | Choix avec recherche (catalogue, dossier) : motif combobox ARIA 1.2, recherche à partir de 2 caractères, ↓/↑ puis Entrée, Échap ferme ; rien n'est choisi à la place de l'utilisateur ; les résultats d'une saisie précédente disparaissent dès la nouvelle saisie et toute réponse obsolète est ignorée ; l'option active est ramenée dans la partie visible de la liste ; « Recherche indisponible » distinct de « Aucun résultat » ; résultats partiels avec avertissement (`{ options, notice }` : dossiers préparés sur ce poste quand la recherche serveur est indisponible). La source des résultats est fournie par l'écran (F10) |
@@ -194,10 +204,13 @@ complète ou les remplace) :
 | `card-grid` | Grille de cartes : 1 colonne, 2 dès 640 px, 3 dès 1024 px |
 | `stat-grid` | Grille de `StatTile` sur un `<dl>` : colonnes automatiques d'au moins 9,5 rem (deux par ligne dès 360 px) |
 | `stat-grid-wide` | Avec `stat-grid` : colonnes d'au moins 14 rem (montants en FCFA, une par ligne sur téléphone) |
-| `toolbar` | Barre de filtres ou de choix (jour, période) : empilée sur téléphone, en ligne alignée en bas dès 640 px |
+| `toolbar` | Barre de filtres ou de choix (jour, période) : empilée sur téléphone, en ligne dès 640 px ; champs alignés en haut, le bouton ou le lien enfant descend de `--field-label-offset` (hauteur de l'étiquette + écart) pour s'aligner sur la saisie, qu'un champ porte une aide ou non. Ce décalage suppose que le bouton partage sa ligne avec le champ : le conteneur d'un champ est souple (`sm:flex-1`, plafonné par `sm:max-w-*`, jamais une largeur fixe qui force le retour à la ligne) et un groupe de boutons sans champ à côté (« Aujourd'hui » : jour précédent, aujourd'hui, jour suivant) prend `w-full` pour rester seul sur sa ligne, sans décalage. Une rangée « champ + bouton » dont la colonne du champ devient étroite à côté du menu (de 640 à 1023 px : date de 224 px dans « Aujourd'hui », liste de 320 px des exports) reste empilée jusqu'à 1024 px (`flex-col lg:flex-row`, `lg:mt-(--field-label-offset)` sur le bouton) : une étiquette qui passe sur deux lignes décalerait la saisie du bouton aligné sur elle, ce que la CI Linux a montré (polices plus larges que celles de Windows) et que `tests/e2e/forms-layout.spec.ts` mesure à 768, 1024 et 1280 px |
+| `field-action` | Bouton, case à cocher ou `div` d'une barre posé à côté d'un champ, que `.toolbar > :is(button, a)` n'atteint pas (recherche : patients, catalogue, caisse du jour ; case « Ressource active » de l'agenda) : même décalage `--field-label-offset` dès 640 px, avec `items-start` sur la rangée (jamais `items-end` ni `self-end` : l'erreur et l'aide sont sous la saisie). Le décalage n'existe qu'à partir de 640 px : la rangée doit être empilée en dessous (`flex-col sm:flex-row`), sinon le bouton resterait au niveau de l'étiquette |
+| `field-label` | Étiquette d'un champ (`FieldShell`) : 0,875 rem demi-gras, hauteur et écart pris aux variables `--field-label-height` (1,25 rem) et `--field-label-gap` (0,375 rem) |
 | `section-title` | Titre de section hors carte (`h2`) : 1,125 rem demi-gras, court filet doré vertical devant (décoratif) |
 | `detail-list` | `<dl>` de paires `<div><dt/><dd/></div>` : libellé discret (`muted`, 0,875 rem), valeur en encre, 2 colonnes dès 640 px |
-| `form-grid` | Champs d'un formulaire : 1 colonne, 2 dès 640 px (`col-span-full` pour un champ long) |
+| `form-grid` | Champs d'un formulaire : 1 colonne, 2 dès 640 px (`col-span-full` pour un champ long), alignés en haut (`align-items: start`), écarts de 1,25 rem × 1,5 rem |
+| `form-legend` | `legend` d'un `fieldset` dans une carte (Identité, Contact… du formulaire patient) : pastille d'icône dorée et titre de 1,125 rem sur un filet `line` portant un court segment doré (décoratif, remplacé par `CanvasText` en contraste forcé pour ne pas trouer le filet) ; la légende flotte sur toute la largeur, l'élément suivant (`form-grid`) passe dessous |
 | `form-actions` | Boutons d'un formulaire sous un filet : pleine largeur et empilés sur téléphone, en ligne dès 640 px (ordre du DOM = ordre visuel) |
 | `text-link` | Lien dans un texte : action à l'encre, souligné, soulignement doré et épaissi au survol |
 | `data-table-wrap` | Cadre de carte d'un tableau, qui défile seul en largeur si besoin (jamais la page). Filet de sécurité : un tableau est conçu pour tenir à 360 px (colonnes courtes, blocs sur téléphone) |
@@ -241,6 +254,9 @@ de `tokens.css` ; une teinte ajoutée sans association vérifiée fait échouer 
 | `danger` sur `danger-soft` | titre du résumé d'erreurs | 5,99:1 |
 | `disabled-ink` sur `disabled` | bouton ou champ désactivé | 6,35:1 |
 | `field` sur `canvas` | bordure de champ (≥ 3:1) | 3,78:1 |
+| `danger` sur `danger-soft` | bordure et contour de focus d'un champ invalide, sur son fond d'erreur (≥ 3:1) | 5,99:1 |
+| `danger-strong` sur `danger-soft` | bordure d'un champ invalide survolé (≥ 3:1) | 7,90:1 |
+| `muted` sur `danger-soft` | espace réservé, icône, chevron et unité d'un champ invalide (texte ≥ 4,5:1) | 6,59:1 |
 | `primary` sur `canvas` | contour de focus (≥ 3:1) | 13,89:1 |
 
 Le texte désactivé est tenu à 4,5:1 bien que WCAG l'exempte. Le texte courant fait 16 px et suit le
@@ -269,7 +285,8 @@ isolée. Les comptes de démonstration sont fictifs. Le test vérifie :
 - AT29 (parcours patient → facture → reçu sans ressaisie) se vérifie quand les écrans existent (P01,
   P02, B02 à B04, D01). F09 fournit les composants et la coquille de ce parcours.
 - Recherche rapide de l'en-tête (P02) ; état de synchronisation des pièces (F10, O04, O05) ;
-  déverrouillage hors-ligne d'un profil préparé (O01, O02) ; règles des cellules axe et acuité (C02).
+  règles des cellules axe et acuité (C02). Le déverrouillage hors-ligne d'un profil préparé est livré
+  (`/deverrouiller`, vault.md D14 et D27).
 
 ## Revue contradictoire (2026-10-15) et traitement
 

@@ -9,8 +9,9 @@ import {
 } from '@/app/services/consultations'
 import type { MutationOutcome } from '@/app/services/mutations'
 import { useMutation } from '@/app/services/useMutation'
-import { canOnScreen, revalidateSession } from '@/app/session'
+import { canOnScreen, knownAccountId, revalidateSession } from '@/app/session'
 import type { FieldErrorItem } from '@/components/feedback/ErrorSummary.vue'
+import { canDeletePrescriptionDraft } from '@/domain/clinical/draftDeletion'
 import type { StepError } from '@/domain/clinical/fields'
 import type { MeasurementData, RefractionStage } from '@/domain/clinical/refraction'
 import {
@@ -411,6 +412,29 @@ export function usePrescriptionEditor(source: PrescriptionSource) {
     await afterOutcome(await mutation.retry(), pendingKind.value ?? 'save')
   }
 
+  /** Le brouillon enregistré peut être supprimé : écriture clinique, brouillon ouvert en édition (jamais une validée). */
+  const canDeleteDraft = computed(
+    () =>
+      mode.value === 'edit' &&
+      saved.value !== null &&
+      canDeletePrescriptionDraft(saved.value, { accountId: knownAccountId(), can: canOnScreen }),
+  )
+
+  /**
+   * Après la suppression du brouillon (ou son refus par le serveur) : l'édition est fermée et la liste relue, rien n'est
+   * supposé. La saisie non enregistrée de ce brouillon est abandonnée avec lui.
+   */
+  async function forgetDraft(): Promise<void> {
+    mutation.reset()
+    mode.value = 'idle'
+    saved.value = null
+    draft.value = null
+    errors.value = []
+    conflict.value = null
+    notice.value = null
+    await listRead.reload()
+  }
+
   return {
     consultationRead,
     listRead,
@@ -440,5 +464,7 @@ export function usePrescriptionEditor(source: PrescriptionSource) {
     saveDraft,
     validate,
     retry,
+    canDeleteDraft,
+    forgetDraft,
   }
 }

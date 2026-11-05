@@ -44,7 +44,8 @@ const showReason = computed(() => mismatch.value || cleanText(model.value.reason
   <div class="space-y-6">
     <ClinicalHint>
       Écart pupillaire objectif, en millimètres. Une case vide est « non mesuré ». Le total et les
-      écarts monoculaires sont saisis séparément : aucun n’est calculé à votre place.
+      écarts monoculaires sont saisis séparément : aucun n’est calculé à votre place. L’écart total
+      du ticket de l’autoréfracteur, saisi à l’étape « Réfraction », apparaît déjà ici.
     </ClinicalHint>
 
     <SectionCard flat>

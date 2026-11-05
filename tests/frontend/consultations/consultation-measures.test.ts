@@ -5,15 +5,18 @@ import {
   apiError,
   buttonByName,
   callsTo,
+  choice,
   choose,
   click,
   consultation,
   field,
+  group,
   openConsultation,
   patchCalls,
   PATHS,
   resetEverything,
   SCALE_TENTHS,
+  scales,
   stubConsultationApi,
   textOf,
   type,
@@ -60,7 +63,7 @@ describe('étape 3 : acuité visuelle', () => {
 
     expect(callsTo(api, 'GET', PATHS.scales)).toHaveLength(1)
     expect(textOf(root)).toContain('Échelles de démonstration : non validées cliniquement')
-    await choose(root, 'Acuité de loin : échelle utilisée', SCALE_TENTHS)
+    await choice(root, 'Acuité de loin : échelle utilisée', 'Dixièmes (X/10)')
     await type(root, 'Acuité de loin, sans correction, OD', ' 8/10 ')
     await type(root, 'Acuité de loin, sans correction, OG', '0')
     await click(buttonByName(root, 'Enregistrer'))
@@ -109,9 +112,9 @@ describe('étape 3 : acuité visuelle', () => {
     await goToStep(root, 3)
 
     expect(textOf(root)).toContain('Aucune échelle d’acuité n’est configurée pour ce cabinet')
-    expect((field(root, 'Acuité de loin : échelle utilisée') as HTMLSelectElement).disabled).toBe(
-      true,
-    )
+    // Aucune échelle à choisir : ni liste, ni bouton radio, ni valeur usuelle proposée.
+    expect(() => group(root, 'Acuité de loin : échelle utilisée')).toThrow()
+    expect(root.querySelectorAll('input[type="radio"]')).toHaveLength(0)
     unmount()
   })
 
@@ -303,6 +306,161 @@ describe('étape 6 : médicaments', () => {
     expect(field(root, 'Nom du médicament').value).toBe('Pommade fictive')
     expect(field(root, 'Posologie').value).toBe('1 application')
     expect(field(root, 'Durée structurée : nombre').value).toBe('5')
+    unmount()
+  })
+})
+
+describe('étape 1 : symptômes courants', () => {
+  it('un clic complète le texte libre, sans l’écraser ni répéter un symptôme déjà écrit', async () => {
+    const api = stubConsultationApi()
+    const { root, unmount } = await openConsultation()
+
+    await type(root, 'Plaintes et symptômes', 'Gêne au réveil')
+    await click(buttonByName(root, 'Maux de tête'))
+    await click(buttonByName(root, 'Vision floue'))
+    await click(buttonByName(root, 'Maux de tête'))
+
+    expect(field(root, 'Plaintes et symptômes').value).toBe(
+      'Gêne au réveil, Maux de tête, Vision floue',
+    )
+    await click(buttonByName(root, 'Enregistrer'))
+    expect(sentData(api)['symptoms']).toBe('Gêne au réveil, Maux de tête, Vision floue')
+    unmount()
+  })
+})
+
+describe('étape 3 : valeurs usuelles de l’acuité', () => {
+  it('les boutons remplissent sans correction OD puis OG, puis avec correction, avec l’échelle du groupe', async () => {
+    const api = stubConsultationApi()
+    const { root, unmount } = await openConsultation()
+    await goToStep(root, 3)
+
+    // Tant qu'aucune échelle n'est choisie, aucune valeur n'est proposée (rien n'est deviné).
+    expect(buttonByName(root, '10/10')).toBeNull()
+    await choice(root, 'Acuité de loin : échelle utilisée', 'Dixièmes (X/10)')
+    expect(textOf(root)).toContain('touchez une valeur pour remplir sans correction, OD')
+
+    await click(buttonByName(root, '10/10'))
+    await click(buttonByName(root, '9/10'))
+    expect(field(root, 'Acuité de loin, sans correction, OD').value).toBe('10/10')
+    expect(field(root, 'Acuité de loin, sans correction, OG').value).toBe('9/10')
+    expect(textOf(root)).toContain('touchez une valeur pour remplir avec correction, OD')
+
+    // Une case touchée devient la cible : le bouton y écrit, puis passe à la case vide suivante.
+    field(root, 'Acuité de loin, avec correction, OG').dispatchEvent(
+      new FocusEvent('focusin', { bubbles: true }),
+    )
+    await flushPromises()
+    await click(buttonByName(root, 'CLD'))
+    expect(field(root, 'Acuité de loin, avec correction, OG').value).toBe('CLD')
+
+    await click(buttonByName(root, 'Enregistrer'))
+    const acuities = sentData(api)['acuities'] as Record<string, unknown>[]
+    expect(
+      acuities.map((row) => [row['correction'], row['eye'], row['raw_value'], row['scale_id']]),
+    ).toEqual([
+      ['WITHOUT', 'OD', '10/10', SCALE_TENTHS],
+      ['WITHOUT', 'OG', '9/10', SCALE_TENTHS],
+      ['WITH', 'OG', 'CLD', SCALE_TENTHS],
+    ])
+    unmount()
+  })
+
+  it('une seule échelle active au cabinet : elle s’applique d’office et son choix n’est pas proposé', async () => {
+    const [tenths] = scales()
+    const api = stubConsultationApi({ scales: tenths === undefined ? [] : [tenths] })
+    const { root, unmount } = await openConsultation()
+    await goToStep(root, 3)
+
+    expect(textOf(root)).not.toContain('Acuité de loin : échelle utilisée')
+    expect(root.querySelectorAll('input[type="radio"]')).toHaveLength(0)
+    expect(textOf(root)).toContain('Échelle utilisée : Dixièmes (X/10) — DÉMONSTRATION')
+    await type(root, 'Acuité de loin, sans correction, OD', '8/10')
+    await click(buttonByName(root, 'Enregistrer'))
+
+    const acuities = sentData(api)['acuities'] as Record<string, unknown>[]
+    expect(acuities.map((row) => [row['raw_value'], row['scale_id']])).toEqual([
+      ['8/10', SCALE_TENTHS],
+    ])
+    unmount()
+  })
+})
+
+describe('étape 4 : écart pupillaire du ticket de l’autoréfracteur', () => {
+  const stepOf = (call: { path: string } | undefined): string | undefined =>
+    call?.path.split('/steps/')[1]
+
+  it('saisi sous le ticket, il est enregistré avec la réfraction : le centrage suit, sans repasser par l’étape 5', async () => {
+    const api = stubConsultationApi()
+    const { root, unmount } = await openConsultation()
+    await goToStep(root, 4)
+
+    expect(textOf(root)).toContain('reportez les valeurs moyennes (AVG)')
+    await typeInto(root, 'mesure-AUTOREFRACTOR-OD-sphere', '-1,25')
+    await type(root, 'Écart pupillaire total (mm)', '72')
+    await click(buttonByName(root, 'Enregistrer'))
+
+    const calls = patchCalls(api)
+    expect(calls.map((call) => stepOf(call))).toEqual(['REFRACTION', 'CENTERING'])
+    const centering = (calls[1]?.body?.['step'] as { data: Record<string, unknown> }).data
+    expect(centering).toMatchObject({ pd_total: '72.00', pd_od: null, pd_og: null })
+    expect(textOf(root)).toContain('Enregistré sur le serveur')
+    unmount()
+  })
+
+  it('l’écart seul (réfraction inchangée) : seul le centrage est envoyé', async () => {
+    const api = stubConsultationApi()
+    const { root, unmount } = await openConsultation()
+    await goToStep(root, 4)
+
+    await type(root, 'Écart pupillaire total (mm)', '65')
+    await click(buttonByName(root, 'Enregistrer'))
+
+    expect(patchCalls(api).map((call) => stepOf(call))).toEqual(['CENTERING'])
+    unmount()
+  })
+
+  it('« Suivant » enregistre la réfraction puis le centrage, et l’étape 5 montre l’écart déjà saisi', async () => {
+    const api = stubConsultationApi()
+    const { root, unmount } = await openConsultation()
+    await goToStep(root, 4)
+
+    await typeInto(root, 'mesure-AUTOREFRACTOR-OG-sphere', '+0,50')
+    await type(root, 'Écart pupillaire total (mm)', '64')
+    await click(buttonByName(root, 'Suivant'))
+
+    expect(patchCalls(api).map((call) => stepOf(call))).toEqual(['REFRACTION', 'CENTERING'])
+    expect(root.querySelector('h2#consultation-etape')?.textContent).toContain('Étape 5 sur 7')
+    // L'étape reprend ce que le serveur a enregistré : forme canonique, virgule française.
+    expect(field(root, 'Écart pupillaire total (mm)').value).toBe('64,00')
+    unmount()
+  })
+
+  it('un écart illisible est refusé avant tout envoi, sous son champ, sans quitter l’étape', async () => {
+    const api = stubConsultationApi()
+    const { root, unmount } = await openConsultation()
+    await goToStep(root, 4)
+
+    await typeInto(root, 'mesure-AUTOREFRACTOR-OD-sphere', '-1,00')
+    await type(root, 'Écart pupillaire total (mm)', 'abc')
+    await click(buttonByName(root, 'Enregistrer'))
+
+    expect(patchCalls(api)).toHaveLength(0)
+    expect(root.querySelector('h2#consultation-etape')?.textContent).toContain('Étape 4 sur 7')
+    expect(root.querySelector('[id="dp-totale"]')?.getAttribute('aria-invalid')).toBe('true')
+    unmount()
+  })
+
+  it('une autre saisie du centrage (écart OD) n’est jamais enregistrée à l’insu de la personne depuis la réfraction', async () => {
+    const api = stubConsultationApi()
+    const { root, unmount } = await openConsultation()
+    await goToStep(root, 5)
+    await type(root, 'Écart pupillaire OD (mm)', '31')
+    await goToStep(root, 4)
+    await typeInto(root, 'mesure-AUTOREFRACTOR-OD-sphere', '-0,75')
+    await click(buttonByName(root, 'Enregistrer'))
+
+    expect(patchCalls(api).map((call) => stepOf(call))).toEqual(['REFRACTION'])
     unmount()
   })
 })

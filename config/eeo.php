@@ -40,6 +40,10 @@ return [
         // identifiants sont des ULID non devinables, mais la file du jour les rend à qui détient clinical.read : la
         // limite empêche de parcourir tous les dossiers à la chaîne (chaque lecture est de plus tracée).
         'consultation_read' => (int) env('EEO_RATE_CONSULTATION_READ', 60),
+        // Confirmations du mot de passe (réauthentification) : 5 par minute et par compte. Relevée seulement pour les
+        // parcours e2e (EEO_RATE_REAUTHENTICATE) : préparer un poste en demande quatre ou cinq à la suite, et deux parcours
+        // enchaînés partagent la même minute.
+        'reauthenticate' => (int) env('EEO_RATE_REAUTHENTICATE', 5),
     ],
 
     /*

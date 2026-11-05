@@ -315,15 +315,20 @@ describe('étape 1 : motif et lunettes', () => {
     ;(buttonByName(root, 'Enregistrer') as HTMLButtonElement).click()
     await flushPromises()
 
-    const pending = [...root.querySelectorAll('main form button')].map((button) => [
-      button.textContent?.trim(),
-      (button as HTMLButtonElement).disabled,
-    ])
-    expect(pending).toEqual([
+    const bar = [...root.querySelectorAll('main form button')].filter(
+      (button) => button.closest('[role="group"]') === null,
+    )
+    expect(
+      bar.map((button) => [button.textContent?.trim(), (button as HTMLButtonElement).disabled]),
+    ).toEqual([
       ['Précédent', true],
       ['Enregistrement en cours…', true],
       ['Suivant', true],
     ])
+    // Les boutons de symptômes courants sont désactivés comme le reste de la saisie.
+    const chips = [...root.querySelectorAll('main form [role="group"] button')]
+    expect(chips.length).toBeGreaterThan(0)
+    expect(chips.every((button) => (button as HTMLButtonElement).disabled)).toBe(true)
     expect((box(root, 'Douleur') as HTMLInputElement).disabled).toBe(true)
     expect(textOf(root)).toContain('Enregistrement en cours…')
     expect(textOf(root)).not.toContain('Enregistré sur le serveur')

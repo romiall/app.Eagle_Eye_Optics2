@@ -9,8 +9,13 @@ import { ApiError, apiRequest, NetworkUnavailable, prepareSession } from './api'
  * viennent de `/auth/me` : ils guident l'interface, le serveur les revérifie à chaque action.
  *
  * `unverified` : la session n'a pas pu être vérifiée (serveur muet ou en erreur) ; l'interface le
- * dit sans conclure à une déconnexion ni ouvrir d'écran protégé. Le déverrouillage hors-ligne d'un
- * profil préparé arrive avec le coffre local (O01, O02).
+ * dit sans conclure à une déconnexion ni ouvrir d'écran protégé.
+ *
+ * `local` (D27) : aucune session du serveur n'est vérifiée, et le profil du coffre de ce poste, déverrouillé
+ * par la personne elle-même, fait foi. `account` est alors construit depuis le coffre (droits du grant signé,
+ * dernier résumé du cabinet connu) ; seuls les écrans marqués `offlineCapable` s'ouvrent. Le serveur reste
+ * l'autorité : dès qu'il répond avec une session, c'est elle qui prend la place (`authenticated`) ; son absence
+ * ou son silence ne retire jamais le profil local.
  *
  * `expired` : le serveur a répondu 401 ou 419 à une session que cet écran avait ouverte. Le dernier
  * compte reste connu (`lastAccount`), l'écran en cours et ses saisies restent affichés et la
@@ -19,7 +24,8 @@ import { ApiError, apiRequest, NetworkUnavailable, prepareSession } from './api'
  * du serveur pendant une relecture (`revalidateSession`) ne la dégrade jamais : le poste hors ligne
  * continue de travailler et le serveur revérifie les droits à chaque action.
  */
-export type SessionStatus = 'unknown' | 'anonymous' | 'authenticated' | 'unverified' | 'expired'
+export type SessionStatus =
+  'unknown' | 'anonymous' | 'authenticated' | 'unverified' | 'expired' | 'local'
 
 interface SessionState {
   status: SessionStatus
@@ -114,6 +120,13 @@ async function readSession(downgrade: boolean): Promise<SessionStatus> {
     if (started !== epoch && (error instanceof ApiError || error instanceof NetworkUnavailable)) {
       return state.status
     }
+    if (
+      state.status === 'local' &&
+      (error instanceof ApiError || error instanceof NetworkUnavailable)
+    ) {
+      // Profil du coffre en service (D27) : ni l'absence de réponse du serveur, ni l'absence de session chez lui, ne le retirent.
+      return state.status
+    }
     if (error instanceof ApiError && (error.status === 401 || error.status === 419)) {
       state.account = null
       state.status = state.lastAccount === null ? 'anonymous' : 'expired'
@@ -129,6 +142,29 @@ async function readSession(downgrade: boolean): Promise<SessionStatus> {
 
 export function refreshSession(): Promise<SessionStatus> {
   return readSession(true)
+}
+
+/**
+ * Ouvre la session LOCALE (D27) avec le compte construit depuis le coffre déverrouillé. Rendu faux, sans rien changer,
+ * quand le serveur a déjà une session ouverte (il est l'autorité) ou qu'une session expirée garde des saisies à
+ * reprendre sur place : le profil local ne s'y substitue jamais. Le dernier compte du SERVEUR (`lastAccount`) reste
+ * intact.
+ */
+export function adoptLocalAccount(account: Me): boolean {
+  if (state.status === 'authenticated' || state.status === 'expired') return false
+  state.account = account
+  state.status = 'local'
+  return true
+}
+
+/**
+ * Referme la session locale (coffre verrouillé : inactivité, bouton, autre onglet). La session du serveur n'est pas
+ * connue : elle sera relue (`unverified`). Sans effet hors session locale.
+ */
+export function dropLocalAccount(): void {
+  if (state.status !== 'local') return
+  state.account = null
+  state.status = 'unverified'
 }
 
 /**

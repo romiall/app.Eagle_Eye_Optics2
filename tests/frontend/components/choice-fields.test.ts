@@ -18,6 +18,11 @@ afterEach(() => {
   while (wrappers.length > 0) wrappers.pop()?.unmount()
 })
 
+/** `second` suit `first` dans l'ordre du document (ordre d'affichage des éléments d'un groupe). */
+function follows(first: Element, second: Element): boolean {
+  return Boolean(first.compareDocumentPosition(second) & Node.DOCUMENT_POSITION_FOLLOWING)
+}
+
 const OPTIONS = [
   { value: 'PAIN', label: 'Douleur' },
   { value: 'REDNESS', label: 'Rougeur' },
@@ -105,6 +110,34 @@ describe('CheckboxGroup', () => {
     expect(wrapper.get('#antecedents-aide').text()).toBe('Plusieurs valeurs possibles.')
     expect(wrapper.get('#antecedents-erreur').text()).toBe('⚠ Pas plus de 50 valeurs.')
     expect(wrapper.get('#antecedents-erreur [aria-hidden="true"]').text()).toBe('⚠')
+  })
+
+  it('affiche la légende, les choix, puis l’erreur et l’aide SOUS les choix (comme FieldShell)', () => {
+    const wrapper = track(
+      mount(CheckboxGroup, {
+        props: {
+          legend: 'Antécédents',
+          options: OPTIONS,
+          modelValue: [],
+          hint: 'Plusieurs valeurs possibles.',
+          error: 'Pas plus de 50 valeurs.',
+          controlId: 'antecedents',
+        },
+        attachTo: document.body,
+      }),
+    )
+    const legend = wrapper.get('legend').element
+    const firstBox = wrapper.get('input[id$="-PAIN"]').element
+    const lastBox = wrapper.get('input[id$="-OTHER"]').element
+    const error = wrapper.get('#antecedents-erreur').element
+    const hint = wrapper.get('#antecedents-aide').element
+
+    expect(follows(legend, firstBox)).toBe(true)
+    expect(follows(lastBox, error)).toBe(true)
+    expect(follows(error, hint)).toBe(true)
+    // Plus de `m-0` ni de `space-y-*` sur le fieldset : l'espacement du parent s'y applique.
+    expect(wrapper.get('fieldset').classes()).not.toContain('m-0')
+    expect(wrapper.get('fieldset').classes().join(' ')).not.toMatch(/space-y/)
   })
 
   it('le groupe est focalisable par programme (cible d’un résumé d’erreurs)', () => {
@@ -203,6 +236,32 @@ describe('YesNoField', () => {
     expect(wrapper.get('fieldset').attributes('aria-describedby')).toBe('o-aide o-erreur')
     expect(wrapper.get('fieldset').attributes('tabindex')).toBe('-1')
     expect(wrapper.get('#o-erreur').text()).toBe('⚠ À préciser.')
+  })
+
+  it('affiche la légende, les trois choix, puis l’erreur et l’aide SOUS les choix', () => {
+    const wrapper = track(
+      mount(YesNoField, {
+        props: {
+          legend: 'Orientation',
+          modelValue: null,
+          hint: 'Facultatif.',
+          error: 'À préciser.',
+          controlId: 'o',
+        },
+        attachTo: document.body,
+      }),
+    )
+    const legend = wrapper.get('legend').element
+    const firstRadio = wrapper.get('#o-oui').element
+    const lastRadio = wrapper.get('#o-non-renseigne').element
+    const error = wrapper.get('#o-erreur').element
+    const hint = wrapper.get('#o-aide').element
+
+    expect(follows(legend, firstRadio)).toBe(true)
+    expect(follows(lastRadio, error)).toBe(true)
+    expect(follows(error, hint)).toBe(true)
+    expect(wrapper.get('fieldset').classes()).not.toContain('m-0')
+    expect(wrapper.get('fieldset').classes().join(' ')).not.toMatch(/space-y/)
   })
 
   it('libellés personnalisables (autre formulation de la même réponse)', () => {

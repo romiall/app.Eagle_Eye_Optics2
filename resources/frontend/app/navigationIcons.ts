@@ -17,6 +17,8 @@ const ICONS: Readonly<Record<string, string>> = {
   settings: 'settings',
   offline: 'offline',
   'new-patient': 'user-plus',
+  'new-consultation': 'stethoscope',
+  'start-exam': 'stethoscope',
   search: 'search',
   appointment: 'calendar-plus',
   'consultations-today': 'consultations',

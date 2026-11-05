@@ -69,6 +69,7 @@ describe('raccourcis de travail de l’accueil', () => {
 
   it('le professionnel voit ses examens, la caisse voit la caisse et les factures', () => {
     const clinician = visibleWorkShortcuts(rolePermissions('CLINICIAN'), ALL).map((s) => s.id)
+    expect(clinician).toContain('start-exam')
     expect(clinician).toContain('exams-in-progress')
     expect(clinician).toContain('exams-today')
     expect(clinician).not.toContain('cash-session')
@@ -78,6 +79,7 @@ describe('raccourcis de travail de l’accueil', () => {
     expect(cashier).toContain('cash-session')
     expect(cashier).toContain('invoices')
     expect(cashier).not.toContain('exams-today')
+    expect(cashier).not.toContain('start-exam')
     expect(cashier).not.toContain('staff')
   })
 
@@ -99,7 +101,8 @@ describe('raccourcis de travail de l’accueil', () => {
     for (const shortcut of WORK_SHORTCUTS) {
       const query = shortcut.path.split('?')[1] ?? ''
       for (const [key] of new URLSearchParams(query)) {
-        expect(['jour', 'etat', 'mes'], shortcut.id).toContain(key)
+        // « nouvelle » n'est pas une donnée : il ouvre la boîte « Nouvelle consultation » de l'écran des examens.
+        expect(['jour', 'etat', 'mes', 'nouvelle'], shortcut.id).toContain(key)
       }
     }
   })

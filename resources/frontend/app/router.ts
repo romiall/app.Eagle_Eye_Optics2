@@ -21,6 +21,7 @@ import PatientPrescriptionsPage from '@/pages/patients/PatientPrescriptionsPage.
 import PatientListPage from '@/pages/patients/PatientListPage.vue'
 import PatientViewPage from '@/pages/patients/PatientViewPage.vue'
 import StatisticsPage from '@/pages/reports/StatisticsPage.vue'
+import UnlockPage from '@/pages/UnlockPage.vue'
 import AgendaPage from '@/pages/agenda/AgendaPage.vue'
 import AgendaSettingsPage from '@/pages/agenda/AgendaSettingsPage.vue'
 import NewAppointmentPage from '@/pages/agenda/NewAppointmentPage.vue'
@@ -53,12 +54,25 @@ import StockPage from '@/pages/stock/StockPage.vue'
 import ArrivalPage from '@/pages/today/ArrivalPage.vue'
 import TodayPage from '@/pages/today/TodayPage.vue'
 
+import {
+  afterUnlockPath,
+  ensureVaultReady,
+  offlineRefusal,
+  vaultAwaitsUnlock,
+  vaultNeedsUnlock,
+} from './services/localIdentity'
 import { canAny, enabledModules, refreshSession, session } from './session'
 
 declare module 'vue-router' {
   interface RouteMeta {
-    /** Page accessible sans session (connexion). */
+    /** Page accessible sans session (connexion, déverrouillage du poste). */
     public?: boolean
+    /**
+     * Écran qui sait travailler SANS le serveur : il ne lit et n'écrit que ce que le poste a (coffre, journal local).
+     * Seuls ces écrans s'ouvrent en session locale (profil du coffre, serveur non vérifié, D27) ; les autres
+     * demandent le serveur et restent fermés tant qu'il ne répond pas.
+     */
+    offlineCapable?: boolean
     /** Permissions dont l'une suffit pour ouvrir la page (le serveur revérifie chaque action). */
     permissions?: readonly string[]
     /** Titre de l'onglet (WCAG 2.4.2), suivi du nom de l'application. */
@@ -89,12 +103,25 @@ export function createEeoRouter(history: RouterHistory = createWebHistory()): Ro
         component: LoginPage,
         meta: { public: true, title: 'Connexion' },
       },
-      { path: '/', name: 'accueil', component: HomePage, meta: { title: 'Accueil' } },
+      {
+        // Déverrouillage du poste (D14, D27) : AVANT la connexion quand ce navigateur a un coffre et qu'aucune
+        // session n'est ouverte ; fonctionne sans réseau (la coquille vient du service worker).
+        path: '/deverrouiller',
+        name: 'deverrouiller',
+        component: UnlockPage,
+        meta: { public: true, title: 'Déverrouiller ce poste' },
+      },
+      {
+        path: '/',
+        name: 'accueil',
+        component: HomePage,
+        meta: { title: 'Accueil', offlineCapable: true },
+      },
       {
         path: '/acces-refuse',
         name: 'acces-refuse',
         component: ForbiddenPage,
-        meta: { title: 'Accès refusé' },
+        meta: { title: 'Accès refusé', offlineCapable: true },
       },
       {
         // La file se lit avec l'une OU l'autre de ces permissions, comme la route du serveur.
@@ -121,25 +148,49 @@ export function createEeoRouter(history: RouterHistory = createWebHistory()): Ro
         path: '/patients',
         name: 'patients',
         component: PatientListPage,
-        meta: { title: 'Patients', permissions: ['patient.read'], module: 'patients' },
+        // Recherche : le serveur, et à défaut les fiches de CE poste (`searchPatients` avec `includeLocal`).
+        meta: {
+          title: 'Patients',
+          permissions: ['patient.read'],
+          module: 'patients',
+          offlineCapable: true,
+        },
       },
       {
         path: '/patients/nouveau',
         name: 'patient-nouveau',
         component: PatientCreatePage,
-        meta: { title: 'Nouveau patient', permissions: ['patient.create'], module: 'patients' },
+        // Création d'une fiche : écrite sur le poste (numéro de sa plage) quand il est préparé, sans le serveur.
+        meta: {
+          title: 'Nouveau patient',
+          permissions: ['patient.create'],
+          module: 'patients',
+          offlineCapable: true,
+        },
       },
       {
         path: `/patients/${ULID_ID}`,
         name: 'patient',
         component: PatientViewPage,
-        meta: { title: 'Dossier patient', permissions: ['patient.read'], module: 'patients' },
+        // Fiche : le serveur, et à défaut la copie de CE poste (`getPatient`) ; les onglets du serveur sont masqués.
+        meta: {
+          title: 'Dossier patient',
+          permissions: ['patient.read'],
+          module: 'patients',
+          offlineCapable: true,
+        },
       },
       {
         path: `/patients/${ULID_ID}/modifier`,
         name: 'patient-modifier',
         component: PatientEditPage,
-        meta: { title: 'Modifier le patient', permissions: ['patient.update'], module: 'patients' },
+        // Modification d'une fiche de ce poste : `UpdatePatient` s'enregistre sur le poste.
+        meta: {
+          title: 'Modifier le patient',
+          permissions: ['patient.update'],
+          module: 'patients',
+          offlineCapable: true,
+        },
       },
       {
         // Onglet « Activité » du dossier : visites, et selon les droits du compte, examens, ordonnances
@@ -279,17 +330,25 @@ export function createEeoRouter(history: RouterHistory = createWebHistory()): Ro
         path: '/ventes/factures/nouvelle',
         name: 'facture-nouvelle',
         component: InvoiceCreatePage,
+        // Brouillon et émission sur le poste : `CreateInvoiceDraft`, `UpdateDraft` et `IssueInvoice` s'enregistrent sur le poste.
         meta: {
           title: 'Nouvelle facture',
           permissions: ['invoice.create', 'exam_fee.collect'],
           module: 'sales',
+          offlineCapable: true,
         },
       },
       {
         path: `/ventes/factures/${ULID_ID}`,
         name: 'facture',
         component: InvoicePage,
-        meta: { title: 'Facture', permissions: ['invoice.read'], module: 'sales' },
+        // Facture : le serveur, et à défaut la copie de CE poste pour une facture créée ici (`getInvoice`).
+        meta: {
+          title: 'Facture',
+          permissions: ['invoice.read'],
+          module: 'sales',
+          offlineCapable: true,
+        },
       },
       {
         // Devis versionnés (L1D07) : ni créance ni encaissement ; conversion explicite en brouillon de facture.
@@ -403,7 +462,12 @@ export function createEeoRouter(history: RouterHistory = createWebHistory()): Ro
         path: '/parametres/poste',
         name: 'parametres-poste',
         component: DevicePreparationPage,
-        meta: { title: 'Préparer ce poste', permissions: ['offline.enroll'], module: 'offline' },
+        meta: {
+          title: 'Préparer ce poste',
+          permissions: ['offline.enroll'],
+          module: 'offline',
+          offlineCapable: true,
+        },
       },
       {
         // Conflits de synchronisation des postes (O05) : décision motivée de la gérante. Module « offline ».
@@ -477,32 +541,54 @@ export function createEeoRouter(history: RouterHistory = createWebHistory()): Ro
         path: '/aide',
         name: 'aide',
         component: HelpPage,
-        meta: { title: 'Aide' },
+        meta: { title: 'Aide', offlineCapable: true },
       },
       {
         path: '/:pathMatch(.*)*',
         name: 'introuvable',
         component: NotFoundPage,
-        meta: { title: 'Page introuvable' },
+        meta: { title: 'Page introuvable', offlineCapable: true },
       },
     ],
     scrollBehavior: (_to, _from, savedPosition) => savedPosition ?? { top: 0 },
   })
 
-  // Garde de navigation : la session est lue une fois, puis chaque page vérifie ses permissions. Une
-  // session non vérifiable n'est pas une déconnexion : la coquille l'affiche sans rien conclure.
+  // Garde de navigation : le coffre de ce navigateur (s'il existe) est détecté, la session est lue une fois, puis
+  // chaque page vérifie ses permissions. Une session non vérifiable n'est pas une déconnexion : la coquille
+  // l'affiche sans rien conclure. Sans identité d'action et avec un coffre, le déverrouillage du poste passe AVANT la
+  // connexion au serveur (D27) ; en session locale (profil du coffre), seuls les écrans `offlineCapable` s'ouvrent.
   router.beforeEach(async (to) => {
+    // Détection du coffre et lecture de la session démarrent ensemble : la lecture de la session ne perd aucun tour.
+    const vaultReady = ensureVaultReady()
     if (session.status === 'unknown') {
       await refreshSession().catch(() => undefined)
+    }
+    await vaultReady
+    if (to.name === 'deverrouiller') {
+      // Rien à déverrouiller ici (pas de coffre, ou déjà ouvert) : retour à l'application.
+      return vaultAwaitsUnlock() ? true : { path: afterUnlockPath(to.query['suite']) }
     }
     if (to.meta.public === true) {
       return to.name === 'connexion' && session.status === 'authenticated'
         ? { name: 'accueil' }
         : true
     }
+    if (vaultNeedsUnlock()) {
+      // Seul le chemin interne est conservé, jamais de paramètre de requête (aucun dossier dans l'URL).
+      return { name: 'deverrouiller', query: to.path === '/' ? {} : { suite: to.path } }
+    }
     if (session.status === 'anonymous' || session.status === 'expired') {
       // Seul le chemin interne est conservé, jamais de paramètre de requête (aucun dossier dans l'URL).
       return { name: 'connexion', query: to.path === '/' ? {} : { suite: to.path } }
+    }
+    if (session.status === 'local') {
+      if (to.meta.offlineCapable !== true) {
+        // Cet écran lit le serveur : fermé tant qu'il ne répond pas. L'accueil explique pourquoi.
+        offlineRefusal.value = typeof to.meta.title === 'string' ? to.meta.title : to.path
+        return { name: 'accueil' }
+      }
+      const needed = to.meta.permissions
+      return needed === undefined || canAny(needed) ? true : { name: 'acces-refuse' }
     }
     if (to.meta.module !== undefined && session.status === 'authenticated') {
       if (!enabledModules.value.includes(to.meta.module)) {
@@ -522,6 +608,7 @@ export function createEeoRouter(history: RouterHistory = createWebHistory()): Ro
   // Après chaque navigation : titre de l'onglet, puis focus sur le contenu (sauf au premier
   // affichage) pour qu'un lecteur d'écran annonce le nouvel écran au lieu de rester sur le lien.
   router.afterEach((to, from, failure) => {
+    if (failure === undefined && to.name !== 'accueil') offlineRefusal.value = null
     if (failure !== undefined || typeof document === 'undefined') return
     document.title =
       to.meta.title === undefined ? APPLICATION_TITLE : `${to.meta.title} – ${APPLICATION_TITLE}`

@@ -143,6 +143,11 @@ export interface LocalFact {
   payload: Record<string, unknown>
   number: string | null
   recordedAt: string
+  /**
+   * Version de l'entité que l'écran affichait quand la commande a été prise (null : création ou commande sans version).
+   * Absente des faits scellés avant A2. Elle dit si une modification d'une fiche du serveur est déjà reprise par le pull.
+   */
+  expectedVersion?: number | null
 }
 
 class StaleCandidate extends Error {
@@ -473,6 +478,7 @@ export class LocalCommandBus {
       payload,
       number: planned?.rendered ?? null,
       recordedAt,
+      expectedVersion: request.expectedVersion,
     }
     const factEntity: EntityRow = await this.vault.sealEntityRow(
       FACT_TYPES[compartment],

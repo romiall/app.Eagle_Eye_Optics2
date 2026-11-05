@@ -530,6 +530,7 @@ describe('consultation : adaptateur de la ressource Consultation', () => {
         first_names: 'Élodie Marie',
         sex: 'F',
         birth_date: '1990-05-17',
+        profession: null,
       },
       steps: {
         ANAMNESIS: {

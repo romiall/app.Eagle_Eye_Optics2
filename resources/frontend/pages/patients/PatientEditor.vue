@@ -24,6 +24,7 @@ import { formatDateFr } from '@/components/form/format'
 import PageHeader from '@/components/layout/PageHeader.vue'
 import PatientIdentityHeader from '@/components/patients/PatientIdentityHeader.vue'
 import AppButton from '@/components/ui/AppButton.vue'
+import AppIcon from '@/components/ui/AppIcon.vue'
 import LinkButton from '@/components/ui/LinkButton.vue'
 import type { Patient } from '@/domain/contracts/generated'
 import {
@@ -290,7 +291,7 @@ async function retry(): Promise<void> {
             :pending="state === 'saving'"
             pending-label="Enregistrement en cours…"
             :disabled="reloading"
-            >Enregistrer les modifications</AppButton
+            ><AppIcon name="check" :size="18" />Enregistrer les modifications</AppButton
           >
           <LinkButton :to="{ name: 'patient', params: { id: props.patientId } }"
             >Annuler</LinkButton

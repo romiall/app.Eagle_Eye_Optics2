@@ -108,4 +108,103 @@ test.describe('devis versionnés (L1D07) sur la vraie application', () => {
     for (const word of FORBIDDEN) expect(text).not.toContain(word)
     await context.close()
   })
+
+  test('un brouillon jamais émis se supprime ; un devis émis ne propose pas la suppression et le serveur la refuse', async ({
+    browser,
+  }) => {
+    test.setTimeout(180_000)
+    const patientId = await createPatient(browser, 'Devis Suppression', '+237 600 00 07 08')
+
+    const context = await browser.newContext()
+    const page = await context.newPage()
+    await signIn(page, 'CASHIER')
+    const main = page.getByRole('main')
+
+    // Un brouillon enregistré : « Supprimer le brouillon » après confirmation, retour à la liste avec le résultat.
+    await page.goto(`/ventes/devis/nouveau?patient=${patientId}`)
+    await page.getByLabel(/Valable jusqu’au/).fill(inDays(30))
+    await addCatalogLine(page, 'DEMO-MON', /Monture fictive/)
+    await page.getByRole('button', { name: 'Enregistrer le brouillon' }).click()
+    await expect(page).toHaveURL(/\/ventes\/devis\/[0-9A-HJKMNP-TV-Z]{26}$/)
+    await expect(main).toContainText('Brouillon de devis enregistré sur le serveur.')
+    const draftId = new URL(page.url()).pathname.split('/').pop() ?? ''
+
+    await page.getByRole('button', { name: 'Supprimer le brouillon' }).click()
+    const dialog = page.getByRole('dialog', { name: 'Supprimer ce brouillon de devis ?' })
+    await expect(dialog).toContainText('il n’a ni numéro ni révision')
+    await dialog.getByRole('button', { name: 'Garder le brouillon' }).click()
+    await expect(dialog).toBeHidden()
+    await page.getByRole('button', { name: 'Supprimer le brouillon' }).click()
+    await dialog.getByRole('button', { name: 'Supprimer le brouillon' }).click()
+    await expect(page).toHaveURL(/\/ventes\/devis$/)
+    await expect(main).toContainText('Le brouillon de devis a été supprimé.')
+    expect((await api(page, 'GET', `/api/v1/quotes/${draftId}`)).status).toBe(404)
+
+    // Un devis ÉMIS ne propose pas la suppression (il se révise) et le serveur la refuse même envoyée directement.
+    await page.goto(`/ventes/devis/nouveau?patient=${patientId}`)
+    await page.getByLabel(/Valable jusqu’au/).fill(inDays(30))
+    await addCatalogLine(page, 'DEMO-MON', /Monture fictive/)
+    await page.getByRole('button', { name: 'Enregistrer le brouillon' }).click()
+    await expect(page).toHaveURL(/\/ventes\/devis\/[0-9A-HJKMNP-TV-Z]{26}$/)
+    const issuedId = new URL(page.url()).pathname.split('/').pop() ?? ''
+    await page.getByRole('button', { name: 'Émettre le devis' }).click()
+    await page
+      .getByRole('dialog', { name: 'Émettre le devis ?' })
+      .getByRole('button', { name: 'Émettre le devis' })
+      .click()
+    await expect(
+      page.getByRole('heading', { level: 1, name: /^Devis TEST-DEV-\d{4}-\d{6}$/ }),
+    ).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Supprimer le brouillon' })).toHaveCount(0)
+    const read = await api(page, 'GET', `/api/v1/quotes/${issuedId}`)
+    const refused = await api(page, 'POST', `/api/v1/quotes/${issuedId}/delete`, {
+      expected_version: Number(read.json.data?.['version'] ?? 1),
+      quote_id: issuedId,
+    })
+    expect(refused.status).toBe(409)
+    expect(refused.json.error?.code).toBe('STATE_TRANSITION_REFUSED')
+    await context.close()
+  })
 })
+
+interface ApiResult {
+  status: number
+  json: { data?: Record<string, unknown>; error?: { code: string } }
+}
+
+/** Appel de l'API depuis la page, comme la SPA : cookie de session, jeton X-XSRF-TOKEN et clé d'idempotence. */
+async function api(
+  page: Page,
+  method: 'GET' | 'POST',
+  path: string,
+  body?: unknown,
+): Promise<ApiResult> {
+  return page.evaluate(
+    async ({ method, path, body, key }) => {
+      const xsrf = document.cookie
+        .split('; ')
+        .find((cookie) => cookie.startsWith('XSRF-TOKEN='))
+        ?.slice('XSRF-TOKEN='.length)
+      const headers: Record<string, string> = {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+      }
+      if (xsrf) headers['X-XSRF-TOKEN'] = decodeURIComponent(xsrf)
+      if (method === 'POST') headers['Idempotency-Key'] = key
+      const response = await fetch(path, {
+        method,
+        headers,
+        credentials: 'same-origin',
+        ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+      })
+      const text = await response.text()
+      return { status: response.status, json: text === '' ? {} : JSON.parse(text) }
+    },
+    {
+      method,
+      path,
+      body,
+      key: `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 12)}`,
+    },
+  )
+}

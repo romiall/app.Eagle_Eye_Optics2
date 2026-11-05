@@ -37,7 +37,12 @@ final class BaselineInstaller
         $version = (string) $this->connection->selectOne('SELECT VERSION() AS v')->v;
 
         if (stripos($version, 'mariadb') !== false) {
-            throw new RuntimeException('MariaDB n\'est pas validé pour cette baseline (serveur : '.$version.').');
+            $num = preg_match('/^(\d+\.\d+\.\d+)/', $version, $match) === 1 ? $match[1] : '0.0.0';
+            if (version_compare($num, '11.4.0', '<')) {
+                throw new RuntimeException('MariaDB n\'est pas validé pour cette baseline avant 11.4 (serveur : '.$version.').');
+            }
+
+            return;
         }
 
         if (version_compare(preg_replace('/[^0-9.].*$/', '', $version) ?? '', self::MINIMUM_MYSQL_VERSION, '<')) {
@@ -204,6 +209,15 @@ final class BaselineInstaller
      */
     private function execute(string $sql): void
     {
+        $version = (string) $this->connection->selectOne('SELECT VERSION() AS v')->v;
+        if (stripos($version, 'mariadb') !== false) {
+            $sql = str_replace(
+                'CHAR(26) CHARACTER SET ascii COLLATE ascii_bin',
+                'VARCHAR(26) CHARACTER SET ascii COLLATE ascii_bin',
+                $sql,
+            );
+        }
+
         $this->connection->getPdo()->exec($sql);
     }
 

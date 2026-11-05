@@ -159,6 +159,16 @@ export const HOME_ACTIONS: readonly HomeAction[] = [
     module: 'patients',
   },
   {
+    id: 'new-consultation',
+    label: 'Nouvelle consultation',
+    // Mène à l'écran des examens avec la boîte « Nouvelle consultation » ouverte (préréglage par l'adresse).
+    path: '/consultations?nouvelle=1',
+    permissions: ['clinical.write'],
+    deliveredBy: 'C01',
+    delivered: true,
+    module: 'consultations',
+  },
+  {
     id: 'search',
     label: 'Rechercher',
     path: '/patients',
@@ -278,6 +288,17 @@ export const WORK_SHORTCUTS: readonly WorkShortcut[] = [
     delivered: true,
     module: 'today',
     group: 'reception',
+  },
+  {
+    id: 'start-exam',
+    // Même libellé que l'action d'accueil « Nouvelle consultation » : même geste, retrouvé avec les autres examens.
+    label: 'Nouvelle consultation',
+    path: '/consultations?nouvelle=1',
+    permissions: ['clinical.write'],
+    deliveredBy: 'C01',
+    delivered: true,
+    module: 'consultations',
+    group: 'exams',
   },
   {
     id: 'exams-in-progress',

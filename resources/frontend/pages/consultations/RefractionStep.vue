@@ -9,7 +9,9 @@
  * - Aucune mesure n'est recopiée d'un œil à l'autre, d'un stade à l'autre ni vers une prescription, et un cylindre
  *   positif n'est jamais transposé. Un pas inhabituel (hors multiple de 0,25) ou un cylindre sans axe sont
  *   SIGNALÉS sous le tableau, sans bloquer l'enregistrement.
- * - L'écart pupillaire (DP) de l'autoréfracteur se saisit à l'étape « Centrage ».
+ * - L'écart pupillaire (DP) du ticket de l'autoréfracteur se saisit ICI, sous son tableau, comme sur le
+ *   ticket. Il appartient pourtant au centrage : c'est l'écart total de l'étape « Centrage » (même champ), que
+ *   l'écran enregistre avec la réfraction ; aucune valeur monoculaire n'en est déduite.
  * Le formulaire est tenu par l'écran ; ce composant affiche les erreurs reçues par identifiant de contrôle.
  */
 import ClinicalHint from '@/components/clinical/ClinicalHint.vue'
@@ -39,9 +41,16 @@ import TermChecklist from './TermChecklist.vue'
 
 const model = defineModel<RefractionDraft>({ required: true })
 const props = withDefaults(
-  defineProps<{ errors: Readonly<Record<string, string>>; disabled?: boolean }>(),
-  { disabled: false },
+  defineProps<{
+    errors: Readonly<Record<string, string>>
+    disabled?: boolean
+    /** Écart pupillaire total du centrage (texte saisi) ; absent : le champ n'est pas proposé ici. */
+    pd?: string | undefined
+  }>(),
+  { disabled: false, pd: undefined },
 )
+
+const emit = defineEmits<{ 'update:pd': [value: string] }>()
 
 type Field = 'sphere' | 'cylinder' | 'axis' | 'addition'
 
@@ -57,7 +66,7 @@ const SUBJECTIVE_COLUMNS: OpticalColumn[] = [
 
 const HINTS: Record<RefractionStage, string> = {
   AUTOREFRACTOR:
-    'Mesure de l’autoréfracteur. Son écart pupillaire se saisit à l’étape « Centrage ».',
+    'Ticket de l’autoréfracteur : reportez les valeurs moyennes (AVG) de R (œil droit, OD) puis de L (œil gauche, OG), puis l’écart pupillaire (PD) du ticket sous le tableau.',
   OBJECTIVE: 'Réfraction objective (sans l’avis du patient).',
   SUBJECTIVE: 'Réfraction subjective, avec addition.',
 }
@@ -193,6 +202,20 @@ function error(id: string): string | null {
           />
         </template>
       </OpticalTable>
+      <div v-if="stage === 'AUTOREFRACTOR' && props.pd !== undefined" class="max-w-sm space-y-1.5">
+        <MeasureField
+          :model-value="props.pd"
+          label="Écart pupillaire total (mm)"
+          :control-id="CONTROL_IDS.pdTotal"
+          :error="error(CONTROL_IDS.pdTotal)"
+          :disabled="props.disabled"
+          @update:model-value="emit('update:pd', $event)"
+        />
+        <p class="text-sm text-muted">
+          Écart pupillaire (PD) du ticket. Il est enregistré avec le centrage : inutile de repasser
+          par cette étape.
+        </p>
+      </div>
       <ul
         v-if="notices(stage).length > 0"
         class="space-y-1.5 rounded-lg border border-warning bg-warning-soft px-3 py-2.5 text-sm text-ink"

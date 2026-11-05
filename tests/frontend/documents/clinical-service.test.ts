@@ -173,6 +173,7 @@ function consultation(overrides: Partial<Consultation> = {}): Consultation {
       first_names: SNAPSHOT.patient.first_names,
       sex: 'F',
       birth_date: '1990-05-17',
+      profession: null,
     },
     steps: {
       ...structuredClone(SNAPSHOT.steps),

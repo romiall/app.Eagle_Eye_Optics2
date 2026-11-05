@@ -8,9 +8,11 @@
  * double clic ou une reprise après coupure ne crée jamais deux consultations. Sur succès (réponse du
  * serveur), la consultation s'ouvre. Un refus d'état (409 : visite déjà démarrée ailleurs, plus
  * « Arrivé ») est dit et la file est relue (événement `stale`). Aucun succès n'est supposé sans
- * réponse : une coupure se reprend avec la même clé.
+ * réponse : une coupure se reprend avec la même clé. Avec `autostart` (boîte « Nouvelle consultation » :
+ * l'arrivée vient d'être enregistrée), le démarrage part à l'affichage du bouton ; un échec reste dit
+ * sous le bouton, qui propose alors de réessayer.
  */
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 import type { MutationOutcome } from '@/app/services/mutations'
@@ -24,7 +26,9 @@ import { patientDisplayName } from '@/domain/patients/identity'
 import { statusLabel } from '@/domain/patients/visits'
 import { isUlid } from '@/domain/values/ulid'
 
-const props = defineProps<{ visit: Visit }>()
+const props = withDefaults(defineProps<{ visit: Visit; autostart?: boolean }>(), {
+  autostart: false,
+})
 
 const emit = defineEmits<{ stale: [message: string] }>()
 
@@ -109,6 +113,10 @@ async function start(): Promise<void> {
     }),
   )
 }
+
+onMounted(() => {
+  if (props.autostart) void start()
+})
 </script>
 
 <template>

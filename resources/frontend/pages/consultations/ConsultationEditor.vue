@@ -18,14 +18,26 @@
  *   version actuelle et signale les valeurs modifiées des deux côtés.
  * - Terminer l'examen : confirmation, récapitulatif des rubriques non renseignées (jamais transformées en
  *   « Aucun »), justification d'absence si le motif/les plaintes ou la conclusion manquent.
- * - Examen terminé : lecture seule, avec l'historique des révisions et la correction motivée (`clinical.amend`).
+ * - Écart pupillaire du ticket de l'autoréfracteur : saisi dans le bloc de l'autoréfracteur (étape « Réfraction »),
+ *   c'est l'écart total de l'étape « Centrage » ; « Enregistrer » ou « Suivant » sur la réfraction l'enregistre
+ *   avec elle (deux commandes l'une après l'autre), sans repasser par le centrage.
+ * - Examen terminé : lecture seule, avec l'historique des révisions, la correction motivée (`clinical.amend`) et
+ *   « Transmettre à la caisse » (la facture de l'examen, patient et visite déjà renseignés) pour qui peut facturer ;
+ *   les autres comptes lisent où la caisse crée la facture. Pendant l'examen, un bloc mène à la « Prescription
+ *   optique » (écran à part, utilisable dès l'examen en cours).
+ * - Examen resté BROUILLON (aucune rubrique enregistrée) : « Supprimer le brouillon » en tête de page, pour le
+ *   professionnel qui l'a démarré ou la gérante ; confirmation, puis retour à la liste. Un examen en cours ou terminé ne
+ *   l'offre jamais (terminé : « Corriger l'examen »). `?corriger=1` (bouton « Modifier » de la liste) ouvre un examen
+ *   terminé directement en correction.
  * - Sans le droit d'écriture (clinical.write) : lecture seule, aucun bouton d'enregistrement.
  * - Hors ligne : « Consultation indisponible », jamais une consultation vide.
  * Une instance par consultation (l'écran la recrée quand l'adresse change).
  */
 import { computed, nextTick, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 
 import { clinicTimeZone, formatInstantFr } from '@/app/clinicTime'
+import { canOnScreen, knownAccountId, moduleOpenOnScreen } from '@/app/session'
 import { useUnsavedChangesGuard } from '@/app/unsavedChanges'
 import WorkStatusChip from '@/components/clinical/WorkStatusChip.vue'
 import ConfirmDialog from '@/components/feedback/ConfirmDialog.vue'
@@ -41,6 +53,7 @@ import AppIcon from '@/components/ui/AppIcon.vue'
 import LinkButton from '@/components/ui/LinkButton.vue'
 import { missingDataText } from '@/domain/clinical/completion'
 import { CONTROL_IDS } from '@/domain/clinical/controls'
+import { canDeleteDraftExam } from '@/domain/clinical/draftDeletion'
 import {
   DELIVERED_STEPS,
   type DeliveredStep,
@@ -48,12 +61,15 @@ import {
   STEP_TITLES,
   urgencyLabel,
 } from '@/domain/clinical/labels'
+import { patientDisplayName } from '@/domain/patients/identity'
 
 import AnamnesisStep from './AnamnesisStep.vue'
 import CenteringStep from './CenteringStep.vue'
 import ConclusionStep from './ConclusionStep.vue'
 import ConsultationDocuments from './ConsultationDocuments.vue'
 import ConsultationReadMessage from './ConsultationReadMessage.vue'
+import DeleteConsultationDialog from './DeleteConsultationDialog.vue'
+import { setFlash } from './flash'
 import HistoriesStep from './HistoriesStep.vue'
 import MedicationsStep from './MedicationsStep.vue'
 import PatientBanner from './PatientBanner.vue'
@@ -112,7 +128,60 @@ const heading = ref<HTMLElement | null>(null)
 const timeZone = clinicTimeZone()
 const confirmingCancel = ref(false)
 
-useUnsavedChangesGuard(anyDirty)
+const route = useRoute()
+const router = useRouter()
+
+// Après la suppression du brouillon, ce qui était saisi et non enregistré n'a plus d'objet : on quitte sans demander.
+const leaving = ref(false)
+useUnsavedChangesGuard(() => anyDirty.value && !leaving.value)
+
+/**
+ * « Supprimer le brouillon » : seulement un examen resté brouillon, pour le professionnel qui l'a démarré ou la gérante
+ * (`domain/clinical/draftDeletion`) ; le serveur applique la règle et refuse tout autre cas. Après la suppression,
+ * l'examen n'existe plus : retour à la liste des examens, avec le message du résultat.
+ */
+const deleteOpen = ref(false)
+const canDelete = computed(
+  () =>
+    baseline.value !== null &&
+    canDeleteDraftExam(
+      { status: baseline.value.status, clinicianId: baseline.value.clinician_id },
+      { accountId: knownAccountId(), can: canOnScreen },
+    ),
+)
+const patientLabel = computed(() =>
+  baseline.value === null
+    ? ''
+    : patientDisplayName(baseline.value.patient.last_name, baseline.value.patient.first_names),
+)
+
+async function onDeleted(message: string): Promise<void> {
+  leaving.value = true
+  deleteOpen.value = false
+  setFlash(message)
+  await router.push({ name: 'consultations' })
+}
+
+/** Suppression refusée (l'examen a changé, n'est plus un brouillon, droits) : le message du serveur, puis relecture. */
+const deleteProblem = ref<string | null>(null)
+
+function onNotDeleted(message: string): void {
+  deleteOpen.value = false
+  deleteProblem.value = message
+  void editor.reloadFromServer()
+}
+
+// Depuis « Modifier » de la liste, un examen terminé s'ouvre directement en correction (nouvelle révision motivée).
+let correctionRequested = route.query['corriger'] === '1'
+watch(
+  baseline,
+  (value) => {
+    if (!correctionRequested || value === null) return
+    correctionRequested = false
+    if (value.status === 'COMPLETED' && canAmend.value) editor.startAmend()
+  },
+  { immediate: true },
+)
 
 // Le titre de l'étape reçoit le focus à chaque changement d'étape (annoncé aux lecteurs d'écran).
 watch(current, async () => {
@@ -131,6 +200,25 @@ const referral = computed(() => {
   return conclusion.referral_urgency === null ? null : urgencyLabel(conclusion.referral_urgency)
 })
 const referred = computed(() => baseline.value?.steps.CONCLUSION.referral === true)
+
+/**
+ * « Transmettre à la caisse » (B02) depuis l'examen terminé : la facture de l'examen s'ouvre avec le patient et la
+ * visite déjà renseignés (identifiants opaques, rien n'est ressaisi). Droit invoice.create ou exam_fee.collect,
+ * module « sales » ouvert. Un compte sans ce droit (le professionnel) voit à la place où la caisse crée la facture :
+ * la file du jour. Aucun reçu n'est établi ici : il naît de l'encaissement d'une facture.
+ */
+const salesOpen = computed(() => moduleOpenOnScreen('sales'))
+const canInvoice = computed(
+  () => (canOnScreen('invoice.create') || canOnScreen('exam_fee.collect')) && salesOpen.value,
+)
+const invoiceLink = computed(() =>
+  baseline.value === null
+    ? null
+    : {
+        name: 'facture-nouvelle',
+        query: { patient: baseline.value.patient_id, visite: baseline.value.visit_id },
+      },
+)
 
 const saving = computed(() => state.value === 'saving')
 const savingStep = computed(
@@ -212,7 +300,32 @@ function stepBadge(step: DeliveredStep): string {
       title="Consultation"
       icon="consultations"
       :back="{ to: { name: 'consultations' }, label: 'Retour aux consultations' }"
+    >
+      <!-- Un examen resté brouillon se supprime ; un examen en cours ou terminé jamais (terminé : « Corriger l'examen »). -->
+      <template v-if="canDelete" #actions>
+        <AppButton
+          variant="danger"
+          :disabled="busy"
+          :accessible-name="`Supprimer le brouillon de ${patientLabel}`"
+          @click="deleteOpen = true"
+          ><AppIcon name="trash" :size="18" />Supprimer le brouillon</AppButton
+        >
+      </template>
+    </PageHeader>
+
+    <DeleteConsultationDialog
+      v-if="deleteOpen && baseline !== null"
+      :consultation-id="props.consultationId"
+      :version="baseline.version"
+      :patient-name="patientLabel"
+      @deleted="onDeleted"
+      @stale="onNotDeleted"
+      @close="deleteOpen = false"
     />
+
+    <StateMessage v-if="deleteProblem" state="conflict" title="Examen non supprimé">
+      {{ deleteProblem }}
+    </StateMessage>
 
     <ConsultationReadMessage
       v-if="baseline === null"
@@ -259,6 +372,10 @@ function stepBadge(step: DeliveredStep): string {
         <p v-if="baseline.finalization_missing_data_reason" class="mt-2">
           Justification d’absence enregistrée : {{ baseline.finalization_missing_data_reason }}
         </p>
+        <p v-if="salesOpen && !canInvoice" class="mt-2">
+          Le patient peut passer à la caisse : la facture se crée depuis « Aujourd’hui », avec «
+          Créer une facture ».
+        </p>
         <template #action>
           <div class="flex flex-wrap gap-3">
             <LinkButton
@@ -270,6 +387,13 @@ function stepBadge(step: DeliveredStep): string {
               :to="{ name: 'consultation-prescriptions', params: { id: props.consultationId } }"
               variant="secondary"
               >Prescription optique</LinkButton
+            >
+            <LinkButton
+              v-if="canInvoice && invoiceLink"
+              :to="invoiceLink"
+              variant="secondary"
+              :accessible-name="`Transmettre à la caisse : créer la facture de ${baseline.patient.last_name}`"
+              >Transmettre à la caisse</LinkButton
             >
             <AppButton v-if="canAmend" variant="primary" :disabled="busy" @click="editor.startAmend"
               >Corriger l’examen</AppButton
@@ -440,8 +564,10 @@ function stepBadge(step: DeliveredStep): string {
               <RefractionStep
                 v-else-if="current === 'REFRACTION'"
                 v-model="drafts.REFRACTION"
+                :pd="drafts.CENTERING.pdTotal"
                 :errors="errorMap"
                 :disabled="readOnly || busy"
+                @update:pd="drafts.CENTERING = { ...drafts.CENTERING, pdTotal: $event }"
               />
               <CenteringStep
                 v-else-if="current === 'CENTERING'"
@@ -558,6 +684,27 @@ function stepBadge(step: DeliveredStep): string {
                 </div>
               </div>
             </form>
+
+            <!-- La prescription de lunettes est un écran à part (brouillon, puis version validée) : accessible dès l'examen en cours. -->
+            <SectionCard
+              v-if="!completed && !amending"
+              title="Prescription optique"
+              title-id="titre-prescription"
+              icon="glasses"
+            >
+              <p class="max-w-prose text-base text-ink">
+                Une fois la réfraction enregistrée, établissez la prescription de lunettes : verres
+                de chaque œil, type de verre et traitements, puis version validée. Elle ne copie
+                jamais la réfraction d’elle-même. Enregistrez d’abord les étapes modifiées.
+              </p>
+              <div class="mt-4">
+                <LinkButton
+                  :to="{ name: 'consultation-prescriptions', params: { id: props.consultationId } }"
+                  variant="secondary"
+                  >Prescription optique</LinkButton
+                >
+              </div>
+            </SectionCard>
 
             <SectionCard
               v-if="canFinish"

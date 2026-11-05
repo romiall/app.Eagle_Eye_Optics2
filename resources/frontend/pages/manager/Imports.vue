@@ -190,7 +190,7 @@ function columnLabel(column: string | null): string {
 
     <section aria-labelledby="titre-fichier" class="space-y-3">
       <h2 id="titre-fichier" class="text-xl font-semibold">2. Choisir le fichier</h2>
-      <label for="fichier-catalogue" class="block font-medium">Fichier CSV du catalogue</label>
+      <label for="fichier-catalogue" class="field-label block">Fichier CSV du catalogue</label>
       <input
         id="fichier-catalogue"
         type="file"

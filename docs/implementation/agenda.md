@@ -31,6 +31,7 @@ défaut, `EEO_ENABLED_MODULES`). Aucun SMS ni WhatsApp réel : L0 calcule des t�
 | `POST /appointments/{id}/reschedule` · `/cancel` · `/no-show` | `agenda.write` | `RescheduleAppointment` · `CancelAppointment` · `MarkAppointmentNoShow` |
 | `GET /follow-ups?from&to` ou `?consultation_id` | `agenda.read` | — |
 | `POST /follow-ups` | `follow_up.write` (+ `clinical.read` vérifié par la commande) | `CreateFollowUp` (catalogue F06) |
+| `POST /follow-ups/{id}/cancel` | `follow_up.write` (+ `clinical.read` vérifié par la commande) | `CancelFollowUp` (en ligne seulement) : statut `CANCELLED`, motif obligatoire (audit `follow_up.cancelled`), version attendue ; un contrôle `ACTIVE` seulement (programmé par un rendez-vous : annuler d'abord le rendez-vous ; annulé ou clos : 409) ; les tâches de rappel ouvertes sont closes ; le contrôle disparaît des « patients à revoir » mais reste lisible dans sa consultation |
 | `GET /contact-tasks?due_date` | `agenda.read` | — |
 | `POST /contact-tasks/{id}/attempts` | `agenda.write` | `RecordContactAttempt` (catalogue F06) |
 

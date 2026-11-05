@@ -36,6 +36,7 @@ import { REFRACTION_STAGES, type RefractionStage } from '@/domain/clinical/refra
 
 import ClinicalPrintActions from './ClinicalPrintActions.vue'
 import ConsultationReadMessage from './ConsultationReadMessage.vue'
+import DeletePrescriptionDraftDialog from './DeletePrescriptionDraftDialog.vue'
 import PatientBanner from './PatientBanner.vue'
 import PrescriptionForm from './PrescriptionForm.vue'
 import PrescriptionView from './PrescriptionView.vue'
@@ -66,6 +67,7 @@ const {
   canWrite,
   canAmend,
   canValidate,
+  canDeleteDraft,
 } = editor
 const { failureMessage, recordedAt, state } = mutation
 
@@ -120,6 +122,16 @@ const printActions = computed<PrintAction[]>(() => {
 })
 
 useUnsavedChangesGuard(dirty)
+
+// --- Suppression du brouillon enregistré (la validée ne se supprime jamais : nouvelle version) -------------------
+const deleteOpen = ref(false)
+const deletion = ref<{ state: 'success' | 'conflict'; message: string } | null>(null)
+
+async function afterDeleteAttempt(state: 'success' | 'conflict', message: string): Promise<void> {
+  deleteOpen.value = false
+  deletion.value = { state, message }
+  await editor.forgetDraft()
+}
 
 function bindSummary(element: unknown): void {
   summaryBox.value = element as { focus: () => Promise<void> } | null
@@ -188,6 +200,14 @@ function confirmCopyCentering(): void {
 
     <template v-else>
       <PatientBanner :consultation="consultation" />
+
+      <StateMessage
+        v-if="deletion !== null"
+        :state="deletion.state"
+        :title="deletion.state === 'success' ? 'Brouillon supprimé' : 'Brouillon non supprimé'"
+      >
+        {{ deletion.message }}
+      </StateMessage>
 
       <StateMessage
         v-if="listRead.state.value === 'loading'"
@@ -287,6 +307,14 @@ function confirmCopyCentering(): void {
             <AppButton variant="ghost" :disabled="busy" @click="editor.cancelEdit"
               >Annuler</AppButton
             >
+            <AppButton
+              v-if="canDeleteDraft"
+              variant="danger"
+              :disabled="busy"
+              :accessible-name="`Supprimer le brouillon de la version ${saved?.version_no ?? 1}`"
+              @click="deleteOpen = true"
+              ><AppIcon name="trash" :size="18" />Supprimer le brouillon</AppButton
+            >
             <SaveStatus :state="saveState" :at="recordedAt" :time-zone="timeZone" />
           </div>
           <p v-if="mode === 'edit'" class="max-w-prose text-sm text-muted">
@@ -354,6 +382,16 @@ function confirmCopyCentering(): void {
           </template>
         </template>
       </template>
+
+      <DeletePrescriptionDraftDialog
+        v-if="deleteOpen && saved !== null"
+        :prescription-id="saved.id"
+        :updated-at="saved.updated_at"
+        :version-no="saved.version_no"
+        @deleted="afterDeleteAttempt('success', $event)"
+        @stale="afterDeleteAttempt('conflict', $event)"
+        @close="deleteOpen = false"
+      />
 
       <ConfirmDialog
         :open="copyOpen"

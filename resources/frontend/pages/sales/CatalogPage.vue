@@ -122,7 +122,7 @@ async function onReload(): Promise<void> {
     <form
       role="search"
       aria-label="Rechercher dans le catalogue"
-      class="flex flex-col gap-3 sm:flex-row sm:items-end"
+      class="flex flex-col gap-3 sm:flex-row sm:items-start"
       @submit.prevent="applySearch"
     >
       <div class="grow">
@@ -135,7 +135,7 @@ async function onReload(): Promise<void> {
           :error="queryError"
         />
       </div>
-      <AppButton type="submit" variant="secondary">Rechercher</AppButton>
+      <AppButton type="submit" variant="secondary" class="field-action">Rechercher</AppButton>
     </form>
 
     <!-- Une relecture garde la liste affichée (un article en cours de modification n'est jamais

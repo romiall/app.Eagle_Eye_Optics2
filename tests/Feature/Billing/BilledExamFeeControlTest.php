@@ -387,4 +387,48 @@ final class BilledExamFeeControlTest extends TestCase
         }
         $this->assertSame(0, DB::table('consultations')->count());
     }
+
+    // ------------------------------------------------------------------------------------------------------------
+    // Suppression d'un examen resté brouillon : la visite revient à son état d'avant
+    // ------------------------------------------------------------------------------------------------------------
+
+    private function deleteDraft(string $consultationId): TestResponse
+    {
+        return $this->actingAsFresh($this->clinician)->withHeaders(['Idempotency-Key' => Ulid::generate()])
+            ->postJson('/api/v1/consultations/'.$consultationId.'/delete', ['expected_version' => 1, 'consultation_id' => $consultationId]);
+    }
+
+    public function test_avec_les_frais_regles_la_visite_revient_prete_pour_l_examen_apres_la_suppression_du_brouillon(): void
+    {
+        $this->billed();
+        $visit = $this->visit();
+        $invoice = $this->invoiceFor($visit, null, 15000);
+        $consultation = (string) $this->start($visit)->assertCreated()->json('data.id');
+
+        $this->deleteDraft($consultation)->assertOk()->assertJsonPath('data.visit_status', 'READY_FOR_EXAM');
+
+        $row = DB::table('visits')->where('id', $visit)->first();
+        $this->assertNotNull($row);
+        $this->assertSame(['READY_FOR_EXAM', $invoice], [$row->status, $row->exam_invoice_id]);
+        $this->start($visit)->assertCreated();
+    }
+
+    public function test_une_dispense_consommee_par_l_examen_supprime_n_est_pas_reutilisee_et_les_factures_restent(): void
+    {
+        $this->billed();
+        $visit = $this->visit();
+        $waiver = $this->waiver($visit);
+        $consultation = (string) $this->start($visit, ['exam_waiver_approval_id' => $waiver])->assertCreated()->json('data.id');
+        $draftInvoice = $this->invoiceFor($visit, null, null, false);
+        $invoiceBefore = (array) DB::table('invoices')->where('id', $draftInvoice)->first();
+
+        $this->deleteDraft($consultation)->assertOk()->assertJsonPath('data.visit_status', 'AWAITING_EXAM_FEE');
+
+        $row = DB::table('visits')->where('id', $visit)->first();
+        $this->assertNotNull($row);
+        $this->assertSame(['AWAITING_EXAM_FEE', null, null], [$row->status, $row->exam_invoice_id, $row->exam_waiver_approval_id]);
+        $this->assertSame('CONSUMED', DB::table('approvals')->where('id', $waiver)->value('status'), 'L\'approbation reste consommée : elle ne sert qu\'une fois.');
+        $this->assertEquals($invoiceBefore, (array) DB::table('invoices')->where('id', $draftInvoice)->first(), 'Le brouillon de facture de la visite n\'est pas touché.');
+        $this->start($visit, ['exam_waiver_approval_id' => $waiver])->assertStatus(422)->assertJsonPath('error.code', 'APPROVAL_REQUIRED_OR_EXPIRED');
+    }
 }

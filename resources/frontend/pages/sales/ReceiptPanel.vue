@@ -22,11 +22,24 @@ import { useServerRead } from '@/pages/today/useServerRead'
 import { formatMoney, paymentMethodLabel } from './format'
 import SalesReadMessage from './SalesReadMessage.vue'
 
-const props = withDefaults(defineProps<{ receiptId: string; highlight?: boolean }>(), {
-  highlight: false,
-})
+/**
+ * `local` : reçu d'un encaissement enregistré sur CE poste (G1), au format du reçu du serveur, que le serveur ne
+ * connaît pas encore : rien n'est lu, le PDF se produit sans réseau depuis ce reçu (numéro de la plage du poste).
+ */
+const props = withDefaults(
+  defineProps<{ receiptId: string; highlight?: boolean; local?: Receipt | null }>(),
+  { highlight: false, local: null },
+)
 
-const read = useServerRead<Receipt>(() => getReceipt(props.receiptId))
+const read = useServerRead<Receipt>(() =>
+  props.local === null
+    ? getReceipt(props.receiptId)
+    : Promise.resolve({
+        data: props.local,
+        freshness: { serverAsOf: null, complete: false },
+        live: false,
+      }),
+)
 const receipt = computed(() => (read.data.value?.id === props.receiptId ? read.data.value : null))
 
 const rendered = shallowRef<RenderedDocument | null>(null)
@@ -93,7 +106,9 @@ async function preview(): Promise<void> {
           </dd>
         </div>
         <div>
-          <dt class="text-sm text-muted">Nature (calculée par le serveur)</dt>
+          <dt class="text-sm text-muted">
+            Nature (calculée {{ props.local === null ? 'par le serveur' : 'sur ce poste' }})
+          </dt>
           <dd>{{ receiptKindLabel(receipt.snapshot.kind) }}</dd>
         </div>
         <div>
@@ -131,6 +146,10 @@ async function preview(): Promise<void> {
       <p v-if="receipt.snapshot.clinic.test_document" class="text-sm font-medium">
         <span aria-hidden="true">⚠ </span>Document de test : numéro et mentions de test (données
         fictives).
+      </p>
+      <p v-if="props.local !== null" class="text-sm text-muted">
+        Reçu enregistré sur ce poste, en attente de synchronisation : son numéro est définitif et ne
+        changera pas.
       </p>
       <p v-if="documentStatus" class="text-sm text-muted">{{ documentStatus }}</p>
       <div class="flex flex-wrap gap-3">

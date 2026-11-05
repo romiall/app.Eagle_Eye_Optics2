@@ -142,7 +142,12 @@ function goToPage(next: number): void {
     </div>
 
     <div role="group" aria-label="Choisir le jour affiché" class="card toolbar p-4 sm:p-5">
-      <div class="flex flex-wrap gap-2 *:grow sm:*:grow-0">
+      <!-- Deux blocs pleine largeur (`w-full`), quelle que soit la largeur du texte (la CI Linux a des
+           polices plus larges que Windows) : la navigation du jour, seule sur sa ligne et sans
+           décalage d'étiquette ; puis la date et « Actualiser la file », empilées jusqu'à 1024 px
+           (à côté du menu, la colonne de la date rétrécit et son étiquette passerait sur deux lignes,
+           ce qui décalerait la saisie du bouton) et côte à côte, alignés sur la saisie, au-delà. -->
+      <div class="flex w-full flex-wrap gap-2 *:grow sm:*:grow-0">
         <AppButton variant="secondary" @click="shift(-1)"
           ><AppIcon name="chevron-left" :size="18" />Jour précédent</AppButton
         >
@@ -151,20 +156,25 @@ function goToPage(next: number): void {
           >Jour suivant<AppIcon name="chevron-right" :size="18"
         /></AppButton>
       </div>
-      <div class="sm:w-56">
-        <DateField
-          :key="fieldKey"
-          label="Jour affiché"
-          :model-value="day"
-          field="date"
-          control-id="aujourdhui-jour"
-          required
-          @update:model-value="chooseDay"
-        />
+      <div class="flex w-full flex-col gap-3 lg:flex-row lg:items-start">
+        <div class="min-w-0 sm:w-56">
+          <DateField
+            :key="fieldKey"
+            label="Jour affiché"
+            :model-value="day"
+            field="date"
+            control-id="aujourdhui-jour"
+            required
+            @update:model-value="chooseDay"
+          />
+        </div>
+        <AppButton
+          variant="ghost"
+          class="sm:self-start lg:mt-(--field-label-offset) lg:ml-auto lg:self-auto"
+          @click="refresh"
+          ><AppIcon name="refresh" :size="18" />Actualiser la file</AppButton
+        >
       </div>
-      <AppButton variant="ghost" class="sm:ml-auto" @click="refresh"
-        ><AppIcon name="refresh" :size="18" />Actualiser la file</AppButton
-      >
     </div>
 
     <p role="status" aria-live="polite" class="sr-only">{{ announcement }}</p>

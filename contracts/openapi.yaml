@@ -1349,6 +1349,56 @@ paths:
       x-offline-command: "AmendConsultation"
       x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "C03"
+  /v1/consultations/{id}/delete:
+    post:
+      operationId: "DeleteConsultationDraft"
+      summary: "Supprimer un examen resté brouillon"
+      tags:
+        - "Clinique"
+      description: "Module consultations, en ligne seulement. Brouillon uniquement (aucune rubrique enregistrée) : examen en cours ou terminé, rubrique, révision ou contrôle recommandé rattaché, prescription validée ou déjà utilisée (facture, atelier, document) : 409 STATE_TRANSITION_REFUSED avec details.current_status ; un examen terminé se corrige par AmendConsultation, jamais par une suppression. Le professionnel qui a démarré l'examen ou la gérante (approval.decide) seulement : 403 pour un autre professionnel. Version attendue = version de la consultation (409 VERSION_CONFLICT avec current_version). Supprime aussi les prescriptions brouillon de l'examen ; la visite revient à son état d'avant l'examen (ARRIVED, ou READY_FOR_EXAM / AWAITING_EXAM_FEE quand le paiement de l'examen est contrôlé) ; les factures de la visite ne sont pas touchées. Audité (consultation.deleted : qui, quand, quelle consultation), sans contenu clinique ; publié au journal des changements comme ARCHIVED. Consultation déjà supprimée ou d'un autre cabinet : 404. L'identifiant du corps doit être celui de l'adresse (422). Le rejeu de la même clé rend la réponse d'origine."
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/DeleteConsultationDraftRequest"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/clinical.json#/$defs/DeleteConsultationDraftResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "clinical.write"
+        - "clinical.read"
+      x-reauthentication: false
+      x-idempotency: "required"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "C01"
   /v1/consultations/{id}/revisions/{revision_no}:
     get:
       operationId: "GetClinicalRevision"
@@ -1630,6 +1680,56 @@ paths:
             application/json:
               schema:
                 $ref: "./schemas/resources/clinical.json#/$defs/PrescriptionResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "clinical.write"
+        - "clinical.read"
+      x-reauthentication: false
+      x-idempotency: "required"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "C04"
+  /v1/prescriptions/{id}/delete:
+    post:
+      operationId: "DeletePrescriptionDraft"
+      summary: "Supprimer une prescription encore brouillon (en ligne)"
+      tags:
+        - "Clinique"
+      description: "Module consultations, en ligne seulement ; même droit que la modification d'un brouillon (aucun auteur n'est conservé sur un brouillon). Brouillon seulement : une prescription validée est immuable (409 STATE_TRANSITION_REFUSED, elle se corrige par une nouvelle version), de même qu'une prescription déjà utilisée par une ligne de facture, une commande d'atelier ou un document. Jeton de concurrence expected_updated_at (409 VERSION_CONFLICT avec details.current_updated_at) ; expected_version vaut null. Les yeux et traitements du brouillon disparaissent avec lui. Audité (prescription.deleted : série, version, origine, consultation ; jamais une valeur clinique) ; publié au journal des changements comme ARCHIVED. Déjà supprimée ou d'un autre cabinet : 404. L'identifiant du corps doit être celui de l'adresse (422)."
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/DeletePrescriptionDraftRequest"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/clinical.json#/$defs/DeletePrescriptionDraftResponse"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
@@ -2553,6 +2653,55 @@ paths:
             application/json:
               schema:
                 $ref: "./schemas/resources/billing.json#/$defs/QuoteResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "invoice.create"
+      x-reauthentication: false
+      x-idempotency: "required"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "L1D07"
+  /v1/quotes/{id}/delete:
+    post:
+      operationId: "DeleteQuoteDraft"
+      summary: "Supprimer un brouillon de devis jamais émis"
+      tags:
+        - "Ventes"
+      description: "Module sales, en ligne seulement. Créateur ou gérante (403 sinon), comme la modification du brouillon. Brouillon seulement : un devis émis, accepté, refusé, expiré ou converti ne se supprime pas (409 STATE_TRANSITION_REFUSED ; il se révise). Version attendue = version du brouillon (409 VERSION_CONFLICT avec current_version). Supprime aussi les lignes du brouillon ; aucun numéro, aucune réserve de stock, aucune créance à défaire. Audité (quote.draft_deleted : version, nombre de lignes, total) ; publié au journal des changements comme ARCHIVED. Déjà supprimé ou d'un autre cabinet : 404. L'identifiant du corps doit être celui de l'adresse (422)."
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/DeleteQuoteDraftRequest"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/billing.json#/$defs/DeleteQuoteDraftResponse"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
@@ -4468,6 +4617,55 @@ paths:
         - "agenda.read"
       x-reauthentication: false
       x-idempotency: "none"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "S02"
+  /v1/follow-ups/{id}/cancel:
+    post:
+      operationId: "CancelFollowUp"
+      summary: "Annuler un contrôle recommandé encore actif"
+      tags:
+        - "Agenda et suivi"
+      description: "En ligne seulement ; clinical.read exigé aussi (le motif du contrôle est clinique : 403 sinon). Motif obligatoire (3 à 1 000 caractères), conservé dans l'audit. Version attendue = version du contrôle (409 VERSION_CONFLICT avec current_version). Seulement tant que le contrôle est ACTIVE : programmé par un rendez-vous (SCHEDULED : annuler d'abord le rendez-vous), déjà annulé ou clos : 409 STATE_TRANSITION_REFUSED avec details.current_status. Rien n'est supprimé : statut CANCELLED, les tâches de rappel ouvertes sont closes, le contrôle disparaît de la liste des patients à revoir mais reste lisible dans sa consultation. Rend le contrôle relu."
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/CancelFollowUpRequest"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/scheduling.json#/$defs/FollowUpPlanResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "follow_up.write"
+      x-reauthentication: false
+      x-idempotency: "required"
       x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "S02"
   /v1/appointments:

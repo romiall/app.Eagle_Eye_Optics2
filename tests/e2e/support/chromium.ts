@@ -19,7 +19,11 @@ function chromiumExecutable(): string | undefined {
     .filter((name) => /^chromium-\d+$/.test(name))
     .sort()
     .reverse()
-    .map((name) => join(root, name, 'chrome-linux', 'chrome'))
+    // Selon la version de Playwright, le dossier s'appelle chrome-linux ou chrome-linux64.
+    .flatMap((name) => [
+      join(root, name, 'chrome-linux', 'chrome'),
+      join(root, name, 'chrome-linux64', 'chrome'),
+    ])
 
   return candidates.find((candidate) => existsSync(candidate))
 }

@@ -260,10 +260,8 @@ function chooseIndex(value: string | null): void {
           />
         </template>
       </OpticalTable>
-      <fieldset class="m-0 min-w-0 space-y-1 border-0 p-0">
-        <legend class="mb-1 p-0 text-base font-medium text-ink">
-          Mention d’absence de correction
-        </legend>
+      <fieldset class="min-w-0">
+        <legend class="field-label p-0">Mention d’absence de correction</legend>
         <div class="flex flex-wrap gap-2">
           <label
             v-for="eye in EYES"
@@ -287,9 +285,10 @@ function chooseIndex(value: string | null): void {
           v-for="eye in EYES"
           v-show="error(RX_IDS.eye(eye, 'no_correction')) !== null"
           :key="`erreur-${eye}`"
-          class="text-sm font-medium text-danger"
+          class="mt-1.5 flex items-start gap-1.5 text-sm leading-5 font-medium text-danger"
         >
-          <span aria-hidden="true">⚠ </span>{{ error(RX_IDS.eye(eye, 'no_correction')) }}
+          <span aria-hidden="true" class="shrink-0">⚠ </span
+          ><span>{{ error(RX_IDS.eye(eye, 'no_correction')) }}</span>
         </p>
       </fieldset>
     </section>

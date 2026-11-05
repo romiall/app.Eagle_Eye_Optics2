@@ -106,6 +106,30 @@ final class ConsultationController extends CommandController
     }
 
     /**
+     * Suppression d'un examen resté brouillon (en ligne seulement) : le serveur refuse tout autre état. La consultation
+     * n'existe plus après la commande : la réponse rend le résultat de la commande (visite remise dans son état d'avant),
+     * jamais une relecture du dossier ; le rejeu de la même clé rend la même réponse.
+     */
+    public function delete(Request $request, string $id): JsonResponse
+    {
+        [$payload, $expected, $present] = $this->directBody($request);
+        $errors = [];
+        if (($payload['consultation_id'] ?? null) !== $id) {
+            $errors['consultation_id'] = ['L\'identifiant de la consultation du corps doit être celui de l\'adresse.'];
+        }
+        if (! $present) {
+            $errors['expected_version'] = ['Champ obligatoire absent (version de la consultation).'];
+        }
+        if ($errors !== []) {
+            throw BusinessError::validation($errors);
+        }
+
+        $result = $this->dispatchCommand($request, new Command('DeleteConsultationDraft', $payload, $id, $expected));
+
+        return new JsonResponse(['data' => $result->result]);
+    }
+
+    /**
      * Révision figée d'une consultation, avec son snapshot (lecture seule, tracée sans contenu).
      */
     public function revision(Request $request, string $id, string $revision_no): JsonResponse

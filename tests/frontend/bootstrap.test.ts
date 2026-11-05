@@ -62,6 +62,7 @@ describe('amorçage de la coquille Vue', () => {
     expect(router.getRoutes().map((route) => String(route.name))).toEqual(
       expect.arrayContaining([
         'connexion',
+        'deverrouiller',
         'accueil',
         'acces-refuse',
         'introuvable',
@@ -118,11 +119,12 @@ describe('amorçage de la coquille Vue', () => {
     // + caisse du jour (R01 minimal) + liste des examens + paramètres (5 : F09)
     // + changement de son mot de passe + approbations (B06) + préparation du poste (O01, O02)
     // + prescriptions, fusion et comparaison du patient + catégories de dépenses + devis (3)
-    // + import du catalogue + casse/ajustement + exports + statistiques + agenda (3) + suivis + aide.
-    // Total recompté sur le routeur réel : 50 routes, aucun nom en double.
+    // + import du catalogue + casse/ajustement + exports + statistiques + agenda (3) + suivis + aide
+    // + déverrouillage du poste (D27).
+    // Total recompté sur le routeur réel : 51 routes, aucun nom en double.
     const names = router.getRoutes().map((route) => String(route.name))
     expect(new Set(names).size).toBe(names.length)
-    expect(router.getRoutes()).toHaveLength(50)
+    expect(router.getRoutes()).toHaveLength(51)
     // Chaque route métier dépend de son module (mise en service progressive) et de ses permissions.
     // Les onglets cliniques du dossier (prescriptions, comparaison des examens) dépendent du module « consultations ».
     const clinicalTabs = ['patient-prescriptions', 'patient-comparaison']
@@ -211,7 +213,10 @@ describe('amorçage de la coquille Vue', () => {
     expect(brand?.getAttribute('href')).toBe('/')
     expect(brand?.textContent).toContain('(accueil)')
     expect(root.querySelector('header')?.textContent).toContain('Gérante Fictive')
-    expect(root.querySelector('header button')?.textContent?.trim()).toBe('Se déconnecter')
+    const headerButtons = [...root.querySelectorAll('header button')].map((button) =>
+      button.textContent?.trim(),
+    )
+    expect(headerButtons).toEqual(['Aide', 'Se déconnecter'])
 
     unmount()
   })

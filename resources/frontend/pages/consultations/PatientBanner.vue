@@ -7,7 +7,9 @@
  * `clinical.read`) : l'écran ne dépend ni du module « Patients » ni du droit `patient.read`, et ne remplit jamais
  * un dossier sous un en-tête qui ne dit pas de qui il s'agit. L'état « archivée » ou « fusionnée » de la fiche
  * n'est pas porté par la consultation : il n'est pas affiché ici. Le professionnel est nommé quand le compte
- * connecté est celui de la consultation (la consultation ne porte que son identifiant).
+ * connecté est celui de la consultation (la consultation ne porte que son identifiant). La profession du dossier
+ * administratif, que le cabinet note dans son carnet, s'ajoute à la ligne de la date quand elle est connue (rien
+ * n'est écrit quand elle ne l'est pas).
  *
  * Bandeau de dossier : filet doré à gauche, pastille de patient (dès la tablette), identité puis date et
  * professionnel ; la fente (puces d'état de l'examen) se place à droite dès la tablette, dessous sur
@@ -36,6 +38,11 @@ const clinician = computed(() =>
     ? session.account.display_name
     : null,
 )
+
+const profession = computed(() => {
+  const text = props.consultation.patient.profession?.trim() ?? ''
+  return text === '' ? null : text
+})
 </script>
 
 <template>
@@ -62,6 +69,13 @@ const clinician = computed(() =>
                 <strong class="font-semibold text-ink">{{
                   formatInstantFr(props.consultation.effective_at)
                 }}</strong></span
+              >
+            </span>
+            <span v-if="profession" class="inline-flex min-w-0 items-center gap-1.5">
+              <AppIcon name="building" :size="16" class="text-gold" />
+              <span class="min-w-0 break-words"
+                ><span class="sr-only">, </span>Profession :
+                <strong class="font-semibold text-ink">{{ profession }}</strong></span
               >
             </span>
             <span v-if="clinician" class="inline-flex items-center gap-1.5">

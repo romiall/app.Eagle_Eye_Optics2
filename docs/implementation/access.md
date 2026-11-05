@@ -32,7 +32,7 @@ Deux revues indépendantes du commit 343a448 (attaque et conformité, sur MySQL 
 - **Changement de son mot de passe** : la session courante reste ouverte (son empreinte de mot de passe est mise à jour), les autres sessions du compte sont fermées. La route partage la limite de la réauthentification (5 par minute, même compte) et chaque échec est journalisé.
 - **Réauthentification** (`POST /api/v1/auth/reauthenticate`) : elle est valable 15 minutes (`EEO_REAUTHENTICATION_TTL`) pour la gestion des comptes, les paramètres du cabinet et, plus tard, les approbations et exports globaux. Sans elle, 423 `REAUTHENTICATION_REQUIRED`. Une nouvelle connexion l'annule.
   - **Une seule garde pour toutes les écritures sensibles** (B06) : le middleware `reauthenticated` (`RequireRecentReauthentication`), qui lit l'instant de confirmation rangé dans la session du compte connecté (clé `eeo.reauthenticated_at`). Il protège les comptes et le cabinet (F05), les règles fiscales et le stock initial (B01, I00), la décision d'une approbation (`POST approvals/{id}/decision`) et les corrections des pièces (`POST payments/{id}/reversals`, `POST invoices/{id}/credit-notes`, `POST invoices/{id}/refunds`, B07, B08). Aucune route ne réimplémente sa propre vérification ; `x-reauthentication` du contrat OpenAPI est vérifié contre ce middleware (`OpenApiRoutesTest`).
-  - Liée à la session : la connexion régénère la session et oublie la confirmation, la déconnexion détruit la session ; la limite de 5 essais par minute et par compte et l'audit (`auth.reauthenticated`, `auth.reauthentication_failed`, sans secret) sont ceux de F05.
+  - Liée à la session : la connexion régénère la session et oublie la confirmation, la déconnexion détruit la session ; la limite de 5 essais par minute et par compte (`EEO_RATE_REAUTHENTICATE`, relevée seulement pour les parcours e2e) et l'audit (`auth.reauthenticated`, `auth.reauthentication_failed`, sans secret) sont ceux de F05.
   - Côté écran : sur 423, `PasswordConfirmDialog` confirme le mot de passe du compte connecté puis l'écran reprend la MÊME commande avec la même clé d'idempotence (`useMutation().retry()`) ; `ReauthDialog` reste la reconnexion d'une session EXPIRÉE (401/419). Le 423 du middleware précède l'idempotence : rien n'est enregistré avant la confirmation.
 - **Approbations exactes** (B06) : demande par tout compte qui a `approval.request`, décision par la gérante (`approval.decide` ET la permission que l'approbation remplace), jamais par la demandeuse, après réauthentification ; consommation unique et liée au contenu exact dans la transaction de l'opération. Détail : [billing.md](billing.md), « Approbations exactes (B06) ».
 
@@ -240,3 +240,39 @@ Clé privée de signature du serveur : fichier PEM privé créé par `php artisa
 l'émission d'un grant répond 409 et rien n'est écrit. Audit : `device.enrolled`, `offline_grant.issued`,
 `device.revoked`, `offline_grant.revoked` (jamais de secret ni de donnée patient). Détails et coffre local :
 `vault.md`, section « Implémentation (O01, O02) ».
+
+## Qui supprime un brouillon d'examen (2026-10-30, chantier « CRUD des écrans », tranche 1)
+
+Commande `DeleteConsultationDraft` (en ligne seulement ; détail : `clinical.md`, « Modifier et supprimer un examen »).
+**Aucune permission nouvelle ni élargie** : le référentiel reste de 49 codes, rien n'est ajouté au semis, aucun droit de
+profil ne change.
+
+| Compte | Brouillon qu'il a démarré | Brouillon d'un autre professionnel | Examen en cours ou terminé |
+| --- | --- | --- | --- |
+| Professionnel (`clinical.write`, `clinical.read`) | Supprime | 403 `ACTION_FORBIDDEN` | 409 `STATE_TRANSITION_REFUSED` |
+| Gérante (`clinical.write`, `clinical.read`, `approval.decide`) | Supprime | Supprime | 409 |
+| Accueil, caisse (aucun `clinical.*`) | 403 | 403 | 403 |
+| Compte dont une dérogation retire `clinical.write` ou `clinical.read` | 403 | 403 | 403 |
+
+L'auteur est `consultations.clinician_id` (le compte qui a démarré l'examen). La gérante est reconnue au code
+`approval.decide`, comme partout où elle « modifie le brouillon d'un autre compte » (`ActorRights::manager`) : un
+profil qui reçoit ce code par dérogation a donc aussi ce pouvoir sur les brouillons d'examen. L'écran ne montre le
+bouton que dans ces cas (`domain/clinical/draftDeletion.ts`, testé par `draft-deletion.test.ts`) ; le serveur refait le
+contrôle à chaque commande (`DeleteConsultationDraftTest` : auteur, gérante, autre professionnel, accueil, caisse,
+dérogation). Un poste hors ligne ne détient pas cette commande : un grant ne la porte pas, la source `SYNC` est refusée.
+
+## Qui supprime ou annule un brouillon (chantier « CRUD des écrans », tranche 3a)
+
+**Aucune permission nouvelle ni élargie** (référentiel inchangé : 49 codes). Chaque règle reprend celle de la modification
+de la même pièce ; le serveur la refait à chaque commande (403 hors droit, 409 hors état) et l'écran ne montre le bouton que
+dans ces cas (`domain/clinical/draftDeletion.ts`, `draft-deletion.test.ts`).
+
+| Geste | Commande | Qui | Quand |
+| --- | --- | --- | --- |
+| Supprimer un brouillon de prescription | `DeletePrescriptionDraft` | `clinical.write` et `clinical.read` (professionnel, gérante) ; aucun auteur n'est conservé sur un brouillon | brouillon seulement, jamais utilisé |
+| Supprimer un brouillon de devis | `DeleteQuoteDraft` | `invoice.create`, ET le créateur du brouillon OU la gérante (`approval.decide`) | brouillon jamais émis seulement |
+| Annuler un contrôle recommandé | `CancelFollowUp` | `follow_up.write` et `clinical.read` (professionnel, gérante), motif obligatoire | contrôle `ACTIVE` seulement |
+
+Accueil : aucun de ces gestes (pas de `clinical.write`, ni `invoice.create`, ni `follow_up.write`). Caisse : seulement le
+brouillon de devis dont elle est la créatrice. Les trois commandes sont en ligne seulement : un grant de poste ne les porte
+pas et la source `SYNC` est refusée. Tests : `DeletePrescriptionDraftTest`, `DeleteQuoteDraftTest`, `FollowUpsTest`.

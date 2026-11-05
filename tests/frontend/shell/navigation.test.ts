@@ -77,6 +77,7 @@ describe('navigation de la coquille (fichier 04)', () => {
   it('liste les actions d’accueil du dossier patient dans l’ordre du fichier 04', () => {
     expect(HOME_ACTIONS.map((action) => action.label)).toEqual([
       'Nouveau patient',
+      'Nouvelle consultation',
       'Rechercher',
       'Rendez-vous',
       'Consultations du jour',
@@ -106,6 +107,8 @@ describe('navigation de la coquille (fichier 04)', () => {
       // Paramètres : comptes du personnel et identité du cabinet (écrans F09 des routes F05).
       'settings:F09',
       'new-patient:P01',
+      // Démarrer un examen sans passer par la file du jour (boîte de l'écran des examens, C01).
+      'new-consultation:C01',
       'search:P02',
       'appointment:S01',
       'consultations-today:P03',
@@ -124,6 +127,7 @@ describe('navigation de la coquille (fichier 04)', () => {
     ])
     expect(visibleHomeActions(everything, ALL_MODULES).map((action) => action.label)).toEqual([
       'Nouveau patient',
+      'Nouvelle consultation',
       'Rechercher',
       'Rendez-vous',
       'Consultations du jour',

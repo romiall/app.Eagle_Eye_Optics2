@@ -235,6 +235,11 @@ Route::prefix('v1')->group(function (): void {
                 ->middleware('can:invoice.create')
                 ->whereUlid('id')
                 ->name('api.quotes.update');
+            // Suppression d'un brouillon de devis jamais émis (chantier « CRUD des écrans ») : créateur ou gérante.
+            Route::post('quotes/{id}/delete', [QuoteController::class, 'delete'])
+                ->middleware('can:invoice.create')
+                ->whereUlid('id')
+                ->name('api.quotes.delete');
             Route::post('quotes/{id}/issue', [QuoteController::class, 'issue'])
                 ->middleware('can:invoice.create')
                 ->whereUlid('id')
@@ -460,6 +465,11 @@ Route::prefix('v1')->group(function (): void {
             Route::post('follow-ups', [FollowUpController::class, 'store'])
                 ->middleware('can:follow_up.write')
                 ->name('api.follow-ups.store');
+            // Annulation d'un contrôle recommandé encore actif (chantier « CRUD des écrans ») : motif obligatoire.
+            Route::post('follow-ups/{id}/cancel', [FollowUpController::class, 'cancel'])
+                ->middleware('can:follow_up.write')
+                ->whereUlid('id')
+                ->name('api.follow-ups.cancel');
 
             Route::get('contact-tasks', [ContactTaskController::class, 'index'])
                 ->middleware('can:agenda.read')
@@ -528,6 +538,12 @@ Route::prefix('v1')->group(function (): void {
                 ->middleware(['can:clinical.amend', 'can:clinical.read'])
                 ->whereUlid('id')
                 ->name('api.consultations.amend');
+            // Suppression d'un examen resté brouillon (demande du cabinet) : le serveur refuse tout autre état ; l'auteur
+            // ou la gérante seulement (contrôlé par l'action). Commande en ligne, POST comme l'annulation d'une visite.
+            Route::post('consultations/{id}/delete', [ConsultationController::class, 'delete'])
+                ->middleware(['can:clinical.write', 'can:clinical.read'])
+                ->whereUlid('id')
+                ->name('api.consultations.delete');
             Route::get('consultations/{id}/revisions/{revision_no}', [ConsultationController::class, 'revision'])
                 ->middleware(['can:clinical.read', 'throttle:eeo-consultation-read'])
                 ->whereUlid('id')
@@ -558,6 +574,12 @@ Route::prefix('v1')->group(function (): void {
                 ->middleware(['can:clinical.write', 'can:clinical.read'])
                 ->whereUlid('id')
                 ->name('api.prescriptions.update');
+            // Suppression d'un brouillon de prescription (chantier « CRUD des écrans ») : même droit que sa modification ;
+            // une prescription validée est immuable (409), elle se corrige par une nouvelle version.
+            Route::post('prescriptions/{id}/delete', [PrescriptionController::class, 'delete'])
+                ->middleware(['can:clinical.write', 'can:clinical.read'])
+                ->whereUlid('id')
+                ->name('api.prescriptions.delete');
             Route::post('prescriptions/{id}/revisions', [PrescriptionController::class, 'revise'])
                 ->middleware(['can:clinical.amend', 'can:clinical.read'])
                 ->whereUlid('id')

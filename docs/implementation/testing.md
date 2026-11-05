@@ -149,6 +149,7 @@ Le script récupère le commit du verrou depuis le dépôt git public (échec si
 - `vitest.config.ts` : environnement jsdom, `tests/frontend/**/*.test.ts`, `fake-indexeddb` chargé dans `tests/frontend/setup.ts`. Configuration distincte de `vite.config.ts` (ni Laravel, ni Tailwind, ni PWA).
 - `tests/frontend/pwa-config.test.ts` teste la même configuration PWA que celle du build (`resources/frontend/app/pwa.config.ts`).
 - `fake-indexeddb` sert aux tests unitaires du moteur local ; la preuve de persistance après fermeture du navigateur (G1) exige un vrai navigateur avec profil persistant.
+- Formulaires : `tests/frontend/components/fields.test.ts` et `choice-fields.test.ts` fixent l'ordre étiquette, saisie, erreur, aide (et les `aria-describedby`), `tests/frontend/shell/form-styles.test.ts` lit `resources/frontend/styles/base.css` (focus hors couche, `--field-label-offset`, décalage des boutons à côté d'un champ, contraste forcé), `tests/frontend/shell/palette.test.ts` les paires de couleurs. Le CSS ne se mesure pas en jsdom : l'alignement est mesuré dans le navigateur par `tests/e2e/forms-layout.spec.ts` (voir plus bas).
 
 ## Tests e2e (Playwright, Chromium)
 
@@ -162,6 +163,7 @@ Le script récupère le commit du verrou depuis le dépôt git public (échec si
   - `--no-proxy-server` : le bac à sable de développement cloud impose un proxy sortant par variable d'environnement (`https_proxy`), que Chromium utiliserait pour ce nom d'hôte (`net::ERR_CONNECTION_RESET`) ;
   - `--ignore-certificate-errors` : l'option `ignoreHTTPSErrors` de Playwright ne suffit pas, Chromium refuse alors d'enregistrer le service worker (« An unknown error occurred when fetching the script »).
   Contrôle par mutation : sans `Vite::createAssetPathsUsing`, les 4 tests échouent (`#app` vide, aucun `h1`, service worker jamais enregistré, console « Mixed Content: … requested an insecure script 'http://cabinet.example.test:8443/build/assets/main-….js'. This request has been blocked »). Les autres tests e2e restent en `http://127.0.0.1` et ne peuvent pas détecter ce défaut.
+- **Mise en page des formulaires.** `forms-layout.spec.ts` mesure dans le navigateur (`boundingBox`) qu'un bouton posé à côté d'un champ reste aligné sur la saisie à 768, 1024 et 1280 px (liste des patients, caisse du jour, suivis, agenda, « Aujourd'hui », exports), que la rangée est empilée sous 640 px (caisse du jour à 360 px) et que les icônes et le chevron ont leur remplissage. Il tourne deux fois : avec les polices du poste, puis avec une POLICE LARGE (Verdana imposée à la page, `bypassCSP`) : la CI Linux retombe sur une police bien plus large que Windows (DejaVu Sans), une étiquette qui tient sur une ligne en local passe sur deux lignes en CI et décale la saisie du bouton aligné sur elle.
 - Ces tests e2e sont des preuves de fumée du socle. Le parcours G1 (patient, facture, deux paiements, PDF, reprise après fermeture complète du navigateur, ACK rejoué) reste à écrire avec les tâches O01 et suivantes.
 
 ## Intégration continue

@@ -586,7 +586,7 @@ async function onPasswordConfirmed(): Promise<void> {
         >
 
         <div class="space-y-2 rounded-lg border-2 border-line bg-surface p-3">
-          <label for="stock-fichier-csv" class="block font-medium"
+          <label for="stock-fichier-csv" class="field-label block"
             >Remplir depuis un fichier CSV (facultatif)</label
           >
           <p class="text-sm text-muted">

@@ -28,6 +28,13 @@ import { commandContract, commandPath, type CommandContract } from './commandInd
  */
 export type OnlineCommandName =
   | 'UpdatePrescriptionDraft'
+  // Suppression d'un examen resté brouillon : en ligne seulement, version de la consultation attendue.
+  | 'DeleteConsultationDraft'
+  // Suppression d'un brouillon de prescription (jeton `expected_updated_at`), d'un brouillon de devis jamais émis (version
+  // attendue) et annulation d'un contrôle recommandé encore actif (version attendue, motif) : en ligne seulement.
+  | 'DeletePrescriptionDraft'
+  | 'DeleteQuoteDraft'
+  | 'CancelFollowUp'
   // Catalogue, règles fiscales et stock initial (B01, I00) : écritures de la gérante, en ligne seulement.
   | 'CreateCatalogItem'
   | 'UpdateCatalogItem'

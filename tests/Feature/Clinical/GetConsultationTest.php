@@ -80,8 +80,9 @@ final class GetConsultationTest extends TestCase
         $this->assertSame(['orders' => []], $steps['MEDICATIONS']);
     }
 
-    public function test_la_consultation_porte_l_identite_administrative_de_base_du_patient(): void
+    public function test_la_consultation_porte_l_identite_administrative_de_base_et_la_profession_du_patient(): void
     {
+        DB::table('patient_records')->where('id', $this->patientId)->update(['profession' => 'Enseignante']);
         $response = $this->readConsultation($this->consultationId)->assertOk();
 
         $this->assertMatchesContract($response, 'schemas/resources/clinical.json#/$defs/ConsultationResponse');
@@ -90,7 +91,18 @@ final class GetConsultationTest extends TestCase
         $this->assertSame($this->patientId, $response->json('data.patient.id'));
         $this->assertSame($patient->record_number, $response->json('data.patient.record_number'));
         $this->assertSame($patient->last_name, $response->json('data.patient.last_name'));
-        $this->assertSame(['id', 'record_number', 'last_name', 'first_names', 'sex', 'birth_date'], array_keys($response->json('data.patient')), 'Identité de base seulement : aucune coordonnée, aucun état clinique.');
+        $this->assertSame('Enseignante', $response->json('data.patient.profession'));
+        $this->assertSame(['id', 'record_number', 'last_name', 'first_names', 'sex', 'birth_date', 'profession'], array_keys($response->json('data.patient')), 'Identité de base et profession seulement : aucune coordonnée, aucun état clinique.');
+    }
+
+    public function test_une_profession_non_renseignee_est_rendue_nulle(): void
+    {
+        DB::table('patient_records')->where('id', $this->patientId)->update(['profession' => null]);
+
+        $response = $this->readConsultation($this->consultationId)->assertOk();
+
+        $this->assertMatchesContract($response, 'schemas/resources/clinical.json#/$defs/ConsultationResponse');
+        $this->assertNull($response->json('data.patient.profession'));
     }
 
     public function test_les_lignes_deja_presentes_des_rubriques_hors_chemin_sont_lues_telles_quelles(): void

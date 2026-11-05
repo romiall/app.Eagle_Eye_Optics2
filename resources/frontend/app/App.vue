@@ -23,6 +23,7 @@ import {
 
 import logoUrl from '@/assets/brand/eeo-logo.svg'
 import NetworkStatus from '@/components/feedback/NetworkStatus.vue'
+import HelpLauncher from '@/components/help/HelpLauncher.vue'
 import ReauthDialog from '@/components/session/ReauthDialog.vue'
 import SyncStatus from '@/components/SyncStatus.vue'
 import AppButton from '@/components/ui/AppButton.vue'
@@ -32,6 +33,8 @@ import UpdatePrompt from '@/components/update/UpdatePrompt.vue'
 import { useNavigationCatalog, visibleModules } from './navigation'
 import { iconOf } from './navigationIcons'
 import { probeServer, useNetworkStatus } from './network'
+import { entryRoute, lockLocalProfile, vaultNeedsUnlock } from './services/localIdentity'
+import { identityDiverges, vaultView } from './services/vault'
 import {
   currentPermissions,
   enabledModules,
@@ -46,15 +49,30 @@ const router = useRouter()
 const catalog = useNavigationCatalog()
 const { online, serverReachable } = useNetworkStatus()
 
-const signedIn = computed(() => session.status === 'authenticated' && session.account !== null)
+/** Une identité d'action est connue : le compte du serveur, ou, sans serveur, le profil du coffre (D27). */
+const signedIn = computed(
+  () =>
+    (session.status === 'authenticated' || session.status === 'local') && session.account !== null,
+)
+/** Session locale : le profil du coffre fait foi, le serveur n'est pas joint (ou n'a pas de session). */
+const localMode = computed(() => session.status === 'local')
+/** Coffre ouvert dans cet onglet : le poste peut être verrouillé sans quitter le serveur. */
+const vaultOpen = computed(() => vaultView.value.session !== null)
+/** Coffre ouvert au nom d'un autre compte que celui du serveur : rien n'est écrit sur le poste (D27). */
+const diverges = computed(() => identityDiverges())
+/** Aucune identité et un coffre à ouvrir : la coquille métier est démontée, seul le déverrouillage reste (D14). */
+const unlockRequired = computed(() => vaultNeedsUnlock())
 /** Session perdue pendant le travail : l'écran et ses saisies restent, la reconnexion se fait sur place. */
 const sessionExpired = computed(() => session.status === 'expired' && route.meta.public !== true)
 const reconnecting = ref(false)
-const modules = computed(() =>
-  signedIn.value && route.meta.public !== true
-    ? visibleModules(currentPermissions.value, enabledModules.value, catalog.modules)
-    : [],
-)
+const modules = computed(() => {
+  if (!signedIn.value || route.meta.public === true) return []
+  const visible = visibleModules(currentPermissions.value, enabledModules.value, catalog.modules)
+  // Session locale : seuls les modules dont l'écran d'entrée sait travailler sans le serveur.
+  return localMode.value
+    ? visible.filter((module) => router.resolve(module.path).meta.offlineCapable === true)
+    : visible
+})
 const shortcuts = computed(() => modules.value.filter((module) => module.mobileShortcut))
 const others = computed(() => modules.value.filter((module) => !module.mobileShortcut))
 
@@ -89,13 +107,25 @@ function skipToContent(): void {
 const SESSION_RETRY_MS = 30_000
 
 async function recheckSession(): Promise<void> {
-  if (session.status !== 'unverified') return
+  if (session.status !== 'unverified' && session.status !== 'local') return
   const status = await refreshSession().catch(() => session.status)
-  // Aucun compte n'a jamais été connu sur cet écran (donc aucune saisie à protéger) : la connexion
-  // s'ouvre. Une session expirée, elle, laisse l'écran et ses saisies en place (bannière).
+  // Aucun compte n'a jamais été connu sur cet écran (donc aucune saisie à protéger) : l'entrée s'ouvre
+  // (déverrouillage du poste s'il a un coffre, sinon connexion). Une session expirée, elle, laisse l'écran et
+  // ses saisies en place (bannière). La session locale, elle, n'est jamais quittée par cette relecture.
   if (status === 'anonymous' && route.meta.public !== true) {
-    await router.push({ name: 'connexion', query: route.path === '/' ? {} : { suite: route.path } })
+    await router.push(entryRoute(route.path))
   }
+}
+
+/** Coffre verrouillé (inactivité, autre onglet, bouton) sans identité : la coquille est démontée (D14). */
+watch(unlockRequired, (required) => {
+  if (required && route.meta.public !== true) void router.push(entryRoute(route.path))
+})
+
+/** Verrouille le poste sans quitter la session du serveur ; sans identité, l'écran de déverrouillage s'ouvre. */
+async function lockStation(): Promise<void> {
+  await lockLocalProfile('USER')
+  if (vaultNeedsUnlock()) await router.push(entryRoute('/'))
 }
 
 watch(online, (isOnline) => {
@@ -120,7 +150,7 @@ watchEffect((onCleanup) => {
 })
 
 watchEffect((onCleanup) => {
-  if (session.status !== 'unverified') return
+  if (session.status !== 'unverified' && session.status !== 'local') return
   const timer = setInterval(() => void recheckSession(), SESSION_RETRY_MS)
   onCleanup(() => clearInterval(timer))
 })
@@ -158,8 +188,12 @@ async function logout(): Promise<void> {
   if (isNavigationFailure(left, NavigationFailureType.aborted)) return
   loggingOut.value = true
   try {
-    await signOut()
-    await router.push({ name: 'connexion' })
+    // D15 : le verrouillage local passe en premier, sans réseau. En session locale, il n'y a pas de session serveur à
+    // fermer : le poste se verrouille et s'arrête là. Sinon la déconnexion du serveur suit, et elle seule confirme.
+    const serverSession = session.status !== 'local'
+    if (vaultOpen.value) await lockLocalProfile('LOGOUT')
+    if (serverSession) await signOut()
+    await router.push(entryRoute('/'))
   } catch {
     logoutError.value =
       'Déconnexion impossible : le serveur n’a pas confirmé la fermeture. La session reste ouverte sur ce poste ; réessayez quand la connexion revient.'
@@ -255,6 +289,30 @@ const initials = computed(() =>
           <NetworkStatus />
           <SyncStatus />
           <p
+            v-if="localMode"
+            role="status"
+            class="flex items-center gap-1 text-sm font-medium text-warning"
+          >
+            <span aria-hidden="true">○</span><span>Profil local : serveur non joint</span>
+          </p>
+          <RouterLink
+            v-if="localMode && online"
+            :to="{ name: 'connexion' }"
+            class="inline-flex min-h-11 items-center rounded-lg px-2 text-sm font-medium text-primary underline underline-offset-4 hover:bg-primary-soft"
+            >Se connecter au serveur</RouterLink
+          >
+          <p
+            v-if="diverges"
+            role="alert"
+            class="flex items-center gap-1 text-sm font-medium text-danger"
+          >
+            <span aria-hidden="true">⚠</span
+            ><span
+              >Le coffre est ouvert au nom d’un autre compte que celui du serveur : rien n’est
+              enregistré sur le poste. Verrouillez le poste.</span
+            >
+          </p>
+          <p
             v-if="sessionExpired"
             role="status"
             class="flex items-center gap-1 text-sm font-medium text-warning"
@@ -268,12 +326,11 @@ const initials = computed(() =>
         </div>
         <div
           v-if="signedIn && session.account"
-          class="order-4 flex w-full items-center justify-between gap-2 border-t border-line pt-2 sm:w-auto sm:justify-end sm:border-t-0 sm:pt-0"
+          class="order-4 flex w-full flex-wrap items-center justify-between gap-2 border-t border-line pt-2 sm:w-auto sm:justify-end sm:border-t-0 sm:pt-0"
         >
-          <RouterLink
-            :to="{ name: 'aide' }"
-            class="inline-flex min-h-11 items-center gap-1.5 rounded-lg px-2 text-sm font-medium text-primary underline underline-offset-4 hover:bg-primary-soft"
-            ><AppIcon name="help" :size="18" />Aide</RouterLink
+          <HelpLauncher />
+          <AppButton v-if="vaultOpen" variant="ghost" @click="lockStation"
+            ><AppIcon name="lock" :size="18" />Verrouiller le poste</AppButton
           >
           <AppButton
             variant="ghost"
@@ -322,7 +379,8 @@ const initials = computed(() =>
         </div>
         <!-- Nouvelle version proposée, jamais imposée (O06). -->
         <UpdatePrompt class="mb-4" />
-        <RouterView />
+        <!-- Coffre verrouillé sans identité : la coquille métier est démontée, seul le déverrouillage reste (D14). -->
+        <RouterView v-if="!unlockRequired || route.meta.public === true" />
       </main>
     </div>
 

@@ -15,7 +15,7 @@
  * gérante).
  */
 import { computed } from 'vue'
-import { RouterLink } from 'vue-router'
+import { RouterLink, useRouter } from 'vue-router'
 
 import { clinicToday, formatDayFr } from '@/app/clinicTime'
 import {
@@ -30,6 +30,7 @@ import {
 } from '@/app/navigation'
 import { iconOf } from '@/app/navigationIcons'
 import { useNetworkStatus } from '@/app/network'
+import { offlineRefusal } from '@/app/services/localIdentity'
 import { currentPermissions, enabledModules, session } from '@/app/session'
 import logoUrl from '@/assets/brand/eeo-logo.svg'
 import StateMessage from '@/components/feedback/StateMessage.vue'
@@ -38,10 +39,20 @@ import EmptyState from '@/components/layout/EmptyState.vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
 
 const catalog = useNavigationCatalog()
+const router = useRouter()
 const { serverReachable } = useNetworkStatus()
-const actions = computed(() =>
-  visibleHomeActions(currentPermissions.value, enabledModules.value, catalog.homeActions),
-)
+const localMode = computed(() => session.status === 'local')
+const actions = computed(() => {
+  if (!localMode.value) {
+    return visibleHomeActions(currentPermissions.value, enabledModules.value, catalog.homeActions)
+  }
+  // Session locale (profil du coffre) : seules les actions dont l'écran sait travailler sans le serveur ; la liste des
+  // modules ouverts par le serveur n'est pas connue ici, les droits signés du grant décident.
+  const everyModule = [...catalog.modules, ...catalog.homeActions].map(moduleOf)
+  return visibleHomeActions(currentPermissions.value, everyModule, catalog.homeActions).filter(
+    (action) => router.resolve(action.path).meta.offlineCapable === true,
+  )
+})
 // Écran livré ET ouvert par l'exploitant : un module terminé mais pas encore ouvert (mise en service
 // progressive) ne compte pas, l'accueil ne parle alors ni de droits ni de menu.
 const anyOpen = computed(() =>
@@ -108,6 +119,18 @@ const workGroups = computed<{ group: WorkGroup; label: string; shortcuts: WorkSh
 
     <TodaySummary v-if="session.status === 'authenticated'" />
 
+    <StateMessage v-if="localMode" state="offline" title="Poste hors serveur : profil local">
+      Vous travaillez avec le profil de ce poste : le serveur n’est pas joint (ou n’a pas de session
+      ouverte). Seuls les écrans qui savent travailler sur le poste sont ouverts ; ce que vous
+      enregistrez reste sur ce poste et part au serveur dès que vous vous y connectez.
+      <template v-if="offlineRefusal !== null">
+        <strong
+          >« {{ offlineRefusal }} » demande le serveur : cet écran n’est pas ouvert hors
+          ligne.</strong
+        >
+      </template>
+    </StateMessage>
+
     <StateMessage v-if="session.status === 'expired'" state="offline" title="Session expirée">
       Votre session a pris fin. Reconnectez-vous avec le bouton de l’en-tête : vos saisies en cours
       restent à l’écran.
@@ -140,6 +163,15 @@ const workGroups = computed<{ group: WorkGroup; label: string; shortcuts: WorkSh
         </li>
       </ul>
     </nav>
+
+    <EmptyState
+      v-else-if="localMode"
+      title="Aucune action ouverte hors serveur à ce profil"
+      icon="info"
+    >
+      L’autorisation de ce profil sur le poste est absente ou expirée, ou aucun écran hors serveur
+      n’est ouvert à ses droits. Connectez-vous au serveur pour renouveler l’autorisation du poste.
+    </EmptyState>
 
     <EmptyState v-else-if="anyOpen" title="Aucune action d’accueil ouverte à ce compte" icon="info">
       <template v-if="menuModules.length > 0"

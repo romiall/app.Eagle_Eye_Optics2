@@ -9,8 +9,10 @@
  * Enregistrement EN LIGNE : la fiche n'est dite enregistrée qu'après la réponse du serveur
  * (« Synchronisé avec le serveur »), qui attribue le numéro de dossier. Sans réponse, la saisie
  * reste à l'écran et « Réessayer l'enregistrement » reprend la même commande avec la même clé
- * d'idempotence : jamais deux fiches pour une seule saisie. Aucun « Enregistré sur ce poste » avant
- * que le coffre local (O01 à O05) existe.
+ * d'idempotence : jamais deux fiches pour une seule saisie. Sur un poste préparé dont le serveur ne
+ * répond pas, la fiche est enregistrée dans le coffre local (« Enregistré sur ce poste », jamais
+ * « Synchronisé ») et « Ouvrir la fiche » l'ouvre sur le poste, sans le serveur. La recherche des
+ * fiches proches exige toujours le serveur : sans lui, la création sans vérification est confirmée.
  */
 import { computed, nextTick, ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
@@ -29,6 +31,7 @@ import StateMessage from '@/components/feedback/StateMessage.vue'
 import PageHeader from '@/components/layout/PageHeader.vue'
 import DuplicateSuggestions from '@/components/patients/DuplicateSuggestions.vue'
 import AppButton from '@/components/ui/AppButton.vue'
+import AppIcon from '@/components/ui/AppIcon.vue'
 import LinkButton from '@/components/ui/LinkButton.vue'
 import {
   type DuplicateReport,
@@ -49,7 +52,7 @@ const MAX_SUGGESTIONS = 10
 
 type Confirmation =
   | { kind: 'found'; report: DuplicateReport; values: PatientIdentity }
-  | { kind: 'unavailable'; values: PatientIdentity }
+  | { kind: 'unavailable'; values: PatientIdentity; offline: boolean }
 
 const router = useRouter()
 const mutation = useMutation()
@@ -63,6 +66,8 @@ const { form, summary, summaryBox, errors, validate, applyServerFailure } = useP
 
 const checking = ref(false)
 const saved = ref(false)
+/** Fiche enregistrée SUR ce poste (poste préparé, serveur non joint) : son identifiant ouvre la fiche sans le serveur. */
+const localPatientId = ref<string | null>(null)
 const confirmation = ref<Confirmation | null>(null)
 /** Ressemblance déjà confirmée pour cette identité : pas de seconde confirmation à l'envoi suivant. */
 let acknowledged: string | null = null
@@ -111,7 +116,7 @@ async function findSimilar(values: PatientIdentity): Promise<Confirmation | null
     if (error instanceof ApiError && (error.status === 401 || error.status === 419)) {
       void revalidateSession().catch(() => undefined)
     }
-    return { kind: 'unavailable', values }
+    return { kind: 'unavailable', values, offline: error instanceof NetworkUnavailable }
   }
 }
 
@@ -147,6 +152,7 @@ async function afterOutcome(result: MutationOutcome): Promise<void> {
     case 'saved-local':
       // Commit local durable (poste préparé, O04) : rien n'est dit « synchronisé ».
       saved.value = true
+      localPatientId.value = mutation.effectId('patient_id')
       return
     case 'refused':
       applyServerFailure(result.error)
@@ -217,12 +223,11 @@ async function retry(): Promise<void> {
     <PageHeader title-id="titre-nouveau-patient" title="Nouveau patient" icon="user-plus">
       <p class="max-w-prose text-base text-muted">
         Ne créez une fiche que si le patient n’existe pas déjà<template v-if="canSearch">
-          (<RouterLink
-            to="/patients"
-            class="text-link inline-flex min-h-11 items-center font-semibold"
+          (<RouterLink to="/patients" class="text-link py-2.5 font-semibold"
             >chercher dans la liste</RouterLink
           >)</template
-        >. Le numéro de dossier est attribué par le serveur à l’enregistrement.
+        >. Le numéro de dossier est attribué à l’enregistrement : par le serveur, ou, sur un poste
+        préparé sans connexion, pris dans la plage de ce poste.
       </p>
     </PageHeader>
 
@@ -245,9 +250,15 @@ async function retry(): Promise<void> {
           type="submit"
           :pending="busy"
           :pending-label="checking ? 'Vérification en cours…' : 'Enregistrement en cours…'"
-          >Enregistrer le patient</AppButton
+          ><AppIcon name="check" :size="18" />Enregistrer le patient</AppButton
         >
-        <LinkButton to="/patients" variant="secondary">Annuler</LinkButton>
+        <LinkButton
+          v-if="localPatientId !== null"
+          :to="{ name: 'patient', params: { id: localPatientId } }"
+          variant="secondary"
+          >Ouvrir la fiche</LinkButton
+        >
+        <LinkButton v-else to="/patients" variant="secondary">Annuler</LinkButton>
         <SaveStatus :state="saveState" :at="recordedAt" :time-zone="timeZone" />
       </div>
     </form>
@@ -276,6 +287,11 @@ async function retry(): Promise<void> {
           :more="confirmation.report.more"
         />
       </template>
+      <p v-else-if="confirmation?.offline">
+        La recherche de fiches proches n’a pas pu être faite : le serveur n’est pas joignable (pas
+        de connexion). Créer le patient sans cette vérification peut produire un doublon ; vérifiez
+        la liste des patients au retour de la connexion.
+      </p>
       <p v-else>
         La recherche de fiches proches n’a pas pu être faite : le serveur n’a pas répondu comme
         attendu. Créer le patient sans cette vérification peut produire un doublon.

@@ -1,0 +1,41 @@
+# Prompt de reprise après la session « CI verte de G1 » (2026-10-28) — OBSOLÈTE, remplacé par `reprise-apres-deverrouillage.md`
+
+Remplace `reprise-apres-g1.md` (obsolète). À coller dans une NOUVELLE discussion Claude Code ouverte sur le dossier local du projet (poste Windows).
+
+```text
+Tu reprends, sur ma machine locale (Claude Code, poste Windows), le développement de l'application Eagle's Eye Optics Medical (cabinet d'optique : patients, consultations, ventes, caisse, stock). Réponds en français. Lis d'abord CLAUDE.md, puis va droit aux fichiers cités ci-dessous : ne relis pas le dépôt.
+
+ÉTAT AU 2026-10-28 (fin de la session qui a consigné la CI verte de G1)
+- Dépôt de travail : https://github.com/romiall/app.Eagle_Eye_Optics2 (public ; ex-…Optics1, l'ancienne adresse redirige). Remotes : `origin` = ce dépôt ; `ancien` = l'ancien dépôt (ne rien y pousser).
+- PR #1 (`claude/parcours-hors-ligne` vers `main`, O05) et PR #2 (`claude/reprise-poste` vers `claude/parcours-hors-ligne`, O07) : ouvertes, sans conflit, CI verte (runs 40247535133 et 40286960787), NON fusionnées à la rédaction ; à revérifier au démarrage.
+- Chantier G1 : branche `claude/preuve-g1` (empilée sur `claude/reprise-poste` ; elle porte les commits de #1, de #2 et de G1 ; il lui manque le seul commit `966b5a8` de `main`, les originaux de la cliente, sans recoupement avec le code). CI VERTE : run 40688709991 sur `dd41316` (PHP, Frontend, E2E : 62 parcours dont `first-slice.spec.ts`). Deux commits de documentation (run consigné dans docs/evidence/G1.md, task-status.json, progress.md, CLAUDE.md ; prompt de reprise) ont été poussés ensuite sur la même branche. PR vers `main` à ouvrir à la main (gh n'est pas installé) : https://github.com/romiall/app.Eagle_Eye_Optics2/pull/new/claude/preuve-g1 ; sa différence se réduira aux 3 commits de G1 une fois #1 et #2 fusionnées.
+- G1 est prouvé en local sur la tranche de base (acompte 30 000 puis solde 50 000 sans réseau, PDF locaux, fermeture complète, ACK perdu rejoué) ; statut IN_REVIEW. Deux écarts à la lettre de AT36 et AT37 attendent mon arbitrage (docs/evidence/G1.md, « Écarts et limites ») : (1) la facture est encore émise EN LIGNE puis attribuée au poste, les écrans patient et facture relisent le serveur ; (2) il n'y a pas d'écran public de déverrouillage hors ligne (D14 et D27 de docs/implementation/vault.md) : le démarrage du navigateur SANS réseau n'est pas prouvé.
+- Mise en ligne Hostinger (H01) : jamais exécutée, archive et procédure prêtes (docs/implementation/deploiement.md). Moi seul agis sur le serveur : je lance `php artisan eeo:preflight` en SSH et je te transmets le résultat. Garder le JIT d'OPcache désactivé. Module `offline` FERMÉ en production jusqu'à G2.
+- Informations de la cliente reçues (docs/implementation/progress.md, « Réponses de la cliente ») : horaires, carnets à zéro, références administratives. Ces dernières sont hors dépôt (fichiers ignorés par git à la racine du dossier) : ne jamais les committer ni les recopier.
+
+À FAIRE EN PREMIER, DANS L'ORDRE
+1. `git status`, `git fetch --all --prune`, puis l'état des PR et le dernier run CI de `claude/preuve-g1` par l'API publique (/repos/romiall/app.Eagle_Eye_Optics2/actions/runs?branch=claude/preuve-g1 ; annotations des jobs lisibles sans compte ; limite de 60 requêtes par heure sans compte : espace les appels). Les commits de documentation poussés après `dd41316` (le dernier surtout) doivent aussi être verts ; sinon corrige d'après les annotations (piste connue : `device-recovery.spec.ts` est intermittent en local, « Conflits à revoir : 1 »).
+2. Si les PR #1 et #2 sont fusionnées, rattache `claude/preuve-g1` à `main` après mon accord (fusion de `origin/main` dans la branche, pas de rebase : les commits sont publiés ; aucun conflit attendu), puis vérifie la CI. Sinon rappelle-moi l'ordre : #1 avec « Create a merge commit », changer la base de #2 vers `main`, fusionner #2, puis ouvrir la PR de `claude/preuve-g1` vers `main`.
+3. Demande-moi l'arbitrage ci-dessous si je ne l'ai pas déjà donné.
+
+ARBITRAGES EN ATTENTE (ma décision, à compléter avant de coller ; sinon demande-la-moi en premier)
+- G1 vers DONE : [ ] maintenant, écarts 1 et 2 déclarés et reportés à G2 (option b : O06 devient possible, son prérequis est G1) ; [ ] seulement après avoir levé les écarts (option a, recommandée : G1 reste IN_REVIEW d'ici là).
+- Chantier : [ ] H01 (je transmets le résultat du preflight ci-dessous) ; [ ] (a) lever les écarts, dans l'ordre (a2) puis (a1) ; [ ] (b) O06 puis G2.
+- Résultat du preflight Hostinger (s'il existe) : …
+
+ESTIMATION DES CHANTIERS (unité = le chantier G1 : 15 fichiers, +1 169 lignes dont 362 de test e2e, une vérification complète ; O07 ≈ 1 unité)
+- (a2) Écran public de déverrouillage hors ligne (D14 et D27 : état du coffre, route publique avant la connexion, identité d'action unique, issue `vault-locked`, coquille métier démontée) et démarrage du navigateur SANS réseau (AT36 à la lettre) : ≈ 1,5 unité, risque ÉLEVÉ (routeur, identité, cache du service worker).
+- (a1) Lecture locale des écrans hors ligne (fiche patient, liste et recherche, catalogue, création et lecture d'une facture ; seule `InvoiceDetails.vue` lit le coffre à ce jour) et création de facture SANS réseau (AT37 à la lettre) : ≈ 2 unités, risque MOYEN À ÉLEVÉ (une dizaine d'écrans à inventorier d'abord).
+- (b) O06 (mises à jour PWA et schéma local ; code partiel sous `resources/frontend/offline/update/` et `migrations/`, tests `update.test.ts` et `migrations.test.ts`, statut NOT_STARTED) ≈ 1 à 1,5 unité, risque ÉLEVÉ ; puis G2 ≈ 2 unités (concurrence, quotas de stock, deux onglets, poste non propriétaire, horloge truquée) ; U01 ≈ 1 unité plus appareils et imprimante réels (dépend de moi) ; G3 ≈ 2 unités (AT01 à AT29 et AT36 à AT45) ; G4 après H01.
+- Ordre recommandé : H01 dès que j'ai transmis le preflight ; sinon (a2) puis (a1), qui figurent parmi les restes listés dans vault.md (« Reste à faire après O05 ») et que G2 exige de toute façon, puis O06 (AT45 : profil verrouillé et réouverture après mise à jour) et G2. Aucune ouverture du module `offline` avant G2.
+
+RÈGLES
+- Données fictives seulement (dépôt public) ; aucun secret ni .env versionné ; originaux Word et PDF jamais modifiés ; tests SQL sur une base eeo_*_test uniquement ; ne jamais lancer `playwright install` ; module `offline` fermé en production jusqu'à G2 ; ne jamais inventer prix, taxes, identité légale ni séries de numéros.
+- Une branche `claude/…` par chantier, poussée sur `origin`, une PR vers `main`, CI verte avant de me rendre la main. Demande-moi avant toute action irréversible : fusion de PR, `git push --force`, suppression de branche, action sur le serveur Hostinger.
+- Économie de jetons : code une phase entière, puis UNE vérification transversale (bash tools/dev/phase-check.sh --with-e2e, ou les suites séparées) ; ne relis pas tout le dépôt ; si la session devient longue, arrête-toi et rédige un nouveau prompt de reprise dans docs/prompts/.
+- Poste Windows (CLAUDE.md, « Travail en local sous Windows ») : MySQL de test par `powershell -ExecutionPolicy Bypass -File tools/dev/mysql-windows.ps1 -Action start` ; chaque appel Bash repart sans variables, donc exporter dans la même commande EEO_TEST_DB_PORT=3316, OPENSSL_CONF='C:\php84\extras\ssl\openssl.cnf' et PLAYWRIGHT_CHROMIUM_EXECUTABLE='C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe' ; écris les scripts de patch avec l'outil d'écriture de fichiers (les heredocs bash écrasent les barres obliques inverses) ; si les originaux Word et PDF disparaissent après un changement de branche, restaure-les avec `git restore --source=<branche qui les suit> --worktree -- ':(glob)*.docx' ':(glob)*.pdf'`.
+- Fins de ligne : CLAUDE.md et docs/implementation/progress.md sont en CRLF dans la copie de travail (autocrlf) : modifie-les avec des `old_string` d'une seule ligne et ne normalise rien. Prettier ignore `docs`, `*.md` et `.github` : un commit de documentation ne peut pas faire échouer `format:check`.
+
+À LA FIN
+PR ouverte vers `main` (ou lien prêt si je dois l'ouvrir), CI verte, puis un résumé court en français (ce qui est prouvé, ce qui reste, ce dont tu as besoin de moi) et un nouveau prompt de reprise enregistré dans docs/prompts/.
+```

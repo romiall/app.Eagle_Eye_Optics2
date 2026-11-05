@@ -144,6 +144,29 @@ final class PrescriptionController extends CommandController
         return $this->respond($this->actor($request), $id, 200);
     }
 
+    /**
+     * Suppression d'un brouillon (en ligne seulement), avec le jeton `expected_updated_at` comme la modification. La
+     * prescription n'existe plus après la commande : la réponse rend le résultat de la commande, jamais une relecture.
+     */
+    public function delete(Request $request, string $id): JsonResponse
+    {
+        [$payload, $expected] = $this->directBody($request);
+        $errors = [];
+        if (($payload['prescription_id'] ?? null) !== $id) {
+            $errors['prescription_id'] = ['L\'identifiant de la prescription du corps doit être celui de l\'adresse.'];
+        }
+        if ($expected !== null) {
+            $errors['expected_version'] = ['Une prescription brouillon n\'a pas de version : le jeton est expected_updated_at.'];
+        }
+        if ($errors !== []) {
+            throw BusinessError::validation($errors);
+        }
+
+        $result = $this->dispatchCommand($request, new Command('DeletePrescriptionDraft', $payload, $id, null));
+
+        return new JsonResponse(['data' => $result->result]);
+    }
+
     /** Validation : version immuable et document préparé. */
     public function validatePrescription(Request $request, string $id): JsonResponse
     {

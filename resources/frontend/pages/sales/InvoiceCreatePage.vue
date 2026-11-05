@@ -11,7 +11,7 @@ import { computed, ref, shallowRef, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { getPatient, searchPatients } from '@/app/services/patients'
-import { canOnScreen, moduleOpenOnScreen } from '@/app/session'
+import { canOnScreen, moduleOpenOnScreen, session } from '@/app/session'
 import StateMessage from '@/components/feedback/StateMessage.vue'
 import ComboboxField, {
   type ComboboxOption,
@@ -74,7 +74,8 @@ const living = computed(
 )
 
 async function search(query: string): Promise<ComboboxSearchResult> {
-  const result = await searchPatients(query)
+  // Serveur injoignable : les fiches de CE poste répondent (jamais un « aucun patient » affirmé).
+  const result = await searchPatients(query, 1, { includeLocal: true })
   const options: ComboboxOption[] = result.data.data
     .filter((summary) => !summary.archived && summary.merged_into_patient_id === null)
     .map((summary) => ({
@@ -133,6 +134,15 @@ async function onCreated(invoice: Invoice): Promise<void> {
       @created="onCreated"
     />
 
-    <LinkButton :to="{ name: 'factures' }" variant="ghost">Retour aux factures</LinkButton>
+    <!-- Session locale : la liste des factures demande le serveur, le retour va à la fiche du patient. -->
+    <LinkButton v-if="session.status !== 'local'" :to="{ name: 'factures' }" variant="ghost"
+      >Retour aux factures</LinkButton
+    >
+    <LinkButton
+      v-else-if="patientId"
+      :to="{ name: 'patient', params: { id: patientId } }"
+      variant="ghost"
+      >Retour à la fiche du patient</LinkButton
+    >
   </section>
 </template>

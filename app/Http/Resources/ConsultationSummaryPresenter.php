@@ -25,6 +25,7 @@ final class ConsultationSummaryPresenter
             'effective_at' => self::instant((string) $row->effective_at),
             'completed_at' => $row->completed_at === null ? null : self::instant((string) $row->completed_at),
             'current_revision' => (int) $row->current_revision,
+            'version' => (int) $row->version,
             'patient' => [
                 'id' => (string) $row->patient_id,
                 'record_number' => (string) $row->patient_record_number,

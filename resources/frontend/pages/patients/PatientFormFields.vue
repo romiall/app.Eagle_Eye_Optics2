@@ -62,8 +62,11 @@ defineExpose({
   commit: (): boolean => dateField.value?.commit() ?? true,
 })
 
-/** Légende d'un groupe : pastille d'icône dorée décorative, puis le titre de la carte. */
-const LEGEND = 'mb-5 p-0 text-lg font-semibold text-ink'
+/**
+ * Légende d'un groupe : pastille d'icône dorée décorative, puis le titre de la carte, sur un filet
+ * qui porte un court segment doré (`.form-legend`, base.css).
+ */
+const LEGEND = 'form-legend'
 const BADGE =
   'mr-3 inline-flex size-9 items-center justify-center rounded-lg bg-gold-soft align-middle text-gold-ink'
 </script>
@@ -71,7 +74,7 @@ const BADGE =
 <template>
   <div class="space-y-6">
     <SectionCard>
-      <fieldset class="m-0 min-w-0 border-0 p-0">
+      <fieldset class="min-w-0">
         <legend :class="LEGEND">
           <span aria-hidden="true" :class="BADGE"><AppIcon name="id-card" :size="18" /></span
           >Identité
@@ -132,7 +135,7 @@ const BADGE =
     </SectionCard>
 
     <SectionCard>
-      <fieldset class="m-0 min-w-0 border-0 p-0">
+      <fieldset class="min-w-0">
         <legend :class="LEGEND">
           <span aria-hidden="true" :class="BADGE"><AppIcon name="phone" :size="18" /></span>Contact
         </legend>
@@ -143,6 +146,7 @@ const BADGE =
             :control-id="FIELD_IDS.phonePrimary"
             type="tel"
             inputmode="tel"
+            icon="phone"
             hint="Un même téléphone peut servir à plusieurs patients."
             :error="props.errors.phonePrimary ?? null"
             :disabled="props.disabled"
@@ -154,6 +158,7 @@ const BADGE =
             :control-id="FIELD_IDS.phoneSecondary"
             type="tel"
             inputmode="tel"
+            icon="phone"
             :error="props.errors.phoneSecondary ?? null"
             :disabled="props.disabled"
             @update:model-value="update('phoneSecondary', $event)"
@@ -174,7 +179,7 @@ const BADGE =
     </SectionCard>
 
     <SectionCard>
-      <fieldset class="m-0 min-w-0 border-0 p-0">
+      <fieldset class="min-w-0">
         <legend :class="LEGEND">
           <span aria-hidden="true" :class="BADGE"><AppIcon name="map-pin" :size="18" /></span>Autres
           informations

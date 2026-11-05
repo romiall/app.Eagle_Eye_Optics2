@@ -24,6 +24,7 @@ import type { QuotePage, QuotesStatus } from '@/domain/contracts/generated'
 import { isUlid } from '@/domain/values/ulid'
 import { useServerRead } from '@/pages/today/useServerRead'
 
+import { takeSalesFlash } from './flash'
 import { formatMoney } from './format'
 import SalesReadMessage from './SalesReadMessage.vue'
 
@@ -38,6 +39,8 @@ const STATUSES: readonly QuotesStatus[] = [
 
 const route = useRoute()
 const timeZone = clinicTimeZone()
+/** Résultat de l'écran précédent (« Le brouillon de devis a été supprimé. »), lu une seule fois. */
+const flash = takeSalesFlash()
 
 const presetPatient = (() => {
   const value = route.query['patient']
@@ -89,6 +92,8 @@ const newQuoteLink = computed(() =>
       Un devis est une proposition remise au client : il ne vaut pas facture, n’enregistre aucun
       règlement et ne réserve aucun article. La facture naît seulement d’une conversion explicite.
     </p>
+
+    <StateMessage v-if="flash" state="success" :title="flash" />
 
     <form
       role="search"

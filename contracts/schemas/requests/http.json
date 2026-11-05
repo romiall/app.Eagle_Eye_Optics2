@@ -1643,6 +1643,84 @@
         }
       }
     },
+    "DeletePrescriptionDraftRequest": {
+      "description": "Suppression d'un brouillon de prescription : jeton de concurrence expected_updated_at lu avec la prescription (elle n'a pas de colonne version, expected_version vaut null). Refusée (409) si la prescription est validée ou déjà utilisée par une facture, une commande d'atelier ou un document.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_version",
+        "prescription_id",
+        "expected_updated_at"
+      ],
+      "properties": {
+        "expected_version": {
+          "type": "null"
+        },
+        "prescription_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "expected_updated_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        }
+      }
+    },
+    "DeleteQuoteDraftRequest": {
+      "description": "Suppression d'un brouillon de devis jamais émis : version du brouillon attendue. Refusée (409) pour un devis émis, accepté, refusé, expiré ou converti ; son créateur ou la gérante seulement.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_version",
+        "quote_id"
+      ],
+      "properties": {
+        "expected_version": {
+          "$ref": "../../schemas/common.json#/$defs/Version"
+        },
+        "quote_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        }
+      }
+    },
+    "CancelFollowUpRequest": {
+      "description": "Annulation d'un contrôle recommandé encore actif : version du contrôle attendue, motif obligatoire (3 à 1 000 caractères, conservé dans l'audit). Refusée (409) si un rendez-vous le programme, s'il est déjà annulé ou clos.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_version",
+        "follow_up_plan_id",
+        "reason"
+      ],
+      "properties": {
+        "expected_version": {
+          "$ref": "../../schemas/common.json#/$defs/Version"
+        },
+        "follow_up_plan_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 1000
+        }
+      }
+    },
+    "DeleteConsultationDraftRequest": {
+      "description": "Suppression d'un examen resté brouillon (aucune rubrique enregistrée) : version de la consultation attendue. Refusée (409) si l'examen est en cours ou terminé, ou si une prescription validée, un contrôle recommandé ou une rubrique clinique y est rattaché.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_version",
+        "consultation_id"
+      ],
+      "properties": {
+        "expected_version": {
+          "$ref": "../../schemas/common.json#/$defs/Version"
+        },
+        "consultation_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        }
+      }
+    },
     "CancelVisitRequest": {
       "description": "Annulation d'une visite avant l'examen (P03) : version de la visite attendue, motif obligatoire (information d'accueil seulement, conservé dans l'audit). Refusée si l'examen a démarré ou si une facture non abandonnée est liée à la visite.",
       "type": "object",

@@ -65,6 +65,20 @@ final class QuoteController extends CommandController
         return $this->versioned($request, $id, 'UpdateQuoteDraft');
     }
 
+    /**
+     * Suppression d'un brouillon jamais émis : le devis n'existe plus après la commande, la réponse rend le résultat de
+     * la commande (jamais une relecture) ; le rejeu de la même clé rend la même réponse.
+     */
+    public function delete(Request $request, string $id): JsonResponse
+    {
+        [$payload, $expected, $present] = $this->directBody($request);
+        $this->assertSameQuote($payload, $id, $present);
+
+        $result = $this->dispatchCommand($request, new Command('DeleteQuoteDraft', $payload, $id, $expected));
+
+        return new JsonResponse(['data' => $result->result]);
+    }
+
     public function issue(Request $request, string $id): JsonResponse
     {
         return $this->versioned($request, $id, 'IssueQuote');

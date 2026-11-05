@@ -1,5 +1,5 @@
 import type { DocumentStore } from '../documents/store/port'
-import type { Preparation } from '../domain/contracts/generated'
+import type { ClinicSummary, Preparation } from '../domain/contracts/generated'
 
 import { storePreparation } from './allocations/allocations'
 import { CommandJournal } from './command-journal/journal'
@@ -21,7 +21,7 @@ import {
   SyncEngine,
   type SyncReport,
 } from './sync/engine'
-import { type PulledRecord, pulledRecord } from './sync/pull'
+import { lastPullAt, type PulledRecord, pulledRecord, pulledRecords } from './sync/pull'
 import type { SyncTransport } from './sync/transport'
 import { type DeviceExport, exportDevice } from './recovery/exportDevice'
 import { type OpenedExport, openExport } from './recovery/openArchive'
@@ -141,6 +141,10 @@ export interface JournalView {
 export interface GrantSummary {
   grantId: string
   userId: string
+  /** Cabinet du grant signé (null si le grant ne le porte pas). */
+  clinicId: string | null
+  /** Permissions figées dans le grant signé : celles de la session locale quand le serveur est injoignable. */
+  permissions: string[]
   compartments: Compartment[]
   validUntil: string
 }
@@ -150,6 +154,12 @@ export interface OfflineVault {
   session(): SessionInfo | null
   profiles(): Promise<ProfileSummary[]>
   deviceId(): Promise<string | null>
+  /** Cabinet auquel ce coffre appartient (identité du coffre, immuable). */
+  clinicId(): Promise<string>
+  /** Retient le résumé du cabinet lu à la dernière session serveur (D27 : session locale sans serveur). */
+  noteClinic(clinic: ClinicSummary): Promise<void>
+  /** Dernier résumé du cabinet retenu ; null s'il manque ou si sa forme est altérée. */
+  clinic(): Promise<ClinicSummary | null>
   prepareVault(input: {
     clinicId: string
     profile: ProfileInput
@@ -192,6 +202,22 @@ export interface OfflineVault {
   sync(options: { transport: SyncTransport }): DeviceSync
   localFacts(compartment: Compartment): Promise<LocalFactRecord[]>
   localHeads(headType: string): Promise<LocalHeadRecord[]>
+  /**
+   * Catalogue et règles fiscales FIGÉS remis à la préparation du poste (entité scellée `catalog_snapshot`, compartiment
+   * administratif) : sa valeur brute, ou null s'il n'a jamais été remis. À lire avec `readLocalCatalog`.
+   */
+  catalogSnapshot(): Promise<unknown>
+  /**
+   * Annuaire du poste (A2) : projections du serveur reçues par le pull pour un type d'entité (les `ids` donnés seulement, ou
+   * toutes). Vide si le compartiment est fermé pour la session ; jamais le réseau.
+   */
+  pulledRecords(
+    compartment: Compartment,
+    entityType: string,
+    ids?: readonly string[],
+  ): Promise<PulledRecord[]>
+  /** Instant du dernier pull du compte ouvert (l'annuaire est à jour jusque-là) ; null s'il n'y en a jamais eu. */
+  lastPullAt(): Promise<string | null>
   onBeforeLock(hook: () => Promise<void> | void): () => void
   touch(): Promise<void>
   checkInactivity(): Promise<string | null>
@@ -253,6 +279,9 @@ export function openOfflineVault(options: OpenOfflineVaultOptions = {}): Offline
     session: () => self().session(),
     profiles: () => self().profiles(),
     deviceId: () => self().deviceId(),
+    clinicId: () => self().clinicId(),
+    noteClinic: (clinic) => self().noteClinic({ ...clinic }),
+    clinic: async () => clinicSummaryOf(await self().clinicSummary()),
     prepareVault: (input) => self().prepareVault(input),
     unlock: (profileId, secret) => self().unlock(profileId, secret),
     lock: (reason) => self().lock(reason),
@@ -273,6 +302,10 @@ export function openOfflineVault(options: OpenOfflineVaultOptions = {}): Offline
       (await self().grants()).map((row) => ({
         grantId: row.grantId,
         userId: row.userId,
+        clinicId: typeof row.claims['clinic_id'] === 'string' ? row.claims['clinic_id'] : null,
+        permissions: Array.isArray(row.claims['permissions'])
+          ? row.claims['permissions'].filter((code): code is string => typeof code === 'string')
+          : [],
         compartments: (Array.isArray(row.claims['compartments'])
           ? row.claims['compartments']
           : []) as Compartment[],
@@ -310,6 +343,11 @@ export function openOfflineVault(options: OpenOfflineVaultOptions = {}): Offline
     },
     localFacts: (compartment) => localFacts(self(), compartment),
     localHeads: (headType) => localHeads(self(), headType),
+    catalogSnapshot: async () =>
+      (await self().getEntity<unknown>('catalog_snapshot', 'current'))?.value ?? null,
+    pulledRecords: (compartment, entityType, ids) =>
+      pulledRecords(self(), compartment, entityType, ids ?? null),
+    lastPullAt: () => lastPullAt(self()),
     onBeforeLock: (hook) => self().onBeforeLock(hook),
     touch: () => self().touch(),
     checkInactivity: () => self().checkInactivity(),
@@ -327,6 +365,46 @@ export function openOfflineVault(options: OpenOfflineVaultOptions = {}): Offline
       self().dispose()
       db.close()
     },
+  }
+}
+
+/** Résumé du cabinet relu depuis le coffre : forme contrôlée, jamais crue (une valeur altérée rend null). */
+function clinicSummaryOf(value: Record<string, unknown> | null): ClinicSummary | null {
+  if (value === null) return null
+  const text = (field: string): string | null =>
+    typeof value[field] === 'string' && value[field] !== '' ? (value[field] as string) : null
+  const id = text('id')
+  const name = text('name')
+  const timezone = text('timezone')
+  const modules = value['enabled_modules']
+  if (id === null || name === null || timezone === null) return null
+  if (!Array.isArray(modules) || !modules.every((code) => typeof code === 'string')) return null
+  if (typeof value['production_documents_enabled'] !== 'boolean') return null
+  return {
+    id,
+    name,
+    timezone,
+    currency: 'XAF',
+    production_documents_enabled: value['production_documents_enabled'],
+    enabled_modules: [...(modules as string[])],
+    exam_fee_control: value['exam_fee_control'] === 'BILLED' ? 'BILLED' : 'OFF',
+  }
+}
+
+/**
+ * Le coffre de CE navigateur existe-t-il déjà ? Répond sans l'ouvrir ni le créer (`indexedDB.databases()`), pour que
+ * l'application décide au démarrage, serveur injoignable compris, d'afficher le déverrouillage (D27). Un navigateur
+ * qui ne sait pas lister ses bases répond non : l'application suit alors le flux d'avant (module ouvert par le serveur).
+ */
+export async function vaultDatabaseExists(
+  factory: IDBFactory | undefined = typeof indexedDB === 'undefined' ? undefined : indexedDB,
+  name: string = VAULT_DB_NAME,
+): Promise<boolean> {
+  if (factory === undefined || typeof factory.databases !== 'function') return false
+  try {
+    return (await factory.databases()).some((database) => database.name === name)
+  } catch {
+    return false
   }
 }
 

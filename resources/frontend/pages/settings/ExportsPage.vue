@@ -132,8 +132,15 @@ function isDownloadable(item: ExportRequest): boolean {
       title-id="titre-exports-demande"
       icon="file-plus"
     >
-      <form class="toolbar" novalidate @submit.prevent="request">
-        <div class="min-w-0 sm:w-80">
+      <!-- Empilé jusqu'à 1024 px : la carte est étroite à côté du menu, et une étiquette qui passe sur
+           deux lignes (polices plus larges, CI Linux) décalerait la saisie du bouton aligné sur elle.
+           Dès 1024 px la liste et le bouton partagent une ligne, le bouton descend de l'étiquette. -->
+      <form
+        class="flex flex-col gap-3 lg:flex-row lg:items-start"
+        novalidate
+        @submit.prevent="request"
+      >
+        <div class="min-w-0 lg:max-w-80 lg:flex-1">
           <SelectField
             v-model="choice"
             label="Contenu de l’export"
@@ -144,7 +151,12 @@ function isDownloadable(item: ExportRequest): boolean {
             required
           />
         </div>
-        <AppButton type="submit" variant="primary" :pending="busy" pending-label="Demande en cours…"
+        <AppButton
+          type="submit"
+          variant="primary"
+          class="sm:self-start lg:mt-(--field-label-offset) lg:self-auto"
+          :pending="busy"
+          pending-label="Demande en cours…"
           >Demander l’export</AppButton
         >
       </form>
