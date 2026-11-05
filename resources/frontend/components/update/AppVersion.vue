@@ -37,7 +37,7 @@ const status = computed<string | null>(() => {
 
 <template>
   <footer
-    class="border-t border-line bg-surface px-4 py-3 pb-20 text-center text-xs text-muted sm:px-6 md:pb-3 print:hidden"
+    class="border-t border-line bg-surface px-4 py-3 pb-20 text-center text-sm text-muted sm:px-6 md:pb-3 print:hidden"
   >
     <p>
       Version de l’application : <span class="font-medium text-ink">{{ versionText }}</span
