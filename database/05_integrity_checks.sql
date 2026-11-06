@@ -2,10 +2,11 @@
 -- Each result set below should contain ZERO rows on a consistent database.
 -- Run as authorized administrator; no patient names or clinical text are selected.
 
--- I01: invoice total and number of lines at emission.
+-- I01: invoice total and number of lines at emission. Native invoices only: a certified paper receivable import
+-- (origin LEGACY_BALANCE) has no article line by design and is checked by I08.
 SELECT 'I01_INVOICE_TOTAL' AS issue,i.clinic_id,i.id
 FROM invoices i LEFT JOIN invoice_lines l ON l.clinic_id=i.clinic_id AND l.invoice_id=i.id
-WHERE i.status='ISSUED' GROUP BY i.clinic_id,i.id,i.total_gross
+WHERE i.status='ISSUED' AND i.origin='NATIVE' GROUP BY i.clinic_id,i.id,i.total_gross
 HAVING COUNT(l.id)=0 OR COALESCE(SUM(l.line_total_gross),0)<>i.total_gross;
 
 -- I02: every confirmed payment has exactly one receipt.

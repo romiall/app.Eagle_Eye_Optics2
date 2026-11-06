@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Billing;
 
+use App\Domain\Operations\RestoreVerifier;
 use App\Domain\Shared\Ulid;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -129,6 +130,32 @@ final class LegacyBalancesTest extends TestCase
         $this->assertSame(0, DB::table('vw_revenue_events')->where('invoice_id', $invoiceId)->count(), 'aucun chiffre d\'affaires');
         $this->assertSame(50000, (int) DB::table('vw_invoice_balances')->where('invoice_id', $invoiceId)->value('amount_due'));
         $this->assertSame(1, DB::table('audit_events')->where('action', 'legacy_balance.imported')->where('target_id', $invoiceId)->count());
+    }
+
+    public function test_une_creance_reprise_n_est_pas_une_anomalie_des_diagnostics_d_integrite(): void
+    {
+        $evidence = $this->evidenceId();
+        $response = $this->import([$this->row(2, 'CARNET-0143')], false, $evidence)->assertCreated();
+        $invoiceId = (string) $response->json('data.created_ids.0');
+        $this->assertSame(0, DB::table('invoice_lines')->where('invoice_id', $invoiceId)->count(), 'une reprise n\'a aucune ligne d\'article');
+
+        // Trouvé par le gate G2 sur les données des parcours : une reprise de créance est une pièce ÉMISE sans ligne, que le
+        // diagnostic I01 (total et lignes d'une facture émise) signalait à tort. Il ne vise que les factures NATIVE ; la reprise a
+        // son diagnostic (I08). Tous les diagnostics versionnés rendent zéro ligne.
+        $issues = [];
+        foreach (RestoreVerifier::diagnostics() as $statement) {
+            foreach (DB::select($statement) as $row) {
+                $issues[] = (string) $row->issue;
+            }
+        }
+        $this->assertSame([], $issues, 'diagnostics : '.implode(', ', $issues));
+
+        // Témoin : sans le filtre NATIVE, la pièce de reprise serait signalée (ce test voit donc bien l'exemption).
+        $i01 = array_values(array_filter(RestoreVerifier::diagnostics(), static fn (string $statement): bool => str_contains($statement, "'I01_INVOICE_TOTAL'")));
+        $this->assertCount(1, $i01);
+        $this->assertStringContainsString("i.origin='NATIVE'", $i01[0]);
+        $unfiltered = DB::select(str_replace(" AND i.origin='NATIVE'", '', $i01[0]));
+        $this->assertSame([$invoiceId], array_map(static fn (object $row): string => (string) $row->id, $unfiltered));
     }
 
     public function test_un_paiement_de_20000_cree_un_recu_et_laisse_30000_dus(): void

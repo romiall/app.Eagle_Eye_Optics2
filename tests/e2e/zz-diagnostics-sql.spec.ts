@@ -29,21 +29,31 @@ test.describe('G2 : diagnostics SQL sur la base des parcours', () => {
     expect(report.facts['receipts'], 'reçus émis par les parcours').toBeGreaterThan(0)
     expect(report.audit_events, 'événements d’audit').toBeGreaterThan(0)
 
-    for (const code of [
+    // Tous les contrôles d'un coup : un échec montre d'emblée chacun de ceux qui ne sont pas à zéro.
+    const strict = [
       'SCHEMA_TABLES',
       'INTEGRITY',
       'SEQUENCES',
       'NUMBERED_DOCUMENTS',
       'AUDIT_HASHES',
       'STORED_FILES',
-    ]) {
-      const check = checks.get(code)
-      expect(check, `contrôle ${code} présent`).toBeDefined()
-      expect(
-        { status: check?.status, count: check?.count, details: check?.details.slice(0, 10) },
-        `${code} : ${check?.label ?? ''}`,
-      ).toEqual({ status: 'PASS', count: 0, details: [] })
-    }
+    ]
+    const observed = Object.fromEntries(
+      strict.map((code) => {
+        const check = checks.get(code)
+        return [
+          code,
+          {
+            status: check?.status ?? 'ABSENT',
+            count: check?.count ?? -1,
+            details: (check?.details ?? []).slice(0, 10),
+          },
+        ]
+      }),
+    )
+    expect(observed).toEqual(
+      Object.fromEntries(strict.map((code) => [code, { status: 'PASS', count: 0, details: [] }])),
+    )
 
     const reconciliation = checks.get('OFFLINE_RECONCILIATION')
     expect(reconciliation, 'contrôle OFFLINE_RECONCILIATION présent').toBeDefined()

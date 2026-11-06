@@ -38,7 +38,7 @@
     "02_reference_data.sql": "df737c320e4678f5515c45ea6b235e4384a925d417f8ebfcc5003e47f69cb670",
     "03_reporting_views.sql": "ce754eceb352c6368090ed4f6efcd842e487246a956ef5cebc1a2f678b6252e7",
     "04_history_guards.sql": "1d75d7d85802dfab4aef68830c5428582eff614acca4234c7f7e479231c95682",
-    "05_integrity_checks.sql": "c3c131e3d1cb90eb888b579c3177ac1e44708681d074bb11cda52cd0636852d0",
+    "05_integrity_checks.sql": "60ac8c082616cb613935ddc3ed8a387d6b046bfffa89dc03af0a7429341b1b16",
     "tests/mysql_metadata_tests.sql": "b106d02a4795b4d7efa81fc167678198524dbc0d1ef3e8fb2617e98a9e920c35",
     "tests/mysql_smoke_tests.sql": "5161988491741547eb3c34aa0a5524513cc128e53afe61dc5c943920c7255cbc",
     "eagle_eye_optics_complet.sql": "62a2726c8c4a52a6adce8020708f52787c34dcbaf1ba8e81553e0ebf9896d589"
