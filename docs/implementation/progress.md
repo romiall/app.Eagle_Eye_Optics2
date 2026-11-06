@@ -4,13 +4,13 @@ Initialisé le 2026-10-14 depuis `specifications/developpement/JOURNAL.md`. Le b
 
 ## État courant
 
-- Branche : `main` (fusion de la pile le 2026-11-05, puis d'O06 et d'O05 le 2026-11-06 ; `claude/o06-mises-a-jour` et `claude/o05-synchronisation` sont SANS OBJET). Dépôt public : données fictives uniquement ; développement sur un poste local depuis le 2026-10-15, une seule session à la fois dans ce dossier.
+- Branche : `claude/r01-finance` (coupée le 2026-11-06 de `origin/main` `2c29218`, qui contient la pile du 2026-11-05 puis O06 et O05). Dépôt public : données fictives uniquement ; développement sur un poste local depuis le 2026-10-15, une seule session à la fois dans ce dossier.
 - Lot et gate visés : L0 ; **G0 acquis** (voir `docs/evidence/G0.md`) ; **G1 DONE** (prouvé le 2026-10-28, arbitré par le demandeur le 2026-10-30 : `docs/evidence/G1.md`) ; prochain gate G2 après O06, O05 et R01.
-- Tâche courante (2026-11-06) : aucune en cours ; la suivante est **R01** « Afficher soldes, caisse et finance avec fraîcheur » (ordre du demandeur : R01, puis G2, U01, G3, G4 ; L1, L2, L3). O06 et O05, faites et en revue (IN_REVIEW), sont fusionnées dans `main` (section « Fusion d'O06 et d'O05 »). Historique : lot 2 vérifié le 2026-10-24 (run 40044078785, commit `cb7a008`), H01 EN LIGNE le 2026-10-27 (`docs/implementation/deploiement.md`).
-- Dernière preuve acquise : CI verte de chaque branche avant la fusion (O06 : run 42112427011 sur `0bbe981` ; O05 : run 42177221745 sur `e5712ba`) ; l'arbre fusionné est jugé par la CI de la branche `claude/fusion-o06-o05`, puis par celle de `main`. Avant : CI verte de `main` après la fusion de la pile (run 42091511738, `70ef9c2`). La validation SQL d'origine (`database/VALIDATION.md`) et G0 restent **distincts d'une recette applicative**.
+- Tâche courante (2026-11-06) : **R01** « Afficher soldes, caisse et finance avec fraîcheur » (faite et en revue, IN_REVIEW : voir la section « R01 » plus bas ; ordre du demandeur : O06, O05, R01, puis G2, U01, G3, G4 ; L1, L2, L3). O06 et O05, en revue elles aussi, sont fusionnées dans `main` (section « Fusion d'O06 et d'O05 »). Historique : lot 2 vérifié le 2026-10-24 (run 40044078785, commit `cb7a008`), H01 EN LIGNE le 2026-10-27 (`docs/implementation/deploiement.md`).
+- Dernière preuve acquise : CI verte de `main` après la fusion d'O06 et d'O05 (run 42181567935 sur `2c29218`, Frontend, PHP et E2E) ; avant : CI verte de `main` après la fusion de la pile (run 42091511738, `70ef9c2`). La validation SQL d'origine (`database/VALIDATION.md`) et G0 restent **distincts d'une recette applicative**.
 - Statut et preuves de chaque tâche : `docs/implementation/task-status.json` (la liste n’est plus recopiée ici).
 - Blocages externes : Q01–Q04/Q14 (production seulement) ; développement fictif possible.
-- Prochaine action concrète : R01, puis les portes G2, U01, G3, G4 (ordre du demandeur du 2026-11-05).
+- Prochaine action concrète : les portes G2, U01, G3, G4 (ordre du demandeur du 2026-11-05) ; fusion de R01 dans `main` sur accord du demandeur.
 
 ## Fusion de la pile dans `main` et début d’O06 (2026-11-05)
 
@@ -19,10 +19,47 @@ Initialisé le 2026-10-14 depuis `specifications/developpement/JOURNAL.md`. Le b
 - **Début d’O06** : branche `claude/o06-mises-a-jour`, coupée de `origin/main` (`70ef9c2`). Point de départ : le code existait déjà en partie (règles `offline/update/updateGate.ts` et `updateCheck.ts`, registre additif `offline/migrations/registry.ts`, bannière `UpdatePrompt.vue`, configuration `pwa.config.ts`, tests Vitest `update.test.ts`, `migrations.test.ts`, `pwa-config.test.ts`), mais aucun critère de sortie n’était prouvé dans un vrai navigateur et la tâche restait NOT_STARTED. Le détail du travail et des preuves s’ajoute ci-dessous au fil du chantier.
 - **Expérience du demandeur à corriger** : le 2026-10-30 il n’a pas vu des corrections livrées en ligne, parce que son navigateur affichait l’ancienne version et que la bannière de mise à jour (en haut de page, sans rappel) n’a été ni comprise ni cliquée. Sans jamais imposer la mise à jour (règle O06), le chantier la rend impossible à manquer et compréhensible.
 
+## R01 — Afficher soldes, caisse et finance avec fraîcheur (2026-11-06)
+
+Troisième tâche de l'ordre du demandeur (O06, O05, R01, puis G2, U01, G3, G4 ; L1, L2, L3), coupée de `origin/main`
+(`2c29218`) : elle dépend d'O05 (fraîcheur des postes). Le code en ligne se limitait à la caisse du jour d'un jour civil ; le
+contrat (fichier 08) prévoyait `FinancialDashboard`, `GET /reports/financial?from&to`, sans l'implémenter. Détail,
+définitions, fraîcheur et écarts : `docs/implementation/billing.md`, « Finance du cabinet sur une période (R01) ».
+**Statut : IN_REVIEW, pas DONE.**
+
+- **Serveur** : `ReportPeriod` (jours civils du cabinet, 366 jours au plus, 422 sinon), `FinancialReports` (chiffre d'affaires =
+  factures émises − avoirs émis ; encaissements = paiements − contre-écritures − remboursements à leur date effective ;
+  créances et crédits à rembourser de toutes périodes ; reprises papier à part ; sessions clôturées et corrections après
+  clôture ; ventes par auteur de l'émission, encaissements par auteur du paiement ; fraîcheur par poste de caisse), route
+  `GET /api/v1/reports/financial` réservée à `finance.global.read` (gérante), module `sales`. Chaque agrégat vient d'une vue qui
+  somme chaque registre indépendamment avant toute jointure : pas de fanout paiement/avoir. Contrat : le schéma prévu (totaux
+  plats) est remplacé par `operations.json#/$defs/FinancialReport` ; `FinancialDashboard` est implémentée (150 opérations).
+- **Écran** : `pages/reports/Financial.vue` (`/ventes/finance`), période par préréglages ou intervalle, fraîcheur dite EN
+  PREMIER, quatre lectures séparées, « Par personne » ; entrées dans « Ventes et caisse » (gérante) et la caisse du jour ;
+  fiche d'aide intégrée `finance`. Relu à 1280 et 360 px sur captures.
+- **Postes hors ligne** (O05) : un poste dont des commandes reçues attendent rend les totaux incomplets (`WAITING`) ; un poste
+  muet depuis plus de 24 h avant la fin de la période, ou jamais synchronisé, les rend possiblement incomplets (`SILENT`) ;
+  les totaux ne contiennent jamais une opération restée sur un poste. Un fait de poste n'est compté qu'une fois, même après un
+  renvoi de lot.
+- **Tests ajoutés** : PHPUnit `FinancialReportTest` (AT24, AT26, auteurs, aucune multiplication, dates effectives et bornes du
+  jour à Douala, caisse clôturée, droits, cabinet, module, période) et `FinancialReportFreshnessTest` (vrais postes ES256) ;
+  Vitest `financial-report.test.ts` (règles et écran), `entry-points.test.ts` ; Playwright `finance.spec.ts`. Contrôle par
+  mutation : si l'état d'attente d'un poste est ignoré, le test de fraîcheur échoue.
+- **Écarts déclarés** : seuil de silence de 24 h à confirmer avec la gérante ; `last_sync_at` = dernière pièce acceptée, non
+  dernier contact (un poste inactif peut sembler muet) ; écran dans `sales` et non `reports` ; lecture en ligne seulement (le
+  tableau de bord local de la caisse reste celui des projections du poste, A1) ; ni export, ni PDF, ni graphique, ni âge des
+  créances, ni valeur du stock (L1).
+- **Vérification** (2026-11-06, poste Windows, `tools/dev/phase-check.sh` sans Playwright) : contrats à jour, Pint, PHPStan sans
+  erreur, PHPUnit complet (2 511 tests, 78 757 assertions, 1 ignoré : liens symboliques non permis sur ce poste, vérifié en CI
+  Linux), vue-tsc, ESLint, Prettier, Vitest complet (163 fichiers, 3 315 tests dont 20 ignorés : le compte de routes de
+  `bootstrap.test.ts` est passé de 51 à 52), build. Navigateur réel (Edge) : `finance.spec.ts` et les parcours voisins
+  `billing`, `help`, `shell` et `forms-layout` (39 parcours) verts ; le reste de la suite Playwright est laissé à la CI.
+- **CI** : à lire sur la branche (ligne ajoutée à sa lecture).
+
 ## Fusion d'O06 et d'O05 dans `main` (2026-11-06)
 
 - **Accord** : le demandeur a répondu « Oui, fusionner » à la question « Fusionner O06 puis O05 dans main ? » (2026-11-06). C'est l'accord de CES deux fusions, pas une permission permanente : le redemander à chaque chantier.
-- **Fusion** : sans passer par l'interface des PR, par deux commits de fusion successifs. O06 d'abord (sa branche est linéaire sur `main` : l'arbre fusionné est celui de sa pointe `0bbe981`), puis O05 dans ce résultat : seuls `CLAUDE.md` et `progress.md` entraient en conflit (documentation), résolus à la main en gardant les deux chantiers ; code, tests, `task-status.json`, `vault.md` et `modules.md` fusionnent sans conflit. La branche intermédiaire `claude/fusion-o06-o05` est poussée pour que la CI juge l'arbre fusionné AVANT que `main` ne bouge. Pour annuler un chantier d'un bloc : `git revert -m 1 <commit de fusion>` (`git log --first-parent main`).
+- **Fusion** : sans passer par l'interface des PR, par deux commits de fusion successifs. O06 d'abord (sa branche est linéaire sur `main` : l'arbre fusionné est celui de sa pointe `0bbe981`), puis O05 dans ce résultat : seuls `CLAUDE.md` et `progress.md` entraient en conflit (documentation), résolus à la main en gardant les deux chantiers ; code, tests, `task-status.json`, `vault.md` et `modules.md` fusionnent sans conflit. La branche intermédiaire `claude/fusion-o06-o05` est poussée pour que la CI juge l'arbre fusionné AVANT que `main` ne bouge : CI verte (run 42179659661 sur `2c29218`), puis `main` avancé en avance rapide et sa propre CI verte (run 42181567935 : Frontend, PHP, E2E). Pour annuler un chantier d'un bloc : `git revert -m 1 <commit de fusion>` (`git log --first-parent main`).
 - **Production inchangée** : release `eeo-20261030T1916Z-bbd83c4` ; le module `offline` y reste fermé ; les quatre paquets Symfony y sont encore en 7.4.21 (verrou du dépôt : 7.4.23). Un prochain déploiement apporterait le bandeau de mise à jour d'O06 : dire alors au demandeur de cliquer sur « Installer la nouvelle version » (la première livraison n'est vue que par l'ancien bandeau discret).
 
 ## O06 — Sécuriser mises à jour PWA et schéma local (2026-11-05)
