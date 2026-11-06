@@ -54,7 +54,7 @@ définitions, fraîcheur et écarts : `docs/implementation/billing.md`, « Finan
   Linux), vue-tsc, ESLint, Prettier, Vitest complet (163 fichiers, 3 315 tests dont 20 ignorés : le compte de routes de
   `bootstrap.test.ts` est passé de 51 à 52), build. Navigateur réel (Edge) : `finance.spec.ts` et les parcours voisins
   `billing`, `help`, `shell` et `forms-layout` (39 parcours) verts ; le reste de la suite Playwright est laissé à la CI.
-- **CI** : à lire sur la branche (ligne ajoutée à sa lecture).
+- **CI** : verte le 2026-11-06, run [42206507325](https://github.com/romiall/app.Eagle_Eye_Optics2/actions/runs/42206507325) sur `6ed4db0` (branche `claude/r01-finance`) : PHP (Pint, Larastan, PHPUnit, schéma), Frontend (types, lint, Vitest, build) et E2E Playwright (Chromium, MySQL 8.4.9), les trois jobs réussis. Fusion dans `main` : à demander au demandeur (accord à chaque fois).
 
 ## Fusion d'O06 et d'O05 dans `main` (2026-11-06)
 
