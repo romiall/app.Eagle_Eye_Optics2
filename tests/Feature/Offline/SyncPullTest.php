@@ -102,6 +102,46 @@ final class SyncPullTest extends TestCase
         $this->assertSame($second->json('next_cursor'), $third->json('next_cursor'), 'aucune entrée nouvelle : même borne');
     }
 
+    public function test_des_commits_entrelaces_entre_deux_pages_ne_font_ni_sauter_ni_rejouer_un_changement(): void
+    {
+        // « Pull avec commits entrelacés » (fiche O05) : d'autres mutations du cabinet committent entre deux pages ; leur
+        // numéro dépasse toute borne déjà rendue, la page suivante les trouve, une seule fois, dans l'ordre.
+        config(['eeo.offline.pull_page_size' => 2]);
+        $this->seedGrant($this->device, $this->reception);
+        $ids = [Ulid::generate(), Ulid::generate(), Ulid::generate(), Ulid::generate(), Ulid::generate()];
+        foreach (array_slice($ids, 0, 3) as $id) {
+            $this->change('patient_records', $id, 'ADMINISTRATIVE');
+        }
+
+        $one = $this->pull($this->reception)->assertOk();
+        $this->assertSame([$ids[0], $ids[1]], array_column($one->json('changes'), 'entity_id'));
+        $this->assertTrue($one->json('has_more'));
+
+        $this->change('patient_records', $ids[3], 'ADMINISTRATIVE');
+        $this->change('patient_records', $ids[4], 'ADMINISTRATIVE');
+
+        $two = $this->pull($this->reception, (string) $one->json('next_cursor'))->assertOk();
+        $this->assertSame([$ids[2], $ids[3]], array_column($two->json('changes'), 'entity_id'));
+        $this->assertTrue($two->json('has_more'));
+
+        $three = $this->pull($this->reception, (string) $two->json('next_cursor'))->assertOk();
+        $this->assertSame([$ids[4]], array_column($three->json('changes'), 'entity_id'));
+        $this->assertFalse($three->json('has_more'));
+
+        // Chaque changement est rendu une seule fois, dans l'ordre de publication ; la page suivante est vide.
+        $sequences = array_map('intval', [...array_column($one->json('changes'), 'change_sequence'), ...array_column($two->json('changes'), 'change_sequence'), ...array_column($three->json('changes'), 'change_sequence')]);
+        $sorted = $sequences;
+        sort($sorted);
+        $this->assertSame($sorted, $sequences);
+        $this->assertCount(5, array_unique($sequences));
+        $this->assertSame([], $this->pull($this->reception, (string) $three->json('next_cursor'))->assertOk()->json('changes'));
+
+        // Le rejeu d'une page déjà reçue (réponse perdue) rend les mêmes changements : le poste ne perd rien.
+        $replay = $this->pull($this->reception, (string) $one->json('next_cursor'))->assertOk();
+        $this->assertSame([$ids[2], $ids[3]], array_column($replay->json('changes'), 'entity_id'));
+        $this->assertSame($two->json('next_cursor'), $replay->json('next_cursor'));
+    }
+
     public function test_un_curseur_altere_ou_d_un_autre_profil_est_refuse(): void
     {
         $this->seedGrant($this->device, $this->reception);
