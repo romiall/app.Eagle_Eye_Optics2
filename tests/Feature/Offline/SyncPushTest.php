@@ -3,6 +3,7 @@
 namespace Tests\Feature\Offline;
 
 use App\Domain\Shared\Ulid;
+use App\Offline\SyncPayloads;
 use Illuminate\Support\Facades\DB;
 use Tests\Support\BillingFixtures;
 use Tests\Support\MigratedDatabase;
@@ -21,7 +22,11 @@ use Tests\TestCase;
  *    sans rien stocker ;
  *  - un refus métier ouvre un conflit durable et bloque les rangs suivants ; un rejet décidé finalise le rang et la
  *    suite reprend (N puis N+1) sans paiement inventé ; ACCEPT_LOCAL rejoue après revue d'horloge ;
- *  - pièce liée absente : WAITING_DEPENDENCY ; module, poste perdu, compte non préparé.
+ *  - pièce liée absente : WAITING_DEPENDENCY ; module `offline` fermé, poste perdu, compte non préparé ;
+ *  - commande d'un module fermé par le déploiement (M01) : conflit durable `MODULE_NOT_ENABLED`, rien d'appliqué, rejeu
+ *    par la gérante une fois le module ouvert ;
+ *  - AT42 : modification périmée d'une fiche (jamais « dernier écrit gagne », deux propositions conservées) et homonyme
+ *    créé hors ligne (deux identités, aucune fusion).
  *
  * Données fictives ; horloge figée à 09 h 30 UTC le 22/10/2026 (BillingFixtures).
  */
@@ -334,6 +339,114 @@ final class SyncPushTest extends TestCase
         DB::table('enrolled_devices')->where('id', $this->syncDevice)->update(['status' => 'LOST']);
         $this->push([$commands[0]])->assertForbidden();
         $this->assertSame(0, DB::table('sync_commands')->count());
+    }
+
+    public function test_une_commande_d_un_module_ferme_est_conservee_en_conflit_puis_se_rejoue_une_fois_le_module_ouvert(): void
+    {
+        $patient = $this->patientPayload('EE-2026-0101');
+        $invoice = Ulid::generate();
+        $commands = [
+            $this->signed('CreatePatient', $patient, 'patient_records', (string) $patient['patient_id'], $this->reception, $this->receptionGrant, null, $this->patientRange),
+            $this->signed('CreateInvoiceDraft', $this->syncDraftPayload($invoice, (string) $patient['patient_id'], [$this->line($this->item['exam'])]), 'invoices', $invoice, $this->cashier, $this->cashierGrant),
+        ];
+
+        // « Ventes et caisse » n'est pas ouvert par le déploiement : la fiche passe, la facture est refusée comme sur la route directe.
+        config(['eeo.enabled_modules' => ['patients', 'offline']]);
+        $response = $this->push($commands)->assertOk();
+
+        $this->assertMatchesContract($response, self::RESPONSE);
+        $this->assertSame(['ACCEPTED', 'CONFLICT_REQUIRES_REVIEW'], array_column($response->json('results'), 'status'));
+        $this->assertSame('MODULE_NOT_ENABLED', $response->json('results.1.error_code'));
+        $this->assertStringContainsString('Ventes et caisse', (string) $response->json('results.1.reason'));
+        $this->assertSame('1', $response->json('finalized_prefix.last_sequence'), 'un module fermé ne fait jamais sauter la séquence');
+        $this->assertSame(0, DB::table('invoices')->where('id', $invoice)->count(), 'rien n\'est appliqué');
+        $this->assertSame(2, DB::table('sync_commands')->where('device_id', $this->syncDevice)->count(), 'la commande reste dans l\'inbox : aucune perte');
+        $first = (string) $response->json('results.1.conflict_id');
+
+        // Le renvoi du même lot ne multiplie pas les conflits.
+        $again = $this->push($commands)->assertOk();
+        $this->assertSame(['ALREADY_ACCEPTED', 'CONFLICT_REQUIRES_REVIEW'], array_column($again->json('results'), 'status'));
+        $this->assertSame($first, $again->json('results.1.conflict_id'));
+        $this->assertSame(1, DB::table('sync_conflicts')->where('status', 'OPEN')->count());
+
+        // Décision prise alors que le module est encore fermé : aucun succès fictif, un nouveau conflit s'ouvre.
+        $decide = fn (string $conflictId) => $this->actingAsReauthenticated($this->manager)
+            ->withHeaders(['Idempotency-Key' => Ulid::generate()])
+            ->postJson('/api/v1/sync/conflicts/'.$conflictId.'/resolution', ['expected_version' => null, 'decision' => 'ACCEPT_LOCAL', 'reason' => 'Rejeu de la facture du poste (test)', 'correction_command_id' => null]);
+        $decide($first)->assertOk();
+        $second = (string) DB::table('sync_conflicts')->where('command_id', $commands[1]['core']['command_id'])->where('status', 'OPEN')->value('id');
+        $this->assertNotSame('', $second);
+        $this->assertNotSame($first, $second);
+        $this->assertSame(0, DB::table('invoices')->where('id', $invoice)->count());
+
+        // Module ouvert par l'exploitant, nouvelle décision de la gérante : la facture est appliquée telle que le poste l'a signée.
+        config(['eeo.enabled_modules' => ['patients', 'sales', 'stock', 'offline']]);
+        $decide($second)->assertOk();
+        $this->assertSame(1, DB::table('invoices')->where('id', $invoice)->count());
+        $this->assertSame('ACCEPTED', DB::table('sync_command_results')->where('command_id', $commands[1]['core']['command_id'])->value('status'));
+        $this->assertSame(2, (int) DB::table('enrolled_devices')->where('id', $this->syncDevice)->value('last_accepted_sequence'));
+        $this->push($commands)->assertOk()->assertJsonPath('results.1.status', 'ALREADY_ACCEPTED');
+    }
+
+    public function test_une_modification_perimee_n_ecrase_jamais_le_central_et_garde_les_deux_propositions(): void
+    {
+        // AT42 : la fiche créée sur le poste est modifiée au central pendant la coupure ; le poste, resté sur la version 1,
+        // propose une autre modification. Jamais « dernier écrit gagne » : conflit durable, les deux propositions conservées.
+        $patient = $this->patientPayload('EE-2026-0101');
+        $id = (string) $patient['patient_id'];
+        $create = $this->signed('CreatePatient', $patient, 'patient_records', $id, $this->reception, $this->receptionGrant, null, $this->patientRange);
+        $this->push([$create], $this->reception)->assertOk()->assertJsonPath('results.0.status', 'ACCEPTED');
+
+        $this->actingAsFresh($this->reception)->withHeaders(['Idempotency-Key' => Ulid::generate()])
+            ->patchJson('/api/v1/patients/'.$id, ['expected_version' => 1, 'patient_id' => $id, 'changes' => ['profession' => 'Enseignante (central)']])
+            ->assertOk();
+
+        $proposal = $this->signed('UpdatePatient', ['patient_id' => $id, 'changes' => ['profession' => 'Commerçante (poste)']], 'patient_records', $id, $this->reception, $this->receptionGrant, 1);
+        $response = $this->push([$proposal], $this->reception)->assertOk();
+
+        $this->assertSame('CONFLICT_REQUIRES_REVIEW', $response->json('results.0.status'));
+        $this->assertSame('VERSION_CONFLICT', $response->json('results.0.error_code'));
+        $row = DB::table('patient_records')->where('id', $id)->first();
+        $this->assertSame('Enseignante (central)', $row->profession, 'le central n\'est pas écrasé');
+        $this->assertSame(2, (int) $row->version);
+
+        // Les deux propositions sont conservées, chiffrées : celle du poste intacte, l'état central et le motif du refus.
+        $conflict = DB::table('sync_conflicts')->where('command_id', $proposal['core']['command_id'])->first();
+        $this->assertNotNull($conflict);
+        $this->assertSame('OPEN', $conflict->status);
+        $this->assertStringNotContainsString('Commerçante', (string) $conflict->local_snapshot_ciphertext);
+        $local = SyncPayloads::openSnapshot((string) $conflict->local_snapshot_ciphertext);
+        $this->assertSame('Commerçante (poste)', $local['payload']['changes']['profession']);
+        $this->assertSame(1, $local['command']['expected_version']);
+        $central = SyncPayloads::openSnapshot((string) $conflict->central_snapshot_ciphertext);
+        $this->assertSame('VERSION_CONFLICT', $central['error']['code']);
+        $this->assertSame(2, $central['entity']['version']);
+
+        // La gérante tranche : le central reste ; la proposition du poste est finalisée sans être appliquée.
+        $this->actingAsReauthenticated($this->manager)->withHeaders(['Idempotency-Key' => Ulid::generate()])
+            ->postJson('/api/v1/sync/conflicts/'.$conflict->id.'/resolution', ['expected_version' => null, 'decision' => 'KEEP_CENTRAL', 'reason' => 'La version centrale est la bonne (test)', 'correction_command_id' => null])
+            ->assertOk();
+        $this->assertSame('Enseignante (central)', DB::table('patient_records')->where('id', $id)->value('profession'));
+        $this->assertSame('REJECTED', DB::table('sync_command_results')->where('command_id', $proposal['core']['command_id'])->value('status'));
+        $this->assertSame(2, (int) DB::table('enrolled_devices')->where('id', $this->syncDevice)->value('last_accepted_sequence'));
+    }
+
+    public function test_un_homonyme_cree_hors_ligne_garde_deux_identites_sans_fusion_automatique(): void
+    {
+        // AT42 : une fiche de même identité (nom, naissance, téléphone) existe déjà au central ; le poste, coupé, en crée une autre.
+        $this->seedPatient($this->clinicId, 'PATIENT HORS LIGNE', 'Fictive', [
+            'record_number' => 'EE-2026-0007', 'birth_date' => '1985-03-04', 'phone_primary' => '600000002', 'phone_primary_normalized' => '600000002',
+        ]);
+        $payload = $this->patientPayload('EE-2026-0101');
+        $command = $this->signed('CreatePatient', $payload, 'patient_records', (string) $payload['patient_id'], $this->reception, $this->receptionGrant, null, $this->patientRange);
+
+        $this->push([$command], $this->reception)->assertOk()->assertJsonPath('results.0.status', 'ACCEPTED');
+
+        $rows = DB::table('patient_records')->where('clinic_id', $this->clinicId)->where('last_name', 'PATIENT HORS LIGNE')->orderBy('record_number')->get();
+        $this->assertSame(['EE-2026-0007', 'EE-2026-0101'], $rows->pluck('record_number')->all(), 'deux identités conservées, chacune avec son numéro');
+        $this->assertSame([null, null], $rows->pluck('merged_into_patient_id')->all(), 'aucune fusion automatique');
+        $this->assertSame([null, null], $rows->pluck('archived_at')->all());
+        $this->assertSame(0, DB::table('sync_conflicts')->count(), 'ni conflit ni blocage : la fusion éventuelle est décidée par la gérante, en ligne');
     }
 
     public function test_la_resolution_exige_la_gerante_et_un_motif(): void

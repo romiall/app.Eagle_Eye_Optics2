@@ -466,10 +466,11 @@ O06 (mise à jour PWA et schéma local), O07 (export et restauration du poste), 
 écran de verrouillage et route publique de déverrouillage (D14, D27), identité d'action unique. Voir aussi « Reste à
 faire après O05 » ci-dessous.
 
-## Implémentation (O05) — push, pull, ACK et conflits durables — codée le 2026-10-23, non exécutée
+## Implémentation (O05) — push, pull, ACK et conflits durables — codée le 2026-10-23, prouvée le 2026-11-06
 
-Rien n'a été exécuté (consigne du demandeur) : ni PHPUnit, ni Vitest, ni Playwright, ni vue-tsc, ni ESLint. Les
-générateurs de contrats ont été lancés (`build_resources.py`, `build_openapi.py`, `contracts:types`).
+Historique : le code a été écrit le 2026-10-23 sans rien exécuter (consigne du demandeur d'alors) ; il a été exécuté et
+vérifié ensuite (parcours `offline-sync.spec.ts` réactivé le 2026-10-25, preuve G1 le 2026-10-28), puis clos critère par
+critère le 2026-11-06 : voir « Clôture par la preuve (O05) », après « Reste à faire après O05 ».
 
 | Partie | Fichiers |
 | --- | --- |
@@ -552,6 +553,62 @@ n'est pas branché), lecture des projections du pull par les écrans hors ligne 
 catalogue, création et lecture d'une facture : `offlineCapable` n'est posé que sur les écrans qui savent travailler
 sur le poste), `GET /devices/{id}/health`, réserves sous quota testées de bout en bout, ouverture du module `offline`
 en production seulement après G2.
+
+### Clôture par la preuve (O05) — 2026-11-06
+
+Statut **IN_REVIEW** (comme ses prérequis P01, B04 et O04), pas DONE : les écarts sont déclarés plus bas. Les preuves sont
+sur MySQL réel, avec une VRAIE clé ES256 de poste, des processus PHP distincts pour la concurrence et une base
+IndexedDB simulée pour le poste ; les parcours en navigateur réel sont ceux de G1 et d'`offline-sync.spec.ts`. Cette
+passe a ajouté une pièce de code (la porte des modules fermés, défaut ouvert de M01) et les tests marqués « nouveau ».
+CI de la branche : verte (Frontend, PHP, E2E), run 42176284838 sur `2a64cb3`.
+
+| Exigence de la fiche 24 | Preuve |
+| --- | --- |
+| Travaux 1 : signatures, chaîne et grants vérifiés, puis mêmes actions centrales | `tests/Unit/Offline/{SignedCommandsTest,JcsAndJwsTest}.php` (cœur JCS, JWS ES256, `alg=none`, clé étrangère, cabinet, poste) ; `SyncPushTest` : `…une_empreinte_ou_une_signature_alteree…`, `…un_rang_jamais_recu…` (409 `SYNC_SEQUENCE_GAP`), `…meme_identifiant_avec_une_autre_empreinte…` (409, rien stocké) ; autorisation historique du grant : `tests/Unit/Application/HistoricalAuthorizationTest.php`, `…accept_local_applique_apres_revue_d_horloge` ; mêmes actions centrales : `…un_journal_patient_facture_deux_paiements…` (numéros du poste, propriété de facture importée, aucun numéro central pris) |
+| Travaux 2 : ACK persisté par commande, pages pull atomiques | ACK écrit DANS la transaction de l'effet : `SyncPushTest` (cinq `ACCEPTED` durables et préfixe) et, **nouveau**, `SyncConcurrencyTest::test_un_processus_tue_pendant_l_application…` (processus RÉELLEMENT tué avant le commit : ni fiche, ni audit, ni ACK, ni préfixe ; les commandes reçues restent dans l'inbox ; le renvoi des mêmes identifiants applique chacune une fois). Page pull atomique : côté poste `tests/frontend/offline/sync.test.ts` (« commite le curseur avec la page… » et, **nouveau**, « n'avance pas le curseur si l'écriture de la page échoue au milieu… ») ; côté serveur `ChangeFeedTest`, `SyncPullTest` |
+| Travaux 3 : ACCEPTED ou REJECTED en revue, sans trou de journal | `SyncPushTest` : `…un_refus_metier_ouvre_un_conflit_durable_et_bloque_les_rangs_suivants`, `…un_rejet_decide_finalise_le_rang_et_la_suite_reprend_sans_paiement_invente`, `…la_resolution_exige_la_gerante_et_un_motif` ; poste : `sync.test.ts` (« garde un conflit dans la file… ») |
+| Travaux 4 : rejeu après timeout, sources locales des conflits conservées | `SyncPushTest` : `…le_rejeu_du_meme_lot_rend_already_accepted…`, `…une_coupure_au_milieu_du_lot…` ; poste : « rejoue les MÊMES commandes après une réponse perdue », « survit à une coupure et à la réouverture du coffre… », « renvoie le journal depuis le rang que le serveur n'a pas reçu » ; sources : instantanés chiffrés de `sync_conflicts` (`…un_refus_metier…` et, **nouveau**, `…une_modification_perimee…` : la proposition du poste, intacte, et l'état central sont relus après déchiffrement) |
+| Sortie : un seul fait par ID/hash | le rejeu, `…meme_identifiant_avec_une_autre_empreinte…`, `SyncConcurrencyTest::test_le_meme_lot_envoye_deux_fois_en_meme_temps…` (deux envois simultanés : un fait par commande) |
+| Sortie : le curseur ne saute pas une transaction non publiée | `CommandBusConcurrencyTest::test_la_publication_du_pull_attend_la_fin_de_la_mutation_en_cours` (le lecteur attend le commit de la mutation) et `…les_numeros_de_changement_suivent_l_ordre_des_commits` ; `ChangeFeedTest` ; **nouveau** `SyncPullTest::test_des_commits_entrelaces_entre_deux_pages…` (aucun changement sauté ni rejoué, le rejeu d'une page perdue rend la même page) |
+| Sortie : un conflit résolu ne bloque pas la caisse et n'invente pas de paiement | `SyncPushTest::test_un_rejet_decide_finalise_le_rang_et_la_suite_reprend_sans_paiement_invente` (rang 4 rejeté, rang 5 appliqué, un seul paiement de 15 000 en base) ; poste : `sync.test.ts` |
+| Validation « crash après commit avant ACK » | rejeu serveur (`ALREADY_ACCEPTED`, aucun second fait) ; `SyncConcurrencyTest` (envois simultanés ; processus tué) ; poste « rejoue les MÊMES commandes… » ; navigateur : `first-slice.spec.ts` (G1, « ACK perdu puis rejoué ») |
+| Validation « conflit de séquence N puis reprise N+1 » | `SyncPushTest::test_un_rejet_decide…` ; poste « garde un conflit dans la file… » |
+| Validation « pull avec commits entrelacés » | voir la sortie sur le curseur |
+| AT38 | navigateur : `first-slice.spec.ts` (réponse perdue puis rejeux : une facture, chaque paiement une fois, numéros inchangés) et `offline-sync.spec.ts` ; serveur : le rejeu |
+| AT39 | O03, avec les mêmes verrous : `RegisterPaymentTest::test_une_facture_detenue_par_un_poste_n_est_pas_encaissee_par_l_api` (409 `WRITE_OWNER_REQUIRED`), `PrepareResourcesTest::…attribuee_au_poste…` et `…une_seule_caisse_hors_ligne_principale…`, `ReleaseResourcesTest::…restitution_prematuree…` (le transfert exige la reprise complète) et `…un_grant_expire_ne_libere_ni_plage_ni_quota_ni_propriete` |
+| AT42 | patient : **nouveau** `SyncPushTest::test_une_modification_perimee_n_ecrase_jamais_le_central…` (409 `VERSION_CONFLICT` devenu conflit durable : le central n'est pas écrasé, les deux propositions sont conservées, la gérante tranche, le rang est finalisé) et `…un_homonyme_cree_hors_ligne…` (deux identités, aucune fusion, aucun conflit). Consultation : écart 1 |
+| AT45 | O06 : `tests/e2e/app-update.spec.ts` (vrai service worker, pièces en attente, profil verrouillé, base du poste identique à l'octet) ; fusionnée dans `main` avec O05 le 2026-11-06 |
+| M01 : refus des commandes d'un module fermé reçues d'un poste | **nouveau** `app/Offline/SyncCommandModules.php` et sa porte dans `SyncDrain` ; `tests/Unit/Offline/SyncCommandModulesTest.php` (toute commande qui accepte la source SYNC déclare son module) ; `SyncPushTest::test_une_commande_d_un_module_ferme_est_conservee_en_conflit_puis_se_rejoue_une_fois_le_module_ouvert` (contrôlé par mutation : sans la porte, la facture est appliquée) |
+
+**Porte des modules fermés.** Un poste n'a pas de route, donc pas de middleware `module:<code>` : sa commande arrivait
+au chemin central sans être jugée contre `EEO_ENABLED_MODULES`. `SyncDrain` consulte maintenant `SyncCommandModules`
+(26 commandes, module du groupe de routes de la même commande en ligne) AVANT les dépendances et tout effet. Module
+fermé : la commande reste dans l'inbox (aucune perte), un conflit durable `MODULE_NOT_ENABLED` s'ouvre
+(`CONFLICT_REQUIRES_REVIEW`, motif lisible qui nomme le module ; code ajouté à `contracts/schemas/error.json` et aux
+types générés), la séquence du poste ne saute pas. Le conflit est un choix : une attente silencieuse laisserait le poste
+bloqué sans explication et sans issue si le module ne rouvre jamais ; ici la gérante voit le motif, rejoue la commande
+(`ACCEPT_LOCAL`) une fois le module ouvert, ou l'écarte (`REJECT`). Voir aussi `modules.md`.
+
+**Écarts déclarés (O05 reste IN_REVIEW).**
+
+1. **AT42, volet consultation** : les commandes cliniques refusent la source SYNC (« le démarrage d'un examen depuis un
+   poste hors-ligne n'est pas encore ouvert », décision 2 ci-dessus) et `applicable.ts` ne les enregistre pas. Le conflit
+   de deux postes sur une même consultation ne se prouve donc pas tant que les examens hors ligne ne sont pas ouverts.
+   Le mécanisme (`VERSION_CONFLICT` en conflit durable, deux propositions) est prouvé sur la fiche patient.
+2. **« Signaler le doublon probable »** (fichier 19) : un homonyme créé hors ligne est accepté et gardé séparé ; aucun
+   signalement n'est ajouté après la synchronisation. La ressemblance est signalée par l'écran AVANT l'enregistrement (sur
+   le poste, par l'annuaire A2) ; la fusion reste une décision manuelle de la gérante, en ligne.
+3. **Pull non filtré par module** : il publie les changements des compartiments du grant ; un module jamais ouvert n'a
+   produit aucune donnée, mais un module ouvert puis refermé continuerait de publier ses changements aux postes.
+4. **Pas de parcours Playwright du conflit** (rejet puis reprise de N+1) : prouvé sur MySQL réel (serveur) et sur la base
+   locale simulée (poste), non dans le navigateur. Les parcours en navigateur couvrent la coupure, la reprise, l'ACK perdu
+   et la seconde synchronisation sans effet.
+5. **Crash APRÈS le commit** : la preuve est le rejeu (l'ACK est dans la transaction de l'effet, donc durable avec lui) ;
+   aucun crochet ne permet de tuer le processus entre le commit et la réponse, le test tue donc le processus AVANT le
+   commit, la seule fenêtre où un état à moitié écrit aurait été possible.
+6. **Dettes de la revue A1** touchant la synchronisation, non traitées ici (aucune ne bloque une sortie d'O05) : rejeu
+   local ordonné par `recordedAt`, repli sur un 401 non traité, conflits montrés à la gérante sans montant ni patient.
+7. **Module `offline` toujours fermé en production** ; l'ouvrir reste décidé après G2.
 
 ## Implémentation (D14, D27) — déverrouillage public et session locale — 2026-10-28
 

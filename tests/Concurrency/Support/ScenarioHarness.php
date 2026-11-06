@@ -63,6 +63,9 @@ trait ScenarioHarness
             'DB_USERNAME' => $connection['username'],
             'DB_PASSWORD' => $connection['password'],
             'EEO_CLINIC_ID' => '',
+            // Modules ouverts dans l'enfant : les commandes de poste (SyncDrain, M01) sont refusées pour un module fermé,
+            // et un enfant ne partage pas la configuration modifiée en mémoire par le test.
+            'EEO_ENABLED_MODULES' => 'today,patients,consultations,agenda,sales,stock,settings,reports,offline',
             'CACHE_STORE' => 'array',
             'SESSION_DRIVER' => 'array',
             'QUEUE_CONNECTION' => 'sync',

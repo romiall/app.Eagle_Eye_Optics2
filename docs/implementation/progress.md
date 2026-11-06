@@ -4,13 +4,13 @@ Initialisé le 2026-10-14 depuis `specifications/developpement/JOURNAL.md`. Le b
 
 ## État courant
 
-- Branche : `claude/o06-mises-a-jour` (coupée de `origin/main` le 2026-11-05, après la fusion de toute la pile de chantiers dans `main` : voir la section suivante). Dépôt public : données fictives uniquement ; développement sur un poste local depuis le 2026-10-15, une seule session à la fois dans ce dossier.
+- Branche : `main` (fusion de la pile le 2026-11-05, puis d'O06 et d'O05 le 2026-11-06 ; `claude/o06-mises-a-jour` et `claude/o05-synchronisation` sont SANS OBJET). Dépôt public : données fictives uniquement ; développement sur un poste local depuis le 2026-10-15, une seule session à la fois dans ce dossier.
 - Lot et gate visés : L0 ; **G0 acquis** (voir `docs/evidence/G0.md`) ; **G1 DONE** (prouvé le 2026-10-28, arbitré par le demandeur le 2026-10-30 : `docs/evidence/G1.md`) ; prochain gate G2 après O06, O05 et R01.
-- Tâche courante (2026-11-05) : **O06** « Sécuriser mises à jour PWA et schéma local » (codée et prouvée en local, IN_REVIEW ; première du lot L0 restant ; ordre du demandeur : O06, O05, R01, puis G2, U01, G3, G4 ; L1, L2, L3). Historique : lot 2 vérifié le 2026-10-24 (run 40044078785, commit `cb7a008`), H01 EN LIGNE le 2026-10-27 (`docs/implementation/deploiement.md`).
-- Dernière preuve acquise : CI verte de l’arbre fusionné (run 42037277616 sur `f6c84e4`, branche `claude/fusion-pile`) ; CI verte aussi sur `main` après la fusion (run 42091511738, `70ef9c2`). La validation SQL d'origine (`database/VALIDATION.md`) et G0 restent **distincts d'une recette applicative**.
+- Tâche courante (2026-11-06) : aucune en cours ; la suivante est **R01** « Afficher soldes, caisse et finance avec fraîcheur » (ordre du demandeur : R01, puis G2, U01, G3, G4 ; L1, L2, L3). O06 et O05, faites et en revue (IN_REVIEW), sont fusionnées dans `main` (section « Fusion d'O06 et d'O05 »). Historique : lot 2 vérifié le 2026-10-24 (run 40044078785, commit `cb7a008`), H01 EN LIGNE le 2026-10-27 (`docs/implementation/deploiement.md`).
+- Dernière preuve acquise : CI verte de chaque branche avant la fusion (O06 : run 42112427011 sur `0bbe981` ; O05 : run 42177221745 sur `e5712ba`) ; l'arbre fusionné est jugé par la CI de la branche `claude/fusion-o06-o05`, puis par celle de `main`. Avant : CI verte de `main` après la fusion de la pile (run 42091511738, `70ef9c2`). La validation SQL d'origine (`database/VALIDATION.md`) et G0 restent **distincts d'une recette applicative**.
 - Statut et preuves de chaque tâche : `docs/implementation/task-status.json` (la liste n’est plus recopiée ici).
 - Blocages externes : Q01–Q04/Q14 (production seulement) ; développement fictif possible.
-- Prochaine action concrète : O06, puis O05, R01 et les portes G2, U01, G3, G4 (ordre du demandeur du 2026-11-05).
+- Prochaine action concrète : R01, puis les portes G2, U01, G3, G4 (ordre du demandeur du 2026-11-05).
 
 ## Fusion de la pile dans `main` et début d’O06 (2026-11-05)
 
@@ -18,6 +18,12 @@ Initialisé le 2026-10-14 depuis `specifications/developpement/JOURNAL.md`. Le b
 - **Production inchangée** : https://app-eagleseye.com exécute la release `eeo-20261030T1916Z-bbd83c4` (antérieure à la fusion) ; le module `offline` y reste fermé ; les quatre paquets Symfony y sont encore en 7.4.21 (le verrou du dépôt est en 7.4.23). Rien n’est déployé sans demande du demandeur.
 - **Début d’O06** : branche `claude/o06-mises-a-jour`, coupée de `origin/main` (`70ef9c2`). Point de départ : le code existait déjà en partie (règles `offline/update/updateGate.ts` et `updateCheck.ts`, registre additif `offline/migrations/registry.ts`, bannière `UpdatePrompt.vue`, configuration `pwa.config.ts`, tests Vitest `update.test.ts`, `migrations.test.ts`, `pwa-config.test.ts`), mais aucun critère de sortie n’était prouvé dans un vrai navigateur et la tâche restait NOT_STARTED. Le détail du travail et des preuves s’ajoute ci-dessous au fil du chantier.
 - **Expérience du demandeur à corriger** : le 2026-10-30 il n’a pas vu des corrections livrées en ligne, parce que son navigateur affichait l’ancienne version et que la bannière de mise à jour (en haut de page, sans rappel) n’a été ni comprise ni cliquée. Sans jamais imposer la mise à jour (règle O06), le chantier la rend impossible à manquer et compréhensible.
+
+## Fusion d'O06 et d'O05 dans `main` (2026-11-06)
+
+- **Accord** : le demandeur a répondu « Oui, fusionner » à la question « Fusionner O06 puis O05 dans main ? » (2026-11-06). C'est l'accord de CES deux fusions, pas une permission permanente : le redemander à chaque chantier.
+- **Fusion** : sans passer par l'interface des PR, par deux commits de fusion successifs. O06 d'abord (sa branche est linéaire sur `main` : l'arbre fusionné est celui de sa pointe `0bbe981`), puis O05 dans ce résultat : seuls `CLAUDE.md` et `progress.md` entraient en conflit (documentation), résolus à la main en gardant les deux chantiers ; code, tests, `task-status.json`, `vault.md` et `modules.md` fusionnent sans conflit. La branche intermédiaire `claude/fusion-o06-o05` est poussée pour que la CI juge l'arbre fusionné AVANT que `main` ne bouge. Pour annuler un chantier d'un bloc : `git revert -m 1 <commit de fusion>` (`git log --first-parent main`).
+- **Production inchangée** : release `eeo-20261030T1916Z-bbd83c4` ; le module `offline` y reste fermé ; les quatre paquets Symfony y sont encore en 7.4.21 (verrou du dépôt : 7.4.23). Un prochain déploiement apporterait le bandeau de mise à jour d'O06 : dire alors au demandeur de cliquer sur « Installer la nouvelle version » (la première livraison n'est vue que par l'ancien bandeau discret).
 
 ## O06 — Sécuriser mises à jour PWA et schéma local (2026-11-05)
 
@@ -30,6 +36,39 @@ Première tâche du lot L0 restant, demandée par le demandeur le 2026-11-05 (or
 - **Incident de CI et leçon (2026-11-05)** : le premier push (run 42104333845 sur `851faf6`) a fait échouer 8 parcours Playwright : le bouton du pied de page, alors nommé « Rechercher une nouvelle version », rendait ambigus (violation du mode strict) les sélecteurs `getByRole('button', { name: 'Rechercher' })` de `patients`, `forms-layout`, `offline-directory` et `offline-start` ; l'échec de `offline-directory` laissait la caisse hors ligne principale réservée et faisait échouer `offline-invoice` et `offline-sync` à sa suite. Frontend et PHP étaient verts, les parcours voisins joués en local (`shell`, `help`, `smoke`, `auth-session`) aussi : ceux qui comptaient n'avaient pas été rejoués. Le bouton s'appelle désormais « Vérifier les mises à jour » (aucun sélecteur ne le contient), une garde Vitest (`footer-selectors.test.ts`) lit le vrai libellé et refuse toute collision, la leçon est dans `CLAUDE.md` (« Pièges connus »), et `patients`, `forms-layout` et les parcours hors ligne ont été rejoués en local avant le nouveau push.
 - **Pour le demandeur, à chaque livraison** : cliquer sur « Installer la nouvelle version » dans le bandeau, puis lire le pied de page pour vérifier le build affiché. La PREMIÈRE livraison de cette version n’est vue que par l’ancien bandeau discret (le navigateur affiche encore l’ancienne application) : le lui montrer une fois.
 - **Écarts déclarés** : (1) toutes les commandes sont en version « 1 » : le chemin « une commande de version plus ancienne que celle du serveur » n’a pas de cas réel à rejouer, la garde est mécanique (aucune version publiée ne peut être retirée) ; (2) la « version précédente » du parcours e2e est dérivée du même code (autres noms de fichiers et autre identité de build) ; (3) un onglet resté sur l’ancien code, non contrôlé par le service worker, qui rouvre une base plus récente, n’a pas de message dédié (la base n’est jamais purgée) ; (4) la suite Playwright complète n’a pas été rejouée sur ce poste (trois heures et plus sur poste chargé) : les parcours voisins l’ont été et la CI fait foi ; (5) avec le module `offline` fermé (production), le contrôle du poste rend « libre » : il ne protège des pièces locales qu’à l’ouverture du module ; (6) un service worker en attente s’active aussi quand tous les onglets sont fermés (plateforme).
+
+## O05 — push, pull, ACK et conflits durables : clos par la preuve (2026-11-06)
+
+Deuxième tâche de l'ordre du demandeur (O06, O05, R01, puis G2, U01, G3, G4 ; L1, L2, L3). Branche `claude/o05-synchronisation`,
+coupée du commit `eff3c60` (voir « État courant »). Le code existait depuis le 2026-10-23 et le statut restait IN_PROGRESS ;
+cette passe l'a confronté, critère par critère, à la fiche 24 (travaux, sorties, validations nommées) et aux scénarios
+AT38, AT39, AT42 et AT45, puis a comblé ce qui manquait. Table complète critère → test, décisions et écarts :
+`docs/implementation/vault.md`, « Clôture par la preuve (O05) ».
+
+- **Code** : une seule pièce manquait, le défaut ouvert de M01 (« refus des commandes d'un module fermé reçues d'un poste ») :
+  `app/Offline/SyncCommandModules.php` (module propriétaire des 26 commandes acceptant la source SYNC) et la porte dans
+  `SyncDrain::apply` ; code d'erreur `MODULE_NOT_ENABLED` ajouté à `contracts/schemas/error.json` et aux types générés.
+  Module fermé : la commande reste dans l'inbox, conflit durable visible de la gérante, séquence du poste intacte, rejeu
+  (`ACCEPT_LOCAL`) une fois le module ouvert (`modules.md`).
+- **Tests ajoutés** (les autres étaient déjà là et ont été recoupés) : `SyncCommandModulesTest` (garde du registre) ;
+  `SyncPushTest` : module fermé de bout en bout, modification périmée d'une fiche (AT42 : le central n'est pas écrasé,
+  deux propositions conservées), homonyme créé hors ligne (deux identités, aucune fusion) ; `SyncPullTest` : commits
+  entrelacés entre deux pages ; `SyncConcurrencyTest` : processus RÉELLEMENT tué pendant l'application (aucun effet
+  partiel, le renvoi applique une fois) ; `sync.test.ts` : écriture de page interrompue (le curseur n'avance pas). Le
+  harnais de concurrence passe aux processus enfants `EEO_ENABLED_MODULES` (un enfant ne partage pas la configuration
+  modifiée en mémoire par le test). Contrôle par mutation : sans la porte, le test du module fermé échoue (la facture est
+  appliquée).
+- **Écarts déclarés** : AT42 pour les consultations (les examens hors ligne ne sont pas ouverts), pas de signalement de
+  doublon APRÈS synchronisation, pull non filtré par module, pas de parcours Playwright du conflit, AT45 porté par O06
+  (`app-update.spec.ts`), dettes de la revue A1 laissées (`vault.md`, écarts 1 à 7).
+- **Vérification** (2026-11-06, poste Windows, `tools/dev/phase-check.sh` sans Playwright) : contrats à jour, Pint,
+  PHPStan sans erreur, PHPUnit complet (2 499 tests, 78 501 assertions, 1 ignoré : création de liens symboliques non
+  permise sur ce poste, vérifiée en CI Linux), vue-tsc, ESLint, Vitest complet (3 249 tests, 20 ignorés), build. Prettier a
+  signalé le nouveau test de `sync.test.ts` : reformaté, puis `format:check` vert sur tout le dépôt. Navigateur réel
+  (Edge) : les trois parcours de synchronisation, `first-slice.spec.ts` (G1, ACK perdu puis rejoué), `offline-start.spec.ts`
+  et `offline-sync.spec.ts`, sont verts ; le reste de la suite Playwright est laissé à la CI.
+- **CI** : verte sur le commit de code et de documentation `2a64cb3` (run 42176284838 : Frontend, PHP et E2E). Le module
+  `offline` reste FERMÉ en production ; rien n'est déployé. Fusionnée dans `main` le 2026-11-06 avec O06 (section « Fusion d'O06 et d'O05 »).
 
 ## Présentation des formulaires (2026-10-28)
 
@@ -132,7 +171,7 @@ pas une recette de L0.
 | Fichiers | `app/Support/Modules.php`, `app/Http/Middleware/RequireEnabledModule.php` (alias `module`), `config/eeo.php` (`enabled_modules`), `StaffMemberPresenter` (`clinic.enabled_modules` dans `/auth/me`), contrat `ClinicSummary`, `resources/frontend/app/{navigation,router,session,App.vue}`, `pages/HomePage.vue`, `.env.example` (`EEO_ENABLED_MODULES`), `docs/implementation/modules.md` |
 | Tests exécutés | PHPUnit : `ModulesTest`, `ModuleGateTest`, `EnvExampleTest`, `ConfigurationContractTest`, contrats (175 tests) ; Pint, PHPStan niveau 8. Vitest : navigation (filtrage et cohérence avec le serveur), `module-gate.test.ts` (menu, actions, route introuvable) |
 | Décision nouvelle | Liste du déploiement (pas un paramètre du cabinet) ; route fermée = 404 `RESOURCE_NOT_FOUND` ; valeur inconnue ignorée ; défaut vide = rien d'exposé |
-| Défauts ouverts | Refus des commandes d'un module fermé reçues d'un poste (O05) |
+| Défauts ouverts | ~~Refus des commandes d'un module fermé reçues d'un poste (O05)~~ : fait le 2026-11-06 (`SyncCommandModules`, conflit durable `MODULE_NOT_ENABLED` ; voir `modules.md` et la section « O05 ») |
 
 ## P01, P02, P03 — patients et file du jour (premier jalon en ligne)
 

@@ -37,8 +37,17 @@ Vide (valeur par défaut) : aucun module métier n'est exposé. Les routes d'acc
 - Middleware `module:<code>` (`RequireEnabledModule`) sur les routes d'un module : tant qu'il est
   fermé, la route répond **404 `RESOURCE_NOT_FOUND`**, comme si elle n'existait pas. À poser sur
   chaque route de module (par exemple `Route::middleware('module:patients')`).
-- Reste à faire quand le chemin de synchronisation existera (O05) : refuser de la même façon les
-  commandes d'un module fermé reçues d'un poste.
+- **Commandes reçues d'un poste (O05, fait le 2026-11-06)** : un poste n'a pas de route, donc pas de
+  `module:<code>`. `SyncDrain` consulte `app/Offline/SyncCommandModules.php` (module propriétaire de chacune des 26
+  commandes qui acceptent la source SYNC, d'après le groupe de routes de la même commande en ligne) AVANT toute
+  dépendance et tout effet. Module fermé : la commande n'est jamais appliquée ; elle reste dans l'inbox du serveur (aucune
+  perte) et ouvre un conflit durable `MODULE_NOT_ENABLED` (409, `CONFLICT_REQUIRES_REVIEW`, motif lisible qui nomme le
+  module). La séquence du poste ne saute pas : les commandes suivantes attendent derrière. Une fois le module ouvert, la
+  gérante rejoue la commande (`ACCEPT_LOCAL`, motif obligatoire) ; décidée alors que le module est encore fermé, la
+  commande rouvre un conflit, jamais un succès fictif ; `REJECT` l'écarte. Une nouvelle commande de poste sans module
+  déclaré fait échouer `tests/Unit/Offline/SyncCommandModulesTest.php`. Limite connue : le pull (`GET /sync/pull`) n'est
+  pas filtré par module (il publie les changements des compartiments du grant) ; un module jamais ouvert n'a produit
+  aucune donnée à publier.
 
 ## Interface
 
@@ -59,7 +68,9 @@ Vide (valeur par défaut) : aucun module métier n'est exposé. Les routes d'acc
 
 `tests/Unit/Support/ModulesTest.php`, `tests/Feature/Http/ModuleGateTest.php`,
 `tests/frontend/shell/navigation.test.ts` (filtrage et cohérence avec `Modules.php`),
-`tests/frontend/shell/module-gate.test.ts` (menu, actions d'accueil, route introuvable).
+`tests/frontend/shell/module-gate.test.ts` (menu, actions d'accueil, route introuvable) ; commandes d'un poste :
+`tests/Unit/Offline/SyncCommandModulesTest.php` et `tests/Feature/Offline/SyncPushTest.php`
+(`test_une_commande_d_un_module_ferme_est_conservee_en_conflit_puis_se_rejoue_une_fois_le_module_ouvert`).
 
 ## État de la phase 1 (codé, vérification de fin de phase à faire)
 

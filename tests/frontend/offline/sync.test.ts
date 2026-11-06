@@ -523,4 +523,64 @@ describe('pull des changements', () => {
     await pullChanges(current.vault, settled, { now })
     expect(await head()).toBe(6)
   })
+
+  it('n’avance pas le curseur si l’écriture de la page échoue au milieu : rien n’est écrit, la reprise relit la même page', async () => {
+    const current = await prepared()
+    device = current
+    const server = new FakeServer(current.devicePublicJwk)
+    server.pages = [
+      {
+        changes: [
+          {
+            change_sequence: '11',
+            entity_type: 'patient_records',
+            entity_id: '01J9ZXK4M2Q8R7S6T5V4W3PB01',
+            entity_version: 2,
+            change_kind: 'UPDATED',
+            visibility: 'ADMINISTRATIVE',
+            recorded_at: '2026-10-22T09:35:00.000Z',
+            data: { id: '01J9ZXK4M2Q8R7S6T5V4W3PB01', record_number: 'EE-2026-0007', version: 2 },
+          },
+          {
+            change_sequence: '12',
+            entity_type: 'catalog_items',
+            entity_id: '01J9ZXK4M2Q8R7S6T5V4W3I002',
+            entity_version: 3,
+            change_kind: 'UPDATED',
+            visibility: 'PUBLIC',
+            recorded_at: '2026-10-22T09:36:00.000Z',
+            data: { id: '01J9ZXK4M2Q8R7S6T5V4W3I002', sale_price: 15000 },
+          },
+        ],
+        next_cursor: 'curseur-signe-1',
+        has_more: false,
+        server_time: '2026-10-22T09:41:00.000Z',
+      },
+    ]
+
+    // Coupure au milieu de l'écriture locale de la page : les lignes déjà posées ET le curseur sont annulés ensemble.
+    const realCommit = current.vault.commitLocal.bind(current.vault)
+    let crash = true
+    current.vault.commitLocal = (async (work: Parameters<typeof realCommit>[0]) =>
+      realCommit(async (db) => {
+        const outcome = await work(db)
+        if (crash) throw new Error('Coupure pendant l’écriture de la page')
+        return outcome
+      })) as typeof current.vault.commitLocal
+    await expect(pullChanges(current.vault, server, { now })).rejects.toThrow('Coupure')
+    expect(await current.db.pull_cursors.count()).toBe(0)
+    expect(await pulledRecords(current.vault, 'ADMINISTRATIVE', 'patient_records')).toEqual([])
+    expect(await pulledRecords(current.vault, 'ADMINISTRATIVE', 'catalog_items')).toEqual([])
+
+    // Reprise : le curseur est resté où il était, la MÊME page est relue puis commitée entière avec son curseur.
+    crash = false
+    const report = await pullChanges(current.vault, server, { now })
+    expect(server.pulls).toEqual([null, null])
+    expect(report).toMatchObject({ pages: 1, changes: 2 })
+    expect((await current.db.pull_cursors.toArray()).map((row) => row.cursor)).toEqual([
+      'curseur-signe-1',
+    ])
+    expect(await pulledRecords(current.vault, 'ADMINISTRATIVE', 'patient_records')).toHaveLength(1)
+    expect(await pulledRecords(current.vault, 'ADMINISTRATIVE', 'catalog_items')).toHaveLength(1)
+  })
 })

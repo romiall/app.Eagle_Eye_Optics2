@@ -1213,6 +1213,7 @@ export const PAGES_PILOTAGE: readonly PageHelp[] = [
       'La décision exige un motif, conservé avec elle, et la confirmation de votre mot de passe. Elle ne réécrit jamais la pièce du poste.',
       'Un reçu déjà imprimé et contesté reste une pièce locale : la décision ne le modifie pas et il n’est jamais renuméroté.',
       'Tant qu’un conflit est ouvert, les pièces suivantes du même poste attendent derrière lui.',
+      'Si le motif du serveur dit qu’un module n’est pas ouvert, la pièce du poste est conservée et rien n’est appliqué : demandez à l’exploitant d’ouvrir le module, puis appliquez la pièce du poste ; sinon, rejetez-la.',
     ],
     next: [
       {
