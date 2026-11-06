@@ -116,15 +116,15 @@ describe('amorçage de la coquille Vue', () => {
     )
     // 11 routes d'origine + historique (C03) + prescription (C04) + aperçu des documents (D02)
     // + activité du patient (onglet du dossier) + ventes et caisse (8 : B01 à B05, I00)
-    // + caisse du jour (R01 minimal) + liste des examens + paramètres (5 : F09)
+    // + caisse du jour (R01 minimal) + finance du cabinet (R01) + liste des examens + paramètres (5 : F09)
     // + changement de son mot de passe + approbations (B06) + préparation du poste (O01, O02)
     // + prescriptions, fusion et comparaison du patient + catégories de dépenses + devis (3)
     // + import du catalogue + casse/ajustement + exports + statistiques + agenda (3) + suivis + aide
     // + déverrouillage du poste (D27).
-    // Total recompté sur le routeur réel : 51 routes, aucun nom en double.
+    // Total recompté sur le routeur réel : 52 routes, aucun nom en double.
     const names = router.getRoutes().map((route) => String(route.name))
     expect(new Set(names).size).toBe(names.length)
-    expect(router.getRoutes()).toHaveLength(51)
+    expect(router.getRoutes()).toHaveLength(52)
     // Chaque route métier dépend de son module (mise en service progressive) et de ses permissions.
     // Les onglets cliniques du dossier (prescriptions, comparaison des examens) dépendent du module « consultations ».
     const clinicalTabs = ['patient-prescriptions', 'patient-comparaison']

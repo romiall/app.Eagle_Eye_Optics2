@@ -58,6 +58,8 @@ describe('routes et navigation des ventes', () => {
       // Catégories de dépenses de la caisse (L1D05) : gérante.
       'categories-depenses': ['sales', ['cash.manage']],
       'caisse-du-jour': ['sales', ['finance.global.read', 'cash.own_session']],
+      // Finance du cabinet sur une période (R01) : la gérante seule.
+      finance: ['sales', ['finance.global.read']],
       factures: ['sales', ['invoice.read']],
       'facture-nouvelle': ['sales', ['invoice.create', 'exam_fee.collect']],
       facture: ['sales', ['invoice.read']],
