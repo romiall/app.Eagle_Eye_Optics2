@@ -560,6 +560,7 @@ Statut **IN_REVIEW** (comme ses prérequis P01, B04 et O04), pas DONE : les éca
 sur MySQL réel, avec une VRAIE clé ES256 de poste, des processus PHP distincts pour la concurrence et une base
 IndexedDB simulée pour le poste ; les parcours en navigateur réel sont ceux de G1 et d'`offline-sync.spec.ts`. Cette
 passe a ajouté une pièce de code (la porte des modules fermés, défaut ouvert de M01) et les tests marqués « nouveau ».
+CI de la branche : verte (Frontend, PHP, E2E), run 42176284838 sur `2a64cb3`.
 
 | Exigence de la fiche 24 | Preuve |
 | --- | --- |

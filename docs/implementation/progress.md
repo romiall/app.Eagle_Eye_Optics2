@@ -49,8 +49,8 @@ AT38, AT39, AT42 et AT45, puis a comblé ce qui manquait. Table complète critè
   signalé le nouveau test de `sync.test.ts` : reformaté, puis `format:check` vert sur tout le dépôt. Navigateur réel
   (Edge) : les trois parcours de synchronisation, `first-slice.spec.ts` (G1, ACK perdu puis rejoué), `offline-start.spec.ts`
   et `offline-sync.spec.ts`, sont verts ; le reste de la suite Playwright est laissé à la CI.
-- **Preuves** : cette vérification locale et la CI de la branche (ligne ajoutée à sa lecture). Le module `offline` reste
-  FERMÉ en production ; rien n'est déployé ni fusionné.
+- **CI** : verte sur le commit de code et de documentation `2a64cb3` (run 42176284838 : Frontend, PHP et E2E). Le module
+  `offline` reste FERMÉ en production ; rien n'est déployé ni fusionné.
 
 ## Présentation des formulaires (2026-10-28)
 
