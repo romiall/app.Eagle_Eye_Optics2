@@ -34,6 +34,12 @@ const entries = computed<Entry[]>(() =>
       visible: canOnScreen('finance.global.read') || canOnScreen('cash.own_session'),
     },
     {
+      name: 'finance',
+      label: 'Finance du cabinet',
+      text: 'Chiffre d’affaires, encaissements, créances et caisse sur une période, avec la fraîcheur des postes (gérante).',
+      visible: canOnScreen('finance.global.read'),
+    },
+    {
       name: 'facture-nouvelle',
       label: 'Nouvelle facture',
       text: 'Préparer un brouillon pour un patient, puis l’émettre.',

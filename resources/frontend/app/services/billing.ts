@@ -17,6 +17,8 @@ import type {
   CurrentCashSessionResponse,
   ExpenseCategory,
   ExpenseCategoryList,
+  FinancialReport,
+  FinancialReportResponse,
   Invoice,
   InvoicePage,
   InvoiceResponse,
@@ -297,6 +299,24 @@ export async function getCashDayReport(
   const response = await apiRequest<CashDayReportResponse>(
     'GET',
     `/api/v1/reports/cash-day${query === '' ? '' : `?${query}`}`,
+  )
+  return answered(response.data)
+}
+
+/**
+ * Finance du cabinet sur une période de jours civils (R01) : chiffre d'affaires, encaissements, créances, caisse et
+ * fraîcheur des postes hors ligne. Gérante seule (`finance.global.read`) : toute autre lecture est refusée par le
+ * serveur. Bornes incluses, 366 jours au plus (même règle que le serveur).
+ */
+export async function getFinancialReport(
+  from: string,
+  to: string,
+): Promise<ReadOutcome<FinancialReport>> {
+  assertCivilDate(from, 'Début de la période')
+  assertCivilDate(to, 'Fin de la période')
+  const response = await apiRequest<FinancialReportResponse>(
+    'GET',
+    `/api/v1/reports/financial?from=${from}&to=${to}`,
   )
   return answered(response.data)
 }

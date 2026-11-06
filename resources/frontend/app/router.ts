@@ -34,6 +34,7 @@ import DevicePreparationPage from '@/pages/settings/DevicePreparationPage.vue'
 import CashDayPage from '@/pages/cash/CashDayPage.vue'
 import CashSessionPage from '@/pages/cash/CashSessionPage.vue'
 import ExpenseCategoriesPage from '@/pages/cash/ExpenseCategories.vue'
+import FinancialPage from '@/pages/reports/Financial.vue'
 import CatalogPage from '@/pages/sales/CatalogPage.vue'
 import InvoiceCreatePage from '@/pages/sales/InvoiceCreatePage.vue'
 import InvoiceListPage from '@/pages/sales/InvoiceListPage.vue'
@@ -317,6 +318,18 @@ export function createEeoRouter(history: RouterHistory = createWebHistory()): Ro
         meta: {
           title: 'Caisse du jour',
           permissions: ['finance.global.read', 'cash.own_session'],
+          module: 'sales',
+        },
+      },
+      {
+        // Finance du cabinet sur une période (R01) : la gérante seule lit chiffre d'affaires, encaissements, créances,
+        // caisse et fraîcheur des totaux (postes hors ligne non synchronisés).
+        path: '/ventes/finance',
+        name: 'finance',
+        component: FinancialPage,
+        meta: {
+          title: 'Finance du cabinet',
+          permissions: ['finance.global.read'],
           module: 'sales',
         },
       },

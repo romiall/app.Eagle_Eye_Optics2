@@ -1366,85 +1366,469 @@
       }
     },
     "FinancialReport": {
-      "description": "Gérante : chiffre d'affaires émis et encaissé distincts ; créances d'ouverture papier séparées ; postes non synchronisés signalés (totaux incomplets).",
+      "description": "Finance du cabinet sur une période de jours civils (gérante, finance.global.read). Le chiffre d'affaires (factures émises − avoirs émis, reprises papier exclues) et les encaissements (paiements − contre-écritures − remboursements, à leur date effective) sont des indicateurs DISTINCTS ; les créances (restes dus de toutes périodes, dont la part des reprises papier) et les crédits à rembourser sont lus à l'instant de la lecture et restent à part. Vente par auteur de l'émission, encaissement par auteur du paiement. freshness : un état par poste de caisse hors ligne actif (UP_TO_DATE, WAITING : commandes reçues en attente ou en conflit, SILENT : rien reçu depuis plus de silence_hours) ; les totaux ne contiennent jamais une opération restée sur un poste.",
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "from",
-        "to",
-        "issued_total",
-        "collected_total",
-        "credited_total",
-        "refunded_total",
-        "outstanding_total",
-        "collected_by_method",
-        "legacy_opening_balances",
-        "incomplete_devices"
+        "period",
+        "revenue",
+        "collections",
+        "receivables",
+        "legacy_imported",
+        "cash_sessions",
+        "freshness",
+        "generated_at"
       ],
       "properties": {
-        "from": {
-          "$ref": "../../schemas/common.json#/$defs/CivilDate"
+        "period": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "from",
+            "to"
+          ],
+          "properties": {
+            "from": {
+              "$ref": "../../schemas/common.json#/$defs/CivilDate"
+            },
+            "to": {
+              "$ref": "../../schemas/common.json#/$defs/CivilDate"
+            }
+          }
         },
-        "to": {
-          "$ref": "../../schemas/common.json#/$defs/CivilDate"
-        },
-        "issued_total": {
-          "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
-        },
-        "collected_total": {
-          "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
-        },
-        "credited_total": {
-          "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
-        },
-        "refunded_total": {
-          "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
-        },
-        "outstanding_total": {
-          "$ref": "../../schemas/common.json#/$defs/SignedMoneyXaf"
-        },
-        "collected_by_method": {
-          "type": "array",
-          "minItems": 0,
-          "items": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": [
-              "method",
-              "amount"
-            ],
-            "properties": {
-              "method": {
-                "$ref": "../../schemas/enums.json#/$defs/payments.method"
-              },
-              "amount": {
-                "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+        "revenue": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "issued",
+            "credited",
+            "net",
+            "by_author"
+          ],
+          "properties": {
+            "issued": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "count",
+                "total_gross"
+              ],
+              "properties": {
+                "count": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "total_gross": {
+                  "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+                }
+              }
+            },
+            "credited": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "count",
+                "amount_gross"
+              ],
+              "properties": {
+                "count": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "amount_gross": {
+                  "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+                }
+              }
+            },
+            "net": {
+              "$ref": "../../schemas/common.json#/$defs/SignedMoneyXaf"
+            },
+            "by_author": {
+              "type": "array",
+              "minItems": 0,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "user_id",
+                  "display_name",
+                  "issued_count",
+                  "issued_gross",
+                  "credited_count",
+                  "credited_gross",
+                  "net"
+                ],
+                "properties": {
+                  "user_id": {
+                    "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+                  },
+                  "display_name": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 180
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "issued_count": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "issued_gross": {
+                    "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+                  },
+                  "credited_count": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "credited_gross": {
+                    "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+                  },
+                  "net": {
+                    "$ref": "../../schemas/common.json#/$defs/SignedMoneyXaf"
+                  }
+                }
               }
             }
           }
         },
-        "legacy_opening_balances": {
-          "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
-        },
-        "incomplete_devices": {
-          "type": "array",
-          "minItems": 0,
-          "items": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": [
-              "device_id",
-              "last_sync_at"
-            ],
-            "properties": {
-              "device_id": {
-                "$ref": "../../schemas/common.json#/$defs/Ulid"
-              },
-              "last_sync_at": {
-                "$ref": "../../schemas/common.json#/$defs/NullableInstant"
+        "collections": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "by_method",
+            "net_total",
+            "corrections",
+            "on_legacy",
+            "by_author"
+          ],
+          "properties": {
+            "by_method": {
+              "type": "array",
+              "minItems": 0,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "method",
+                  "payments_count",
+                  "payments_amount",
+                  "reversals_amount",
+                  "refunds_amount",
+                  "net_amount"
+                ],
+                "properties": {
+                  "method": {
+                    "$ref": "../../schemas/enums.json#/$defs/payments.method"
+                  },
+                  "payments_count": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "payments_amount": {
+                    "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+                  },
+                  "reversals_amount": {
+                    "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+                  },
+                  "refunds_amount": {
+                    "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+                  },
+                  "net_amount": {
+                    "$ref": "../../schemas/common.json#/$defs/SignedMoneyXaf"
+                  }
+                }
+              }
+            },
+            "net_total": {
+              "$ref": "../../schemas/common.json#/$defs/SignedMoneyXaf"
+            },
+            "corrections": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "reversals",
+                "refunds"
+              ],
+              "properties": {
+                "reversals": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "count",
+                    "amount"
+                  ],
+                  "properties": {
+                    "count": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "amount": {
+                      "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+                    }
+                  }
+                },
+                "refunds": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "count",
+                    "amount"
+                  ],
+                  "properties": {
+                    "count": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "amount": {
+                      "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+                    }
+                  }
+                }
+              }
+            },
+            "on_legacy": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "payments_count",
+                "net_amount"
+              ],
+              "properties": {
+                "payments_count": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "net_amount": {
+                  "$ref": "../../schemas/common.json#/$defs/SignedMoneyXaf"
+                }
+              }
+            },
+            "by_author": {
+              "type": "array",
+              "minItems": 0,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "user_id",
+                  "display_name",
+                  "payments_count",
+                  "payments_amount",
+                  "reversals_amount",
+                  "refunds_amount",
+                  "net_amount"
+                ],
+                "properties": {
+                  "user_id": {
+                    "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+                  },
+                  "display_name": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 180
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "payments_count": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "payments_amount": {
+                    "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+                  },
+                  "reversals_amount": {
+                    "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+                  },
+                  "refunds_amount": {
+                    "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+                  },
+                  "net_amount": {
+                    "$ref": "../../schemas/common.json#/$defs/SignedMoneyXaf"
+                  }
+                }
               }
             }
           }
+        },
+        "receivables": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "invoices_count",
+            "amount_due",
+            "of_which_legacy",
+            "refundable_credit"
+          ],
+          "properties": {
+            "invoices_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "amount_due": {
+              "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+            },
+            "of_which_legacy": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "invoices_count",
+                "amount_due"
+              ],
+              "properties": {
+                "invoices_count": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "amount_due": {
+                  "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+                }
+              }
+            },
+            "refundable_credit": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "invoices_count",
+                "amount"
+              ],
+              "properties": {
+                "invoices_count": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "amount": {
+                  "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+                }
+              }
+            }
+          }
+        },
+        "legacy_imported": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "count",
+            "opening_balance"
+          ],
+          "properties": {
+            "count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "opening_balance": {
+              "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+            }
+          }
+        },
+        "cash_sessions": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "closed_count",
+            "expected_total",
+            "counted_total",
+            "variance_total",
+            "post_closure_reversals",
+            "open_count"
+          ],
+          "properties": {
+            "closed_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "expected_total": {
+              "$ref": "../../schemas/common.json#/$defs/SignedMoneyXaf"
+            },
+            "counted_total": {
+              "$ref": "../../schemas/common.json#/$defs/SignedMoneyXaf"
+            },
+            "variance_total": {
+              "$ref": "../../schemas/common.json#/$defs/SignedMoneyXaf"
+            },
+            "post_closure_reversals": {
+              "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+            },
+            "open_count": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "freshness": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "complete",
+            "silence_hours",
+            "devices"
+          ],
+          "properties": {
+            "complete": {
+              "type": "boolean"
+            },
+            "silence_hours": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "devices": {
+              "type": "array",
+              "minItems": 0,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "device_id",
+                  "name",
+                  "last_sync_at",
+                  "commands_pending",
+                  "commands_in_conflict",
+                  "state"
+                ],
+                "properties": {
+                  "device_id": {
+                    "$ref": "../../schemas/common.json#/$defs/Ulid"
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 180
+                  },
+                  "last_sync_at": {
+                    "$ref": "../../schemas/common.json#/$defs/NullableInstant"
+                  },
+                  "commands_pending": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "commands_in_conflict": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "state": {
+                    "type": "string",
+                    "enum": [
+                      "UP_TO_DATE",
+                      "WAITING",
+                      "SILENT"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "generated_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
         }
       }
     },
