@@ -31,7 +31,7 @@
   },
   "$defs": {
     "ErrorCode": {
-      "description": "Codes du fichier 08 et compléments documentés (F05). Un nouveau code s'ajoute ici avec sa route. STATE_TRANSITION_REFUSED (409) : l'état actuel de la ressource ne permet pas l'opération (consultation déjà démarrée, visite non démarrable, consultation terminée) ; details.current_status porte ce statut.",
+      "description": "Codes du fichier 08 et compléments documentés (F05). Un nouveau code s'ajoute ici avec sa route. STATE_TRANSITION_REFUSED (409) : l'état actuel de la ressource ne permet pas l'opération (consultation déjà démarrée, visite non démarrable, consultation terminée) ; details.current_status porte ce statut. MODULE_NOT_ENABLED (409, O05) : la commande d'un poste relève d'un module fermé par le déploiement (EEO_ENABLED_MODULES) ; elle n'est jamais appliquée, elle reste dans l'inbox du serveur en conflit durable (CONFLICT_REQUIRES_REVIEW), et ne se rejoue qu'une fois le module ouvert, sur décision motivée de la gérante.",
       "type": "string",
       "enum": [
         "AUTH_REQUIRED",
@@ -74,6 +74,7 @@
         "DEVICE_REPLACED",
         "PAYLOAD_TOO_LARGE",
         "SERVER_BUSY",
+        "MODULE_NOT_ENABLED",
         "HTTP_ERROR",
         "INTERNAL_ERROR"
       ]

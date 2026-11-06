@@ -23,6 +23,8 @@ use stdClass;
  * que la route directe (`CommandBus`, source SYNC, clé d'idempotence = `command_id`), chacune dans SA transaction.
  *
  *  - appliquée : l'ACK `ACCEPTED` et le préfixe avancent dans la transaction de l'effet (`SyncAcknowledgements`) ;
+ *  - module de la commande fermé par le déploiement (M01, `SyncCommandModules`) : conflit durable `MODULE_NOT_ENABLED`,
+ *    rien n'est appliqué, la commande reste dans l'inbox et se rejoue (ACCEPT_LOCAL) une fois le module ouvert ;
  *  - pièce liée absente : `WAITING_DEPENDENCY` (dépendances conservées), reprise au prochain envoi, dans l'ordre ;
  *  - refus métier ou d'autorisation historique : conflit durable `OPEN` (instantanés chiffrés, aucun écrasement) et
  *    `CONFLICT_REQUIRES_REVIEW` ; seule une décision de la gérante (`ResolveConflict`) le finalise ;
@@ -188,6 +190,14 @@ final class SyncDrain
         $clinicId = (string) $command->clinic_id;
         $opened = SyncPayloads::openCommand((string) $command->payload_ciphertext);
         $payload = $opened['payload'];
+
+        // Module fermé par le déploiement (M01) : même refus que la route directe, mais durable et visible. Jugé AVANT
+        // les dépendances et tout effet ; la commande reste dans l'inbox et se rejoue une fois le module ouvert.
+        if (! SyncCommandModules::isOpen((string) $command->command_name)) {
+            $this->conflict($command, new BusinessError('MODULE_NOT_ENABLED', SyncCommandModules::closedMessage((string) $command->command_name), 409), $payload, $correlationId);
+
+            return false;
+        }
 
         $dependencies = SyncDependencies::check($clinicId, (string) $command->command_name, (string) $command->entity_type, (string) $command->entity_id, $payload);
         if ($dependencies['rejected'] !== []) {
