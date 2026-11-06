@@ -22,6 +22,10 @@ const props = withDefaults(
     accessibleName?: string | undefined
     /** Bouton à bascule (un filtre) : état annoncé par `aria-pressed` ; absent pour un bouton d'action. */
     pressed?: boolean | undefined
+    /** Bouton qui déplie ou replie une zone (détails) : état annoncé par `aria-expanded` ; absent sinon. */
+    expanded?: boolean | undefined
+    /** Identifiant de la zone que le bouton déplie (`aria-controls`). */
+    controls?: string | undefined
   }>(),
   {
     variant: 'primary',
@@ -32,6 +36,8 @@ const props = withDefaults(
     id: undefined,
     accessibleName: undefined,
     pressed: undefined,
+    expanded: undefined,
+    controls: undefined,
   },
 )
 
@@ -55,6 +61,8 @@ const variants: Record<string, string> = {
     :disabled="props.disabled || props.pending"
     :aria-busy="props.pending ? 'true' : undefined"
     :aria-pressed="props.pressed === undefined ? undefined : props.pressed ? 'true' : 'false'"
+    :aria-expanded="props.expanded === undefined ? undefined : props.expanded ? 'true' : 'false'"
+    :aria-controls="props.controls"
     :class="[
       'inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border px-4 py-2 text-base font-semibold',
       'disabled:cursor-not-allowed disabled:border-transparent disabled:bg-disabled disabled:text-disabled-ink disabled:shadow-none',

@@ -277,6 +277,29 @@ isolée. Les comptes de démonstration sont fictifs. Le test vérifie :
 - une URL métier non livrée (`/atelier`) mène à « Page introuvable » (le menu et l'accueil ne montrent que les
   modules livrés, ouverts par `EEO_ENABLED_MODULES` et autorisés : voir `modules.md`).
 
+## Mise à jour de l’application (O06, 2026-11-05)
+
+Le 2026-10-30, le demandeur n’a pas vu des corrections livrées en ligne : son navigateur affichait l’ancienne version et le bandeau de mise à jour, en haut
+de la page et sans rappel, n’avait été ni compris ni cliqué. La règle d’O06 reste « jamais imposée » ; ce passage la rend impossible à manquer et compréhensible.
+Détail du service worker et de la migration du schéma local : `vault.md`, « Implémentation (O06) » ; identité du build : `build.md`.
+
+| Élément | Comportement |
+| --- | --- |
+| Bandeau (`components/update/UpdatePrompt.vue`) | Monté en tête de `App.vue`, donc sur CHAQUE écran (connexion et déverrouillage compris), collé en haut (`sticky top-0 z-40`) tant qu’une version attend. Il ne se masque pas (ni « Plus tard », ni fermeture : seuls ses détails se replient). Titre « Une nouvelle version de l’application est prête », puis « Vous utilisez encore l’ancienne version : les corrections récentes ne s’affichent pas tant que vous ne l’installez pas. » Détails (« Voir les détails ») : ce que fait l’installation, ce qu’elle ne fait pas (aucune suppression, vous restez connecté), après le rechargement (le coffre est reverrouillé), avant d’installer (saisie en cours, autres onglets). `html.has-update-banner` réserve la place du bandeau pour les ancres et le focus (`styles/base.css`) ; à 360 px il occupe un tiers de l’écran au plus (bouton d’installation en tête) |
+| Contrôle du poste | `decideUpdate` (inchangé). Bloqué (serveur injoignable avec des pièces en attente, version de commande, de règles, format de coffre ou schéma non repris) : bouton grisé, cause en rouge SANS ouvrir les détails, « Vérifier de nouveau ». À confirmer (pièces en attente, profil verrouillé, export ancien, stockage presque plein) : « Confirmer l’installation » et « Annuler », points à lire. Libre : un clic |
+| Pied de page (`components/update/AppVersion.vue`) | Sur chaque écran (`<footer>`) : « Version de l’application : build <identifiant>, construite le <date> à <heure du cabinet> », bouton « Vérifier les mises à jour » (absent quand aucun service worker n’est enregistré, par exemple avec le serveur Vite) et zone d’annonce `role="status"` toujours présente : « Vous utilisez la dernière version publiée. », « Une nouvelle version est prête… », « La recherche a échoué… » |
+| Recherche (`app/services/appUpdate.ts`, règles pures `app/updateSchedule.ts`) | Le navigateur ne cherche qu’à l’ouverture d’une page. Le service cherche aussi au RETOUR (onglet qui redevient visible, fenêtre qui reprend le focus, réseau revenu), toutes les 15 minutes page affichée, et sur demande. Plancher d’une minute entre deux recherches automatiques ; jamais hors ligne ; une demande sans réseau est dite à la personne |
+| Autre onglet | Si une autre fenêtre installe la version, cette page affiche « Cette page doit être rechargée » (« Recharger la page ») ; elle ne se recharge jamais d’elle-même (une saisie serait perdue) |
+| Installation sans prise de contrôle | Après 20 s : « L’installation n’a pas abouti. Rechargez la page, puis recommencez. » Si le rechargement est refusé (le navigateur demande confirmation quand une saisie n’est pas enregistrée et la personne refuse), la page passe à « Cette page doit être rechargée » après 5 s : la nouvelle version est active, cette page garde l’ancien code |
+| Aide intégrée | `handbook-glossaire-depannage.ts`, « Version de l’application et mises à jour » (cinq questions : le bandeau, le bouton grisé, la confirmation, quelle version tourne, « Cette page doit être rechargée ») |
+| `AppButton` | Deux propriétés ajoutées : `expanded` (`aria-expanded`) et `controls` (`aria-controls`) pour un bouton qui déplie une zone |
+
+Le libellé du bouton du pied de page, présent sur chaque écran, ne doit contenir aucun nom de bouton déjà sélectionné par un parcours e2e (un premier libellé, « Rechercher une nouvelle version », a rendu ambigus les sélecteurs `name: 'Rechercher'` de la liste des patients : `footer-selectors.test.ts` le contrôle).
+
+Preuves : Vitest `tests/frontend/update/` (identité du build, règles de recherche, service avec doubles, bandeau et pied de page, sélecteurs) ; navigateur réel : `tests/e2e/app-update.spec.ts`
+(bandeau collé en haut pendant un défilement, bloqué puis à confirmer, 360 px sans débordement, pied de page avant et après). Limite : le texte du bandeau suppose que le
+rechargement conserve la session du serveur (vrai tant que le cookie de session vit) et verrouille le coffre (la mémoire de la page est perdue).
+
 ## Hors de F09
 
 - Tests sur téléphones Android et iPhone réels, impression A4 en noir et blanc, mesures d'usage

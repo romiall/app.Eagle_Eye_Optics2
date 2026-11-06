@@ -34,6 +34,11 @@ describe('configuration PWA : jamais d’API en cache ni de repli SPA sur /api',
     '/manifest.webmanifest',
     '/build/assets/main-abc123.js',
     '/storage/documents/facture.pdf',
+    // Sans extension : seul le préfixe du chemin exclut la coquille (fichiers privés, O06).
+    '/storage',
+    '/storage/',
+    '/storage/documents/facture-privee',
+    '/build/inconnu',
     '/icons/icon-192.png',
     '/robots.txt',
   ])('refuse le repli SPA pour la ressource %s', (url) => {

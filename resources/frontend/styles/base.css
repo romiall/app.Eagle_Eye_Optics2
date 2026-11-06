@@ -21,6 +21,14 @@ html {
   --field-label-offset: calc(var(--field-label-height) + var(--field-label-gap));
 }
 
+/*
+ * Bandeau de mise à jour collé en haut de l'écran (UpdatePrompt, O06) : un défilement vers une ancre ou un champ
+ * pris par le focus ne doit pas le laisser caché derrière le bandeau.
+ */
+html.has-update-banner {
+  scroll-padding-top: 9rem;
+}
+
 body {
   margin: 0;
   line-height: 1.5;

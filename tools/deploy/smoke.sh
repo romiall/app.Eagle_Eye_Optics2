@@ -63,6 +63,9 @@ fi
 code="$(http_code "${BASE}/sw.js")"
 check "Le service worker /sw.js est servi" "$([[ "$code" == "200" ]] && echo 0 || echo 1)" "(reçu ${code})"
 
+code="$(http_code "${BASE}/build/build-info.json")"
+check "L'identité du build /build/build-info.json est servie" "$([[ "$code" == "200" ]] && echo 0 || echo 1)" "(reçu ${code})"
+
 # Les fichiers de configuration ne doivent jamais être servis. La coquille de l'application répond 200 à une
 # adresse inconnue : on contrôle donc le CONTENU (signature du fichier), pas seulement le code de réponse.
 check_not_served() { # chemin, expression de signature
