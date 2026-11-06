@@ -1,4 +1,4 @@
-import { expect, test, type Page, type Response } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 
 import { demoAccount } from './support/accounts'
 import { activeServiceWorkerScope, foreignRequests, recordRequests } from './support/browser'
@@ -6,7 +6,9 @@ import {
   api,
   deviceIdByCode,
   navigateInApp,
+  openFromSearch,
   prepareThisDevice,
+  receiveDirectory,
   signIn,
   unlockFromPublicScreen,
 } from './support/device'
@@ -35,47 +37,6 @@ const ORIGIN = `http://127.0.0.1:${DIRECTORY_OFFLINE_PORT}`
 const SERVER_ENVIRONMENT = {
   SANCTUM_STATEFUL_DOMAINS: `127.0.0.1:${DIRECTORY_OFFLINE_PORT}`,
   APP_URL: ORIGIN,
-}
-
-/**
- * Reçoit l'annuaire depuis l'en-tête : des échanges jusqu'à ce que le serveur n'ait plus rien à publier (une page de pull
- * ne porte que 100 changements, un échange 20 pages). Ouvre au moins un échange, jamais plus de huit.
- */
-async function receiveDirectory(page: Page): Promise<void> {
-  const sync = page.getByRole('button', { name: 'Synchroniser', exact: true })
-  const hasMore: boolean[] = []
-  page.on('response', (response: Response) => {
-    if (!response.url().includes('/api/v1/sync/pull')) return
-    void response
-      .json()
-      .then((body: { has_more?: boolean }) => hasMore.push(body.has_more === true))
-      .catch(() => undefined)
-  })
-  for (let round = 1; round <= 8; round += 1) {
-    hasMore.length = 0
-    await Promise.all([
-      page.waitForResponse((response) => response.url().includes('/api/v1/sync/pull'), {
-        timeout: 120_000,
-      }),
-      sync.click(),
-    ])
-    // Le bouton reprend son nom quand l'échange est terminé.
-    await expect(sync).toBeVisible({ timeout: 120_000 })
-    if (hasMore.at(-1) !== true) return
-  }
-  throw new Error('Le serveur a encore des changements à publier après huit échanges.')
-}
-
-/** Retrouve la fiche par la recherche de l'écran « Patients » (serveur injoignable) puis l'ouvre. */
-async function openFromSearch(page: Page, name: string): Promise<void> {
-  await navigateInApp(page, '/patients')
-  await page.getByRole('searchbox', { name: 'Rechercher un patient' }).fill(name)
-  await page.getByRole('button', { name: 'Rechercher' }).click()
-  const main = page.getByRole('main')
-  await expect(main).toContainText('Données de ce poste seulement')
-  await main.getByRole('link', { name: new RegExp(name) }).click()
-  await expect(page).toHaveURL(/\/patients\/[0-9A-HJKMNP-TV-Z]{26}$/)
-  await expect(page.getByRole('heading', { level: 1 })).toContainText(name)
 }
 
 test.describe('annuaire du poste : patient du serveur lu, modifié et facturé SANS réseau (A2)', () => {
