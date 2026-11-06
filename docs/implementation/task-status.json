@@ -329,14 +329,23 @@
    "notes": "Encaissement acompte/solde, reçu unique par encaissement, BilledExamFeeControl activable (EEO_EXAM_FEE_CONTROL=off par défaut). En ligne seulement. Vérification transversale de fin de phase 1 (2026-10-23, tools/dev/phase-check.sh --with-e2e) : contrats, Pint, PHPStan, PHPUnit complet, vue-tsc, ESLint, Prettier, Vitest complet, build, Playwright 47/47 verts sur le poste local ; CI GitHub verte (run 39879707020 sur 19d2bda). EN LIGNE seulement (hors-ligne O01–O05 non fait)."
   },
   "O05": {
-   "status": "IN_PROGRESS",
+   "status": "IN_REVIEW",
    "evidence": [
     "docs/implementation/vault.md",
+    "docs/implementation/modules.md",
+    "docs/implementation/progress.md",
     "https://github.com/romiall/app.Eagle_Eye_Optics/actions/runs/40044078785",
     "tests/e2e/offline-sync.spec.ts",
+    "tests/e2e/first-slice.spec.ts",
+    "tests/Feature/Offline/SyncPushTest.php",
+    "tests/Feature/Offline/SyncPullTest.php",
+    "tests/Concurrency/SyncConcurrencyTest.php",
+    "tests/Unit/Offline/SyncCommandModulesTest.php",
+    "tests/Unit/Offline/SignedCommandsTest.php",
+    "tests/frontend/offline/sync.test.ts",
     "https://github.com/romiall/app.Eagle_Eye_Optics1/actions/runs/40246904670"
    ],
-   "notes": "Codage le 2026-10-23 (push, pull, ACK, conflits durables). Serveur vérifié (PHPUnit : SyncPushTest, SyncPullTest, SignedCommandsTest, SyncConcurrencyTest). Parcours e2e tests/e2e/offline-sync.spec.ts réactivé le 2026-10-25 et vert en local et en CI (run 40246904670) (progress.md, « Parcours hors-ligne réactivé »). D14 et D27 (écran public de déverrouillage, session locale) livrés le 2026-10-28 : vault.md, tests/e2e/offline-start.spec.ts. Module offline fermé en production."
+   "notes": "Codage le 2026-10-23 (push, pull, ACK, conflits durables). Serveur vérifié (PHPUnit : SyncPushTest, SyncPullTest, SignedCommandsTest, SyncConcurrencyTest). Parcours e2e tests/e2e/offline-sync.spec.ts réactivé le 2026-10-25 et vert en local et en CI (run 40246904670) (progress.md, « Parcours hors-ligne réactivé »). D14 et D27 (écran public de déverrouillage, session locale) livrés le 2026-10-28 : vault.md, tests/e2e/offline-start.spec.ts. Clos par la preuve le 2026-11-06 (branche claude/o05-synchronisation) : chaque ligne de la fiche 24 (travaux, sorties, validations « crash après commit avant ACK », « conflit N puis reprise N+1 », « pull avec commits entrelacés ») et AT38, AT39, AT42, AT45 est reliée à un test dans vault.md, « Clôture par la preuve (O05) ». Ajouts : porte des commandes de poste d'un module fermé (SyncCommandModules, conflit MODULE_NOT_ENABLED, défaut ouvert de M01), processus tué pendant l'application, commits entrelacés au pull, écriture de page interrompue au poste, AT42 sur la fiche patient. IN_REVIEW et non DONE : écarts déclarés (AT42 des consultations tant que les examens hors ligne sont fermés, pas de signalement de doublon après synchronisation, pull non filtré par module, pas de parcours Playwright du conflit, AT45 porté par O06). Module offline FERMÉ en production."
   },
   "D01": {
    "status": "IN_REVIEW",
