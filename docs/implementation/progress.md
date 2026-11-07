@@ -4,13 +4,13 @@ Initialisé le 2026-10-14 depuis `specifications/developpement/JOURNAL.md`. Le b
 
 ## État courant
 
-- Branche : `claude/p04-parcours-profils` (coupée le 2026-11-07 de `origin/main` `398a18a`, qui contient la pile du 2026-11-05, O06, O05, R01 et G2). Dépôt public : données fictives uniquement ; développement sur un poste local depuis le 2026-10-15, une seule session à la fois dans ce dossier.
+- Branche : `main` (fusion de la pile le 2026-11-05, d'O06 et d'O05 le 2026-11-06, de R01 et de G2 puis de P04 le 2026-11-07 ; leurs branches `claude/…` sont SANS OBJET). Dépôt public : données fictives uniquement ; développement sur un poste local depuis le 2026-10-15, une seule session à la fois dans ce dossier.
 - Lot et gate visés : L0 ; **G0 acquis** (voir `docs/evidence/G0.md`) ; **G1 DONE** (prouvé le 2026-10-28, arbitré par le demandeur le 2026-10-30 : `docs/evidence/G1.md`) ; **G2 prouvé le 2026-11-06, IN_REVIEW** (`docs/evidence/G2.md`) ; **P04 faite le 2026-11-07, IN_REVIEW** (`docs/runbooks/profile-flow.md`) ; prochains : U01, G3, G4.
-- Tâche courante (2026-11-07) : **P04** « Vérifier parcours entre profils et postes préparés » (faite et en revue, IN_REVIEW : voir la section « P04 » plus bas ; ordre du demandeur : O06, O05, R01, puis G2, U01, G3, G4, avec P04 prérequis d'U01 ; L1, L2, L3). O06, O05, R01 et G2, en revue, sont fusionnées dans `main` (sections « Fusion d'O06 et d'O05 » et « Fusion de R01 et de G2 »). Historique : lot 2 vérifié le 2026-10-24 (run 40044078785, commit `cb7a008`), H01 EN LIGNE le 2026-10-27 (`docs/implementation/deploiement.md`).
-- Dernière preuve acquise : CI verte de `main` après la fusion de R01 et de G2 (run 42346031403 sur `398a18a` : PHP, Frontend, E2E 100 parcours ; l'arbre fusionné avait été jugé avant par la branche `claude/fusion-r01-g2`, run 42345411555) ; avant : CI verte de `main` après la fusion d'O06 et d'O05 (run 42181567935 sur `2c29218`). La validation SQL d'origine (`database/VALIDATION.md`, amendée le 2026-11-06 pour le diagnostic I01) et G0 restent **distincts d'une recette applicative**.
+- Tâche courante (2026-11-07) : aucune en cours ; la suivante est **U01** « Corriger l'usage et les impressions sur appareils ciblés » (ordre du demandeur : O06, O05, R01, puis G2, U01, G3, G4, P04 étant le prérequis d'U01 ; L1, L2, L3). O06, O05, R01, G2 et P04, faites et en revue (IN_REVIEW), sont fusionnées dans `main` (sections « Fusion d'O06 et d'O05 », « Fusion de R01 et de G2 » et « Fusion de P04 »). Historique : lot 2 vérifié le 2026-10-24 (run 40044078785, commit `cb7a008`), H01 EN LIGNE le 2026-10-27 (`docs/implementation/deploiement.md`).
+- Dernière preuve acquise : CI verte de la branche de P04 avant la fusion (run 42352729863 sur `ec3361b`, dont l'arbre est celui de la fusion), puis de la branche `claude/fusion-p04` ; avant : CI verte de `main` après la fusion de R01 et de G2 (run 42346031403 sur `398a18a`). La validation SQL d'origine (`database/VALIDATION.md`, amendée le 2026-11-06 pour le diagnostic I01) et G0 restent **distincts d'une recette applicative**.
 - Statut et preuves de chaque tâche : `docs/implementation/task-status.json` (la liste n’est plus recopiée ici).
 - Blocages externes : Q01–Q04/Q14 (production seulement) ; développement fictif possible.
-- Prochaine action concrète : U01 (impressions et usage sur appareils ciblés : appareils réels à obtenir), puis G3, G4 (ordre du demandeur du 2026-11-05) ; fusion de P04 dans `main` sur accord du demandeur.
+- Prochaine action concrète : U01 (partie automatisable : tailles d'écran, clavier, zoom, chronométrage ; impression réelle et appareils ciblés à obtenir du cabinet), puis G3, G4 (ordre du demandeur du 2026-11-05).
 
 ## Fusion de la pile dans `main` et début d’O06 (2026-11-05)
 
@@ -93,7 +93,19 @@ Tâche suivant G2 dans l'ordre du demandeur (O06, O05, R01, puis G2, U01, G3, G4
 - **Vérification** (2026-11-07, poste Windows, Edge 156, PHP 8.4.21, Node 24.15.0) : types (vue-tsc), ESLint et Prettier sur tout le
   dépôt, Vitest complet (164 fichiers, 3 324 tests, 20 ignorés), build ; Playwright : `profile-flow`, `financial-safety`, `first-slice`,
   `offline-directory`, `offline-sync` et `zz-diagnostics-sql` verts ; la suite complète est jugée par la CI. Aucun code PHP modifié.
-- **CI** : verte le 2026-11-07, run [42352094998](https://github.com/romiall/app.Eagle_Eye_Optics2/actions/runs/42352094998) sur `3223d94` : PHP, Frontend et E2E (101 parcours, dont `profile-flow.spec.ts`). Le premier envoi (run [42350855485](https://github.com/romiall/app.Eagle_Eye_Optics2/actions/runs/42350855485) sur `07bdd92`) avait un seul rouge, le parcours de P04 : sur la base complète des parcours la préparation du poste dépose 15 coquilles cliniques SANS contenu (limite déclarée de `PullProjections`), et mon assertion « zéro ligne clinique sur le poste » reposait sur ma base presque vide. Elle compare maintenant AVANT et APRÈS la journée des trois profils (aucune ligne clinique ajoutée), et le parcours a été rejoué sur une base peuplée par `consultation.spec.ts`. Fusion dans `main` : à demander au demandeur (accord à chaque fois).
+- **CI** : verte le 2026-11-07, run [42352094998](https://github.com/romiall/app.Eagle_Eye_Optics2/actions/runs/42352094998) sur `3223d94` : PHP, Frontend et E2E (101 parcours, dont `profile-flow.spec.ts`). Le premier envoi (run [42350855485](https://github.com/romiall/app.Eagle_Eye_Optics2/actions/runs/42350855485) sur `07bdd92`) avait un seul rouge, le parcours de P04 : sur la base complète des parcours la préparation du poste dépose 15 coquilles cliniques SANS contenu (limite déclarée de `PullProjections`), et mon assertion « zéro ligne clinique sur le poste » reposait sur ma base presque vide. Elle compare maintenant AVANT et APRÈS la journée des trois profils (aucune ligne clinique ajoutée), et le parcours a été rejoué sur une base peuplée par `consultation.spec.ts`. Fusionnée dans `main` le 2026-11-07 (section « Fusion de P04 »).
+
+## Fusion de P04 dans `main` (2026-11-07)
+
+- **Accord** : le demandeur a répondu « Oui, fusionner » à la question « Fusionner P04 dans main ? » (2026-11-07). C'est l'accord de CETTE
+  fusion, pas une permission permanente : le redemander à chaque chantier.
+- **Fusion** : sans passer par l'interface des PR, par un commit de fusion sur la branche `claude/fusion-p04` (la branche de P04 est
+  linéaire sur `main` : aucun conflit, l'arbre fusionné est celui de sa pointe `ec3361b`, dont la CI était verte, run 42352729863). La
+  branche intermédiaire est poussée pour que la CI juge le dernier arbre (fusion et ce journal) AVANT que `main` ne bouge.
+- **Production inchangée** : https://app-eagleseye.com exécute la release `eeo-20261030T1916Z-bbd83c4` ; le module `offline` y reste fermé ;
+  les quatre paquets Symfony y sont encore en 7.4.21 (verrou du dépôt : 7.4.23). Un prochain déploiement apporterait, en plus du bandeau de
+  mise à jour d'O06 et de l'écran de finance (R01), la correction du déverrouillage après la préparation d'un poste (P04) : dire alors au
+  demandeur de cliquer sur « Installer la nouvelle version ». Rien n'est déployé sans demande du demandeur.
 
 ## Fusion de R01 et de G2 dans `main` (2026-11-07)
 
