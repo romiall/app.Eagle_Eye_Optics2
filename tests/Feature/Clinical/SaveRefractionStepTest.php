@@ -9,7 +9,7 @@ use Tests\Support\MigratedDatabase;
 use Tests\TestCase;
 
 /**
- * Rubrique REFRACTION (C02, AT11, EE007) : autoréfracteur, réfraction objective et subjective séparés par œil,
+ * Rubrique REFRACTION (C02, AT18, EE007) : autoréfracteur, réfraction objective et subjective séparés par œil,
  * observations et amétropies choisies par le professionnel. Aucun arrondi, aucune inférence (cylindre positif non
  * transposé, axe non déduit), zéro distinct de « non mesuré ». Données fictives.
  */

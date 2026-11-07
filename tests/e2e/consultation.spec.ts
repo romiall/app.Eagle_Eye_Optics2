@@ -5,7 +5,7 @@ import { expect, test, type BrowserContext, type Page } from '@playwright/test'
 import { demoAccount } from './support/accounts'
 
 /**
- * Consultation clinique réelle (C01 à C03, AT02, AT10 à AT12, AT18, AT19 ; premier jalon EN LIGNE et sans
+ * Consultation clinique réelle (C01 à C03, AT02, AT18, AT19 ; premier jalon EN LIGNE et sans
  * contrôle de paiement) : l'accueil enregistre une arrivée, la personne en charge de l'examen la démarre depuis
  * la file du jour, remplit les sept étapes (motif et lunettes, antécédents, acuités avec une échelle de
  * DÉMONSTRATION, réfraction, centrage, médicaments, conclusion et orientation), voit « Enregistré sur le

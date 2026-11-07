@@ -3,7 +3,7 @@ import { expect, test, type Browser, type Locator, type Page } from '@playwright
 import { demoAccount } from './support/accounts'
 
 /**
- * Remise au patient et retour physique EN LIGNE sur la vraie application (I01, I02, AT23) : la caisse facture deux
+ * Remise au patient et retour physique EN LIGNE sur la vraie application (I01, I02, AT15 à AT17) : la caisse facture deux
  * montures fictives, émet, encaisse la totalité, remet une monture, puis la seconde (remise partielle puis totale) ;
  * la gérante enregistre ensuite le retour d'une monture intacte, remise en stock vendable, sans avoir. Jamais
  * « payé », « soldé » ni « acquitté ». Articles DEMO-* et stock FICTIFS (`eeo:demo:sales`).

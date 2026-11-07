@@ -10,7 +10,7 @@ use Tests\Support\MigratedDatabase;
 use Tests\TestCase;
 
 /**
- * Rubrique CENTERING (C02, AT12) : écart pupillaire objectif en millimètres (total, OD, OG), une ligne par consultation.
+ * Rubrique CENTERING (C02, AT18) : écart pupillaire objectif en millimètres (total, OD, OG), une ligne par consultation.
  * Le système ne fabrique jamais une valeur monoculaire à partir du total (ni l'inverse) ; une incohérence entre le
  * total et la somme OD + OG exige une justification (tolérance 0 par hypothèse, Q06). Données fictives.
  */

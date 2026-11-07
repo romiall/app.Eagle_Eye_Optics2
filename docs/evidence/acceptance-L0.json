@@ -1,0 +1,2871 @@
+{
+  "schema_version": 1,
+  "title": "Registre de recette L0 (fichier 14 : AT01 à AT29 et AT36 à AT45) — gate G3",
+  "note": "Un enregistrement par scénario, au format du fichier 25 (« Registre de preuves »). PASS seulement si le résultat attendu ENTIER est prouvé ; BLOCKED quand une partie exige du matériel, des personnes, l'hébergement ou une décision du demandeur (champ `parts` : le détail). Les preuves sont des tests nommés, vérifiés comme existants par le générateur ; ils ont tous passé dans la CI du build candidat. Données fictives seulement. Ce registre ne vaut pas G3 DONE : voir docs/evidence/G3.md.",
+  "candidate": {
+    "commit": "d98f48ceebf2f2aaed58c78a57b05fa37ffcdf43",
+    "branch": "main",
+    "release": "0.1.0-l0",
+    "sync_protocol_version": 1,
+    "rules_versions": [
+      "2026-10-14.1"
+    ],
+    "vault_formats": [
+      1
+    ],
+    "local_schema_versions": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "catalog_sha256": "73bd5dc454c170f8b5caa2cd66c0e6b696525efb6ca94e5c81bec2046e2761eb",
+    "document_templates": [
+      {
+        "document_type": "INVOICE",
+        "template_version": "TEST-1"
+      },
+      {
+        "document_type": "INVOICE",
+        "template_version": "invoice.v1"
+      },
+      {
+        "document_type": "RECEIPT",
+        "template_version": "TEST-1"
+      },
+      {
+        "document_type": "RECEIPT",
+        "template_version": "receipt.v1"
+      },
+      {
+        "document_type": "CREDIT_NOTE",
+        "template_version": "TEST-1"
+      },
+      {
+        "document_type": "CREDIT_NOTE",
+        "template_version": "credit_note.v1"
+      },
+      {
+        "document_type": "REFUND",
+        "template_version": "TEST-1"
+      },
+      {
+        "document_type": "REFUND",
+        "template_version": "refund.v1"
+      },
+      {
+        "document_type": "ACCOUNT_STATEMENT",
+        "template_version": "TEST-1"
+      },
+      {
+        "document_type": "QUOTE",
+        "template_version": "TEST-1"
+      },
+      {
+        "document_type": "QUOTE",
+        "template_version": "quote.v1"
+      },
+      {
+        "document_type": "OPTICAL_PRESCRIPTION",
+        "template_version": "TEST-1"
+      },
+      {
+        "document_type": "OPTICAL_PRESCRIPTION",
+        "template_version": "optical_prescription.v1"
+      },
+      {
+        "document_type": "CLINICAL_RECORD",
+        "template_version": "TEST-1"
+      },
+      {
+        "document_type": "CLINICAL_RECORD",
+        "template_version": "clinical_record.v1"
+      }
+    ],
+    "migrations": [
+      "2026_10_14_000000_create_framework_tables.php",
+      "2026_10_14_000001_eeo_baseline_01_tables.php",
+      "2026_10_14_000002_eeo_baseline_02_foreign_keys.php",
+      "2026_10_14_000003_eeo_baseline_03_reference_data_and_views.php",
+      "2026_10_14_000004_eeo_baseline_04_history_guards.php"
+    ],
+    "sha256": {
+      "composer.lock": "a29f2d42764ce83884949148184ecf0a9d542f8c196a095dbc980ed2dbba1ce6",
+      "package-lock.json": "078f2e24a81649b0b6ae0fc7eed58c3e3783ae777c967a6e0050012c89b9ff6b",
+      "database/validation_report.json": "075d96277426bc66e7c447f41557bb534c4cea22f80c3484509a33fa8f7bb964",
+      "contracts/compatibility.json": "521ab155732b56d4a24bb97173d3b3d4aa3198ffd9c718968bc346c6010d39eb",
+      "contracts/openapi.yaml": "c2e11daf33fbadbc8bb36e32388afcef42259d119fd8d2928dad1126cc4690b6"
+    },
+    "production": {
+      "url": "https://app-eagleseye.com",
+      "release": "eeo-20261030T1916Z-bbd83c4",
+      "note": "La production n'exécute PAS ce candidat (module `offline` fermé) ; rien n'est déployé sans demande du demandeur."
+    }
+  },
+  "ci": {
+    "run_id": 42374428715,
+    "url": "https://github.com/romiall/app.Eagle_Eye_Optics2/actions/runs/42374428715",
+    "commit": "d98f48ceebf2f2aaed58c78a57b05fa37ffcdf43",
+    "conclusion": "success",
+    "jobs": [
+      {
+        "name": "PHP (Pint, Larastan, PHPUnit, schéma, MySQL 8.4.9)",
+        "conclusion": "success"
+      },
+      {
+        "name": "Frontend (types, lint, Vitest, build)",
+        "conclusion": "success"
+      },
+      {
+        "name": "E2E Playwright (Chromium, MySQL 8.4.9)",
+        "conclusion": "success"
+      }
+    ]
+  },
+  "summary": {
+    "PASS": 35,
+    "BLOCKED": 4,
+    "total": 39
+  },
+  "integration_summary": {
+    "PASS": 20,
+    "NOT_RUN": 2,
+    "total": 22
+  },
+  "scenarios": [
+    {
+      "id": "AT01",
+      "lot": "L0",
+      "scenario": "Créer comptes, se connecter, désactiver un compte, tester URL directe",
+      "expected": "Comptes distincts, session serveur invalidée ; droits locaux bornés et révocation différée signalée",
+      "build": {
+        "commit": "d98f48ceebf2f2aaed58c78a57b05fa37ffcdf43",
+        "release": "0.1.0-l0"
+      },
+      "environment": "CI (Ubuntu, PHP 8.3, Node 22, MySQL 8.4.9, Chromium)",
+      "date": "2026-11-07",
+      "preconditions": "Jeu de données de la recette (fichier 14) : cabinet de test XAF / Africa/Douala, comptes de démonstration (gérante, accueil, professionnel, caissière), catalogue fictif `DEMO-*`, taxes de démonstration non contractuelles ; MySQL 8.4.9 réel ; données fictives seulement.",
+      "observed": "Comptes nominatifs avec profils et permissions ; la désactivation motivée coupe toutes les sessions du serveur et l'URL directe est refusée côté serveur ; une révocation connue du poste refuse sa commande, une révocation postérieure n'invalide pas une commande déjà signée (elle passe en revue au rejeu).",
+      "result": "PASS",
+      "evidence": [
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Access/StaffManagementTest.php",
+          "tests": [
+            "test_desactivation_motivee_qui_coupe_toutes_les_sessions_serveur",
+            "test_profils_et_derogations_s_appliquent_des_la_requete_suivante"
+          ]
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Access/AuthenticationTest.php",
+          "tests": [
+            "test_connexion_reussie_renvoie_le_compte_ses_profils_et_ses_permissions",
+            "test_la_deconnexion_ferme_la_session_serveur",
+            "test_sans_session_l_api_repond_401_dans_l_enveloppe_du_fichier_08"
+          ]
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Access/SecurityHardeningTest.php",
+          "tests": [
+            "test_une_gerante_desactivee_ou_retrogradee_depuis_sa_requete_ne_peut_plus_agir"
+          ]
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Application/CommandBusTest.php",
+          "tests": [
+            "test_un_compte_desactive_ne_peut_plus_agir_ni_relire_un_resultat_deja_committe",
+            "test_une_revocation_posterieure_n_invalide_pas_la_commande_du_poste_et_son_rejeu_reste_accepte",
+            "test_une_commande_apres_une_revocation_connue_du_poste_est_refusee"
+          ]
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Offline/DevicesTest.php",
+          "tests": [
+            "test_la_revocation_d_un_poste_revoque_ses_grants_et_bloque_toute_nouvelle_emission"
+          ]
+        },
+        {
+          "kind": "Playwright",
+          "path": "tests/e2e/auth-session.spec.ts",
+          "tests": [
+            "les droits sont vérifiés par le serveur : la caisse ne voit pas les comptes, la gérante oui"
+          ]
+        }
+      ],
+      "limits": [],
+      "defect": null,
+      "correction": null
+    },
+    {
+      "id": "AT02",
+      "lot": "L0",
+      "scenario": "Accueil/caisse ouvrent API clinique/financière globale/PDF par identifiant",
+      "expected": "Refus serveur et coffre local inaccessible au mauvais rôle ; aucune donnée divulguée",
+      "build": {
+        "commit": "d98f48ceebf2f2aaed58c78a57b05fa37ffcdf43",
+        "release": "0.1.0-l0"
+      },
+      "environment": "CI (Ubuntu, PHP 8.3, Node 22, MySQL 8.4.9, Chromium)",
+      "date": "2026-11-07",
+      "preconditions": "Jeu de données de la recette (fichier 14) : cabinet de test XAF / Africa/Douala, comptes de démonstration (gérante, accueil, professionnel, caissière), catalogue fictif `DEMO-*`, taxes de démonstration non contractuelles ; MySQL 8.4.9 réel ; données fictives seulement.",
+      "observed": "L'accueil et la caisse n'ont aucun accès clinique (consultation, révisions) ni aux documents cliniques, et seule la gérante lit la finance du cabinet : refus côté serveur ; côté poste, chaque profil ne reçoit et ne stocke que ses compartiments (le professionnel n'a ni droit ni clé des pièces financières, vérifié dans IndexedDB brute).",
+      "result": "PASS",
+      "evidence": [
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Clinical/GetConsultationTest.php",
+          "tests": [
+            "test_l_accueil_et_la_caisse_n_ont_aucun_acces_clinique_meme_a_une_consultation_existante"
+          ]
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Clinical/GetRevisionTest.php",
+          "tests": [
+            "test_l_accueil_et_la_caisse_n_ont_aucun_acces_aux_revisions"
+          ]
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Access/ClinicDocumentIdentityTest.php",
+          "tests": [
+            "test_l_accueil_qui_ne_produit_aucun_document_est_refuse"
+          ]
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Billing/FinancialReportTest.php",
+          "tests": [
+            "test_la_gerante_seule_lit_la_finance_de_son_cabinet"
+          ]
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Offline/SyncPullTest.php",
+          "tests": [
+            "test_chaque_profil_ne_recoit_que_ses_compartiments_et_jamais_le_clinique_sans_droit"
+          ]
+        },
+        {
+          "kind": "Vitest",
+          "path": "tests/frontend/documents/access.test.ts",
+          "tests": [
+            "la caisse ouvre les pièces financières, pas le dossier clinique"
+          ]
+        },
+        {
+          "kind": "Vitest",
+          "path": "tests/frontend/documents/clinical-service.test.ts",
+          "tests": [
+            "un compte de caisse ne se voit proposer aucun document clinique"
+          ]
+        },
+        {
+          "kind": "Playwright",
+          "path": "tests/e2e/profile-flow.spec.ts",
+          "tests": [
+            "accueil, caisse et professionnel se relaient sans réseau ; chaque pièce part avec un profil qui peut la lire"
+          ]
+        },
+        {
+          "kind": "Playwright",
+          "path": "tests/e2e/billing.spec.ts",
+          "tests": [
+            "la réception ne voit ni les ventes ni « Créer une facture »"
+          ]
+        },
+        {
+          "kind": "Playwright",
+          "path": "tests/e2e/today.spec.ts",
+          "tests": [
+            "la caisse lit la file sans pouvoir enregistrer d’arrivée"
+          ]
+        },
+        {
+          "kind": "Playwright",
+          "path": "tests/e2e/documents.spec.ts",
+          "tests": [
+            "un document clinique ne s’ouvre qu’avec le droit clinique"
+          ]
+        }
+      ],
+      "limits": [],
+      "defect": null,
+      "correction": null
+    },
+    {
+      "id": "AT03",
+      "lot": "L0",
+      "scenario": "Créer simultanément deux patients, puis rechercher nom accentué/téléphone/dossier",
+      "expected": "Deux numéros uniques ; recherches cohérentes ; pas de perte d’identité",
+      "build": {
+        "commit": "d98f48ceebf2f2aaed58c78a57b05fa37ffcdf43",
+        "release": "0.1.0-l0"
+      },
+      "environment": "CI (Ubuntu, PHP 8.3, Node 22, MySQL 8.4.9, Chromium)",
+      "date": "2026-11-07",
+      "preconditions": "Jeu de données de la recette (fichier 14) : cabinet de test XAF / Africa/Douala, comptes de démonstration (gérante, accueil, professionnel, caissière), catalogue fictif `DEMO-*`, taxes de démonstration non contractuelles ; MySQL 8.4.9 réel ; données fictives seulement.",
+      "observed": "Cinq créations simultanées de patients reçoivent cinq numéros distincts et consécutifs, un double clic ne crée qu'une fiche ; la recherche ignore casse et accents, retrouve par téléphone (chiffres) et par numéro de dossier complet, préfixe ou fin.",
+      "result": "PASS",
+      "evidence": [
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Patients/PatientCommandsTest.php",
+          "tests": [
+            "test_une_creation_attribue_le_numero_central_et_ecrit_tous_les_effets",
+            "test_les_numeros_se_suivent_sans_trou_et_depassent_quatre_chiffres_sans_troncature"
+          ]
+        },
+        {
+          "kind": "Concurrence",
+          "path": "tests/Concurrency/CommandBusConcurrencyTest.php",
+          "tests": [
+            "test_cinq_creations_simultanees_de_patients_recoivent_cinq_numeros_distincts_et_consecutifs",
+            "test_un_double_clic_concurrent_sur_une_creation_de_patient_ne_cree_qu_une_fiche"
+          ]
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Patients/PatientSearchTest.php",
+          "tests": [
+            "test_la_recherche_ignore_la_casse_les_accents_et_l_ordre_des_mots",
+            "test_la_recherche_par_telephone_compare_les_chiffres_sans_indicatif_deduit",
+            "test_la_recherche_par_numero_de_dossier_complet_prefixe_ou_fin",
+            "test_deux_caracteres_au_moins_sinon_422"
+          ]
+        },
+        {
+          "kind": "Playwright",
+          "path": "tests/e2e/patients.spec.ts",
+          "tests": [
+            "créer une fiche, signaler une ressemblance sans fusion, retrouver, modifier"
+          ]
+        }
+      ],
+      "limits": [],
+      "defect": null,
+      "correction": null
+    },
+    {
+      "id": "AT04",
+      "lot": "L0",
+      "scenario": "Créer homonyme, téléphone partagé, naissance absente/future",
+      "expected": "Doublon signalé sans fusion ; téléphone partagé permis ; naissance absente justifiée, future refusée",
+      "build": {
+        "commit": "d98f48ceebf2f2aaed58c78a57b05fa37ffcdf43",
+        "release": "0.1.0-l0"
+      },
+      "environment": "CI (Ubuntu, PHP 8.3, Node 22, MySQL 8.4.9, Chromium)",
+      "date": "2026-11-07",
+      "preconditions": "Jeu de données de la recette (fichier 14) : cabinet de test XAF / Africa/Douala, comptes de démonstration (gérante, accueil, professionnel, caissière), catalogue fictif `DEMO-*`, taxes de démonstration non contractuelles ; MySQL 8.4.9 réel ; données fictives seulement.",
+      "observed": "Un homonyme et un téléphone partagé sont acceptés sans fusion (ressemblance signalée à l'écran) ; naissance absente admise avec sa raison, sans date inventée ; naissance future refusée, naissance d'aujourd'hui acceptée.",
+      "result": "PASS",
+      "evidence": [
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Patients/PatientCommandsTest.php",
+          "tests": [
+            "test_un_homonyme_et_un_telephone_partage_sont_acceptes_sans_fusion",
+            "test_la_naissance_aujourd_hui_est_acceptee_et_demain_refusee",
+            "test_une_naissance_inconnue_explique_son_absence_sans_date_inventee"
+          ]
+        },
+        {
+          "kind": "Vitest",
+          "path": "tests/frontend/domain/patients-rules.test.ts",
+          "tests": [
+            "refuse une naissance future au jour civil du cabinet, accepte aujourd’hui",
+            "naissance absente : la raison est obligatoire, aucune date n’est inventée"
+          ]
+        },
+        {
+          "kind": "Playwright",
+          "path": "tests/e2e/patients.spec.ts",
+          "tests": [
+            "créer une fiche, signaler une ressemblance sans fusion, retrouver, modifier"
+          ]
+        }
+      ],
+      "limits": [],
+      "defect": null,
+      "correction": null
+    },
+    {
+      "id": "AT05",
+      "lot": "L0",
+      "scenario": "Visite examen non payée, paiement confirmé de frais, puis démarrage",
+      "expected": "Examen bloqué avant règlement, admis après preuve liée à cette visite",
+      "build": {
+        "commit": "d98f48ceebf2f2aaed58c78a57b05fa37ffcdf43",
+        "release": "0.1.0-l0"
+      },
+      "environment": "CI (Ubuntu, PHP 8.3, Node 22, MySQL 8.4.9, Chromium)",
+      "date": "2026-11-07",
+      "preconditions": "Jeu de données de la recette (fichier 14) : cabinet de test XAF / Africa/Douala, comptes de démonstration (gérante, accueil, professionnel, caissière), catalogue fictif `DEMO-*`, taxes de démonstration non contractuelles ; MySQL 8.4.9 réel ; données fictives seulement.",
+      "observed": "Contrôle actif : une visite d'examen arrive « en attente du règlement », le démarrage de l'examen est refusé sans facture de frais réglée (brouillon, facture non payée ou partiellement payée, paiement d'une autre visite ou d'une monture ne suffisent pas), puis la facture de frais réglée rend la visite prête avec le numéro du reçu ; une contre-écriture la ramène en attente.",
+      "result": "PASS",
+      "evidence": [
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Billing/BilledExamFeeControlTest.php",
+          "tests": [
+            "test_sans_facture_de_frais_le_demarrage_est_refuse_et_rien_n_est_cree",
+            "test_un_brouillon_une_facture_non_payee_ou_partiellement_payee_ne_suffisent_pas",
+            "test_le_paiement_d_une_autre_visite_ne_prouve_rien",
+            "test_le_paiement_d_une_monture_ne_prouve_pas_le_paiement_de_l_examen",
+            "test_la_facture_de_frais_reglee_autorise_le_demarrage_et_reste_sur_la_visite"
+          ]
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Billing/ExamFeeQueueTest.php",
+          "tests": [
+            "test_controle_actif_une_visite_d_examen_arrive_en_attente_et_un_achat_reste_arrive",
+            "test_l_encaissement_de_la_facture_de_frais_rend_la_visite_prete_avec_le_numero_du_recu",
+            "test_une_contre_ecriture_du_reglement_ramene_la_visite_en_attente"
+          ]
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Patients/VisitTest.php",
+          "tests": []
+        },
+        {
+          "kind": "Playwright",
+          "path": "tests/e2e/today.spec.ts",
+          "tests": [
+            "enregistrer une arrivée depuis la fiche, la retrouver dans la file, sans jamais dire « payé »"
+          ]
+        }
+      ],
+      "limits": [
+        "Le contrôle du paiement de l'examen est un RÉGLAGE (`eeo.billing.exam_fee_control`, `billed` = actif ; inactif par défaut, la file ne dit alors jamais « payé »). Les spécifications fixent le comportement ACTIF ; la cliente n'a pas encore confirmé qu'il le sera à l'accueil (information à obtenir, CLAUDE.md). Les tests prouvent les deux états."
+      ],
+      "defect": null,
+      "correction": null
+    },
+    {
+      "id": "AT06",
+      "lot": "L0",
+      "scenario": "Contrôle gratuit avec dérogation ; achat direct sans examen",
+      "expected": "Dérogation auteur/motif visible ; achat sans consultation fictive",
+      "build": {
+        "commit": "d98f48ceebf2f2aaed58c78a57b05fa37ffcdf43",
+        "release": "0.1.0-l0"
+      },
+      "environment": "CI (Ubuntu, PHP 8.3, Node 22, MySQL 8.4.9, Chromium)",
+      "date": "2026-11-07",
+      "preconditions": "Jeu de données de la recette (fichier 14) : cabinet de test XAF / Africa/Douala, comptes de démonstration (gérante, accueil, professionnel, caissière), catalogue fictif `DEMO-*`, taxes de démonstration non contractuelles ; MySQL 8.4.9 réel ; données fictives seulement.",
+      "observed": "Contrôle gratuit : la dérogation exacte (auteur, motif) autorise le démarrage et n'est consommée qu'une fois, une dérogation inexacte, expirée ou non décidée est refusée, une dispense est demandée puis accordée par la gérante ; un achat ou un retrait ne crée jamais de consultation.",
+      "result": "PASS",
+      "evidence": [
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Billing/BilledExamFeeControlTest.php",
+          "tests": [
+            "test_la_derogation_exacte_autorise_le_demarrage_et_est_consommee_une_seule_fois",
+            "test_une_derogation_inexacte_expiree_ou_non_decidee_est_refusee",
+            "test_un_controle_de_suivi_se_regle_comme_un_examen"
+          ]
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Billing/ExamFeeQueueTest.php",
+          "tests": [
+            "test_la_dispense_demandee_puis_accordee_rend_la_visite_prete_et_se_consomme_au_demarrage",
+            "test_une_dispense_ne_se_demande_pas_sans_controle_actif_ni_pour_un_achat"
+          ]
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Clinical/StartConsultationTest.php",
+          "tests": [
+            "test_un_achat_ou_un_retrait_ne_cree_jamais_de_consultation"
+          ]
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Access/ApprovalsTest.php",
+          "tests": []
+        }
+      ],
+      "limits": [],
+      "defect": null,
+      "correction": null
+    },
+    {
+      "id": "AT07",
+      "lot": "L0",
+      "scenario": "Recherche catalogue dès deux caractères et tentative remise par caisse",
+      "expected": "Prix catalogue proposé ; remise non autorisée bloquée, demande gérante possible",
+      "build": {
+        "commit": "d98f48ceebf2f2aaed58c78a57b05fa37ffcdf43",
+        "release": "0.1.0-l0"
+      },
+      "environment": "CI (Ubuntu, PHP 8.3, Node 22, MySQL 8.4.9, Chromium)",
+      "date": "2026-11-07",
+      "preconditions": "Jeu de données de la recette (fichier 14) : cabinet de test XAF / Africa/Douala, comptes de démonstration (gérante, accueil, professionnel, caissière), catalogue fictif `DEMO-*`, taxes de démonstration non contractuelles ; MySQL 8.4.9 réel ; données fictives seulement.",
+      "observed": "La recherche du catalogue exige deux caractères et ignore casse, accents et jokers ; la ligne reprend désignation, unité et prix du catalogue ; la caissière ne remise pas, une remise au-delà de ses droits exige l'approbation exacte de la gérante, consommée une fois.",
+      "result": "PASS",
+      "evidence": [
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Billing/CatalogTest.php",
+          "tests": [
+            "test_la_recherche_exige_deux_caracteres_et_ignore_casse_accents_et_jokers"
+          ]
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Billing/InvoiceDraftTest.php",
+          "tests": [
+            "test_la_caissiere_ne_remise_pas_et_la_gerante_oui",
+            "test_un_plafond_de_remise_configure_s_applique_aux_comptes_sans_autorite_de_prix"
+          ]
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Billing/DraftRightsApprovalTest.php",
+          "tests": [
+            "test_une_remise_de_la_caisse_exige_puis_consomme_l_approbation_exacte",
+            "test_sans_remise_aucune_approbation_n_est_consommee"
+          ]
+        },
+        {
+          "kind": "Vitest",
+          "path": "tests/frontend/billing/draft-totals.test.ts",
+          "tests": [
+            "une ligne du catalogue reprend désignation, unité et prix ; quantité 1",
+            "dit la règle de remise selon l’autorité de prix (le serveur tranche)"
+          ]
+        }
+      ],
+      "limits": [],
+      "defect": null,
+      "correction": null
+    },
+    {
+      "id": "AT08",
+      "lot": "L0",
+      "scenario": "Émettre facture, modifier prix catalogue/identité ensuite",
+      "expected": "Numéro/snapshot figés ; PDF d’origine et lignes inchangés",
+      "build": {
+        "commit": "d98f48ceebf2f2aaed58c78a57b05fa37ffcdf43",
+        "release": "0.1.0-l0"
+      },
+      "environment": "CI (Ubuntu, PHP 8.3, Node 22, MySQL 8.4.9, Chromium)",
+      "date": "2026-11-07",
+      "preconditions": "Jeu de données de la recette (fichier 14) : cabinet de test XAF / Africa/Douala, comptes de démonstration (gérante, accueil, professionnel, caissière), catalogue fictif `DEMO-*`, taxes de démonstration non contractuelles ; MySQL 8.4.9 réel ; données fictives seulement.",
+      "observed": "Le numéro et les snapshots (identité, prix, cabinet) sont figés à l'émission : renommer le patient ou changer le prix du catalogue n'altère plus la pièce ; la facture émise et ses enfants sont protégés par les guards du schéma ; le PDF d'origine garde l'identité et le cabinet figés.",
+      "result": "PASS",
+      "evidence": [
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Billing/IssueInvoiceTest.php",
+          "tests": [
+            "test_l_emission_attribue_le_numero_fige_les_snapshots_et_laisse_la_version_du_brouillon",
+            "test_apres_l_emission_le_nom_du_patient_et_le_prix_du_catalogue_n_alterent_plus_la_piece",
+            "test_la_facture_emise_et_ses_enfants_sont_proteges_par_les_guards_du_schema"
+          ]
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Billing/ImmutabilityGuardsTest.php",
+          "tests": [
+            "test_un_paiement_confirme_et_son_recu_ne_se_modifient_ni_ne_se_suppriment"
+          ]
+        },
+        {
+          "kind": "Vitest",
+          "path": "tests/frontend/documents/adapters.test.ts",
+          "tests": [
+            "les snapshots figés l’emportent sur l’identité et le cabinet courants (AT08)"
+          ]
+        }
+      ],
+      "limits": [],
+      "defect": null,
+      "correction": null
+    },
+    {
+      "id": "AT09",
+      "lot": "L0",
+      "scenario": "Émissions concurrentes et passage nouvelle année",
+      "expected": "Numéros uniques, plages locales exclues de séquence centrale, aucun numéro réutilisé",
+      "build": {
+        "commit": "d98f48ceebf2f2aaed58c78a57b05fa37ffcdf43",
+        "release": "0.1.0-l0"
+      },
+      "environment": "CI (Ubuntu, PHP 8.3, Node 22, MySQL 8.4.9, Chromium)",
+      "date": "2026-11-07",
+      "preconditions": "Jeu de données de la recette (fichier 14) : cabinet de test XAF / Africa/Douala, comptes de démonstration (gérante, accueil, professionnel, caissière), catalogue fictif `DEMO-*`, taxes de démonstration non contractuelles ; MySQL 8.4.9 réel ; données fictives seulement.",
+      "observed": "Cinq émissions simultanées reçoivent cinq numéros distincts et consécutifs ; deux postes et une création centrale ne partagent jamais un numéro ; l'année du numéro suit le fuseau du cabinet et la plage de l'année suivante se prépare avant le franchissement.",
+      "result": "PASS",
+      "evidence": [
+        {
+          "kind": "Concurrence",
+          "path": "tests/Concurrency/BillingConcurrencyTest.php",
+          "tests": [
+            "test_cinq_emissions_simultanees_recoivent_cinq_numeros_distincts_et_consecutifs",
+            "test_deux_emissions_simultanees_de_la_meme_facture_ne_consomment_qu_un_numero"
+          ]
+        },
+        {
+          "kind": "Concurrence",
+          "path": "tests/Concurrency/OfflineAllocationConcurrencyTest.php",
+          "tests": [
+            "test_deux_postes_et_une_creation_centrale_ne_partagent_jamais_un_numero"
+          ]
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Billing/IssueInvoiceTest.php",
+          "tests": [
+            "test_les_numeros_se_suivent_sans_trou",
+            "test_l_annee_du_numero_est_celle_du_fuseau_du_cabinet"
+          ]
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Offline/PrepareResourcesTest.php",
+          "tests": [
+            "test_la_plage_de_l_annee_suivante_se_prepare_avant_le_franchissement"
+          ]
+        }
+      ],
+      "limits": [],
+      "defect": null,
+      "correction": null
+    },
+    {
+      "id": "AT10",
+      "lot": "L0",
+      "scenario": "Facture 80 000, acompte 30 000, solde 50 000 plusieurs jours après",
+      "expected": "Deux reçus distincts, même facture, restes 50 000 puis 0 ; impayé disparaît sans nouvelle vente",
+      "build": {
+        "commit": "d98f48ceebf2f2aaed58c78a57b05fa37ffcdf43",
+        "release": "0.1.0-l0"
+      },
+      "environment": "CI (Ubuntu, PHP 8.3, Node 22, MySQL 8.4.9, Chromium)",
+      "date": "2026-11-07",
+      "preconditions": "Jeu de données de la recette (fichier 14) : cabinet de test XAF / Africa/Douala, comptes de démonstration (gérante, accueil, professionnel, caissière), catalogue fictif `DEMO-*`, taxes de démonstration non contractuelles ; MySQL 8.4.9 réel ; données fictives seulement.",
+      "observed": "Facture de 80 000, acompte de 30 000 puis solde de 50 000 : deux reçus numérotés distincts sur la même facture, facture intacte, restes 50 000 puis 0 ; sans réseau, deux reçus et PDF locaux (G1).",
+      "result": "PASS",
+      "evidence": [
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Billing/RegisterPaymentTest.php",
+          "tests": [
+            "test_un_acompte_puis_le_solde_donnent_deux_recus_numerotes_et_laissent_la_facture_intacte"
+          ]
+        },
+        {
+          "kind": "Vitest",
+          "path": "tests/frontend/billing/invoice-payment.test.ts",
+          "tests": []
+        },
+        {
+          "kind": "Playwright",
+          "path": "tests/e2e/billing.spec.ts",
+          "tests": [
+            "ouvrir la caisse, facturer, émettre, encaisser deux fois, deux reçus, recharger"
+          ]
+        },
+        {
+          "kind": "Playwright",
+          "path": "tests/e2e/first-slice.spec.ts",
+          "tests": [
+            "facture de 80 000, acompte puis solde sans réseau, fermeture complète, ACK perdu puis rejoué"
+          ]
+        }
+      ],
+      "limits": [],
+      "defect": null,
+      "correction": null
+    },
+    {
+      "id": "AT11",
+      "lot": "L0",
+      "scenario": "Double clic/retry du même paiement, puis même clé avec montant changé",
+      "expected": "Un paiement/reçu ; ACK identique ; changement de contenu refusé",
+      "build": {
+        "commit": "d98f48ceebf2f2aaed58c78a57b05fa37ffcdf43",
+        "release": "0.1.0-l0"
+      },
+      "environment": "CI (Ubuntu, PHP 8.3, Node 22, MySQL 8.4.9, Chromium)",
+      "date": "2026-11-07",
+      "preconditions": "Jeu de données de la recette (fichier 14) : cabinet de test XAF / Africa/Douala, comptes de démonstration (gérante, accueil, professionnel, caissière), catalogue fictif `DEMO-*`, taxes de démonstration non contractuelles ; MySQL 8.4.9 réel ; données fictives seulement.",
+      "observed": "Un rejeu de la même clé rend le même reçu ; la même clé avec un autre contenu est un conflit ; un double clic concurrent n'encaisse qu'une fois.",
+      "result": "PASS",
+      "evidence": [
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Billing/RegisterPaymentTest.php",
+          "tests": [
+            "test_un_rejeu_de_la_meme_cle_rend_le_meme_recu_et_un_autre_contenu_est_un_conflit",
+            "test_un_second_clic_avec_une_autre_cle_ne_double_pas_l_encaissement"
+          ]
+        },
+        {
+          "kind": "Concurrence",
+          "path": "tests/Concurrency/BillingConcurrencyTest.php",
+          "tests": [
+            "test_un_double_clic_concurrent_avec_la_meme_cle_n_encaisse_qu_une_fois"
+          ]
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Application/CommandBusTest.php",
+          "tests": [
+            "test_une_cle_rejouee_avec_un_montant_different_est_refusee"
+          ]
+        },
+        {
+          "kind": "Concurrence",
+          "path": "tests/Concurrency/CommandBusConcurrencyTest.php",
+          "tests": [
+            "test_la_meme_cle_avec_deux_contenus_differents_en_concurrence_refuse_le_second"
+          ]
+        },
+        {
+          "kind": "Playwright",
+          "path": "tests/e2e/financial-safety.spec.ts",
+          "tests": [
+            "caissier central refusé sur une facture détenue ; deux onglets : numéros uniques, un seul encaissement"
+          ]
+        }
+      ],
+      "limits": [],
+      "defect": null,
+      "correction": null
+    },
+    {
+      "id": "AT12",
+      "lot": "L0",
+      "scenario": "Deux règlements concurrents 40 000 sur dette 50 000",
+      "expected": "Un seul 40 000 accepté ; second conflit ; propriétaire local empêche autre poste d’écrire",
+      "build": {
+        "commit": "d98f48ceebf2f2aaed58c78a57b05fa37ffcdf43",
+        "release": "0.1.0-l0"
+      },
+      "environment": "CI (Ubuntu, PHP 8.3, Node 22, MySQL 8.4.9, Chromium)",
+      "date": "2026-11-07",
+      "preconditions": "Jeu de données de la recette (fichier 14) : cabinet de test XAF / Africa/Douala, comptes de démonstration (gérante, accueil, professionnel, caissière), catalogue fictif `DEMO-*`, taxes de démonstration non contractuelles ; MySQL 8.4.9 réel ; données fictives seulement.",
+      "observed": "Deux règlements concurrents de 40 000 sur 50 000 dus : un seul accepté, l'autre refusé avec le reste actualisé, aucun numéro de reçu brûlé ; la facture détenue par un poste n'est pas encaissée par l'API centrale.",
+      "result": "PASS",
+      "evidence": [
+        {
+          "kind": "Concurrence",
+          "path": "tests/Concurrency/BillingConcurrencyTest.php",
+          "tests": [
+            "test_deux_reglements_concurrents_de_40000_sur_50000_ne_laissent_passer_que_le_premier"
+          ]
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Billing/RegisterPaymentTest.php",
+          "tests": [
+            "test_une_facture_detenue_par_un_poste_n_est_pas_encaissee_par_l_api"
+          ]
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Http/RuleViolationResponseTest.php",
+          "tests": [
+            "test_un_encaissement_refuse_propose_le_reste_du_actualise"
+          ]
+        },
+        {
+          "kind": "Playwright",
+          "path": "tests/e2e/financial-safety.spec.ts",
+          "tests": [
+            "caissier central refusé sur une facture détenue ; deux onglets : numéros uniques, un seul encaissement"
+          ]
+        }
+      ],
+      "limits": [],
+      "defect": null,
+      "correction": null
+    },
+    {
+      "id": "AT13",
+      "lot": "L0",
+      "scenario": "Tenter supprimer paiement ; corriger paiement enregistré à tort",
+      "expected": "Suppression interdite ; contre-écriture autorisée/motivée, original conservé ; audit intact",
+      "build": {
+        "commit": "d98f48ceebf2f2aaed58c78a57b05fa37ffcdf43",
+        "release": "0.1.0-l0"
+      },
+      "environment": "CI (Ubuntu, PHP 8.3, Node 22, MySQL 8.4.9, Chromium)",
+      "date": "2026-11-07",
+      "preconditions": "Jeu de données de la recette (fichier 14) : cabinet de test XAF / Africa/Douala, comptes de démonstration (gérante, accueil, professionnel, caissière), catalogue fictif `DEMO-*`, taxes de démonstration non contractuelles ; MySQL 8.4.9 réel ; données fictives seulement.",
+      "observed": "Aucune route ne supprime ni ne modifie un paiement ; la gérante le contre-passe avec motif, l'original et le reçu restent intacts, le cumul des contre-écritures ne dépasse jamais le paiement ; l'audit n'est pas modifiable.",
+      "result": "PASS",
+      "evidence": [
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Billing/ReversePaymentTest.php",
+          "tests": [
+            "test_aucune_route_ne_supprime_ni_ne_modifie_un_paiement",
+            "test_la_gerante_contre_passe_directement_et_tout_l_original_reste_intact",
+            "test_le_cumul_des_contre_ecritures_ne_depasse_jamais_le_paiement"
+          ]
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Billing/ImmutabilityGuardsTest.php",
+          "tests": [
+            "test_un_paiement_confirme_et_son_recu_ne_se_modifient_ni_ne_se_suppriment"
+          ]
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Access/ApprovalsTest.php",
+          "tests": []
+        },
+        {
+          "kind": "Playwright",
+          "path": "tests/e2e/billing.spec.ts",
+          "tests": [
+            "la gérante contre-passe un paiement, émet un avoir puis rembourse le crédit, sans toucher au reçu"
+          ]
+        }
+      ],
+      "limits": [],
+      "defect": null,
+      "correction": null
+    },
+    {
+      "id": "AT14",
+      "lot": "L0",
+      "scenario": "Avoir partiel puis total et remboursement réel",
+      "expected": "Solde conforme formule ; avoir plafonné ; remboursement limité au crédit, numéroté et autorisé",
+      "build": {
+        "commit": "d98f48ceebf2f2aaed58c78a57b05fa37ffcdf43",
+        "release": "0.1.0-l0"
+      },
+      "environment": "CI (Ubuntu, PHP 8.3, Node 22, MySQL 8.4.9, Chromium)",
+      "date": "2026-11-07",
+      "preconditions": "Jeu de données de la recette (fichier 14) : cabinet de test XAF / Africa/Douala, comptes de démonstration (gérante, accueil, professionnel, caissière), catalogue fictif `DEMO-*`, taxes de démonstration non contractuelles ; MySQL 8.4.9 réel ; données fictives seulement.",
+      "observed": "Avoir partiel puis total plafonné aux lignes et au payé, crédit visible ; remboursement réel limité au crédit, numéroté et autorisé, sans modifier aucune pièce.",
+      "result": "PASS",
+      "evidence": [
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Billing/CreditNoteTest.php",
+          "tests": [
+            "test_l_exemple_du_fichier_03_avoir_puis_annulation_totale_fait_apparaitre_le_credit"
+          ]
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Billing/RefundCreditTest.php",
+          "tests": [
+            "test_jamais_au_dela_du_credit_ni_de_la_part_de_l_avoir_non_remboursee",
+            "test_le_remboursement_du_credit_solde_la_facture_sans_modifier_aucune_piece"
+          ]
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Unit/Billing/CreditNoteRulesTest.php",
+          "tests": []
+        },
+        {
+          "kind": "Playwright",
+          "path": "tests/e2e/billing.spec.ts",
+          "tests": [
+            "la gérante contre-passe un paiement, émet un avoir puis rembourse le crédit, sans toucher au reçu"
+          ]
+        }
+      ],
+      "limits": [],
+      "defect": null,
+      "correction": null
+    },
+    {
+      "id": "AT15",
+      "lot": "L0",
+      "scenario": "Deux ventes du dernier article, réserve puis remise",
+      "expected": "Une seule capacité de vente ; réserve distincte du physique ; une seule sortie à remise",
+      "build": {
+        "commit": "d98f48ceebf2f2aaed58c78a57b05fa37ffcdf43",
+        "release": "0.1.0-l0"
+      },
+      "environment": "CI (Ubuntu, PHP 8.3, Node 22, MySQL 8.4.9, Chromium)",
+      "date": "2026-11-07",
+      "preconditions": "Jeu de données de la recette (fichier 14) : cabinet de test XAF / Africa/Douala, comptes de démonstration (gérante, accueil, professionnel, caissière), catalogue fictif `DEMO-*`, taxes de démonstration non contractuelles ; MySQL 8.4.9 réel ; données fictives seulement.",
+      "observed": "La dernière unité n'est vendable qu'une fois (le refus ne brûle pas de numéro) ; la réserve centrale réduit le disponible sans toucher au physique ; la remise consomme la réserve sans double soustraction ; deux postes ne sortent qu'une fois le dernier article.",
+      "result": "PASS",
+      "evidence": [
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Billing/IssueInvoiceTest.php",
+          "tests": [
+            "test_la_derniere_unite_n_est_vendable_qu_une_fois_et_le_refus_ne_brule_pas_de_numero",
+            "test_l_emission_reserve_le_stock_sans_decrementer_le_physique"
+          ]
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Billing/DeliveryTest.php",
+          "tests": [
+            "test_remise_partielle_puis_totale_consomme_la_reserve_sans_double_soustraction"
+          ]
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Billing/ReservationServiceTest.php",
+          "tests": [
+            "test_la_reserve_centrale_reduit_le_disponible_sans_toucher_au_physique"
+          ]
+        },
+        {
+          "kind": "Concurrence",
+          "path": "tests/Concurrency/BillingConcurrencyTest.php",
+          "tests": [
+            "test_la_derniere_unite_de_stock_n_est_vendue_qu_une_fois_et_le_refus_ne_brule_pas_de_numero"
+          ]
+        },
+        {
+          "kind": "Concurrence",
+          "path": "tests/Concurrency/DeliveryConcurrencyTest.php",
+          "tests": [
+            "test_le_dernier_article_remis_par_deux_postes_ne_sort_qu_une_fois"
+          ]
+        }
+      ],
+      "limits": [],
+      "defect": null,
+      "correction": null
+    },
+    {
+      "id": "AT16",
+      "lot": "L0",
+      "scenario": "Livrer avec impayé, sans facture, puis casse hors vente",
+      "expected": "Sans facture refusé ; impayé nécessite gérante ; casse exige motif/approbation",
+      "build": {
+        "commit": "d98f48ceebf2f2aaed58c78a57b05fa37ffcdf43",
+        "release": "0.1.0-l0"
+      },
+      "environment": "CI (Ubuntu, PHP 8.3, Node 22, MySQL 8.4.9, Chromium)",
+      "date": "2026-11-07",
+      "preconditions": "Jeu de données de la recette (fichier 14) : cabinet de test XAF / Africa/Douala, comptes de démonstration (gérante, accueil, professionnel, caissière), catalogue fictif `DEMO-*`, taxes de démonstration non contractuelles ; MySQL 8.4.9 réel ; données fictives seulement.",
+      "observed": "La livraison d'une facture non soldée exige l'approbation exacte de la gérante ; sans facture, refus d'état ; la casse hors vente exige motif et approbation (ou dérogation exacte).",
+      "result": "PASS",
+      "evidence": [
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Billing/DeliveryTest.php",
+          "tests": [
+            "test_une_facture_non_soldee_exige_l_approbation_exacte_de_la_gerante",
+            "test_les_refus_d_etat_et_de_date"
+          ]
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Billing/StockMovementTest.php",
+          "tests": [
+            "test_la_gerante_enregistre_une_casse_et_un_ajustement_motives",
+            "test_un_compte_autorise_par_derogation_agit_sur_approbation_exacte"
+          ]
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Access/ApprovalsTest.php",
+          "tests": []
+        }
+      ],
+      "limits": [],
+      "defect": null,
+      "correction": null
+    },
+    {
+      "id": "AT17",
+      "lot": "L0",
+      "scenario": "Lot périmé, livraison partielle, avoir sans retour, puis retour physique",
+      "expected": "Péremption bloquée ; quantités cumulées correctes ; avoir ne rentre pas le stock ; retour accepté le rentre une fois",
+      "build": {
+        "commit": "d98f48ceebf2f2aaed58c78a57b05fa37ffcdf43",
+        "release": "0.1.0-l0"
+      },
+      "environment": "CI (Ubuntu, PHP 8.3, Node 22, MySQL 8.4.9, Chromium)",
+      "date": "2026-11-07",
+      "preconditions": "Jeu de données de la recette (fichier 14) : cabinet de test XAF / Africa/Douala, comptes de démonstration (gérante, accueil, professionnel, caissière), catalogue fictif `DEMO-*`, taxes de démonstration non contractuelles ; MySQL 8.4.9 réel ; données fictives seulement.",
+      "observed": "Les lots sortent par péremption la plus proche, un lot expiré à la date locale de remise est refusé ; remise partielle (vecteur 5/3/1) ; un avoir ne touche jamais au stock ; un retour accepté rentre l'article une fois, sans avoir, dans la limite de ce qui a été remis.",
+      "result": "PASS",
+      "evidence": [
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Billing/IssueInvoiceTest.php",
+          "tests": [
+            "test_les_lots_sortent_par_expiration_la_plus_proche_et_une_quantite_peut_s_etendre_sur_deux_lots",
+            "test_un_lot_expire_a_la_date_locale_de_remise_est_refuse_et_le_lot_du_jour_reste_vendable"
+          ]
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Billing/DeliveryTest.php",
+          "tests": [
+            "test_le_vecteur_5_3_1_reste_un_et_refuse_le_depassement"
+          ]
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Billing/CreditNoteTest.php",
+          "tests": [
+            "test_un_avoir_ne_touche_jamais_au_stock"
+          ]
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Billing/PhysicalReturnTest.php",
+          "tests": [
+            "test_un_article_vendable_retourne_en_stock_sans_creer_d_avoir",
+            "test_le_cumul_des_retours_ne_depasse_jamais_la_quantite_remise"
+          ]
+        },
+        {
+          "kind": "Playwright",
+          "path": "tests/e2e/deliveries.spec.ts",
+          "tests": [
+            "facture émise → remise partielle → remise du reste → retour remis en stock"
+          ]
+        }
+      ],
+      "limits": [],
+      "defect": null,
+      "correction": null
+    },
+    {
+      "id": "AT18",
+      "lot": "L0",
+      "scenario": "Saisir consultation avec toutes rubriques DP, OD/OG/OU et champs Autre",
+      "expected": "Douze acuités distinctes, mesures séparées, sélections exclusives cohérentes, zéro différent du vide",
+      "build": {
+        "commit": "d98f48ceebf2f2aaed58c78a57b05fa37ffcdf43",
+        "release": "0.1.0-l0"
+      },
+      "environment": "CI (Ubuntu, PHP 8.3, Node 22, MySQL 8.4.9, Chromium)",
+      "date": "2026-11-07",
+      "preconditions": "Jeu de données de la recette (fichier 14) : cabinet de test XAF / Africa/Douala, comptes de démonstration (gérante, accueil, professionnel, caissière), catalogue fictif `DEMO-*`, taxes de démonstration non contractuelles ; MySQL 8.4.9 réel ; données fictives seulement.",
+      "observed": "Douze acuités distinctes (loin/près, sans/avec correction, par œil) conservées telles que saisies, une même acuité deux fois refusée, aucune conversion entre échelles ; réfraction en trois stades séparés par œil ; zéro est une valeur et non mesuré n'a pas de ligne ; « Autre » exige sa précision ; « aucun connu » exclut les autres éléments ; non posé reste null.",
+      "result": "PASS",
+      "evidence": [
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Clinical/SaveVisualAcuityStepTest.php",
+          "tests": [
+            "test_les_acuites_sont_enregistrees_conservees_telles_que_saisies_et_relues_dans_l_ordre_du_dossier",
+            "test_une_meme_acuite_deux_fois_est_refusee_sur_la_seconde_ligne",
+            "test_aucune_conversion_entre_echelles_n_est_acceptee"
+          ]
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Clinical/SaveRefractionStepTest.php",
+          "tests": [
+            "test_les_trois_stades_restent_distincts_par_oeil_et_sont_relus_en_forme_canonique",
+            "test_zero_est_une_valeur_et_non_mesure_n_a_pas_de_ligne",
+            "test_les_ametropies_viennent_du_referentiel_et_autre_exige_sa_precision"
+          ]
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Clinical/SaveCenteringStepTest.php",
+          "tests": [
+            "test_une_somme_differente_du_total_exige_une_justification_jamais_une_correction_silencieuse"
+          ]
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Clinical/SaveHistoriesStepTest.php",
+          "tests": [
+            "test_aucun_connu_exclut_les_autres_elements_du_groupe"
+          ]
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Clinical/SaveAnamnesisStepTest.php",
+          "tests": [
+            "test_les_reponses_non_posees_restent_null_et_non_est_distinct_de_non_renseigne"
+          ]
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Unit/Application/CommandHashTest.php",
+          "tests": [
+            "test_le_vide_et_le_zero_restent_distincts"
+          ]
+        },
+        {
+          "kind": "Vitest",
+          "path": "tests/frontend/consultations/consultation-steps.test.ts",
+          "tests": [
+            "« Autre » sans précision est refusé sous le champ et dans le résumé, sans appel ; la précision l’envoie"
+          ]
+        },
+        {
+          "kind": "Playwright",
+          "path": "tests/e2e/consultation.spec.ts",
+          "tests": [
+            "démarrer l’examen depuis la file, remplir les sept étapes, retrouver les saisies, terminer l’examen"
+          ]
+        }
+      ],
+      "limits": [],
+      "defect": null,
+      "correction": null
+    },
+    {
+      "id": "AT19",
+      "lot": "L0",
+      "scenario": "Modifier même consultation depuis deux postes, finaliser puis corriger",
+      "expected": "Conflit conservé, pas dernier écrit gagnant ; anciennes révisions lisibles et auteur/motif présents",
+      "build": {
+        "commit": "d98f48ceebf2f2aaed58c78a57b05fa37ffcdf43",
+        "release": "0.1.0-l0"
+      },
+      "environment": "CI (Ubuntu, PHP 8.3, Node 22, MySQL 8.4.9, Chromium)",
+      "date": "2026-11-07",
+      "preconditions": "Jeu de données de la recette (fichier 14) : cabinet de test XAF / Africa/Douala, comptes de démonstration (gérante, accueil, professionnel, caissière), catalogue fictif `DEMO-*`, taxes de démonstration non contractuelles ; MySQL 8.4.9 réel ; données fictives seulement.",
+      "observed": "Deux postes qui enregistrent la même consultation avec la même version : un seul aboutit, l'autre reçoit VERSION_CONFLICT et rien n'est perdu ni mélangé (la saisie est reprise sans écraser) ; la correction écrit la révision 2 chaînée avec auteur et motif, la révision 1 reste intacte et lisible à côté.",
+      "result": "PASS",
+      "evidence": [
+        {
+          "kind": "Concurrence",
+          "path": "tests/Concurrency/CommandBusConcurrencyTest.php",
+          "tests": [
+            "test_deux_enregistrements_simultanes_de_la_meme_version_ne_laissent_passer_que_le_premier"
+          ]
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Clinical/AmendConsultationTest.php",
+          "tests": [
+            "test_la_correction_ecrit_la_revision_2_chainee_avec_son_motif_et_laisse_la_revision_1_intacte",
+            "test_une_version_perimee_est_un_conflit_et_rien_n_est_ecrit",
+            "test_le_motif_est_obligatoire_et_borne"
+          ]
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Clinical/CompleteConsultationTest.php",
+          "tests": [
+            "test_la_finalisation_fige_la_revision_1_termine_la_consultation_et_cloture_la_visite"
+          ]
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Clinical/GetRevisionTest.php",
+          "tests": [
+            "test_une_revision_corrigee_est_lisible_a_cote_de_la_precedente"
+          ]
+        },
+        {
+          "kind": "Vitest",
+          "path": "tests/frontend/domain/clinical-rebase.test.ts",
+          "tests": []
+        },
+        {
+          "kind": "Vitest",
+          "path": "tests/frontend/consultations/consultation-history.test.ts",
+          "tests": []
+        },
+        {
+          "kind": "Playwright",
+          "path": "tests/e2e/consultation.spec.ts",
+          "tests": [
+            "démarrer l’examen depuis la file, remplir les sept étapes, retrouver les saisies, terminer l’examen"
+          ]
+        }
+      ],
+      "limits": [],
+      "defect": null,
+      "correction": null
+    },
+    {
+      "id": "AT20",
+      "lot": "L0",
+      "scenario": "Prescription + deux médicaments + orientation urgente, exporter",
+      "expected": "Tous champs/valeurs/units visibles ; posologie non inventée ; urgence badge clinique seulement",
+      "build": {
+        "commit": "d98f48ceebf2f2aaed58c78a57b05fa37ffcdf43",
+        "release": "0.1.0-l0"
+      },
+      "environment": "CI (Ubuntu, PHP 8.3, Node 22, MySQL 8.4.9, Chromium)",
+      "date": "2026-11-07",
+      "preconditions": "Jeu de données de la recette (fichier 14) : cabinet de test XAF / Africa/Douala, comptes de démonstration (gérante, accueil, professionnel, caissière), catalogue fictif `DEMO-*`, taxes de démonstration non contractuelles ; MySQL 8.4.9 réel ; données fictives seulement.",
+      "observed": "La prescription optique validée porte toutes les valeurs par œil ; les médicaments sont enregistrés dans l'ordre saisi et relus tels quels, SANS posologie, fréquence ni durée déduites ; les quatre niveaux d'urgence existent et « orientation oui » exige le niveau ; l'ordonnance et la lettre sont des PDF locaux au nom sans donnée.",
+      "result": "PASS",
+      "evidence": [
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Clinical/CreatePrescriptionTest.php",
+          "tests": [
+            "test_zero_est_une_valeur_et_aucune_correction_est_une_mention_explicite"
+          ]
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Clinical/ValidatePrescriptionTest.php",
+          "tests": [
+            "test_une_nouvelle_version_garde_serie_patient_origine_consultation_et_numero_suivant"
+          ]
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Clinical/SaveMedicationsStepTest.php",
+          "tests": [
+            "test_les_medicaments_sont_enregistres_dans_l_ordre_saisi_et_relus_tels_quels",
+            "test_aucune_posologie_frequence_ni_duree_n_est_deduite"
+          ]
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Clinical/SaveConclusionStepTest.php",
+          "tests": [
+            "test_les_quatre_niveaux_d_urgence_sont_admis",
+            "test_l_orientation_oui_exige_le_niveau_d_urgence"
+          ]
+        },
+        {
+          "kind": "Vitest",
+          "path": "tests/frontend/documents/templates-clinical.test.ts",
+          "tests": [
+            "prescription optique (fichier 11, AT20)"
+          ]
+        },
+        {
+          "kind": "Vitest",
+          "path": "tests/frontend/consultations/consultation-documents.test.ts",
+          "tests": [
+            "aperçu de l’ordonnance : révision figée relue, PDF nommé sans donnée, adresse inchangée, aucun mot interdit"
+          ]
+        },
+        {
+          "kind": "Playwright",
+          "path": "tests/e2e/consultation.spec.ts",
+          "tests": [
+            "imprimer l’ordonnance et la prescription d’une consultation terminée (PDF local, nom sans donnée)"
+          ]
+        }
+      ],
+      "limits": [],
+      "defect": null,
+      "correction": null
+    },
+    {
+      "id": "AT21",
+      "lot": "L0",
+      "scenario": "Nouvelle visite même patient, comparer et réimprimer précédente prescription",
+      "expected": "Historique non écrasé ; version ancienne inchangée ; échelles incompatibles signalées",
+      "build": {
+        "commit": "d98f48ceebf2f2aaed58c78a57b05fa37ffcdf43",
+        "release": "0.1.0-l0"
+      },
+      "environment": "CI (Ubuntu, PHP 8.3, Node 22, MySQL 8.4.9, Chromium)",
+      "date": "2026-11-07",
+      "preconditions": "Jeu de données de la recette (fichier 14) : cabinet de test XAF / Africa/Douala, comptes de démonstration (gérante, accueil, professionnel, caissière), catalogue fictif `DEMO-*`, taxes de démonstration non contractuelles ; MySQL 8.4.9 réel ; données fictives seulement.",
+      "observed": "Une nouvelle visite ne réécrit pas l'historique : la validation crée une nouvelle version (série, patient, origine conservés, numéro suivant) et la version ancienne reste inchangée ; la réimpression restitue l'original conservé (même pièce, mêmes octets) ; des acuités d'échelles différentes sont déclarées non comparables, chacune avec son échelle.",
+      "result": "PASS",
+      "evidence": [
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Clinical/ValidatePrescriptionTest.php",
+          "tests": [
+            "test_une_nouvelle_version_garde_serie_patient_origine_consultation_et_numero_suivant"
+          ]
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Clinical/AmendConsultationTest.php",
+          "tests": [
+            "test_la_correction_ecrit_la_revision_2_chainee_avec_son_motif_et_laisse_la_revision_1_intacte"
+          ]
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Clinical/SaveVisualAcuityStepTest.php",
+          "tests": [
+            "test_aucune_conversion_entre_echelles_n_est_acceptee"
+          ]
+        },
+        {
+          "kind": "Vitest",
+          "path": "tests/frontend/consultations/consultation-history.test.ts",
+          "tests": [
+            "des acuités d’échelles différentes sont déclarées non comparables, chacune avec son échelle"
+          ]
+        },
+        {
+          "kind": "Vitest",
+          "path": "tests/frontend/documents/clinical-service.test.ts",
+          "tests": [
+            "réimpression après un changement d’identité : l’original conservé est rouvert, signalé"
+          ]
+        },
+        {
+          "kind": "Vitest",
+          "path": "tests/frontend/documents/service.test.ts",
+          "tests": [
+            "conserve l’original, le rend identique à la réimpression et reste idempotent"
+          ]
+        },
+        {
+          "kind": "Vitest",
+          "path": "tests/frontend/consultations/prescriptions-page.test.ts",
+          "tests": []
+        }
+      ],
+      "limits": [],
+      "defect": null,
+      "correction": null
+    },
+    {
+      "id": "AT22",
+      "lot": "L0",
+      "scenario": "Contrôle 3 mois depuis fin de mois ; collyre depuis début/fin choisi",
+      "expected": "Date civile cohérente ; origine affichée ; pas de choix médical automatique",
+      "build": {
+        "commit": "d98f48ceebf2f2aaed58c78a57b05fa37ffcdf43",
+        "release": "0.1.0-l0"
+      },
+      "environment": "CI (Ubuntu, PHP 8.3, Node 22, MySQL 8.4.9, Chromium)",
+      "date": "2026-11-07",
+      "preconditions": "Jeu de données de la recette (fichier 14) : cabinet de test XAF / Africa/Douala, comptes de démonstration (gérante, accueil, professionnel, caissière), catalogue fictif `DEMO-*`, taxes de démonstration non contractuelles ; MySQL 8.4.9 réel ; données fictives seulement.",
+      "observed": "La date d'un contrôle est calculée par le serveur au calendrier civil à partir de l'origine choisie (pas de choix médical automatique), le rappel précède la date ou tombe le jour même, une date manuelle exige son motif ; la parité des calculs de date avec MySQL est vérifiée.",
+      "result": "PASS",
+      "evidence": [
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Scheduling/FollowUpsTest.php",
+          "tests": [
+            "test_la_date_est_recalculee_par_le_serveur_au_calendrier_civil",
+            "test_une_date_manuelle_exige_son_motif",
+            "test_un_controle_calcule_cree_sa_tache_de_rappel_interne"
+          ]
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Unit/Scheduling/FollowUpCalculatorTest.php",
+          "tests": [
+            "test_la_date_calculee_suit_le_calendrier_civil",
+            "test_le_rappel_precede_la_date_ou_tombe_le_jour_meme"
+          ]
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Rules/MysqlRuleParityTest.php",
+          "tests": [
+            "test_les_dates_au_calendrier_civil_sont_celles_de_date_add"
+          ]
+        }
+      ],
+      "limits": [],
+      "defect": null,
+      "correction": null
+    },
+    {
+      "id": "AT23",
+      "lot": "L0",
+      "scenario": "Programmer/déplacer/annuler RDV et traiter une relance",
+      "expected": "Anciennes tâches invalidées ; pas de doublon source/échéance ; tentatives conservées",
+      "build": {
+        "commit": "d98f48ceebf2f2aaed58c78a57b05fa37ffcdf43",
+        "release": "0.1.0-l0"
+      },
+      "environment": "CI (Ubuntu, PHP 8.3, Node 22, MySQL 8.4.9, Chromium)",
+      "date": "2026-11-07",
+      "preconditions": "Jeu de données de la recette (fichier 14) : cabinet de test XAF / Africa/Douala, comptes de démonstration (gérante, accueil, professionnel, caissière), catalogue fictif `DEMO-*`, taxes de démonstration non contractuelles ; MySQL 8.4.9 réel ; données fictives seulement.",
+      "observed": "Un rendez-vous se prend, se déplace (version et créneau vérifiés, l'ancien créneau gardé dans l'audit) et s'annule avec motif ; deux réservations simultanées du même créneau n'en laissent passer qu'une ; l'annulation d'un contrôle clôt ses rappels ; une source et une échéance ne donnent qu'une tâche ; chaque tentative de contact est historisée.",
+      "result": "PASS",
+      "evidence": [
+        {
+          "kind": "Concurrence",
+          "path": "tests/Concurrency/AgendaConcurrencyTest.php",
+          "tests": [
+            "test_deux_reservations_simultanees_du_meme_creneau_n_en_laissent_passer_qu_une"
+          ]
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Scheduling/AppointmentsTest.php",
+          "tests": [
+            "test_deplacer_verifie_la_version_et_le_nouveau_creneau_et_garde_l_ancien_dans_l_audit"
+          ]
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Scheduling/FollowUpsTest.php",
+          "tests": [
+            "test_un_controle_actif_s_annule_avec_son_motif_et_ses_rappels_sont_clos",
+            "test_un_rendez_vous_programme_le_controle_et_son_annulation_le_rouvre"
+          ]
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Scheduling/ContactTasksTest.php",
+          "tests": [
+            "test_une_source_et_une_echeance_ne_donnent_qu_une_tache",
+            "test_une_tentative_est_historisee_et_la_tache_prend_son_etat"
+          ]
+        },
+        {
+          "kind": "Playwright",
+          "path": "tests/e2e/agenda.spec.ts",
+          "tests": [
+            "prendre un rendez-vous, le retrouver dans l’agenda, l’annuler avec un motif"
+          ]
+        }
+      ],
+      "limits": [],
+      "defect": null,
+      "correction": null
+    },
+    {
+      "id": "AT24",
+      "lot": "L0",
+      "scenario": "Facture ancienne réglée aujourd’hui, avoir aujourd’hui, nouvelle vente",
+      "expected": "CA distinct d’encaissements ; dettes de toutes périodes visibles gérante seulement",
+      "build": {
+        "commit": "d98f48ceebf2f2aaed58c78a57b05fa37ffcdf43",
+        "release": "0.1.0-l0"
+      },
+      "environment": "CI (Ubuntu, PHP 8.3, Node 22, MySQL 8.4.9, Chromium)",
+      "date": "2026-11-07",
+      "preconditions": "Jeu de données de la recette (fichier 14) : cabinet de test XAF / Africa/Douala, comptes de démonstration (gérante, accueil, professionnel, caissière), catalogue fictif `DEMO-*`, taxes de démonstration non contractuelles ; MySQL 8.4.9 réel ; données fictives seulement.",
+      "observed": "Le chiffre d'affaires et les encaissements sont des indicateurs distincts, rattachés chacun à leur auteur ; plusieurs paiements, avoirs, contre-écritures et remboursements ne se multiplient pas ; les dates effectives et les bornes du jour sont celles du cabinet ; seule la gérante lit la finance, avec les restes à encaisser de toutes les périodes.",
+      "result": "PASS",
+      "evidence": [
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Billing/FinancialReportTest.php",
+          "tests": [
+            "test_le_chiffre_d_affaires_et_les_encaissements_sont_des_indicateurs_distincts",
+            "test_la_vente_et_l_encaissement_se_rattachent_chacun_a_leur_auteur",
+            "test_plusieurs_paiements_avoirs_contre_ecritures_et_remboursements_ne_se_multiplient_pas",
+            "test_les_dates_effectives_et_les_bornes_du_jour_sont_celles_du_cabinet",
+            "test_la_gerante_seule_lit_la_finance_de_son_cabinet"
+          ]
+        },
+        {
+          "kind": "Playwright",
+          "path": "tests/e2e/finance.spec.ts",
+          "tests": [
+            "la gérante lit quatre indicateurs distincts et la fraîcheur des totaux"
+          ]
+        }
+      ],
+      "limits": [],
+      "defect": null,
+      "correction": null
+    },
+    {
+      "id": "AT25",
+      "lot": "L0",
+      "scenario": "Stats patients/consultations/sexes/âges/motifs, caisse et comptage",
+      "expected": "Définitions connues, inconnus conservés ; écart caisse motivé ; pas de double comptage corrections",
+      "build": {
+        "commit": "d98f48ceebf2f2aaed58c78a57b05fa37ffcdf43",
+        "release": "0.1.0-l0"
+      },
+      "environment": "CI (Ubuntu, PHP 8.3, Node 22, MySQL 8.4.9, Chromium)",
+      "date": "2026-11-07",
+      "preconditions": "Jeu de données de la recette (fichier 14) : cabinet de test XAF / Africa/Douala, comptes de démonstration (gérante, accueil, professionnel, caissière), catalogue fictif `DEMO-*`, taxes de démonstration non contractuelles ; MySQL 8.4.9 réel ; données fictives seulement.",
+      "observed": "Les statistiques d'activité (visites, patients nouveaux, sexes, âges, au fuseau du cabinet) et cliniques (par consultation, sans aucune valeur clinique) ont des définitions affichées et gardent les inconnus ; la clôture de caisse fige l'attendu recalculé par le serveur, exige un motif pour un écart et ne double pas les corrections ; tout cela au fuseau du cabinet.",
+      "result": "PASS",
+      "evidence": [
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Reports/StatisticsTest.php",
+          "tests": [
+            "test_l_activite_compte_visites_patients_nouveaux_sexe_et_ages_au_fuseau_du_cabinet",
+            "test_les_statistiques_cliniques_comptent_par_consultation_sans_valeur_clinique"
+          ]
+        },
+        {
+          "kind": "Vitest",
+          "path": "tests/frontend/domain/statistics.test.ts",
+          "tests": [
+            "part à une décimale, arrondie au plus proche, jamais inventée sans dénominateur"
+          ]
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Billing/CashSessionTest.php",
+          "tests": [
+            "test_la_cloture_fige_le_compte_et_l_attendu_recalcule_par_le_serveur",
+            "test_un_ecart_exige_un_motif_conserve_dans_l_audit",
+            "test_un_encaissement_especes_apres_l_affichage_change_l_attendu_et_oblige_a_recompter"
+          ]
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Billing/FinancialReportTest.php",
+          "tests": [
+            "test_une_session_cloturee_donne_son_attendu_fige_son_compte_son_ecart_et_les_corrections_apres_cloture",
+            "test_plusieurs_paiements_avoirs_contre_ecritures_et_remboursements_ne_se_multiplient_pas"
+          ]
+        }
+      ],
+      "limits": [],
+      "defect": null,
+      "correction": null
+    },
+    {
+      "id": "AT26",
+      "lot": "L0",
+      "scenario": "Reprendre papier 80 000 déjà payé 30 000 puis encaisser 20 000",
+      "expected": "Créance REP 50 000, CA initial 0, encaissé initial 0 ; après paiement dette 30 000 et encaissé 20 000",
+      "build": {
+        "commit": "d98f48ceebf2f2aaed58c78a57b05fa37ffcdf43",
+        "release": "0.1.0-l0"
+      },
+      "environment": "CI (Ubuntu, PHP 8.3, Node 22, MySQL 8.4.9, Chromium)",
+      "date": "2026-11-07",
+      "preconditions": "Jeu de données de la recette (fichier 14) : cabinet de test XAF / Africa/Douala, comptes de démonstration (gérante, accueil, professionnel, caissière), catalogue fictif `DEMO-*`, taxes de démonstration non contractuelles ; MySQL 8.4.9 réel ; données fictives seulement.",
+      "observed": "Reprise d'une facture papier de 80 000 déjà payée à 30 000 : créance de 50 000 sans vente, sans encaissement ni stock (chiffre d'affaires et encaissé initiaux à 0) ; un paiement de 20 000 crée un reçu et laisse 30 000 dus ; la caisse du jour ne compte pas une reprise comme une vente ; le diagnostic d'intégrité ne la signale plus à tort.",
+      "result": "PASS",
+      "evidence": [
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Billing/LegacyBalancesTest.php",
+          "tests": [
+            "test_80000_dont_30000_deja_payes_reprend_50000_sans_vente_ni_encaissement_ni_stock",
+            "test_un_paiement_de_20000_cree_un_recu_et_laisse_30000_dus",
+            "test_la_caisse_du_jour_ne_compte_pas_une_reprise_comme_vente",
+            "test_une_creance_reprise_n_est_pas_une_anomalie_des_diagnostics_d_integrite"
+          ]
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Billing/FinancialReportTest.php",
+          "tests": [
+            "test_une_reprise_papier_n_est_ni_une_vente_ni_un_encaissement_mais_une_creance"
+          ]
+        },
+        {
+          "kind": "Playwright",
+          "path": "tests/e2e/legacy-balances.spec.ts",
+          "tests": [
+            "justificatif, une créance, vérification, reprise, puis encaissement du reste dû"
+          ]
+        }
+      ],
+      "limits": [],
+      "defect": null,
+      "correction": null
+    },
+    {
+      "id": "AT27",
+      "lot": "L0",
+      "scenario": "Export, backup serveur, restaurer sur environnement isolé",
+      "expected": "Pièces/historique/hash/séquences/soldes récupérés ; durée et RPO constatés",
+      "build": {
+        "commit": "d98f48ceebf2f2aaed58c78a57b05fa37ffcdf43",
+        "release": "0.1.0-l0"
+      },
+      "environment": "CI (Ubuntu, PHP 8.3, Node 22, MySQL 8.4.9, Chromium)",
+      "date": "2026-11-07",
+      "preconditions": "Jeu de données de la recette (fichier 14) : cabinet de test XAF / Africa/Douala, comptes de démonstration (gérante, accueil, professionnel, caissière), catalogue fictif `DEMO-*`, taxes de démonstration non contractuelles ; MySQL 8.4.9 réel ; données fictives seulement.",
+      "observed": "La base restaurée est vérifiée sur une base jetable (7 contrôles : catalogue des 117 tables, diagnostics d'intégrité, séquences, pièces numérotées, empreintes d'audit, fichiers privés, postes à synchroniser) : une base cohérente passe et rend le dernier reçu, une remise à zéro des séquences, une empreinte fausse ou un fichier manquant sont détectés. Répétition locale du 2026-10-24 sur l'archive de livraison réelle : 0 reçu et 0 facture émise absents, moins d'une minute sur un volume fictif.",
+      "result": "BLOCKED",
+      "evidence": [
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Operations/RestoreVerifierTest.php",
+          "tests": [
+            "test_une_base_coherente_passe_tous_les_controles_et_rend_le_dernier_recu",
+            "test_un_numero_consomme_au_dela_de_la_sequence_est_une_remise_a_zero",
+            "test_une_empreinte_d_audit_fausse_et_un_fichier_manquant_sont_detectes",
+            "test_une_plage_ouverte_sur_un_poste_est_a_reconcilier_avant_reouverture"
+          ]
+        },
+        {
+          "kind": "Document",
+          "path": "docs/evidence/restore-rehearsal.md",
+          "tests": []
+        },
+        {
+          "kind": "Document",
+          "path": "docs/runbooks/server-restore.md",
+          "tests": []
+        }
+      ],
+      "limits": [
+        "À lancer avec l'accord du demandeur (il touche l'hébergement de production : sauvegarde lue, restauration dans une base jetable à côté)."
+      ],
+      "defect": null,
+      "correction": null,
+      "parts": [
+        {
+          "part": "Restauration vérifiée sur base jetable (pièces, historique, hash, séquences, soldes, dernier reçu)",
+          "result": "PASS"
+        },
+        {
+          "part": "Durée (RTO) et perte (RPO) CONSTATÉES sur l'hébergement cible",
+          "result": "BLOCKED",
+          "why": "L'exercice sur l'hébergement n'a pas été exécuté (`docs/evidence/restore-rehearsal.md`, tableau « Exercice » à compléter, ligne `restore_tests` absente) ; la durée de la répétition locale (volume fictif minime) n'a aucune valeur pour le RTO réel."
+        }
+      ]
+    },
+    {
+      "id": "AT28",
+      "lot": "L0",
+      "scenario": "Parcours 360 px, tablette, clavier, zoom 200 %, A4 long",
+      "expected": "Contrôles lisibles/accessibles, pas de coupe de totaux, accents et signes exacts",
+      "build": {
+        "commit": "d98f48ceebf2f2aaed58c78a57b05fa37ffcdf43",
+        "release": "0.1.0-l0"
+      },
+      "environment": "CI (Ubuntu, PHP 8.3, Node 22, MySQL 8.4.9, Chromium) ; rejeu local sur le poste de preuve (Windows 11, PHP 8.4.21, Node 24.15, Edge 156, MySQL 8.4.9)",
+      "date": "2026-11-07",
+      "preconditions": "Jeu de données de la recette (fichier 14) : cabinet de test XAF / Africa/Douala, comptes de démonstration (gérante, accueil, professionnel, caissière), catalogue fictif `DEMO-*`, taxes de démonstration non contractuelles ; MySQL 8.4.9 réel ; données fictives seulement.",
+      "observed": "Parcours automatisé dans Edge à 360 px, 683 px (zoom 200 %), 768 px et 1366 px sur 23 écrans : aucun défilement horizontal, commandes d'au moins 44 px, montants entiers (facture de 1 500 000 FCFA comprise), clavier seul de bout en bout (lien « Aller au contenu », fenêtre d'émission modale), focus jamais caché derrière la barre du bas (défaut trouvé et corrigé : 8 arrêts sur 52 cachés). PDF : A4 long paginé sans couper un total, accents et signes exacts, caractères hors jeu signalés.",
+      "result": "PASS",
+      "evidence": [
+        {
+          "kind": "Playwright",
+          "path": "tests/e2e/usability.spec.ts",
+          "tests": []
+        },
+        {
+          "kind": "Playwright",
+          "path": "tests/e2e/shell.spec.ts",
+          "tests": []
+        },
+        {
+          "kind": "Vitest",
+          "path": "tests/frontend/documents/layout.test.ts",
+          "tests": [
+            "ne coupe jamais une espace insécable : « 80 000 FCFA » reste d’un bloc",
+            "ne laisse pas le bloc de totaux seul sur une page : la dernière ligne l’accompagne",
+            "une longue désignation passe à la ligne dans sa cellule et la ligne reste entière"
+          ]
+        },
+        {
+          "kind": "Vitest",
+          "path": "tests/frontend/documents/charset.test.ts",
+          "tests": [
+            "conserve tel quel tout le français accentué, les guillemets et l’apostrophe typographique"
+          ]
+        },
+        {
+          "kind": "Document",
+          "path": "docs/evidence/usability.md",
+          "tests": []
+        }
+      ],
+      "limits": [
+        "Automatisé dans Edge 156 uniquement, sans émulation tactile ; zoom 200 % approché par une fenêtre de 683 px.",
+        "Impression réelle, navigateurs et appareils convenus : critère de G3 « PDFs et appareils ciblés », non couvert (voir G3.md)."
+      ],
+      "defect": null,
+      "correction": null
+    },
+    {
+      "id": "AT29",
+      "lot": "L0",
+      "scenario": "Opérateur crée patient puis facture/reçu, gérante trouve un impayé sur téléphone",
+      "expected": "Aucun champ identity ressaisi entre modules ; objectifs d’usage mesurés et retours corrigés",
+      "build": {
+        "commit": "d98f48ceebf2f2aaed58c78a57b05fa37ffcdf43",
+        "release": "0.1.0-l0"
+      },
+      "environment": "CI (Ubuntu, PHP 8.3, Node 22, MySQL 8.4.9, Chromium) ; rejeu local sur le poste de preuve (Windows 11, PHP 8.4.21, Node 24.15, Edge 156, MySQL 8.4.9)",
+      "date": "2026-11-07",
+      "preconditions": "Jeu de données de la recette (fichier 14) : cabinet de test XAF / Africa/Douala, comptes de démonstration (gérante, accueil, professionnel, caissière), catalogue fictif `DEMO-*`, taxes de démonstration non contractuelles ; MySQL 8.4.9 réel ; données fictives seulement.",
+      "observed": "Un opérateur crée la patiente, prépare la facture depuis sa fiche, l'émet et encaisse un acompte SANS ressaisir son identité (aucun champ d'identité sur l'éditeur de facture, nom et prénoms accentués repris tels quels) ; la gérante retrouve l'impayé sur 360 px. Mesures : 10 clics, 8 champs, 110 touches pour les quatre étapes ; 22 à 57 s de machine selon la charge du poste.",
+      "result": "BLOCKED",
+      "evidence": [
+        {
+          "kind": "Playwright",
+          "path": "tests/e2e/usability.spec.ts",
+          "tests": [
+            "AT29 : patient, facture et encaissement sans ressaisie, mesures ; la gérante retrouve l’impayé sur téléphone"
+          ]
+        },
+        {
+          "kind": "Document",
+          "path": "docs/evidence/usability.md",
+          "tests": []
+        }
+      ],
+      "limits": [],
+      "defect": null,
+      "correction": null,
+      "parts": [
+        {
+          "part": "Aucun champ d'identité ressaisi entre les modules",
+          "result": "PASS"
+        },
+        {
+          "part": "Objectifs d'usage mesurés",
+          "result": "PASS",
+          "why": "Mesures consignées ; les spécifications ne fixent AUCUN objectif chiffré, il n'en est pas inventé."
+        },
+        {
+          "part": "Retours d'opératrices corrigés",
+          "result": "BLOCKED",
+          "why": "Aucun retour de personne réelle (accueil, caisse, gérante) n'existe encore : il faut le chronométrage et l'avis d'une vraie personne sur le matériel du cabinet (protocole en fin de `docs/evidence/usability.md`)."
+        }
+      ]
+    },
+    {
+      "id": "AT36",
+      "lot": "L0",
+      "scenario": "Préparer poste, couper réseau, fermer/rouvrir navigateur, créer patient/consultation",
+      "expected": "Shell disponible, coffre déverrouillable, dossiers persistants, numéro local final",
+      "build": {
+        "commit": "d98f48ceebf2f2aaed58c78a57b05fa37ffcdf43",
+        "release": "0.1.0-l0"
+      },
+      "environment": "CI (Ubuntu, PHP 8.3, Node 22, MySQL 8.4.9, Chromium) ; rejeu local sur le poste de preuve (Windows 11, PHP 8.4.21, Node 24.15, Edge 156, MySQL 8.4.9)",
+      "date": "2026-11-07",
+      "preconditions": "Jeu de données de la recette (fichier 14) : cabinet de test XAF / Africa/Douala, comptes de démonstration (gérante, accueil, professionnel, caissière), catalogue fictif `DEMO-*`, taxes de démonstration non contractuelles ; MySQL 8.4.9 réel ; données fictives seulement.",
+      "observed": "Poste préparé : fermeture complète du navigateur et serveur ARRÊTÉ, la coquille démarre depuis le précache, le coffre se déverrouille, le patient créé sur le poste est retrouvé avec son numéro local final ; trois profils se relaient sur le même poste avec leurs compartiments.",
+      "result": "BLOCKED",
+      "evidence": [
+        {
+          "kind": "Playwright",
+          "path": "tests/e2e/offline-start.spec.ts",
+          "tests": [
+            "fermeture complète, serveur arrêté, déverrouillage, patient local, retour du serveur"
+          ]
+        },
+        {
+          "kind": "Playwright",
+          "path": "tests/e2e/first-slice.spec.ts",
+          "tests": [
+            "facture de 80 000, acompte puis solde sans réseau, fermeture complète, ACK perdu puis rejoué"
+          ]
+        },
+        {
+          "kind": "Playwright",
+          "path": "tests/e2e/profile-flow.spec.ts",
+          "tests": [
+            "accueil, caisse et professionnel se relaient sans réseau ; chaque pièce part avec un profil qui peut la lire"
+          ]
+        },
+        {
+          "kind": "Playwright",
+          "path": "tests/e2e/offline-directory.spec.ts",
+          "tests": [
+            "fiche reçue par le pull retrouvée, modifiée, facturée sur le poste, fermeture complète, synchronisation"
+          ]
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Offline/DevicesTest.php",
+          "tests": []
+        },
+        {
+          "kind": "Vitest",
+          "path": "tests/frontend/offline/local-command-bus.test.ts",
+          "tests": []
+        }
+      ],
+      "limits": [
+        "Navigateur et système : Edge 156 sous Windows 11 (poste de preuve) et Chromium sous Linux (CI) ; le fichier 14 demande d'enregistrer quotas et mode de persistance de CHAQUE appareil du cabinet : non fait."
+      ],
+      "defect": null,
+      "correction": null,
+      "parts": [
+        {
+          "part": "Poste préparé, réseau coupé, fermeture et réouverture, coffre déverrouillable, patient persistant avec numéro local final",
+          "result": "PASS"
+        },
+        {
+          "part": "Créer une CONSULTATION sans réseau",
+          "result": "BLOCKED",
+          "why": "Les commandes cliniques ne sont pas des commandes de poste (sept seulement : `offline/sync/applicable.ts` ; O05 les refuse en source SYNC). Le périmètre hors ligne de L0 acté dans CLAUDE.md est « patients et facturation » : AT36 et AT42 parlent de consultation. Décision du demandeur à prendre (voir G3.md, décision 1)."
+        }
+      ]
+    },
+    {
+      "id": "AT37",
+      "lot": "L0",
+      "scenario": "Sans réseau : facture 80 000, acompte 30 000/reçu, solde 50 000/reçu, PDF/impression",
+      "expected": "Pièces réelles commitées localement, numéros pré-alloués, restes exacts et PDF disponible sans CDN",
+      "build": {
+        "commit": "d98f48ceebf2f2aaed58c78a57b05fa37ffcdf43",
+        "release": "0.1.0-l0"
+      },
+      "environment": "CI (Ubuntu, PHP 8.3, Node 22, MySQL 8.4.9, Chromium) ; rejeu local sur le poste de preuve (Windows 11, PHP 8.4.21, Node 24.15, Edge 156, MySQL 8.4.9)",
+      "date": "2026-11-07",
+      "preconditions": "Jeu de données de la recette (fichier 14) : cabinet de test XAF / Africa/Douala, comptes de démonstration (gérante, accueil, professionnel, caissière), catalogue fictif `DEMO-*`, taxes de démonstration non contractuelles ; MySQL 8.4.9 réel ; données fictives seulement.",
+      "observed": "Sans réseau : facture de 80 000 créée puis émise sur le poste, acompte de 30 000 et reçu, solde de 50 000 et reçu, numéros pré-alloués dans la plage du poste, restes exacts, PDF générés sur le poste sans sortir de l'origine ni CDN, fermeture complète puis synchronisation sans renumérotation.",
+      "result": "PASS",
+      "evidence": [
+        {
+          "kind": "Playwright",
+          "path": "tests/e2e/offline-invoice.spec.ts",
+          "tests": [
+            "patient et facture de 80 000 créés puis émis sur le poste, 30 000 puis 50 000, PDF, fermeture complète, synchronisation"
+          ]
+        },
+        {
+          "kind": "Playwright",
+          "path": "tests/e2e/first-slice.spec.ts",
+          "tests": [
+            "facture de 80 000, acompte puis solde sans réseau, fermeture complète, ACK perdu puis rejoué"
+          ]
+        },
+        {
+          "kind": "Playwright",
+          "path": "tests/e2e/documents.spec.ts",
+          "tests": [
+            "génère le PDF sur le poste, sans sortir de l’origine, puis le télécharge",
+            "réseau coupé : un autre document se génère et se télécharge encore"
+          ]
+        },
+        {
+          "kind": "Vitest",
+          "path": "tests/frontend/billing/local-payments.test.ts",
+          "tests": []
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Billing/IssueInvoiceTest.php",
+          "tests": []
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Billing/RegisterPaymentTest.php",
+          "tests": []
+        }
+      ],
+      "limits": [
+        "L'IMPRESSION physique (A4, ticket 80 mm) n'a pas été exercée : aucune imprimante ; le PDF et sa mise en page le sont (voir G3.md, « PDFs et appareils ciblés »)."
+      ],
+      "defect": null,
+      "correction": null
+    },
+    {
+      "id": "AT38",
+      "lot": "L0",
+      "scenario": "Couper après envoi sync avant réception ACK ; reconnecter/rejouer plusieurs fois",
+      "expected": "Une seule facture et chaque paiement une seule fois, aucun renumérotage ; commandes gardées avant ACK",
+      "build": {
+        "commit": "d98f48ceebf2f2aaed58c78a57b05fa37ffcdf43",
+        "release": "0.1.0-l0"
+      },
+      "environment": "CI (Ubuntu, PHP 8.3, Node 22, MySQL 8.4.9, Chromium) ; rejeu local sur le poste de preuve (Windows 11, PHP 8.4.21, Node 24.15, Edge 156, MySQL 8.4.9)",
+      "date": "2026-11-07",
+      "preconditions": "Jeu de données de la recette (fichier 14) : cabinet de test XAF / Africa/Douala, comptes de démonstration (gérante, accueil, professionnel, caissière), catalogue fictif `DEMO-*`, taxes de démonstration non contractuelles ; MySQL 8.4.9 réel ; données fictives seulement.",
+      "observed": "Coupure après l'envoi, avant l'ACK, puis rejeux multiples : une seule facture et chaque paiement une fois, aucun renumérotage, commandes gardées avant l'ACK ; envois simultanés et processus tué en plein lot repris au rang suivant.",
+      "result": "PASS",
+      "evidence": [
+        {
+          "kind": "Playwright",
+          "path": "tests/e2e/first-slice.spec.ts",
+          "tests": [
+            "facture de 80 000, acompte puis solde sans réseau, fermeture complète, ACK perdu puis rejoué"
+          ]
+        },
+        {
+          "kind": "Playwright",
+          "path": "tests/e2e/offline-sync.spec.ts",
+          "tests": [
+            "patient et encaissement hors ligne, fermeture, retour du réseau, ACK sans doublon ni renumérotation"
+          ]
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Offline/SyncPushTest.php",
+          "tests": [
+            "test_le_rejeu_du_meme_lot_rend_already_accepted_sans_second_fait",
+            "test_une_coupure_au_milieu_du_lot_reprend_au_rang_suivant"
+          ]
+        },
+        {
+          "kind": "Concurrence",
+          "path": "tests/Concurrency/SyncConcurrencyTest.php",
+          "tests": []
+        }
+      ],
+      "limits": [],
+      "defect": null,
+      "correction": null
+    },
+    {
+      "id": "AT39",
+      "lot": "L0",
+      "scenario": "Même solde ouvert sur autre poste ; essayer encaissement hors-ligne et transfert",
+      "expected": "Poste non propriétaire bloque ; transfert exige reprise/fermeture préalable ; aucune libération à simple expiration",
+      "build": {
+        "commit": "d98f48ceebf2f2aaed58c78a57b05fa37ffcdf43",
+        "release": "0.1.0-l0"
+      },
+      "environment": "CI (Ubuntu, PHP 8.3, Node 22, MySQL 8.4.9, Chromium) ; rejeu local sur le poste de preuve (Windows 11, PHP 8.4.21, Node 24.15, Edge 156, MySQL 8.4.9)",
+      "date": "2026-11-07",
+      "preconditions": "Jeu de données de la recette (fichier 14) : cabinet de test XAF / Africa/Douala, comptes de démonstration (gérante, accueil, professionnel, caissière), catalogue fictif `DEMO-*`, taxes de démonstration non contractuelles ; MySQL 8.4.9 réel ; données fictives seulement.",
+      "observed": "Une facture détenue par un poste n'est pas encaissée par un caissier du central (aucun formulaire, 409 WRITE_OWNER_REQUIRED) ; une seule caisse hors ligne principale détient les ressources financières ; une restitution prématurée est refusée et un grant expiré ne libère ni plage, ni quota, ni propriété ; un poste non propriétaire est bloqué localement.",
+      "result": "PASS",
+      "evidence": [
+        {
+          "kind": "Playwright",
+          "path": "tests/e2e/financial-safety.spec.ts",
+          "tests": [
+            "caissier central refusé sur une facture détenue ; deux onglets : numéros uniques, un seul encaissement"
+          ]
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Offline/PrepareResourcesTest.php",
+          "tests": [
+            "test_une_facture_emise_attribuee_au_poste_n_est_plus_encaissee_par_l_api_centrale",
+            "test_une_seule_caisse_hors_ligne_principale_detient_des_ressources_financieres"
+          ]
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Offline/ReleaseResourcesTest.php",
+          "tests": [
+            "test_une_restitution_prematuree_est_refusee_et_ne_libere_rien",
+            "test_un_grant_expire_ne_libere_ni_plage_ni_quota_ni_propriete"
+          ]
+        },
+        {
+          "kind": "Vitest",
+          "path": "tests/frontend/offline/local-command-bus.test.ts",
+          "tests": []
+        }
+      ],
+      "limits": [
+        "Le refus par un AUTRE poste physique hors ligne est prouvé par Vitest, pas en navigateur (la page d'une facture du serveur ne se lit pas sans réseau : écart 2 de G2)."
+      ],
+      "defect": null,
+      "correction": null
+    },
+    {
+      "id": "AT40",
+      "lot": "L0",
+      "scenario": "Stock 5, quota A3 ; A livre1 offline, B utilise disponible central ; sync",
+      "expected": "A2/B2 disponibles, central physique4/quotaA2 après sync, pas de double réserve ni stock négatif",
+      "build": {
+        "commit": "d98f48ceebf2f2aaed58c78a57b05fa37ffcdf43",
+        "release": "0.1.0-l0"
+      },
+      "environment": "CI (Ubuntu, PHP 8.3, Node 22, MySQL 8.4.9, Chromium)",
+      "date": "2026-11-07",
+      "preconditions": "Jeu de données de la recette (fichier 14) : cabinet de test XAF / Africa/Douala, comptes de démonstration (gérante, accueil, professionnel, caissière), catalogue fictif `DEMO-*`, taxes de démonstration non contractuelles ; MySQL 8.4.9 réel ; données fictives seulement.",
+      "observed": "Les nombres attendus sont prouvés séparément : un quota retire le disponible central sans toucher au physique, la réserve sous quota reste dans le quota, un quota épuisé ou d'un autre poste refuse la réserve, la reprise complète restitue tout sans recycler un numéro, la remise consomme la réserve (stock 5, quota 3, remise 1 : physique 4, quota 2, disponible 2).",
+      "result": "BLOCKED",
+      "evidence": [
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Offline/PrepareResourcesTest.php",
+          "tests": [
+            "test_un_quota_retire_le_disponible_central_sans_toucher_au_physique"
+          ]
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Billing/ReservationServiceTest.php",
+          "tests": [
+            "test_la_reserve_sous_quota_reste_dans_le_quota_et_ne_touche_pas_au_central",
+            "test_un_quota_epuise_ou_d_un_autre_poste_refuse_la_reserve"
+          ]
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Offline/ReleaseResourcesTest.php",
+          "tests": [
+            "test_apres_reprise_complete_tout_est_restitue_sans_recycler_un_numero"
+          ]
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Billing/DeliveryTest.php",
+          "tests": [
+            "test_une_facture_detenue_par_un_poste_se_remet_sur_ce_poste"
+          ]
+        }
+      ],
+      "limits": [],
+      "defect": null,
+      "correction": null,
+      "parts": [
+        {
+          "part": "Réserve sous quota, disponible central, restitution et vecteur 5/3/1 (physique 4, quota 2, disponible 2)",
+          "result": "PASS"
+        },
+        {
+          "part": "Scénario tel qu'écrit : « A livre 1 hors ligne, B utilise le disponible central, synchronisation »",
+          "result": "BLOCKED",
+          "why": "La remise d'une facture détenue par un poste est refusée au central (409) et n'est pas une commande de poste : remise, retour et stock restent en ligne (O05, décision 2). Le scénario n'est pas jouable tel quel (écart 3 de G2) ; décision du demandeur : la livraison hors ligne est-elle exigée en L0 ? (voir G3.md, décision 2)."
+        }
+      ]
+    },
+    {
+      "id": "AT41",
+      "lot": "L0",
+      "scenario": "Deux onglets consomment numéro/paiement, puis panne locale au milieu",
+      "expected": "Transaction tout ou rien, numéros uniques, au plus un paiement par clé ; pas de pièce annoncée avant commit",
+      "build": {
+        "commit": "d98f48ceebf2f2aaed58c78a57b05fa37ffcdf43",
+        "release": "0.1.0-l0"
+      },
+      "environment": "CI (Ubuntu, PHP 8.3, Node 22, MySQL 8.4.9, Chromium) ; rejeu local sur le poste de preuve (Windows 11, PHP 8.4.21, Node 24.15, Edge 156, MySQL 8.4.9)",
+      "date": "2026-11-07",
+      "preconditions": "Jeu de données de la recette (fichier 14) : cabinet de test XAF / Africa/Douala, comptes de démonstration (gérante, accueil, professionnel, caissière), catalogue fictif `DEMO-*`, taxes de démonstration non contractuelles ; MySQL 8.4.9 réel ; données fictives seulement.",
+      "observed": "Deux onglets du même poste : une seule session de coffre écrit, l'onglet périmé est refusé net (journal et entités identiques à l'octet près), une panne injectée à la dernière écriture de la transaction n'écrit ni journal, ni numéro, ni tête, un seul encaissement et des numéros uniques et contigus après la synchronisation.",
+      "result": "PASS",
+      "evidence": [
+        {
+          "kind": "Playwright",
+          "path": "tests/e2e/financial-safety.spec.ts",
+          "tests": [
+            "caissier central refusé sur une facture détenue ; deux onglets : numéros uniques, un seul encaissement"
+          ]
+        },
+        {
+          "kind": "Vitest",
+          "path": "tests/frontend/offline/local-command-bus.test.ts",
+          "tests": [
+            "un échec dans la transaction n’écrit rien : ni journal, ni numéro, ni tête",
+            "deux commits concurrents sans verrou d’onglet : le CAS recalcule, deux séquences et deux numéros distincts"
+          ]
+        }
+      ],
+      "limits": [
+        "La panne est une erreur injectée à la dernière écriture de la transaction IndexedDB, pas l'arrêt brutal du processus du navigateur (écart 1 de G2) ; l'atomicité des transactions IndexedDB reste la garantie du navigateur."
+      ],
+      "defect": null,
+      "correction": null
+    },
+    {
+      "id": "AT42",
+      "lot": "L0",
+      "scenario": "Patient/consultation modifiés sur deux postes ; créer homonyme offline",
+      "expected": "Propositions conservées, décision explicite, aucun écrasement ou fusion automatique",
+      "build": {
+        "commit": "d98f48ceebf2f2aaed58c78a57b05fa37ffcdf43",
+        "release": "0.1.0-l0"
+      },
+      "environment": "CI (Ubuntu, PHP 8.3, Node 22, MySQL 8.4.9, Chromium) ; rejeu local sur le poste de preuve (Windows 11, PHP 8.4.21, Node 24.15, Edge 156, MySQL 8.4.9)",
+      "date": "2026-11-07",
+      "preconditions": "Jeu de données de la recette (fichier 14) : cabinet de test XAF / Africa/Douala, comptes de démonstration (gérante, accueil, professionnel, caissière), catalogue fictif `DEMO-*`, taxes de démonstration non contractuelles ; MySQL 8.4.9 réel ; données fictives seulement.",
+      "observed": "Une fiche modifiée sur le poste puis au central : le serveur refuse la modification périmée sans écraser le central, garde les deux propositions, n'applique rien de ce qui suit avant la décision de la gérante (motif, mot de passe), puis reprend la file une seule fois ; un homonyme créé hors ligne garde deux identités sans fusion automatique. Côté consultation (en ligne) : conflit de version conservé, saisie reprise.",
+      "result": "PASS",
+      "evidence": [
+        {
+          "kind": "Playwright",
+          "path": "tests/e2e/financial-safety.spec.ts",
+          "tests": [
+            "modification périmée : la file du poste attend la décision, puis reprend une seule fois sans écraser le serveur"
+          ]
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Offline/SyncPushTest.php",
+          "tests": [
+            "test_une_modification_perimee_n_ecrase_jamais_le_central_et_garde_les_deux_propositions",
+            "test_un_homonyme_cree_hors_ligne_garde_deux_identites_sans_fusion_automatique",
+            "test_la_resolution_exige_la_gerante_et_un_motif"
+          ]
+        },
+        {
+          "kind": "Concurrence",
+          "path": "tests/Concurrency/SyncConcurrencyTest.php",
+          "tests": []
+        },
+        {
+          "kind": "Concurrence",
+          "path": "tests/Concurrency/CommandBusConcurrencyTest.php",
+          "tests": [
+            "test_deux_enregistrements_simultanes_de_la_meme_version_ne_laissent_passer_que_le_premier"
+          ]
+        },
+        {
+          "kind": "Vitest",
+          "path": "tests/frontend/domain/clinical-rebase.test.ts",
+          "tests": []
+        }
+      ],
+      "limits": [
+        "Volet CONSULTATION : hors ligne la consultation n'est pas une commande de poste (écart 5 de G2) ; seul le conflit EN LIGNE est prouvé (AT19). Ce résultat dépend de la décision 1 de G3.md.",
+        "Seule la décision « Garder l'état du serveur » est rejouée en navigateur ; ACCEPT_LOCAL, REJECT et CORRECT le sont en PHPUnit (écart 6 de G2)."
+      ],
+      "defect": null,
+      "correction": null
+    },
+    {
+      "id": "AT43",
+      "lot": "L0",
+      "scenario": "Plage épuisée/autorisation expirée/date arrière/rôle non autorisé",
+      "expected": "Blocage expliqué des nouvelles opérations sensibles, pièces existantes conservées et exportables",
+      "build": {
+        "commit": "d98f48ceebf2f2aaed58c78a57b05fa37ffcdf43",
+        "release": "0.1.0-l0"
+      },
+      "environment": "CI (Ubuntu, PHP 8.3, Node 22, MySQL 8.4.9, Chromium)",
+      "date": "2026-11-07",
+      "preconditions": "Jeu de données de la recette (fichier 14) : cabinet de test XAF / Africa/Douala, comptes de démonstration (gérante, accueil, professionnel, caissière), catalogue fictif `DEMO-*`, taxes de démonstration non contractuelles ; MySQL 8.4.9 réel ; données fictives seulement.",
+      "observed": "Plage épuisée, aucune autorisation valide (lecture seule), permission absente du grant, horloge qui recule ou 30 minutes d'inactivité : refus avant tout effet avec explication, pièces existantes conservées ; un numéro hors plage passe en revue sans rien créer ; un grant expiré ne libère rien.",
+      "result": "PASS",
+      "evidence": [
+        {
+          "kind": "Vitest",
+          "path": "tests/frontend/offline/local-command-bus.test.ts",
+          "tests": []
+        },
+        {
+          "kind": "Vitest",
+          "path": "tests/frontend/offline/vault.test.ts",
+          "tests": []
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Offline/SyncPushTest.php",
+          "tests": [
+            "test_un_numero_hors_de_la_plage_du_poste_passe_en_revue_sans_rien_creer"
+          ]
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Offline/ReleaseResourcesTest.php",
+          "tests": [
+            "test_un_grant_expire_ne_libere_ni_plage_ni_quota_ni_propriete"
+          ]
+        },
+        {
+          "kind": "Concurrence",
+          "path": "tests/Concurrency/OfflineAllocationConcurrencyTest.php",
+          "tests": []
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Access/ApprovalsTest.php",
+          "tests": []
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Access/StaffManagementTest.php",
+          "tests": []
+        }
+      ],
+      "limits": [
+        "Prouvé en Vitest et PHPUnit, pas en parcours navigateur (écart 4 de G2)."
+      ],
+      "defect": null,
+      "correction": null
+    },
+    {
+      "id": "AT44",
+      "lot": "L0",
+      "scenario": "Export chiffré local, simuler perte du poste, restaurer neuf puis sync",
+      "expected": "Mêmes pièces/IDs, pas de nouveau reçu pour reprendre un reçu ancien ; récupération testée",
+      "build": {
+        "commit": "d98f48ceebf2f2aaed58c78a57b05fa37ffcdf43",
+        "release": "0.1.0-l0"
+      },
+      "environment": "CI (Ubuntu, PHP 8.3, Node 22, MySQL 8.4.9, Chromium) ; rejeu local sur le poste de preuve (Windows 11, PHP 8.4.21, Node 24.15, Edge 156, MySQL 8.4.9)",
+      "date": "2026-11-07",
+      "preconditions": "Jeu de données de la recette (fichier 14) : cabinet de test XAF / Africa/Douala, comptes de démonstration (gérante, accueil, professionnel, caissière), catalogue fictif `DEMO-*`, taxes de démonstration non contractuelles ; MySQL 8.4.9 réel ; données fictives seulement.",
+      "observed": "Export chiffré d'un encaissement fait hors ligne, perte simulée du poste, reprise sur un poste NEUF avec les numéros d'origine (aucun nouveau reçu pour reprendre un ancien), ancien poste réapparu passé en revue ; mauvaise clé, fichier illisible ou contenu altéré refusés.",
+      "result": "PASS",
+      "evidence": [
+        {
+          "kind": "Playwright",
+          "path": "tests/e2e/device-recovery.spec.ts",
+          "tests": [
+            "encaissement hors ligne exporté, repris sur un poste neuf avec ses numéros d’origine"
+          ]
+        },
+        {
+          "kind": "Vitest",
+          "path": "tests/frontend/offline/recovery.test.ts",
+          "tests": [
+            "refuse une mauvaise clé, un fichier illisible, une autre version ou un contenu altéré"
+          ]
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Offline/DeviceReplacementTest.php",
+          "tests": [
+            "test_reprise_complete_avec_les_numeros_d_origine_puis_cloture_sans_recycler"
+          ]
+        },
+        {
+          "kind": "Document",
+          "path": "docs/runbooks/local-recovery.md",
+          "tests": []
+        }
+      ],
+      "limits": [],
+      "defect": null,
+      "correction": null
+    },
+    {
+      "id": "AT45",
+      "lot": "L0",
+      "scenario": "Mise à jour PWA avec pièces pendantes, profil verrouillé et dashboard distant",
+      "expected": "Aucune purge ; version ancienne reprise ; pas de plaintext visible ; totaux distants marqués incomplets",
+      "build": {
+        "commit": "d98f48ceebf2f2aaed58c78a57b05fa37ffcdf43",
+        "release": "0.1.0-l0"
+      },
+      "environment": "CI (Ubuntu, PHP 8.3, Node 22, MySQL 8.4.9, Chromium) ; rejeu local sur le poste de preuve (Windows 11, PHP 8.4.21, Node 24.15, Edge 156, MySQL 8.4.9)",
+      "date": "2026-11-07",
+      "preconditions": "Jeu de données de la recette (fichier 14) : cabinet de test XAF / Africa/Douala, comptes de démonstration (gérante, accueil, professionnel, caissière), catalogue fictif `DEMO-*`, taxes de démonstration non contractuelles ; MySQL 8.4.9 réel ; données fictives seulement.",
+      "observed": "Mise à jour de l'application avec une pièce en attente : installée sur accord, jamais d'office, sans rien perdre, la pièce est reprise ; le schéma local N-1 → N s'applique dans un vrai navigateur, base v4 remplie, coupure comprise ; totaux distants marqués incomplets tant qu'un poste n'a pas synchronisé.",
+      "result": "PASS",
+      "evidence": [
+        {
+          "kind": "Playwright",
+          "path": "tests/e2e/app-update.spec.ts",
+          "tests": [
+            "une nouvelle version s’installe sur accord, sans rien perdre ; la pièce en attente est reprise",
+            "le schéma local N-1 → N s’applique dans un vrai navigateur, sans rien perdre, coupure comprise"
+          ]
+        },
+        {
+          "kind": "Vitest",
+          "path": "tests/frontend/offline/update.test.ts",
+          "tests": []
+        },
+        {
+          "kind": "Vitest",
+          "path": "tests/frontend/offline/migrations.test.ts",
+          "tests": []
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Billing/FinancialReportFreshnessTest.php",
+          "tests": []
+        },
+        {
+          "kind": "Vitest",
+          "path": "tests/frontend/components/sync.test.ts",
+          "tests": [
+            "FreshnessNote : fraîcheur distante (AT45)"
+          ]
+        }
+      ],
+      "limits": [],
+      "defect": null,
+      "correction": null
+    }
+  ],
+  "integration_scenarios": [
+    {
+      "id": "IT01",
+      "defect_to_detect": "Migration qui perd CHECK, FK, colonne générée ou trigger",
+      "level": "critique",
+      "build": {
+        "commit": "d98f48ceebf2f2aaed58c78a57b05fa37ffcdf43",
+        "release": "0.1.0-l0"
+      },
+      "date": "2026-11-07",
+      "result": "PASS",
+      "evidence": [
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Schema/BaselineMigrationsTest.php",
+          "tests": []
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Schema/AdoptBaselineTest.php",
+          "tests": []
+        },
+        {
+          "kind": "Document",
+          "path": "database/VALIDATION.md",
+          "tests": []
+        }
+      ],
+      "note": "La CI exécute `tools/dev/schema-parity.sh` (étape « schéma » du job PHP : `php artisan migrate` sur une base neuve puis `eagle:verify-schema`) : équivalence des 117 tables, 464 FK, 484 CHECK, 10 vues, 88 guards."
+    },
+    {
+      "id": "IT02",
+      "defect_to_detect": "Laravel cherche `password` ou `session.user_id` numérique",
+      "level": "critique",
+      "build": {
+        "commit": "d98f48ceebf2f2aaed58c78a57b05fa37ffcdf43",
+        "release": "0.1.0-l0"
+      },
+      "date": "2026-11-07",
+      "result": "PASS",
+      "evidence": [
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Access/AuthenticationTest.php",
+          "tests": [
+            "test_connexion_reussie_renvoie_le_compte_ses_profils_et_ses_permissions",
+            "test_aucun_mot_de_passe_universel_n_ouvre_un_compte"
+          ]
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/ConfigurationContractTest.php",
+          "tests": [
+            "test_le_modele_utilisateur_suit_le_catalogue_et_non_les_valeurs_par_defaut_de_laravel"
+          ]
+        }
+      ],
+      "note": null
+    },
+    {
+      "id": "IT03",
+      "defect_to_detect": "Prix calculés différemment en PHP et en TypeScript",
+      "level": "critique",
+      "build": {
+        "commit": "d98f48ceebf2f2aaed58c78a57b05fa37ffcdf43",
+        "release": "0.1.0-l0"
+      },
+      "date": "2026-11-07",
+      "result": "PASS",
+      "evidence": [
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Billing/InvoiceDraftTest.php",
+          "tests": [
+            "test_le_vecteur_commun_une_virgule_cent_vingt_cinq_fois_mille_un_donne_mille_cent_vingt_six"
+          ]
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Unit/Billing/DeliveryRulesTest.php",
+          "tests": [
+            "test_le_vecteur_5_3_1_laisse_un_a_remettre"
+          ]
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Rules/MysqlRuleParityTest.php",
+          "tests": []
+        },
+        {
+          "kind": "Vitest",
+          "path": "tests/frontend/billing/draft-totals.test.ts",
+          "tests": []
+        }
+      ],
+      "note": null
+    },
+    {
+      "id": "IT04",
+      "defect_to_detect": "Un paiement tente un UPDATE de la facture émise",
+      "level": "critique",
+      "build": {
+        "commit": "d98f48ceebf2f2aaed58c78a57b05fa37ffcdf43",
+        "release": "0.1.0-l0"
+      },
+      "date": "2026-11-07",
+      "result": "PASS",
+      "evidence": [
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Billing/RegisterPaymentTest.php",
+          "tests": [
+            "test_un_acompte_puis_le_solde_donnent_deux_recus_numerotes_et_laissent_la_facture_intacte"
+          ]
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Billing/ImmutabilityGuardsTest.php",
+          "tests": [
+            "test_un_paiement_confirme_et_son_recu_ne_se_modifient_ni_ne_se_suppriment"
+          ]
+        }
+      ],
+      "note": null
+    },
+    {
+      "id": "IT05",
+      "defect_to_detect": "Parent finalisé avant l'écriture des enfants",
+      "level": "critique",
+      "build": {
+        "commit": "d98f48ceebf2f2aaed58c78a57b05fa37ffcdf43",
+        "release": "0.1.0-l0"
+      },
+      "date": "2026-11-07",
+      "result": "PASS",
+      "evidence": [
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Billing/IssueInvoiceTest.php",
+          "tests": [
+            "test_un_echec_a_n_importe_quel_point_annule_numero_reserves_et_document"
+          ]
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Billing/RegisterPaymentTest.php",
+          "tests": [
+            "test_un_echec_a_n_importe_quel_point_annule_paiement_recu_numero_et_document"
+          ]
+        }
+      ],
+      "note": null
+    },
+    {
+      "id": "IT06",
+      "defect_to_detect": "Publication auto-incrémentée lue avant le commit précédent",
+      "level": "critique",
+      "build": {
+        "commit": "d98f48ceebf2f2aaed58c78a57b05fa37ffcdf43",
+        "release": "0.1.0-l0"
+      },
+      "date": "2026-11-07",
+      "result": "PASS",
+      "evidence": [
+        {
+          "kind": "Concurrence",
+          "path": "tests/Concurrency/CommandBusConcurrencyTest.php",
+          "tests": [
+            "test_la_publication_du_pull_attend_la_fin_de_la_mutation_en_cours"
+          ]
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Offline/SyncPullTest.php",
+          "tests": [
+            "test_le_curseur_avance_sur_les_entrees_filtrees_et_ne_boucle_jamais"
+          ]
+        }
+      ],
+      "note": null
+    },
+    {
+      "id": "IT07",
+      "defect_to_detect": "JSON Unicode ou signature incompatibles entre PHP et navigateur",
+      "level": "critique",
+      "build": {
+        "commit": "d98f48ceebf2f2aaed58c78a57b05fa37ffcdf43",
+        "release": "0.1.0-l0"
+      },
+      "date": "2026-11-07",
+      "result": "PASS",
+      "evidence": [
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Unit/Offline/JcsAndJwsTest.php",
+          "tests": [
+            "test_la_forme_canonique_est_celle_des_vecteurs_communs"
+          ]
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Offline/SyncPushTest.php",
+          "tests": [
+            "test_une_empreinte_ou_une_signature_alteree_est_refusee_sans_rien_stocker"
+          ]
+        },
+        {
+          "kind": "Vitest",
+          "path": "tests/frontend/offline/signatures.test.ts",
+          "tests": [
+            "JCS (RFC 8785), vecteurs communs PHP / navigateur",
+            "JWS compact ES256"
+          ]
+        }
+      ],
+      "note": null
+    },
+    {
+      "id": "IT08",
+      "defect_to_detect": "Web Crypto laisse expirer la transaction Dexie",
+      "level": "critique",
+      "build": {
+        "commit": "d98f48ceebf2f2aaed58c78a57b05fa37ffcdf43",
+        "release": "0.1.0-l0"
+      },
+      "date": "2026-11-07",
+      "result": "PASS",
+      "evidence": [
+        {
+          "kind": "Vitest",
+          "path": "tests/frontend/offline/local-command-bus.test.ts",
+          "tests": [
+            "un échec dans la transaction n’écrit rien : ni journal, ni numéro, ni tête",
+            "deux commits concurrents sans verrou d’onglet : le CAS recalcule, deux séquences et deux numéros distincts"
+          ]
+        },
+        {
+          "kind": "Vitest",
+          "path": "tests/frontend/indexeddb-tooling.test.ts",
+          "tests": [
+            "annule toute la transaction lorsqu’une écriture échoue (tout ou rien)"
+          ]
+        }
+      ],
+      "note": null
+    },
+    {
+      "id": "IT09",
+      "defect_to_detect": "Deux profils créent deux têtes de journal pour le même poste",
+      "level": "critique",
+      "build": {
+        "commit": "d98f48ceebf2f2aaed58c78a57b05fa37ffcdf43",
+        "release": "0.1.0-l0"
+      },
+      "date": "2026-11-07",
+      "result": "PASS",
+      "evidence": [
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Unit/Offline/CompartmentsTest.php",
+          "tests": [
+            "test_chaque_commande_du_journal_est_scellee_dans_un_seul_compartiment"
+          ]
+        },
+        {
+          "kind": "Playwright",
+          "path": "tests/e2e/profile-flow.spec.ts",
+          "tests": [
+            "accueil, caisse et professionnel se relaient sans réseau ; chaque pièce part avec un profil qui peut la lire"
+          ]
+        }
+      ],
+      "note": null
+    },
+    {
+      "id": "IT10",
+      "defect_to_detect": "Un timeout d'ACK crée une seconde émission",
+      "level": "critique",
+      "build": {
+        "commit": "d98f48ceebf2f2aaed58c78a57b05fa37ffcdf43",
+        "release": "0.1.0-l0"
+      },
+      "date": "2026-11-07",
+      "result": "PASS",
+      "evidence": [
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Offline/SyncPushTest.php",
+          "tests": [
+            "test_le_rejeu_du_meme_lot_rend_already_accepted_sans_second_fait"
+          ]
+        },
+        {
+          "kind": "Playwright",
+          "path": "tests/e2e/first-slice.spec.ts",
+          "tests": [
+            "facture de 80 000, acompte puis solde sans réseau, fermeture complète, ACK perdu puis rejoué"
+          ]
+        }
+      ],
+      "note": null
+    },
+    {
+      "id": "IT11",
+      "defect_to_detect": "Un conflit N bloque le journal indéfiniment",
+      "level": "critique",
+      "build": {
+        "commit": "d98f48ceebf2f2aaed58c78a57b05fa37ffcdf43",
+        "release": "0.1.0-l0"
+      },
+      "date": "2026-11-07",
+      "result": "PASS",
+      "evidence": [
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Offline/SyncPushTest.php",
+          "tests": [
+            "test_un_rejet_decide_finalise_le_rang_et_la_suite_reprend_sans_paiement_invente",
+            "test_la_resolution_exige_la_gerante_et_un_motif"
+          ]
+        },
+        {
+          "kind": "Playwright",
+          "path": "tests/e2e/financial-safety.spec.ts",
+          "tests": [
+            "modification périmée : la file du poste attend la décision, puis reprend une seule fois sans écraser le serveur"
+          ]
+        }
+      ],
+      "note": null
+    },
+    {
+      "id": "IT12",
+      "defect_to_detect": "REJECTED est compté comme un paiement accepté",
+      "level": "critique",
+      "build": {
+        "commit": "d98f48ceebf2f2aaed58c78a57b05fa37ffcdf43",
+        "release": "0.1.0-l0"
+      },
+      "date": "2026-11-07",
+      "result": "PASS",
+      "evidence": [
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Offline/SyncPushTest.php",
+          "tests": [
+            "test_un_rejet_decide_finalise_le_rang_et_la_suite_reprend_sans_paiement_invente"
+          ]
+        },
+        {
+          "kind": "Vitest",
+          "path": "tests/frontend/billing/local-payments.test.ts",
+          "tests": [
+            "un conflit ou un rejet ne se compte pas dans le reste dû ; un conflit bloque le nouvel encaissement"
+          ]
+        }
+      ],
+      "note": null
+    },
+    {
+      "id": "IT13",
+      "defect_to_detect": "Un catalogue récent remplace un prix autorisé hors ligne",
+      "level": "critique",
+      "build": {
+        "commit": "d98f48ceebf2f2aaed58c78a57b05fa37ffcdf43",
+        "release": "0.1.0-l0"
+      },
+      "date": "2026-11-07",
+      "result": "PASS",
+      "evidence": [
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Offline/DevicesTest.php",
+          "tests": [
+            "test_le_grant_est_signe_par_la_cle_du_serveur_et_fige_droits_compartiments_et_catalogue"
+          ]
+        }
+      ],
+      "note": null
+    },
+    {
+      "id": "IT14",
+      "defect_to_detect": "L'expiration libère une plage, un quota ou une propriété",
+      "level": "critique",
+      "build": {
+        "commit": "d98f48ceebf2f2aaed58c78a57b05fa37ffcdf43",
+        "release": "0.1.0-l0"
+      },
+      "date": "2026-11-07",
+      "result": "PASS",
+      "evidence": [
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Offline/ReleaseResourcesTest.php",
+          "tests": [
+            "test_un_grant_expire_ne_libere_ni_plage_ni_quota_ni_propriete"
+          ]
+        }
+      ],
+      "note": null
+    },
+    {
+      "id": "IT15",
+      "defect_to_detect": "Une réserve de quota est soustraite deux fois",
+      "level": "critique",
+      "build": {
+        "commit": "d98f48ceebf2f2aaed58c78a57b05fa37ffcdf43",
+        "release": "0.1.0-l0"
+      },
+      "date": "2026-11-07",
+      "result": "PASS",
+      "evidence": [
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Billing/ReservationServiceTest.php",
+          "tests": [
+            "test_la_reserve_sous_quota_reste_dans_le_quota_et_ne_touche_pas_au_central"
+          ]
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Billing/DeliveryTest.php",
+          "tests": [
+            "test_remise_partielle_puis_totale_consomme_la_reserve_sans_double_soustraction"
+          ]
+        }
+      ],
+      "note": null
+    },
+    {
+      "id": "IT16",
+      "defect_to_detect": "Un PDF en échec relance l'encaissement",
+      "level": "critique",
+      "build": {
+        "commit": "d98f48ceebf2f2aaed58c78a57b05fa37ffcdf43",
+        "release": "0.1.0-l0"
+      },
+      "date": "2026-11-07",
+      "result": "PASS",
+      "evidence": [
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Billing/RegisterPaymentTest.php",
+          "tests": [
+            "test_un_echec_a_n_importe_quel_point_annule_paiement_recu_numero_et_document"
+          ]
+        },
+        {
+          "kind": "Vitest",
+          "path": "tests/frontend/documents/service.test.ts",
+          "tests": [
+            "conserve l’original, le rend identique à la réimpression et reste idempotent"
+          ]
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Documents/DocumentContentTest.php",
+          "tests": [
+            "test_un_original_conserve_ne_se_remplace_jamais"
+          ]
+        }
+      ],
+      "note": null
+    },
+    {
+      "id": "IT17",
+      "defect_to_detect": "Source de PDF non ACK exposée en public",
+      "level": "critique",
+      "build": {
+        "commit": "d98f48ceebf2f2aaed58c78a57b05fa37ffcdf43",
+        "release": "0.1.0-l0"
+      },
+      "date": "2026-11-07",
+      "result": "PASS",
+      "evidence": [
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Billing/LegacyBalancesTest.php",
+          "tests": [
+            "test_le_justificatif_est_conserve_en_prive_et_reconnu_a_ses_premiers_octets"
+          ]
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Documents/DocumentContentTest.php",
+          "tests": [
+            "test_un_original_conserve_ne_se_remplace_jamais"
+          ]
+        }
+      ],
+      "note": null
+    },
+    {
+      "id": "IT18",
+      "defect_to_detect": "Compte ou clés perdus rendent l'export local inutilisable",
+      "level": "critique",
+      "build": {
+        "commit": "d98f48ceebf2f2aaed58c78a57b05fa37ffcdf43",
+        "release": "0.1.0-l0"
+      },
+      "date": "2026-11-07",
+      "result": "PASS",
+      "evidence": [
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Offline/DeviceReplacementTest.php",
+          "tests": [
+            "test_reprise_complete_avec_les_numeros_d_origine_puis_cloture_sans_recycler"
+          ]
+        },
+        {
+          "kind": "Vitest",
+          "path": "tests/frontend/offline/recovery.test.ts",
+          "tests": [
+            "refuse une mauvaise clé, un fichier illisible, une autre version ou un contenu altéré"
+          ]
+        },
+        {
+          "kind": "Playwright",
+          "path": "tests/e2e/device-recovery.spec.ts",
+          "tests": [
+            "encaissement hors ligne exporté, repris sur un poste neuf avec ses numéros d’origine"
+          ]
+        }
+      ],
+      "note": null
+    },
+    {
+      "id": "IT19",
+      "defect_to_detect": "Une mise à jour du service worker ou une migration locale purge les commandes pendantes",
+      "level": "critique",
+      "build": {
+        "commit": "d98f48ceebf2f2aaed58c78a57b05fa37ffcdf43",
+        "release": "0.1.0-l0"
+      },
+      "date": "2026-11-07",
+      "result": "PASS",
+      "evidence": [
+        {
+          "kind": "Playwright",
+          "path": "tests/e2e/app-update.spec.ts",
+          "tests": [
+            "une nouvelle version s’installe sur accord, sans rien perdre ; la pièce en attente est reprise"
+          ]
+        },
+        {
+          "kind": "Vitest",
+          "path": "tests/frontend/offline/update.test.ts",
+          "tests": []
+        },
+        {
+          "kind": "Vitest",
+          "path": "tests/frontend/offline/migrations.test.ts",
+          "tests": []
+        }
+      ],
+      "note": null
+    },
+    {
+      "id": "IT20",
+      "defect_to_detect": "La file ou l'outbox divulgue du clinique ou annule une vente",
+      "level": "hors L0",
+      "build": {
+        "commit": "d98f48ceebf2f2aaed58c78a57b05fa37ffcdf43",
+        "release": "0.1.0-l0"
+      },
+      "date": "2026-11-07",
+      "result": "NOT_RUN",
+      "evidence": [],
+      "note": "Notifications et intégrations : lot L2 (gate G6), non prétendues actives en L0."
+    },
+    {
+      "id": "IT21",
+      "defect_to_detect": "Un nouveau consentement à un autre numéro autorise l'ancien numéro",
+      "level": "hors L0",
+      "build": {
+        "commit": "d98f48ceebf2f2aaed58c78a57b05fa37ffcdf43",
+        "release": "0.1.0-l0"
+      },
+      "date": "2026-11-07",
+      "result": "NOT_RUN",
+      "evidence": [],
+      "note": "Consentements : lot L2 (gate G6), non prétendus actifs en L0."
+    },
+    {
+      "id": "IT22",
+      "defect_to_detect": "Les tests de l'application se trompent de base ou de destinataire",
+      "level": "critique",
+      "build": {
+        "commit": "d98f48ceebf2f2aaed58c78a57b05fa37ffcdf43",
+        "release": "0.1.0-l0"
+      },
+      "date": "2026-11-07",
+      "result": "PASS",
+      "evidence": [
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Database/IsolatedDatabaseGuardConfigTest.php",
+          "tests": []
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Database/DestructiveCommandsBlockedTest.php",
+          "tests": []
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Database/ResetTestDatabaseCommandTest.php",
+          "tests": []
+        }
+      ],
+      "note": "Les e2e refusent toute base qui n'est pas `eeo_*_test` sur un hôte local (`tests/e2e/support/database.php`) ; fournisseurs en mode `fake`."
+    }
+  ]
+}

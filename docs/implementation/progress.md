@@ -4,13 +4,13 @@ Initialisé le 2026-10-14 depuis `specifications/developpement/JOURNAL.md`. Le b
 
 ## État courant
 
-- Branche : `main` (fusion de la pile le 2026-11-05, d'O06 et d'O05 le 2026-11-06, de R01, de G2 et de P04 puis d'U01 le 2026-11-07 ; leurs branches `claude/…` sont SANS OBJET). Dépôt public : données fictives uniquement ; développement sur un poste local depuis le 2026-10-15, une seule session à la fois dans ce dossier.
-- Lot et gate visés : L0 ; **G0 acquis** (voir `docs/evidence/G0.md`) ; **G1 DONE** (prouvé le 2026-10-28, arbitré par le demandeur le 2026-10-30 : `docs/evidence/G1.md`) ; **G2 prouvé le 2026-11-06, IN_REVIEW** (`docs/evidence/G2.md`) ; **P04 faite le 2026-11-07, IN_REVIEW** (`docs/runbooks/profile-flow.md`) ; **U01 faite en partie le 2026-11-07, IN_REVIEW PARTIEL, fusionnée dans `main`** (`docs/evidence/usability.md` : l'automatisable est prouvé, l'imprimante et les appareils du cabinet manquent) ; prochains : G3, G4.
-- Tâche courante (2026-11-07) : aucune en cours ; la suivante est **G3** « Exécuter toute la recette L0 et figer le candidat » (ordre du demandeur : O06, O05, R01, puis G2, U01, G3, G4 ; L1, L2, L3), qui demande d'arbitrer d'abord l'AT36 « créer patient/consultation » hors ligne (la consultation n'est pas une commande de poste). O06, O05, R01, G2, P04 et U01, faites et en revue (IN_REVIEW, U01 partiellement), sont fusionnées dans `main` (sections « Fusion d'O06 et d'O05 », « Fusion de R01 et de G2 », « Fusion de P04 » et « Fusion d'U01 »). Historique : lot 2 vérifié le 2026-10-24 (run 40044078785, commit `cb7a008`), H01 EN LIGNE le 2026-10-27 (`docs/implementation/deploiement.md`).
-- Dernière preuve acquise : CI verte de la branche d'U01 avant la fusion (run 42368931797 sur `c103fd2`) et de la branche du correctif de verrou nommé (run 42356363421 sur `dbd61c5`), puis de la branche `claude/fusion-u01` ; avant : CI verte de la branche de P04 (run 42352729863 sur `ec3361b`) et de `claude/fusion-p04`. La validation SQL d'origine (`database/VALIDATION.md`, amendée le 2026-11-06 pour le diagnostic I01) et G0 restent **distincts d'une recette applicative**.
+- Branche : `claude/g3-recette-l0` (coupée de `main` = `d98f48c` ; `main` contient la pile, O06 et O05, R01 et G2, P04, U01 ; leurs branches `claude/…` sont SANS OBJET). Dépôt public : données fictives uniquement ; développement sur un poste local depuis le 2026-10-15, une seule session à la fois dans ce dossier.
+- Lot et gate visés : L0 ; **G0 acquis** (voir `docs/evidence/G0.md`) ; **G1 DONE** (prouvé le 2026-10-28, arbitré par le demandeur le 2026-10-30 : `docs/evidence/G1.md`) ; **G2 prouvé le 2026-11-06, IN_REVIEW** (`docs/evidence/G2.md`) ; **P04 faite le 2026-11-07, IN_REVIEW** (`docs/runbooks/profile-flow.md`) ; **U01 faite en partie le 2026-11-07, IN_REVIEW PARTIEL, fusionnée dans `main`** (`docs/evidence/usability.md`) ; **G3 faite le 2026-11-07, IN_REVIEW** (`docs/evidence/G3.md`, registre `docs/evidence/acceptance-L0.json` : 35 scénarios sur 39 prouvés, 4 bloqués) ; prochain : G4, après l'arbitrage de G3.
+- Tâche courante (2026-11-07) : **G3** « Exécuter toute la recette L0 et figer le candidat » faite sur `claude/g3-recette-l0` (section « G3 » ci-dessous), en attente de la CI et de l'arbitrage du demandeur ; la suivante est **G4** (bascule réelle : hébergement réel compatible, paramètres réels, comptes et postes prêts, utilisateurs formés, créances, stock et numéros rapprochés, décision de bascule du responsable), dont presque tout dépend de la cliente, de l'hébergement et du demandeur. O06, O05, R01, G2, P04 et U01 sont fusionnées dans `main`. Historique : lot 2 vérifié le 2026-10-24 (run 40044078785, commit `cb7a008`), H01 EN LIGNE le 2026-10-27 (`docs/implementation/deploiement.md`).
+- Dernière preuve acquise : CI verte de `main` au candidat de G3 (run 42374428715 sur `d98f48c` : PHP, Frontend, E2E) ; CI de `claude/g3-recette-l0` à lire. La validation SQL d'origine (`database/VALIDATION.md`, amendée le 2026-11-06 pour le diagnostic I01) et G0 restent **distincts d'une recette applicative**.
 - Statut et preuves de chaque tâche : `docs/implementation/task-status.json` (la liste n’est plus recopiée ici).
 - Blocages externes : Q01–Q04/Q14 (production seulement) ; développement fictif possible.
-- Prochaine action concrète : G3, G4 (ordre du demandeur du 2026-11-05), après l'arbitrage de l'AT36 hors ligne ; pour U01, obtenir du cabinet l'imprimante A4 et ticket, les navigateurs et appareils convenus (protocole en fin de `docs/evidence/usability.md`).
+- Prochaine action concrète : l'arbitrage de G3 par le demandeur (décisions 1 et 2 : consultation et livraison hors ligne ; accord 3 : exercice de restauration sur l'hébergement ; demande 4 : personnes et matériel ; 5 : déploiement, dont les sept avis Symfony), puis G4 et les lots L1 restants (ordre du demandeur du 2026-11-05).
 
 ## Fusion de la pile dans `main` et début d’O06 (2026-11-05)
 
@@ -106,6 +106,22 @@ Tâche suivant G2 dans l'ordre du demandeur (O06, O05, R01, puis G2, U01, G3, G4
   les quatre paquets Symfony y sont encore en 7.4.21 (verrou du dépôt : 7.4.23). Un prochain déploiement apporterait, en plus du bandeau de
   mise à jour d'O06 et de l'écran de finance (R01), la correction du déverrouillage après la préparation d'un poste (P04) : dire alors au
   demandeur de cliquer sur « Installer la nouvelle version ». Rien n'est déployé sans demande du demandeur.
+
+## G3 — Exécuter toute la recette L0 et figer le candidat (2026-11-07)
+
+- **Branche** : `claude/g3-recette-l0`, coupée de `origin/main` (`d98f48c`, le candidat). **IN_REVIEW, pas DONE** : preuve et décisions dans `docs/evidence/G3.md`.
+- **Ajouté** : `docs/evidence/acceptance-L0.json` (registre du fichier 25 : un enregistrement par scénario, identité du build, CI, 22 IT) ;
+  `docs/evidence/G3.md` ; `tests/frontend/evidence/acceptance-register.test.ts` (8 contrôles, joués par la CI : les 39 scénarios, les énoncés du
+  fichier 14 mot pour mot, aucun PASS sans test automatisé, chaque BLOCKED motivé, chaque test cité existant dans son fichier, totaux, identité du
+  build ; vérifié par 4 mutations). Cinq commentaires de test citaient un mauvais scénario (acuités, réfraction et centrage : AT10 à AT12 au lieu
+  d'AT18 ; remise : AT23 au lieu d'AT15 à AT17 ; parcours de consultation) : corrigés. Aucun code d'application ni migration modifié.
+- **Résultat** : **35 scénarios sur 39 prouvés**, **4 bloqués** (AT27 : durée et perte constatées sur l'hébergement, exercice non fait ; AT29 : retours
+  d'opératrices réelles ; AT36 : consultation hors ligne, décision ; AT40 : livraison hors ligne, décision), 0 échec ; **20 IT critiques sur 20
+  prouvés** (IT20 et IT21 : L2) ; aucun défaut bloquant connu ouvert.
+- **Revue** : `composer audit --locked` et `npm audit --omit=dev` propres sur le candidat ; **la production exécute encore Symfony 7.4.21 : sept avis
+  du 2026-11-04 la concernent, le prochain déploiement les ferme** (à la demande du demandeur) ; 20 tests de rendu « golden » des documents ignorés
+  faute de revue visuelle initiale ; aucune impression physique.
+- **CI** : à lire sur la branche (ligne ajoutée à sa lecture). Fusion dans `main` : à demander au demandeur (accord à chaque fois).
 
 ## U01 — Corriger l'usage et les impressions sur appareils ciblés (2026-11-07)
 
