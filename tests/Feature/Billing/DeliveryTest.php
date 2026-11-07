@@ -13,7 +13,7 @@ use Tests\Support\MigratedDatabase;
 use Tests\TestCase;
 
 /**
- * Remise au patient (I01, AT23, EE016, EE026, IT15) sur MySQL réel : remise partielle puis totale d'une facture émise ;
+ * Remise au patient (I01, AT15, AT16, AT17, EE016, EE026, IT15) sur MySQL réel : remise partielle puis totale d'une facture émise ;
  * la réserve posée à l'émission est consommée et le physique baisse dans la même transaction (rien n'est soustrait deux
  * fois) ; un mouvement SALE_DELIVERY négatif par ligne de remise ; lot non expiré au jour local ; remise d'une facture
  * non soldée seulement avec l'approbation exacte de la gérante ; rejeu idempotent ; remise confirmée immuable.

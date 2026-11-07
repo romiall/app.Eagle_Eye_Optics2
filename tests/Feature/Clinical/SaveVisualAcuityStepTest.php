@@ -10,7 +10,7 @@ use Tests\Support\MigratedDatabase;
 use Tests\TestCase;
 
 /**
- * Rubrique VISUAL_ACUITY (C02, AT10, EE006) : acuités de loin et de près, sans et avec correction, par œil, puis
+ * Rubrique VISUAL_ACUITY (C02, AT18, EE006) : acuités de loin et de près, sans et avec correction, par œil, puis
  * acuité après correction. Une valeur non mesurée n'a pas de ligne ; la valeur lue est conservée telle que saisie
  * (« 10/10 », « P2 », « CLD », « 0 ») ; aucune conversion entre échelles n'est calculée (Q06). Données fictives.
  */
