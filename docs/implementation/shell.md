@@ -277,6 +277,8 @@ isolée. Les comptes de démonstration sont fictifs. Le test vérifie :
 - une URL métier non livrée (`/atelier`) mène à « Page introuvable » (le menu et l'accueil ne montrent que les
   modules livrés, ouverts par `EEO_ENABLED_MODULES` et autorisés : voir `modules.md`).
 
+U01 (2026-11-07) étend ce contrôle aux écrans d'exploitation (`tests/e2e/usability.spec.ts`, preuve `docs/evidence/usability.md`) : 23 écrans aux mêmes quatre largeurs, commandes d'au moins 44 px, montants en FCFA entiers, clavier seul et « focus non masqué ». **Barre de raccourcis du téléphone** : `App.vue` la fixe en bas (`fixed bottom-0 … md:hidden`, environ 65 px) sous 768 px ; `styles/base.css` pose donc `scroll-padding-bottom: 6rem` sous ce seuil, faute de quoi le navigateur laisse le champ qui prend le focus (Tab, « Suivant » du clavier tactile) tout contre le bord, caché derrière la barre (8 arrêts sur 52 constatés à 360 px, 0 après). Tout nouvel élément fixé au bord de l'écran ajoute sa hauteur à cette marge, et au bas du contenu et du pied de page (`pb-28` de `main`, `pb-20` de `AppVersion`).
+
 ## Mise à jour de l’application (O06, 2026-11-05)
 
 Le 2026-10-30, le demandeur n’a pas vu des corrections livrées en ligne : son navigateur affichait l’ancienne version et le bandeau de mise à jour, en haut
