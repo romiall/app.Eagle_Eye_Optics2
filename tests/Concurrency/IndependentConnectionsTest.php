@@ -71,7 +71,10 @@ final class IndependentConnectionsTest extends TestCase
         $this->assertSame(1, $this->acquire('mysql_second'));
         DB::purge('mysql_second');
 
-        $this->assertSame(1, $this->acquire('mysql'), 'La fermeture de la session propriétaire libère le verrou (pas de verrou orphelin).');
+        // Le serveur libère le verrou quand il a traité la fermeture de la connexion, un instant APRÈS que le client l'a
+        // fermée (CI du 2026-11-07 : 0 renvoyé par un essai immédiat). Un verrou orphelin, lui, ne serait jamais libéré :
+        // l'essai attend donc jusqu'à 10 secondes, ce qui reste un échec franc si le verrou n'est jamais rendu.
+        $this->assertSame(1, $this->acquire('mysql', 10), 'La fermeture de la session propriétaire libère le verrou (pas de verrou orphelin).');
         $this->release('mysql');
     }
 }
