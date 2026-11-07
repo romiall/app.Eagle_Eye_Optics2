@@ -88,6 +88,34 @@ describe('SyncStatus : état de synchronisation du poste, distinct du réseau', 
     expect(text).toContain('Dernier essai d’échange sans réponse du serveur')
   })
 
+  it('nomme le profil qui doit s’ouvrir quand le poste connaît le compartiment des pièces d’autres profils (P04)', () => {
+    const text = mountStatus({
+      ...IDLE,
+      otherProfiles: 3,
+      otherCompartments: { FINANCIAL: 2, CLINICAL: 1 },
+    }).text()
+
+    expect(text).toContain(
+      '1 pièce clinique : à envoyer à l’ouverture d’un profil professionnel ou de la gérante',
+    )
+    expect(text).toContain(
+      '2 pièces de la caisse : à envoyer à l’ouverture d’un profil de caisse ou de la gérante',
+    )
+    expect(text).not.toContain('d’autres profils')
+    expect(text).not.toContain('Synchronisé')
+  })
+
+  it('garde l’annonce générique si le détail par compartiment ne correspond pas au total', () => {
+    const text = mountStatus({
+      ...IDLE,
+      otherProfiles: 3,
+      otherCompartments: { FINANCIAL: 2 },
+    }).text()
+
+    expect(text).toContain('3 pièces d’autres profils : à envoyer à l’ouverture de leur profil')
+    expect(text).not.toContain('de la caisse')
+  })
+
   it('« Synchroniser » : état en cours pendant l’échange, bouton désactivé', async () => {
     let finish!: () => void
     const syncNow = vi.fn(() => new Promise<void>((resolve) => (finish = resolve)))

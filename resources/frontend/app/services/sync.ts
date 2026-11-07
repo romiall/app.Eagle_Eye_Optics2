@@ -1,5 +1,12 @@
 import { inject, type InjectionKey, type Ref } from 'vue'
 
+import type { WaitingByCompartment } from '@/offline/projections/profileWaiting'
+
+export {
+  waitingSentences,
+  waitingTotal,
+  type WaitingByCompartment,
+} from '@/offline/projections/profileWaiting'
 export {
   DOCUMENT_STATE_LABELS,
   type DocumentState,
@@ -27,6 +34,11 @@ export interface DeviceSyncSummary {
    * qu'à l'ouverture de leur profil (contrat 23 : journal commun, compartiments par droits).
    */
   otherProfiles: number
+  /**
+   * Les mêmes commandes, par compartiment (P04) : l'écran dit QUEL profil doit s'ouvrir pour les envoyer. Absent : l'état
+   * générique « d'autres profils » est annoncé.
+   */
+  otherCompartments?: WaitingByCompartment
   /** PDF locaux à régénérer (échec de génération ou d'impression). */
   documentsFailed: number
   /** PDF prêts sur le poste mais pas encore déposés sur le serveur (statut central en attente). */

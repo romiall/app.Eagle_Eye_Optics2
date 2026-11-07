@@ -883,3 +883,64 @@ dans un navigateur et la tâche restait NOT_STARTED. Ce passage audite, complèt
 - **Service worker en attente à la fermeture de tous les onglets** : le navigateur l’active alors sans demander (comportement de la plateforme, documenté dans `appUpdate.ts`) ; sans danger tant que les versions publiées restent déclarées.
 - **Module `offline` fermé en production** : `updateReadinessForThisDevice` rend « libre » quand le module est fermé (aucune pièce locale n’existe) ; le contrôle du poste n’a donc de conséquence en production qu’à l’ouverture du module.
 - **Rotation des clés de compartiment** : toujours non planifiée (voir « Écarts de planning ») ; une montée de version ne la déclenche pas.
+
+## Implémentation (P04) — parcours entre profils sur le poste principal — 2026-11-07
+
+Statut **IN_REVIEW** (comme ses prérequis C04, G1 et O07), pas DONE. Fiche : « Vérifier parcours entre profils et postes
+préparés » (fichier 24) ; fichier 19 : « le flux L0 complet peut se faire sur le poste principal avec changement de profil et
+compartiments autorisés ». Exploitation : `docs/runbooks/profile-flow.md`.
+
+### Ce que la preuve établit
+
+`tests/e2e/profile-flow.spec.ts` (navigateur réel, un poste préparé, trois profils locaux, secrets distincts, réseau coupé) :
+
+- **Compartiments séparés, accordés et stockés** : l'autorisation signée affiche administratif (accueil), administratif et
+  financier (caisse), administratif et clinique (professionnel) ; les enveloppes de clés lues dans IndexedDB brute (tables
+  `profiles` et `key_envelopes`) portent exactement les mêmes compartiments, la gérante ayant les quatre.
+- **Parcours sans réseau** : l'accueil crée la fiche (numéro de dossier de la plage du poste) ; la caisse retrouve la MÊME
+  fiche (même identifiant, même numéro), prépare, émet et encaisse la facture (numéros de facture et de reçu de la plage du
+  poste) ; le professionnel retrouve la MÊME fiche, n'a ni le lien « Créer une facture » ni l'accès à la facture de la caisse,
+  et la base brute ne contient en clair ni le numéro de la facture, ni la référence de l'encaissement, ni le nom du patient
+  (un témoin en clair prouve que la recherche fonctionne). Aucune ligne clinique sur le poste.
+- **Attente de synchronisation d'un autre compartiment** : le professionnel se connecte au serveur et synchronise ; il envoie
+  la création du patient (compartiment administratif, qu'il lit) et s'arrête à la première pièce financière (journal commun,
+  lot arrêté à la première commande d'un autre compartiment) ; le serveur n'a alors ni facture ni encaissement. La caisse
+  ouvre son profil, se connecte et synchronise : facture et encaissement partent une fois, au numéro affiché sans réseau, et
+  la reprise complète du poste est acceptée.
+
+### Ce que P04 a trouvé et corrigé
+
+1. **Coffre créé dans la session du navigateur, puis déconnexion de la gérante** (premier jour réel du poste) : l'écran de
+   déverrouillage s'ouvrait mais toute tentative répondait « Déverrouillage impossible sur ce poste » (cause :
+   `Module de préparation des postes fermé`). `vault()` n'ouvre la base que si le module `offline` est ouvert ou si le coffre a
+   été « détecté au démarrage » ; un coffre créé après le démarrage n'était jamais marqué détecté, et sans session serveur le
+   module n'est plus ouvert. Correction dans `resources/frontend/app/services/vault.ts` : le coffre est marqué existant dès sa
+   préparation (`prepareVaultForManager`) et dès qu'une relecture le voit (`refreshVault`). Tests :
+   `tests/frontend/shell/local-identity.test.ts` (contrôlés par mutation : sans la correction, deux échouent).
+2. **Message d'attente par compartiment** (`resources/frontend/offline/profile-switch/waiting.ts`, exposé par
+   `offline/projections/profileWaiting.ts`) : l'en-tête disait « N pièces d'autres profils » ; il dit maintenant « 3 pièces de
+   la caisse : à envoyer à l'ouverture d'un profil de caisse ou de la gérante » (cliniques, de l'accueil, de la gérante),
+   d'après les seuls compartiments du journal (`JournalSyncSummary.otherCompartments`, compté par le moteur) et jamais un
+   contenu. Si le détail ne recoupe pas le total, l'annonce générique reste. Tests : `profile-switch.test.ts`, `sync.test.ts`
+   (composant) et le parcours.
+3. **Hygiène de la base partagée des parcours** : `offline-sync.spec.ts` laissait son poste détenir les numéros financiers
+   (« une seule caisse hors ligne principale ») ; il les rend maintenant, sinon tout parcours suivant qui prépare un poste
+   (celui de P04) échouait dans la suite complète.
+
+### Limites et écarts déclarés
+
+- **Consultation sans réseau** : visite, examen et prescription restent EN LIGNE seulement (les commandes cliniques refusent
+  la source SYNC ; seules 7 commandes s'enregistrent sur le poste, `offline/sync/applicable.ts`). Le « professionnel » du
+  parcours hors ligne retrouve la fiche administrative ; il ne démarre pas d'examen. La preuve minimale « frais d'examen » du
+  fichier 19 n'a donc rien à consommer hors ligne : elle viendra avec l'examen sur le poste. AT36 (« créer
+  patient/consultation » sans réseau) n'est pas jouable pour la consultation : à arbitrer avant G3.
+- **Parcours multiposte déconnecté** : non activé et non promis (transfert QR ou export entre deux postes : équipement et tests
+  Q02 non acquis) ; aucune preuve n'est fournie.
+- **Écrans hors ligne** : le menu ne propose que « Accueil » et « Patients » aux trois profils ; la caisse prépare ses
+  factures depuis la fiche.
+- **Une session serveur par profil** : pour envoyer ses pièces, chaque profil se connecte au serveur avec son compte
+  (« Se déconnecter » ferme le profil local ET la session serveur). Pas de synchronisation sans session.
+- **Préflight de fin de journée** (ouverture ou reprise de tous les profils avec pièces en attente, contrat 23) : le message de
+  l'en-tête dit quel profil ouvrir, mais le contrôle n'est pas outillé.
+- **Aide intégrée** : aucun guide pour le personnel tant que le module `offline` est fermé en production (le guide ira dans
+  l'aide à l'ouverture du module, jamais dans un fichier) ; le runbook s'adresse à l'exploitant.

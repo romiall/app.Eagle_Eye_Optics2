@@ -1,21 +1,26 @@
-import { expect, test, type BrowserContext, type Locator, type Page } from '@playwright/test'
+import { expect, test, type Locator, type Page } from '@playwright/test'
 
 import { newUlid } from '../../resources/frontend/domain/values/ulid'
 import { demoAccount } from './support/accounts'
 import { retireDevice } from './support/database'
 import {
   api,
+  createPatientOnDevice,
   deviceIdByCode,
   invoicePayments,
+  invoicesOf,
   issueInvoiceForDevice,
   navigateInApp,
   numberRange,
   numberValue,
   openFromSearch,
+  patientsNamed,
   payRemainingOffline,
   prepareThisDevice,
   receiveDirectory,
+  releaseDevice,
   signIn,
+  trackJournalHead,
   unlockFromPublicScreen,
   unlockVault,
 } from './support/device'
@@ -45,57 +50,9 @@ import { readDeviceDatabase } from './support/device-db'
 // Une étape qui ne trouve pas son élément échoue après une minute, pas à la fin du délai du parcours (dix minutes).
 test.use({ actionTimeout: 60_000 })
 
+const RELEASE_REASON = 'Fin du parcours de sécurité financière (e2e, G2)'
 const CONFLICT_SECRET = 'ruche-ambre-falaise-minuit-72'
 const TABS_SECRET = 'orchidee-sentier-brume-cobalt-83'
-
-interface JournalHead {
-  sequence: string
-  hash: string
-}
-
-/** Tête du journal du poste, lue dans les lots envoyés par TOUS les onglets du contexte (pour rendre les ressources). */
-function trackJournalHead(context: BrowserContext): { head: JournalHead | null } {
-  const journal: { head: JournalHead | null } = { head: null }
-  context.on('request', (request) => {
-    if (!request.url().endsWith('/api/v1/sync/push')) return
-    const body = request.postDataJSON() as {
-      commands?: { core: { device_sequence: string | number }; event_hash: string }[]
-    } | null
-    for (const command of body?.commands ?? []) {
-      const sequence = String(command.core.device_sequence)
-      if (journal.head === null || Number(sequence) > Number(journal.head.sequence)) {
-        journal.head = { sequence, hash: command.event_hash }
-      }
-    }
-  })
-  return journal
-}
-
-/** Rend les ressources du poste (reprise complète) : la gérante se réauthentifie, puis clôture. */
-async function releaseDevice(
-  page: Page,
-  deviceId: string,
-  journal: { head: JournalHead | null },
-  key: string,
-): Promise<void> {
-  expect(journal.head, 'tête du journal lue dans un lot envoyé').not.toBeNull()
-  const { request, headers } = await api(page)
-  const reauthenticated = await request.post('/api/v1/auth/reauthenticate', {
-    headers,
-    data: { password: demoAccount('MANAGER').password },
-  })
-  expect(reauthenticated.status(), await reauthenticated.text()).toBe(200)
-  const released = await request.post(`/api/v1/devices/${deviceId}/release`, {
-    headers: { ...headers, 'Idempotency-Key': key },
-    data: {
-      expected_version: null,
-      last_device_sequence: journal.head?.sequence,
-      last_event_hash: journal.head?.hash,
-      reason: 'Fin du parcours de sécurité financière (e2e, G2)',
-    },
-  })
-  expect(released.status(), await released.text()).toBe(200)
-}
 
 /** Fiche créée EN LIGNE par l'écran « Nouveau patient » : une fiche du serveur, que le poste n'a jamais créée. */
 async function createPatientOnline(
@@ -112,35 +69,6 @@ async function createPatientOnline(
   await expect(page).toHaveURL(/\/patients\/[0-9A-HJKMNP-TV-Z]{26}$/)
   const patientPath = new URL(page.url()).pathname
   return { patientPath, patientId: patientPath.split('/').pop() ?? '' }
-}
-
-/** Création d'un patient SANS réseau (le serveur ne peut pas vérifier les doublons : la gérante crée sans vérification). */
-async function createPatientOnDevice(
-  page: Page,
-  input: { name: string; phone: string; birth: string },
-): Promise<void> {
-  await navigateInApp(page, '/patients/nouveau')
-  await fillNewPatient(page, input)
-  await page.getByRole('button', { name: 'Enregistrer le patient' }).click()
-  await confirmCreateWithoutCheck(page)
-  await expect(page.getByText(/Enregistré sur ce poste/).first()).toBeVisible()
-}
-
-async function fillNewPatient(
-  page: Page,
-  input: { name: string; phone: string; birth: string },
-): Promise<void> {
-  await page.getByLabel('Nom (obligatoire)').fill(input.name)
-  await page.getByLabel('Prénom(s)').fill('Test')
-  await page.getByLabel('Sexe').selectOption({ label: 'Féminin' })
-  await page.getByLabel('Date de naissance', { exact: true }).fill(input.birth)
-  await page.getByLabel('Téléphone principal').fill(input.phone)
-}
-
-async function confirmCreateWithoutCheck(page: Page): Promise<void> {
-  const noCheck = page.getByRole('dialog', { name: 'Vérification des doublons impossible' })
-  await expect(noCheck).toContainText('le serveur n’est pas joignable (pas de connexion)')
-  await noCheck.getByRole('button', { name: 'Créer sans vérification' }).click()
 }
 
 /**
@@ -187,31 +115,6 @@ async function expectUnchanged(
 /** Section « 5. Synchronisation » de la page du poste. */
 function syncSection(page: Page): Locator {
   return page.locator('section[aria-labelledby="titre-synchronisation"]')
-}
-
-/** Fiches du serveur dont le nom contient le texte (recherche de l'API). */
-async function patientsNamed(
-  page: Page,
-  name: string,
-): Promise<{ id: string; record_number: string }[]> {
-  const { request, headers } = await api(page)
-  const response = await request.get(`/api/v1/patients?query=${encodeURIComponent(name)}`, {
-    headers,
-  })
-  expect(response.status(), await response.text()).toBe(200)
-  return ((await response.json()) as { data: { id: string; record_number: string }[] }).data
-}
-
-/** Factures du serveur d'un patient (numéro et état). */
-async function invoicesOf(
-  page: Page,
-  patientId: string,
-): Promise<{ id: string; number: string; status: string }[]> {
-  const { request, headers } = await api(page)
-  const response = await request.get(`/api/v1/invoices?patient_id=${patientId}`, { headers })
-  expect(response.status(), await response.text()).toBe(200)
-  return ((await response.json()) as { data: { id: string; number: string; status: string }[] })
-    .data
 }
 
 async function professionOf(page: Page, patientId: string): Promise<string | null> {
@@ -393,7 +296,13 @@ test.describe('G2 : conflit de synchronisation décidé par la gérante (AT42)',
       expect(receipt).toBeGreaterThanOrEqual(receipts.start)
       expect(receipt).toBeLessThanOrEqual(receipts.end)
 
-      await releaseDevice(central, deviceId, journal, `e2e-g2-conflict-release-${run}`)
+      await releaseDevice(
+        central,
+        deviceId,
+        journal,
+        `e2e-g2-conflict-release-${run}`,
+        RELEASE_REASON,
+      )
       released = true
     } finally {
       if (!released) retireDevice(deviceCode)
@@ -591,7 +500,7 @@ test.describe('G2 : facture détenue par un poste et deux onglets du même poste
       // Le premier numéro de la plage : ni l'onglet périmé ni la panne simulée n'en ont consommé un.
       expect(numberValue(payments[0]?.receipt_number ?? '')).toBe(receipts.start)
 
-      await releaseDevice(tab1, deviceId, journal, `e2e-g2-tabs-release-${run}`)
+      await releaseDevice(tab1, deviceId, journal, `e2e-g2-tabs-release-${run}`, RELEASE_REASON)
       released = true
     } finally {
       if (!released) retireDevice(deviceCode)
