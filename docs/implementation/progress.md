@@ -78,7 +78,7 @@ Tâche suivant G2 dans l'ordre du demandeur (O06, O05, R01, puis G2, U01, G3, G4
   caisse, professionnel) avec des secrets distincts. Réseau coupé, l'accueil crée la fiche, la caisse la retrouve (même identifiant, même
   numéro de dossier), prépare, émet et encaisse la facture (numéros de la plage du poste), le professionnel la retrouve sans droit ni
   clé des pièces financières. Compartiments lus aussi dans IndexedDB brute (enveloppes de clés) ; aucun texte de la facture ni du patient
-  en clair ; aucune ligne clinique. Réseau revenu : le professionnel n'envoie que la fiche, la caisse envoie facture et encaissement
+  en clair ; le travail du jour n'ajoute aucune ligne clinique. Réseau revenu : le professionnel n'envoie que la fiche, la caisse envoie facture et encaissement
   ensuite, une seule fois, aux numéros affichés sans réseau ; reprise complète acceptée.
 - **Trouvé et corrigé** : (1) un coffre créé dans la session du navigateur n'était pas « détecté » ; après « Se déconnecter » de la
   gérante, le déverrouillage répondait « Déverrouillage impossible sur ce poste » jusqu'au rechargement (premier jour réel du poste) :

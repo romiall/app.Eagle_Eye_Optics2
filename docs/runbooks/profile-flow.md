@@ -20,8 +20,9 @@ autorisés »), fiche P04 du fichier 24, contrats 23 (journal commun, compartime
   profil ne lit que les compartiments dont il détient la clé.
 - La même fiche garde le même identifiant et le même numéro de dossier d'un profil à l'autre ; la facture garde son numéro ; le
   reçu garde le sien. Rien n'est renuméroté à la synchronisation.
-- Aucune donnée clinique n'est sur le poste à ce stade (le pull publie les entités cliniques sans contenu, `PullProjections`) :
-  la séparation clinique repose sur le droit et la clé, qui sont vérifiés (voir « Preuves »).
+- Le poste ne reçoit des entités cliniques que SANS contenu (identifiant et version, `PullProjections`, limite déclarée du L0) :
+  selon la base, la préparation en dépose des coquilles dans le compartiment clinique, et le travail de la journée n'y ajoute
+  aucune ligne. La séparation clinique repose sur le droit et la clé, qui sont vérifiés (voir « Preuves »).
 
 ## Ne pas promettre
 
@@ -94,7 +95,7 @@ Le serveur demande une session : « Se connecter au serveur » (compte de la per
 | --- | --- |
 | Parcours accueil, caisse, professionnel sur un poste, sans réseau | `tests/e2e/profile-flow.spec.ts` (navigateur réel, trois profils, secrets distincts) |
 | Compartiments séparés, accordés ET stockés | même parcours : lignes d'autorisation et enveloppes de clés lues dans IndexedDB brute (`readProfileCompartments`) |
-| Pas de fuite financière ni clinique | même parcours : le professionnel n'a ni lien ni accès à la facture, aucun texte de la facture ni du patient en clair dans la base, aucune ligne clinique |
+| Pas de fuite financière ni clinique | même parcours : le professionnel n'a ni lien ni accès à la facture, aucun texte de la facture ni du patient en clair dans la base, le travail du jour n'ajoute aucune ligne clinique |
 | Pas de duplication d'identifiant au changement de profil | même parcours : même identifiant et même numéro de dossier pour les trois profils, une seule fiche, une seule facture, un seul encaissement sur le serveur, numéros inchangés |
 | Attente de synchronisation d'un autre compartiment | même parcours : le professionnel n'envoie que la fiche ; la caisse envoie facture et encaissement ensuite ; reprise complète acceptée |
 | Message par compartiment | `tests/frontend/offline/profile-switch.test.ts`, `tests/frontend/components/sync.test.ts` |

@@ -229,9 +229,16 @@ test.describe('P04 : parcours entre profils sur le poste principal (AT02, AT05, 
       expect(await deviceDatabaseMentions(page, patientName)).toBe(false)
       const afterDay = await storedLayout(page)
       expect(afterDay.profiles).toEqual(beforeDay.profiles)
-      expect(afterDay.rows['ADMINISTRATIVE'] ?? 0).toBeGreaterThan(0)
-      expect(afterDay.rows['FINANCIAL'] ?? 0).toBeGreaterThan(0)
-      expect(afterDay.rows['CLINICAL'] ?? 0, 'aucune donnée clinique sur le poste').toBe(0)
+      // Le travail du jour ajoute des lignes administratives (la fiche) et financières (la facture), JAMAIS cliniques. (Le
+      // pull de la préparation peut apporter des coquilles cliniques sans contenu, selon la base : seul l'ajout du jour compte.)
+      expect(afterDay.rows['ADMINISTRATIVE'] ?? 0).toBeGreaterThan(
+        beforeDay.rows['ADMINISTRATIVE'] ?? 0,
+      )
+      expect(afterDay.rows['FINANCIAL'] ?? 0).toBeGreaterThan(beforeDay.rows['FINANCIAL'] ?? 0)
+      expect(
+        afterDay.rows['CLINICAL'] ?? 0,
+        'le travail du jour n’ajoute aucune ligne clinique',
+      ).toBe(beforeDay.rows['CLINICAL'] ?? 0)
 
       // L'en-tête dit, sans réseau, ce qui attend : la pièce que ce profil sait lire, et celles d'autres profils.
       await expect(syncStatus(page)).toContainText('1 pièce en attente de synchronisation')

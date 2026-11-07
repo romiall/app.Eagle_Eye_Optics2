@@ -901,7 +901,8 @@ compartiments autorisés ». Exploitation : `docs/runbooks/profile-flow.md`.
   fiche (même identifiant, même numéro), prépare, émet et encaisse la facture (numéros de facture et de reçu de la plage du
   poste) ; le professionnel retrouve la MÊME fiche, n'a ni le lien « Créer une facture » ni l'accès à la facture de la caisse,
   et la base brute ne contient en clair ni le numéro de la facture, ni la référence de l'encaissement, ni le nom du patient
-  (un témoin en clair prouve que la recherche fonctionne). Aucune ligne clinique sur le poste.
+  (un témoin en clair prouve que la recherche fonctionne). Le travail du jour n'ajoute aucune ligne clinique (le pull n'apporte que
+  des coquilles cliniques sans contenu, selon la base).
 - **Attente de synchronisation d'un autre compartiment** : le professionnel se connecte au serveur et synchronise ; il envoie
   la création du patient (compartiment administratif, qu'il lit) et s'arrête à la première pièce financière (journal commun,
   lot arrêté à la première commande d'un autre compartiment) ; le serveur n'a alors ni facture ni encaissement. La caisse
