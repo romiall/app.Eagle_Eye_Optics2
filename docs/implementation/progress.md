@@ -4,13 +4,13 @@ Initialisé le 2026-10-14 depuis `specifications/developpement/JOURNAL.md`. Le b
 
 ## État courant
 
-- Branche : `claude/u01-usage` (coupée de `main` = `babacc5` ; `main` contient la pile, O06 et O05, R01 et G2, P04 ; leurs branches `claude/…` sont SANS OBJET). Dépôt public : données fictives uniquement ; développement sur un poste local depuis le 2026-10-15, une seule session à la fois dans ce dossier.
-- Lot et gate visés : L0 ; **G0 acquis** (voir `docs/evidence/G0.md`) ; **G1 DONE** (prouvé le 2026-10-28, arbitré par le demandeur le 2026-10-30 : `docs/evidence/G1.md`) ; **G2 prouvé le 2026-11-06, IN_REVIEW** (`docs/evidence/G2.md`) ; **P04 faite le 2026-11-07, IN_REVIEW** (`docs/runbooks/profile-flow.md`) ; **U01 faite en partie le 2026-11-07, IN_REVIEW PARTIEL** (`docs/evidence/usability.md` : l'automatisable est prouvé, l'imprimante et les appareils du cabinet manquent) ; prochains : G3, G4.
-- Tâche courante (2026-11-07) : **U01** « Corriger l'usage et les impressions sur appareils ciblés » faite en partie sur `claude/u01-usage` (section « U01 » ci-dessous), CI verte, en attente de l'accord de fusion ; la suivante est **G3** « Exécuter toute la recette L0 » (ordre du demandeur : O06, O05, R01, puis G2, U01, G3, G4 ; L1, L2, L3), qui demande d'arbitrer d'abord l'AT36 « créer patient/consultation » hors ligne (la consultation n'est pas une commande de poste). O06, O05, R01, G2 et P04, faites et en revue (IN_REVIEW), sont fusionnées dans `main`. Historique : lot 2 vérifié le 2026-10-24 (run 40044078785, commit `cb7a008`), H01 EN LIGNE le 2026-10-27 (`docs/implementation/deploiement.md`).
-- Dernière preuve acquise : 10 parcours navigateur réels d'U01 réussis le 2026-11-07 (`tests/e2e/usability.spec.ts`, Edge 156) et CI verte de `claude/u01-usage` (run 42368931797 sur `c103fd2`). Avant : CI verte de `main` à la pointe de P04 sauf le test de verrou nommé, corrigé sur `claude/ci-verrou-nomme` (CI verte, run 42356363421 sur `dbd61c5`). La validation SQL d'origine (`database/VALIDATION.md`, amendée le 2026-11-06 pour le diagnostic I01) et G0 restent **distincts d'une recette applicative**.
+- Branche : `main` (fusion de la pile le 2026-11-05, d'O06 et d'O05 le 2026-11-06, de R01, de G2 et de P04 puis d'U01 le 2026-11-07 ; leurs branches `claude/…` sont SANS OBJET). Dépôt public : données fictives uniquement ; développement sur un poste local depuis le 2026-10-15, une seule session à la fois dans ce dossier.
+- Lot et gate visés : L0 ; **G0 acquis** (voir `docs/evidence/G0.md`) ; **G1 DONE** (prouvé le 2026-10-28, arbitré par le demandeur le 2026-10-30 : `docs/evidence/G1.md`) ; **G2 prouvé le 2026-11-06, IN_REVIEW** (`docs/evidence/G2.md`) ; **P04 faite le 2026-11-07, IN_REVIEW** (`docs/runbooks/profile-flow.md`) ; **U01 faite en partie le 2026-11-07, IN_REVIEW PARTIEL, fusionnée dans `main`** (`docs/evidence/usability.md` : l'automatisable est prouvé, l'imprimante et les appareils du cabinet manquent) ; prochains : G3, G4.
+- Tâche courante (2026-11-07) : aucune en cours ; la suivante est **G3** « Exécuter toute la recette L0 et figer le candidat » (ordre du demandeur : O06, O05, R01, puis G2, U01, G3, G4 ; L1, L2, L3), qui demande d'arbitrer d'abord l'AT36 « créer patient/consultation » hors ligne (la consultation n'est pas une commande de poste). O06, O05, R01, G2, P04 et U01, faites et en revue (IN_REVIEW, U01 partiellement), sont fusionnées dans `main` (sections « Fusion d'O06 et d'O05 », « Fusion de R01 et de G2 », « Fusion de P04 » et « Fusion d'U01 »). Historique : lot 2 vérifié le 2026-10-24 (run 40044078785, commit `cb7a008`), H01 EN LIGNE le 2026-10-27 (`docs/implementation/deploiement.md`).
+- Dernière preuve acquise : CI verte de la branche d'U01 avant la fusion (run 42368931797 sur `c103fd2`) et de la branche du correctif de verrou nommé (run 42356363421 sur `dbd61c5`), puis de la branche `claude/fusion-u01` ; avant : CI verte de la branche de P04 (run 42352729863 sur `ec3361b`) et de `claude/fusion-p04`. La validation SQL d'origine (`database/VALIDATION.md`, amendée le 2026-11-06 pour le diagnostic I01) et G0 restent **distincts d'une recette applicative**.
 - Statut et preuves de chaque tâche : `docs/implementation/task-status.json` (la liste n’est plus recopiée ici).
 - Blocages externes : Q01–Q04/Q14 (production seulement) ; développement fictif possible.
-- Prochaine action concrète : demander l'accord de fusion d'U01 (avec `claude/ci-verrou-nomme`) ; puis G3, G4 (ordre du demandeur du 2026-11-05) ; pour U01, obtenir du cabinet l'imprimante A4 et ticket, les navigateurs et appareils convenus (protocole en fin de `docs/evidence/usability.md`).
+- Prochaine action concrète : G3, G4 (ordre du demandeur du 2026-11-05), après l'arbitrage de l'AT36 hors ligne ; pour U01, obtenir du cabinet l'imprimante A4 et ticket, les navigateurs et appareils convenus (protocole en fin de `docs/evidence/usability.md`).
 
 ## Fusion de la pile dans `main` et début d’O06 (2026-11-05)
 
@@ -128,8 +128,21 @@ Tâche suivant G2 dans l'ordre du demandeur (O06, O05, R01, puis G2, U01, G3, G4
 - **Vérification** : types, ESLint, Prettier, Vitest (164 fichiers, 3 324 tests ; 3 expirations de 5 s sur le poste saturé au premier passage, aucune
   avec 30 s) ; e2e voisins du correctif (`forms-layout`, `help`, `patients`, `shell`) : 35 réussis sur 38, les 3 expirations de 60 s (poste saturé)
   se rejouent avec succès. PHP non rejoué : aucun fichier PHP modifié.
-- **CI** : verte le 2026-11-07, run [42368931797](https://github.com/romiall/app.Eagle_Eye_Optics2/actions/runs/42368931797) sur `c103fd2` (9 min 10 s) : PHP (5 min 23 s), Frontend (3 min 10 s) et E2E Playwright (9 min 8 s, dont `usability.spec.ts`), lue sur la page publique du run (l'API publique de GitHub était à sa limite horaire). Fusion dans `main` : à demander au demandeur (accord à chaque fois), avec
-  `claude/ci-verrou-nomme` (correctif du test de verrou nommé, CI verte, run 42356363421 sur `dbd61c5`).
+- **CI** : verte le 2026-11-07, run [42368931797](https://github.com/romiall/app.Eagle_Eye_Optics2/actions/runs/42368931797) sur `c103fd2` (9 min 10 s) : PHP (5 min 23 s), Frontend (3 min 10 s) et E2E Playwright (9 min 8 s, dont `usability.spec.ts`), lue sur la page publique du run (l'API publique de GitHub était à sa limite horaire). Fusionnée dans `main` le 2026-11-07 avec `claude/ci-verrou-nomme` (correctif du test de verrou nommé, CI verte, run 42356363421 sur
+  `dbd61c5`) : section « Fusion d'U01 ».
+
+## Fusion d'U01 et du correctif de verrou nommé dans `main` (2026-11-07)
+
+- **Accord** : le demandeur a répondu « Oui, fusionner » à la question « Fusionner U01 et le correctif du verrou nommé dans main ? » (2026-11-07).
+  C'est l'accord de CETTE fusion, pas une permission permanente : le redemander à chaque chantier.
+- **Fusion** : sans passer par l'interface des PR, par deux commits de fusion sur la branche `claude/fusion-u01`, coupée de `origin/main` (`babacc5`) :
+  d'abord `claude/ci-verrou-nomme` (`dbd61c5`, CI verte, run 42356363421), puis `claude/u01-usage` (`78f9dc4`, CI verte, run 42368931797 sur
+  `c103fd2`). Aucun conflit ; contrôle : le diff de l'arbre fusionné contre chaque branche ne montre que les fichiers de l'AUTRE (2 fichiers contre
+  U01, 8 contre le correctif). La branche de fusion est poussée pour que la CI juge le dernier arbre (fusions et ce journal) AVANT que `main` ne bouge.
+- **Production inchangée** : https://app-eagleseye.com exécute la release `eeo-20261030T1916Z-bbd83c4` ; le module `offline` y reste fermé ; les quatre
+  paquets Symfony y sont encore en 7.4.21 (verrou du dépôt : 7.4.23). Un prochain déploiement apporterait, en plus du bandeau de mise à jour d'O06, de
+  l'écran de finance (R01) et de la correction du déverrouillage après la préparation d'un poste (P04), la marge de défilement du téléphone (U01) : dire
+  alors au demandeur de cliquer sur « Installer la nouvelle version ». Rien n'est déployé sans demande du demandeur.
 
 ## Fusion de R01 et de G2 dans `main` (2026-11-07)
 
