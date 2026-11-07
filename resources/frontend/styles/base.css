@@ -29,6 +29,19 @@ html.has-update-banner {
   scroll-padding-top: 9rem;
 }
 
+/*
+ * Barre de raccourcis fixée en bas du téléphone (App.vue : `fixed bottom-0 … md:hidden`, environ 65 px) : sans marge de
+ * défilement, le navigateur ne fait défiler que le strict nécessaire pour montrer un champ qui prend le focus (touche
+ * Tab, bouton « Suivant » du clavier tactile) et le laisse tout contre le bord, caché derrière la barre. 6 rem (96 px)
+ * gardent le champ, son contour de focus et son aide au-dessus de la barre (WCAG 2.2, 2.4.11), jusqu'au zoom à 200 %
+ * (683 px de large, toujours sous le seuil « md » de 768 px). U01, `tests/e2e/usability.spec.ts`.
+ */
+@media (max-width: 47.9375rem) {
+  html {
+    scroll-padding-bottom: 6rem;
+  }
+}
+
 body {
   margin: 0;
   line-height: 1.5;

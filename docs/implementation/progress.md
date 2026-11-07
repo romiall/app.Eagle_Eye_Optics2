@@ -4,13 +4,13 @@ Initialisé le 2026-10-14 depuis `specifications/developpement/JOURNAL.md`. Le b
 
 ## État courant
 
-- Branche : `main` (fusion de la pile le 2026-11-05, d'O06 et d'O05 le 2026-11-06, de R01 et de G2 puis de P04 le 2026-11-07 ; leurs branches `claude/…` sont SANS OBJET). Dépôt public : données fictives uniquement ; développement sur un poste local depuis le 2026-10-15, une seule session à la fois dans ce dossier.
-- Lot et gate visés : L0 ; **G0 acquis** (voir `docs/evidence/G0.md`) ; **G1 DONE** (prouvé le 2026-10-28, arbitré par le demandeur le 2026-10-30 : `docs/evidence/G1.md`) ; **G2 prouvé le 2026-11-06, IN_REVIEW** (`docs/evidence/G2.md`) ; **P04 faite le 2026-11-07, IN_REVIEW** (`docs/runbooks/profile-flow.md`) ; prochains : U01, G3, G4.
-- Tâche courante (2026-11-07) : aucune en cours ; la suivante est **U01** « Corriger l'usage et les impressions sur appareils ciblés » (ordre du demandeur : O06, O05, R01, puis G2, U01, G3, G4, P04 étant le prérequis d'U01 ; L1, L2, L3). O06, O05, R01, G2 et P04, faites et en revue (IN_REVIEW), sont fusionnées dans `main` (sections « Fusion d'O06 et d'O05 », « Fusion de R01 et de G2 » et « Fusion de P04 »). Historique : lot 2 vérifié le 2026-10-24 (run 40044078785, commit `cb7a008`), H01 EN LIGNE le 2026-10-27 (`docs/implementation/deploiement.md`).
-- Dernière preuve acquise : CI verte de la branche de P04 avant la fusion (run 42352729863 sur `ec3361b`, dont l'arbre est celui de la fusion), puis de la branche `claude/fusion-p04` ; avant : CI verte de `main` après la fusion de R01 et de G2 (run 42346031403 sur `398a18a`). La validation SQL d'origine (`database/VALIDATION.md`, amendée le 2026-11-06 pour le diagnostic I01) et G0 restent **distincts d'une recette applicative**.
+- Branche : `claude/u01-usage` (coupée de `main` = `babacc5` ; `main` contient la pile, O06 et O05, R01 et G2, P04 ; leurs branches `claude/…` sont SANS OBJET). Dépôt public : données fictives uniquement ; développement sur un poste local depuis le 2026-10-15, une seule session à la fois dans ce dossier.
+- Lot et gate visés : L0 ; **G0 acquis** (voir `docs/evidence/G0.md`) ; **G1 DONE** (prouvé le 2026-10-28, arbitré par le demandeur le 2026-10-30 : `docs/evidence/G1.md`) ; **G2 prouvé le 2026-11-06, IN_REVIEW** (`docs/evidence/G2.md`) ; **P04 faite le 2026-11-07, IN_REVIEW** (`docs/runbooks/profile-flow.md`) ; **U01 faite en partie le 2026-11-07, IN_REVIEW PARTIEL** (`docs/evidence/usability.md` : l'automatisable est prouvé, l'imprimante et les appareils du cabinet manquent) ; prochains : G3, G4.
+- Tâche courante (2026-11-07) : **U01** « Corriger l'usage et les impressions sur appareils ciblés » faite en partie sur `claude/u01-usage` (section « U01 » ci-dessous), en attente de la CI et de l'accord de fusion ; la suivante est **G3** « Exécuter toute la recette L0 » (ordre du demandeur : O06, O05, R01, puis G2, U01, G3, G4 ; L1, L2, L3), qui demande d'arbitrer d'abord l'AT36 « créer patient/consultation » hors ligne (la consultation n'est pas une commande de poste). O06, O05, R01, G2 et P04, faites et en revue (IN_REVIEW), sont fusionnées dans `main`. Historique : lot 2 vérifié le 2026-10-24 (run 40044078785, commit `cb7a008`), H01 EN LIGNE le 2026-10-27 (`docs/implementation/deploiement.md`).
+- Dernière preuve acquise : 10 parcours navigateur réels d'U01 réussis le 2026-11-07 (`tests/e2e/usability.spec.ts`, Edge 156) ; CI de `claude/u01-usage` à lire. Avant : CI verte de `main` à la pointe de P04 sauf le test de verrou nommé, corrigé sur `claude/ci-verrou-nomme` (CI verte, run 42356363421 sur `dbd61c5`). La validation SQL d'origine (`database/VALIDATION.md`, amendée le 2026-11-06 pour le diagnostic I01) et G0 restent **distincts d'une recette applicative**.
 - Statut et preuves de chaque tâche : `docs/implementation/task-status.json` (la liste n’est plus recopiée ici).
 - Blocages externes : Q01–Q04/Q14 (production seulement) ; développement fictif possible.
-- Prochaine action concrète : U01 (partie automatisable : tailles d'écran, clavier, zoom, chronométrage ; impression réelle et appareils ciblés à obtenir du cabinet), puis G3, G4 (ordre du demandeur du 2026-11-05).
+- Prochaine action concrète : demander l'accord de fusion d'U01 (avec `claude/ci-verrou-nomme`) ; puis G3, G4 (ordre du demandeur du 2026-11-05) ; pour U01, obtenir du cabinet l'imprimante A4 et ticket, les navigateurs et appareils convenus (protocole en fin de `docs/evidence/usability.md`).
 
 ## Fusion de la pile dans `main` et début d’O06 (2026-11-05)
 
@@ -106,6 +106,30 @@ Tâche suivant G2 dans l'ordre du demandeur (O06, O05, R01, puis G2, U01, G3, G4
   les quatre paquets Symfony y sont encore en 7.4.21 (verrou du dépôt : 7.4.23). Un prochain déploiement apporterait, en plus du bandeau de
   mise à jour d'O06 et de l'écran de finance (R01), la correction du déverrouillage après la préparation d'un poste (P04) : dire alors au
   demandeur de cliquer sur « Installer la nouvelle version ». Rien n'est déployé sans demande du demandeur.
+
+## U01 — Corriger l'usage et les impressions sur appareils ciblés (2026-11-07)
+
+- **Branche** : `claude/u01-usage`, coupée de `origin/main` (`babacc5`). **IN_REVIEW, PARTIEL** : tout ce qui s'automatise dans un vrai navigateur est
+  prouvé ; l'impression réelle, les appareils et navigateurs convenus et le chronométrage par une personne manquent (preuve et protocole :
+  `docs/evidence/usability.md`).
+- **Ajouté** : `tests/e2e/usability.spec.ts` (10 tests, Edge 156 réel, base partagée, aucun poste préparé donc rien à rendre) :
+  AT29 chronométré (patiente à nom composé accentué, facture de 55 000, émission, acompte de 20 000, reçu, SANS ressaisie ; l'impayé retrouvé par la
+  gérante sur 360 px ; 10 clics, 8 champs et 110 touches pour les quatre étapes ; durées de machine de 22 s à 57 s selon la charge du poste ; les
+  spécifications ne donnent aucun objectif chiffré, il n'en est pas inventé) ; une facture de 1 500 000 FCFA ; un TÉMOIN qui prouve que le contrôle de
+  mise en page sait échouer ; le balayage de 23 écrans à 360, 683 (zoom 200 %), 768 et 1366 px (aucun défilement horizontal, commandes d'au moins
+  44 px, montants entiers : 0 défaut sur 401 à 424 commandes et 64 montants par taille) ; le clavier seul (lien « Aller au contenu », ordre de
+  tabulation, fenêtre d'émission modale, encaissement) ; le focus non masqué.
+- **Défaut trouvé et corrigé** : sur téléphone, 8 arrêts de tabulation sur 52 passaient SOUS la barre de raccourcis fixée en bas (liste « Sexe »,
+  zones de texte, « Ouvrir la caisse », « Encaisser le reste », lien du pied de page). `resources/frontend/styles/base.css` pose
+  `scroll-padding-bottom: 6rem` sous 768 px ; après : 0 sur 52 à 360 px et à 683 px.
+- **Écarts déclarés** (liste complète dans la preuve) : impression réelle (A4 et ticket 80 mm) non faite ; navigateurs et appareils convenus non
+  définis, non essayés (Edge seul, sans émulation tactile) ; zoom 200 % approché par une fenêtre de 683 px ; chronométrage de machine et non de
+  personne ; écrans internes de l'éditeur de consultation, poste hors ligne et fortes volumétries non balayés.
+- **Vérification** : types, ESLint, Prettier, Vitest (164 fichiers, 3 324 tests ; 3 expirations de 5 s sur le poste saturé au premier passage, aucune
+  avec 30 s) ; e2e voisins du correctif (`forms-layout`, `help`, `patients`, `shell`) : 35 réussis sur 38, les 3 expirations de 60 s (poste saturé)
+  se rejouent avec succès. PHP non rejoué : aucun fichier PHP modifié.
+- **CI** : à lire sur la branche (ligne ajoutée à sa lecture). Fusion dans `main` : à demander au demandeur (accord à chaque fois), avec
+  `claude/ci-verrou-nomme` (correctif du test de verrou nommé, CI verte, run 42356363421 sur `dbd61c5`).
 
 ## Fusion de R01 et de G2 dans `main` (2026-11-07)
 
