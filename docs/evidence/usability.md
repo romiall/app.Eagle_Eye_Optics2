@@ -141,4 +141,4 @@ Fichier 25 : « Recette humaine + captures sur build identifié » ; G3 et G4 r�
 
 ## CI
 
-À lire sur la branche (ligne ajoutée à sa lecture).
+CI verte le 2026-11-07, run [42368931797](https://github.com/romiall/app.Eagle_Eye_Optics2/actions/runs/42368931797) sur `c103fd2` (9 min 10 s) : PHP (5 min 23 s), Frontend (3 min 10 s) et E2E Playwright (9 min 8 s, dont `usability.spec.ts`), lue sur la page publique du run (l'API publique de GitHub était à sa limite horaire). Sur le serveur d'intégration (plus rapide que le poste de preuve), l'e2e complet a duré 9 min 8 s contre environ 8 min avant U01.
