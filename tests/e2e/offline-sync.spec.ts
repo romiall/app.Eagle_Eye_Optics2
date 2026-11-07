@@ -10,7 +10,9 @@ import {
   numberValue,
   payRemainingOffline,
   prepareThisDevice,
+  releaseDevice,
   signIn,
+  trackJournalHead,
   unlockVault,
 } from './support/device'
 
@@ -37,6 +39,7 @@ test.describe('poste préparé : coupure réseau, reprise et ACK (O05)', () => {
   }) => {
     test.setTimeout(300_000)
     const context = await browser.newContext()
+    const journal = trackJournalHead(context)
     let page = await context.newPage()
     await signIn(page, 'MANAGER')
 
@@ -137,6 +140,16 @@ test.describe('poste préparé : coupure réseau, reprise et ACK (O05)', () => {
     await expect(sync).toContainText('Envoyées, en attente de confirmation : 0')
     expect(await paidWith()).toHaveLength(1)
     expect(await patientsNamed()).toHaveLength(1)
+
+    // Les ressources du poste sont rendues (reprise complète) : une seule caisse hors ligne principale à la fois, les
+    // parcours suivants qui préparent un poste (P04 : profile-flow.spec.ts) ne doivent pas la trouver réservée.
+    await releaseDevice(
+      page,
+      deviceId,
+      journal,
+      `e2e-o05-release-${RUN}`,
+      'Fin du parcours de synchronisation (e2e, O05)',
+    )
 
     await context.close()
   })

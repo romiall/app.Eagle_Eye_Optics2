@@ -149,6 +149,75 @@ export async function deviceDatabaseMentions(page: Page, needle: string): Promis
   )
 }
 
+/**
+ * Compartiments dont chaque profil du poste détient une enveloppe de clé, par identifiant de connexion, lus dans
+ * IndexedDB BRUTE (tables `profiles` et `key_envelopes`) : la séparation des compartiments telle qu'elle est STOCKÉE, sans
+ * passer par le code de l'application. L'emplacement de la clé de signature du poste n'est pas un compartiment.
+ */
+export async function readProfileCompartments(page: Page): Promise<Record<string, string[]>> {
+  return page.evaluate(async (name) => {
+    const database = await new Promise<IDBDatabase | null>((resolve) => {
+      const request = indexedDB.open(name)
+      request.onupgradeneeded = () => request.transaction?.abort()
+      request.onsuccess = () => resolve(request.result)
+      request.onerror = () => resolve(null)
+    })
+    if (database === null) return {}
+    const all = (store: string): Promise<Record<string, unknown>[]> =>
+      new Promise((resolve, reject) => {
+        const request = database.transaction(store, 'readonly').objectStore(store).getAll()
+        request.onsuccess = () => resolve(request.result as Record<string, unknown>[])
+        request.onerror = () => reject(request.error)
+      })
+    const logins = new Map<string, string>()
+    for (const profile of await all('profiles')) {
+      logins.set(String(profile['id']), String(profile['login']))
+    }
+    const found: Record<string, Set<string>> = {}
+    for (const envelope of await all('key_envelopes')) {
+      const login = logins.get(String(envelope['profileId']))
+      const slot = String(envelope['slot'])
+      if (login === undefined || slot === 'DEVICE_SIGNING') continue
+      ;(found[login] ??= new Set()).add(slot)
+    }
+    database.close()
+    return Object.fromEntries(
+      Object.entries(found).map(([login, slots]) => [login, Array.from(slots).sort()]),
+    )
+  }, DEVICE_DATABASE)
+}
+
+/**
+ * Nombre de lignes de `encrypted_entities` par compartiment, lu en brut : le compartiment et le type d'une ligne ne sont pas
+ * secrets (le contenu, lui, est chiffré). Clé : `COMPARTIMENT:type`.
+ */
+export async function readEntityCounts(page: Page): Promise<Record<string, number>> {
+  return page.evaluate(async (name) => {
+    const database = await new Promise<IDBDatabase | null>((resolve) => {
+      const request = indexedDB.open(name)
+      request.onupgradeneeded = () => request.transaction?.abort()
+      request.onsuccess = () => resolve(request.result)
+      request.onerror = () => resolve(null)
+    })
+    if (database === null) return {}
+    const rows = await new Promise<Record<string, unknown>[]>((resolve, reject) => {
+      const request = database
+        .transaction('encrypted_entities', 'readonly')
+        .objectStore('encrypted_entities')
+        .getAll()
+      request.onsuccess = () => resolve(request.result as Record<string, unknown>[])
+      request.onerror = () => reject(request.error)
+    })
+    database.close()
+    const counts: Record<string, number> = {}
+    for (const row of rows) {
+      const key = `${String(row['compartment'])}:${String(row['type'])}`
+      counts[key] = (counts[key] ?? 0) + 1
+    }
+    return counts
+  }, DEVICE_DATABASE)
+}
+
 export interface DeviceDatabaseContent {
   version: number
   /** Pour chaque table : toutes ses lignes (valeurs simples) et les noms de ses index. */

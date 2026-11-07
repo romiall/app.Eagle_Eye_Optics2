@@ -13,14 +13,17 @@ import {
 import {
   identityDiverges,
   localCommandsOrNull,
+  prepareVaultForManager,
+  refreshVault,
   resetVaultServiceForTests,
+  unlockVault,
 } from '@/app/services/vault'
 import { refreshSession, resetSessionForTests, session } from '@/app/session'
 import { MemoryDocumentStore } from '@/documents/store/memory'
 import { VaultError } from '@/offline/api'
 import type { ProfileSummary, SessionInfo } from '@/offline/api'
 
-import { meResponse, stubServer } from './server'
+import { ALL_TEST_MODULES, meResponse, stubServer } from './server'
 
 /**
  * Déverrouillage public du poste et session locale (vault.md D14, D27). Le coffre est simulé au niveau de la façade
@@ -225,6 +228,64 @@ afterEach(() => {
   resetLocalIdentityForTests()
   offlineRefusal.value = null
   document.body.innerHTML = ''
+})
+
+describe('coffre créé pendant la session du navigateur (P04)', () => {
+  // Sans monter l'application : seuls la session et le service du coffre comptent ici, et une application montée laisse
+  // des relectures de session en vol qui fausseraient le test suivant.
+  /**
+   * La gérante prépare le poste, puis se déconnecte et laisse le personnel déverrouiller SANS recharger la page : le coffre
+   * n'a pas été « détecté au démarrage » (il n'existait pas), et sans session serveur le module `offline` n'est plus ouvert.
+   * Avant la correction, le déverrouillage échouait (« Module de préparation des postes fermé ») jusqu'au rechargement.
+   */
+  async function managerSession(): Promise<ReturnType<typeof fakeVault>> {
+    hoisted.exists = false
+    const vault = fakeVault()
+    Object.assign(vault, {
+      prepareVault: vi.fn(async () => ({ recoveryKey: 'CLE-DE-RECUPERATION-FICTIVE' })),
+    })
+    stubServer({
+      me: meResponse(['offline.enroll'], 'Gérante Fictive', [...ALL_TEST_MODULES, 'offline']),
+    })
+    await refreshSession()
+    expect(session.status).toBe('authenticated')
+    return vault
+  }
+
+  it('sans coffre dans ce navigateur et sans module ouvert : rien ne touche IndexedDB', async () => {
+    hoisted.exists = false
+    fakeVault()
+    stubServer({ me: 'anonymous' })
+    await refreshSession()
+
+    await expect(unlockVault(CASHIER_PROFILE, GOOD_SECRET)).rejects.toThrow(
+      'Module de préparation des postes fermé.',
+    )
+  })
+
+  it('créé par la préparation puis serveur déconnecté : le profil du personnel se déverrouille sans rechargement', async () => {
+    const vault = await managerSession()
+
+    await prepareVaultForManager('secret-local-fictif')
+    resetSessionForTests() // le serveur ferme la session : le module `offline` n'est plus ouvert pour l'écran
+
+    await expect(unlockVault(CASHIER_PROFILE, GOOD_SECRET)).resolves.toMatchObject({
+      profileId: CASHIER_PROFILE,
+    })
+    expect(vault.unlock).toHaveBeenCalledWith(CASHIER_PROFILE, GOOD_SECRET)
+  })
+
+  it('un coffre relu par les écrans de préparation reste ouvrable après la déconnexion du serveur', async () => {
+    const vault = await managerSession()
+
+    await refreshVault() // l'état est relu après la création : le coffre existe dans ce navigateur
+    resetSessionForTests()
+
+    await expect(unlockVault(CASHIER_PROFILE, GOOD_SECRET)).resolves.toMatchObject({
+      profileId: CASHIER_PROFILE,
+    })
+    expect(vault.unlock).toHaveBeenCalledTimes(1)
+  })
 })
 
 describe('déverrouillage public du poste', () => {

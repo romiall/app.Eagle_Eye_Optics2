@@ -1,4 +1,5 @@
 import { CommandJournal } from '../command-journal/journal'
+import type { Compartment } from '../compartments'
 import type { CommandState } from '../vault/db'
 import type { Vault } from '../vault/vault'
 
@@ -31,6 +32,8 @@ export interface JournalSyncSummary {
   rejected: number
   /** Non finalisées d'un compartiment que ce profil n'ouvre pas : elles partent à l'ouverture de leur profil. */
   otherProfiles: number
+  /** Les mêmes pièces, par compartiment : l'écran dit quel profil doit s'ouvrir (P04), sans lire leur contenu. */
+  otherCompartments: Partial<Record<Compartment, number>>
   lastExchangeAt: string | null
   lastAttemptFailed: boolean
 }
@@ -142,12 +145,16 @@ export class SyncEngine {
       conflicts: 0,
       rejected: [...statuses.values()].filter((row) => row.state === 'REJECTED').length,
       otherProfiles: 0,
+      otherCompartments: {},
       lastExchangeAt: status.lastExchangeAt,
       lastAttemptFailed: status.lastAttemptFailed,
     }
     for (const item of pending) {
-      if (!compartments.includes(item.row.compartment)) summary.otherProfiles += 1
-      else if (item.state === 'LOCAL') summary.local += 1
+      if (!compartments.includes(item.row.compartment)) {
+        summary.otherProfiles += 1
+        summary.otherCompartments[item.row.compartment] =
+          (summary.otherCompartments[item.row.compartment] ?? 0) + 1
+      } else if (item.state === 'LOCAL') summary.local += 1
       else if (item.state === 'SENT') summary.pending += 1
       else if (item.state === 'WAITING_DEPENDENCY') summary.waitingDependency += 1
       else if (item.state === 'CONFLICT_REQUIRES_REVIEW') summary.conflicts += 1

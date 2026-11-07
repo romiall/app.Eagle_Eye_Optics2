@@ -1,6 +1,7 @@
 import {
   expect,
   type APIRequestContext,
+  type BrowserContext,
   type Locator,
   type Page,
   type Response,
@@ -323,4 +324,161 @@ export async function invoicePayments(
       data: { payments: { reference: string | null; receipt_number: string | null }[] }
     }
   ).data.payments
+}
+
+export interface JournalHead {
+  sequence: string
+  hash: string
+}
+
+/** Tête du journal du poste, lue dans les lots envoyés par TOUS les onglets du contexte (pour rendre les ressources). */
+export function trackJournalHead(context: BrowserContext): { head: JournalHead | null } {
+  const journal: { head: JournalHead | null } = { head: null }
+  context.on('request', (request) => {
+    if (!request.url().endsWith('/api/v1/sync/push')) return
+    const body = request.postDataJSON() as {
+      commands?: { core: { device_sequence: string | number }; event_hash: string }[]
+    } | null
+    for (const command of body?.commands ?? []) {
+      const sequence = String(command.core.device_sequence)
+      if (journal.head === null || Number(sequence) > Number(journal.head.sequence)) {
+        journal.head = { sequence, hash: command.event_hash }
+      }
+    }
+  })
+  return journal
+}
+
+/** Rend les ressources du poste (reprise complète) : la gérante se réauthentifie, puis clôture. */
+export async function releaseDevice(
+  page: Page,
+  deviceId: string,
+  journal: { head: JournalHead | null },
+  key: string,
+  reason = 'Fin du parcours (e2e)',
+): Promise<void> {
+  expect(journal.head, 'tête du journal lue dans un lot envoyé').not.toBeNull()
+  const { request, headers } = await api(page)
+  const reauthenticated = await request.post('/api/v1/auth/reauthenticate', {
+    headers,
+    data: { password: demoAccount('MANAGER').password },
+  })
+  expect(reauthenticated.status(), await reauthenticated.text()).toBe(200)
+  const released = await request.post(`/api/v1/devices/${deviceId}/release`, {
+    headers: { ...headers, 'Idempotency-Key': key },
+    data: {
+      expected_version: null,
+      last_device_sequence: journal.head?.sequence,
+      last_event_hash: journal.head?.hash,
+      reason,
+    },
+  })
+  expect(released.status(), await released.text()).toBe(200)
+}
+
+/** Création d'un patient SANS réseau (le serveur ne peut pas vérifier les doublons : la gérante crée sans vérification). */
+export async function createPatientOnDevice(
+  page: Page,
+  input: { name: string; phone: string; birth: string },
+): Promise<void> {
+  await navigateInApp(page, '/patients/nouveau')
+  await fillNewPatient(page, input)
+  await page.getByRole('button', { name: 'Enregistrer le patient' }).click()
+  await confirmCreateWithoutCheck(page)
+  await expect(page.getByText(/Enregistré sur ce poste/).first()).toBeVisible()
+}
+
+export async function fillNewPatient(
+  page: Page,
+  input: { name: string; phone: string; birth: string },
+): Promise<void> {
+  await page.getByLabel('Nom (obligatoire)').fill(input.name)
+  await page.getByLabel('Prénom(s)').fill('Test')
+  await page.getByLabel('Sexe').selectOption({ label: 'Féminin' })
+  await page.getByLabel('Date de naissance', { exact: true }).fill(input.birth)
+  await page.getByLabel('Téléphone principal').fill(input.phone)
+}
+
+export async function confirmCreateWithoutCheck(page: Page): Promise<void> {
+  const noCheck = page.getByRole('dialog', { name: 'Vérification des doublons impossible' })
+  await expect(noCheck).toContainText('le serveur n’est pas joignable (pas de connexion)')
+  await noCheck.getByRole('button', { name: 'Créer sans vérification' }).click()
+}
+
+/**
+ * Profil local d'un membre du personnel, ajouté PAR LA GÉRANTE en ligne sur la page « Préparer ce poste » : autorisation
+ * signée du serveur, puis profil local avec le secret choisi par la personne. Rend la ligne d'autorisation affichée (elle
+ * liste les compartiments accordés).
+ */
+export async function addLocalProfile(
+  page: Page,
+  role: string,
+  holderSecret: string,
+  managerSecret: string,
+): Promise<string> {
+  const account = demoAccount(role)
+  const item = page.getByRole('listitem').filter({ hasText: `(${account.login})` })
+  await item.getByRole('button', { name: 'Préparer l’autorisation' }).click()
+  await confirmPasswordIfAsked(page, item.getByText(/Autorisation vérifiée jusqu’au/))
+  const claims = (await item.getByText(/Autorisation vérifiée jusqu’au/).innerText()).trim()
+  await item.getByRole('button', { name: 'Ajouter le profil local' }).click()
+  await item.getByLabel('Secret local de la personne (saisi par elle)').fill(holderSecret)
+  await item.getByLabel('Votre secret local (confirmation)').fill(managerSecret)
+  await item.getByRole('button', { name: 'Enregistrer le profil local' }).click()
+  await expect(item.getByText('Profil local présent sur ce poste.')).toBeVisible()
+  return claims
+}
+
+/** Déverrouille le profil d'identifiant de connexion `login` depuis l'écran PUBLIC de déverrouillage (plusieurs profils). */
+export async function unlockProfile(page: Page, login: string, secret: string): Promise<void> {
+  await expect(
+    page.getByRole('heading', { level: 1, name: 'Déverrouiller ce poste' }),
+  ).toBeVisible()
+  const profile = page.getByLabel('Profil')
+  const options = await profile.locator('option').allInnerTexts()
+  const label = options.find((option) => option.includes(`(${login})`))
+  if (label === undefined) {
+    throw new Error(
+      `Le profil ${login} n’est pas proposé sur l’écran de déverrouillage : ${options.join(' | ')}`,
+    )
+  }
+  await profile.selectOption({ label })
+  await page.getByLabel('Secret local').fill(secret)
+  await page.getByRole('button', { name: 'Déverrouiller', exact: true }).click()
+  await expect(page.getByRole('heading', { level: 1, name: /^Bonjour / })).toBeVisible()
+}
+
+/** Ouvre une session du SERVEUR depuis le lien « Se connecter au serveur » (le coffre déverrouillé reste ouvert). */
+export async function logInToServer(page: Page, role: string): Promise<void> {
+  const account = demoAccount(role)
+  await page.getByRole('link', { name: 'Se connecter au serveur' }).click()
+  await page.getByLabel('Identifiant').fill(account.login)
+  await page.getByLabel('Mot de passe').fill(account.password)
+  await page.getByRole('button', { name: 'Se connecter' }).click()
+  await expect(page.getByRole('heading', { level: 1, name: /^Bonjour / })).toBeVisible()
+}
+
+/** Fiches du serveur dont le nom contient le texte (recherche de l'API). */
+export async function patientsNamed(
+  page: Page,
+  name: string,
+): Promise<{ id: string; record_number: string }[]> {
+  const { request, headers } = await api(page)
+  const response = await request.get(`/api/v1/patients?query=${encodeURIComponent(name)}`, {
+    headers,
+  })
+  expect(response.status(), await response.text()).toBe(200)
+  return ((await response.json()) as { data: { id: string; record_number: string }[] }).data
+}
+
+/** Factures du serveur d'un patient (numéro et état). */
+export async function invoicesOf(
+  page: Page,
+  patientId: string,
+): Promise<{ id: string; number: string; status: string }[]> {
+  const { request, headers } = await api(page)
+  const response = await request.get(`/api/v1/invoices?patient_id=${patientId}`, { headers })
+  expect(response.status(), await response.text()).toBe(200)
+  return ((await response.json()) as { data: { id: string; number: string; status: string }[] })
+    .data
 }

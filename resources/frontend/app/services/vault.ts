@@ -240,7 +240,12 @@ export async function refreshVault(): Promise<VaultView> {
     profiles: status === 'absent' ? [] : await current.profiles(),
     deviceId: status === 'absent' ? null : await current.deviceId(),
   }
-  if (status !== 'absent') void rememberClinic()
+  if (status !== 'absent') {
+    // Un coffre lu ici existe dans CE navigateur, qu'il ait été trouvé au démarrage ou créé depuis : il reste ouvrable
+    // quand le serveur ferme sa session (module `offline` plus ouvert pour l'écran).
+    vaultDetected = true
+    void rememberClinic()
+  }
   return state.value
 }
 
@@ -356,7 +361,7 @@ export async function vaultStorageHealth(): Promise<StorageHealth> {
 export async function prepareVaultForManager(secret: string): Promise<PreparedRecovery> {
   const account = appSession.account
   if (account === null) throw new Error('Session non vérifiée : reconnectez-vous.')
-  return vault().prepareVault({
+  const prepared = await vault().prepareVault({
     clinicId: account.clinic.id,
     profile: {
       userId: account.id,
@@ -366,6 +371,10 @@ export async function prepareVaultForManager(secret: string): Promise<PreparedRe
     },
     secret,
   })
+  // Le coffre existe désormais dans CE navigateur, sans qu'un rechargement l'ait « détecté » (P04) : la gérante qui se
+  // déconnecte juste après la préparation laisse un coffre que le personnel doit pouvoir déverrouiller aussitôt.
+  vaultDetected = true
+  return prepared
 }
 
 export async function unlockVault(profileId: string, secret: string): Promise<SessionInfo> {

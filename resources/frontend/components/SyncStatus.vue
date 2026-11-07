@@ -8,7 +8,7 @@
  */
 import { computed, ref } from 'vue'
 
-import { useSyncStateSource } from '@/app/services/sync'
+import { useSyncStateSource, waitingSentences, waitingTotal } from '@/app/services/sync'
 import AppButton from '@/components/ui/AppButton.vue'
 
 const props = withDefaults(defineProps<{ timeZone?: string }>(), { timeZone: 'Africa/Douala' })
@@ -65,12 +65,26 @@ const lines = computed<Line[]>(() => {
     })
   }
   if (value.otherProfiles > 0) {
-    result.push({
-      key: 'others',
-      icon: '↻',
-      text: `${plural(value.otherProfiles, 'pièce', 'pièces')} d’autres profils : à envoyer à l’ouverture de leur profil`,
-      tone: 'text-warning',
-    })
+    // Par compartiment quand le poste le sait (P04) : « 3 pièces de la caisse : à envoyer à l’ouverture d’un profil de
+    // caisse ou de la gérante ». Le compte total des compartiments doit être celui des pièces d'autres profils, sinon on
+    // garde l'annonce générique plutôt qu'un détail incomplet.
+    const detail =
+      value.otherCompartments !== undefined &&
+      waitingTotal(value.otherCompartments) === value.otherProfiles
+        ? waitingSentences(value.otherCompartments)
+        : []
+    if (detail.length > 0) {
+      for (const [index, sentence] of detail.entries()) {
+        result.push({ key: `others-${index}`, icon: '↻', text: sentence, tone: 'text-warning' })
+      }
+    } else {
+      result.push({
+        key: 'others',
+        icon: '↻',
+        text: `${plural(value.otherProfiles, 'pièce', 'pièces')} d’autres profils : à envoyer à l’ouverture de leur profil`,
+        tone: 'text-warning',
+      })
+    }
   }
   if (value.documentsFailed > 0) {
     result.push({

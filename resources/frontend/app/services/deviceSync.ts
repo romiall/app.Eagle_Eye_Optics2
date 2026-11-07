@@ -38,6 +38,7 @@ export async function refreshDeviceSync(): Promise<void> {
       waitingDependency: data.waitingDependency,
       conflicts: data.conflicts,
       otherProfiles: data.otherProfiles,
+      otherCompartments: data.otherCompartments,
       documentsFailed: 0,
       documentsToUpload: 0,
       lastExchangeAt: data.lastExchangeAt,
