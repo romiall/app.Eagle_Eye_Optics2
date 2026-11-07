@@ -93,7 +93,7 @@ Tâche suivant G2 dans l'ordre du demandeur (O06, O05, R01, puis G2, U01, G3, G4
 - **Vérification** (2026-11-07, poste Windows, Edge 156, PHP 8.4.21, Node 24.15.0) : types (vue-tsc), ESLint et Prettier sur tout le
   dépôt, Vitest complet (164 fichiers, 3 324 tests, 20 ignorés), build ; Playwright : `profile-flow`, `financial-safety`, `first-slice`,
   `offline-directory`, `offline-sync` et `zz-diagnostics-sql` verts ; la suite complète est jugée par la CI. Aucun code PHP modifié.
-- **CI** : à lire sur la branche (ligne ajoutée à sa lecture).
+- **CI** : verte le 2026-11-07, run [42352094998](https://github.com/romiall/app.Eagle_Eye_Optics2/actions/runs/42352094998) sur `3223d94` : PHP, Frontend et E2E (101 parcours, dont `profile-flow.spec.ts`). Le premier envoi (run [42350855485](https://github.com/romiall/app.Eagle_Eye_Optics2/actions/runs/42350855485) sur `07bdd92`) avait un seul rouge, le parcours de P04 : sur la base complète des parcours la préparation du poste dépose 15 coquilles cliniques SANS contenu (limite déclarée de `PullProjections`), et mon assertion « zéro ligne clinique sur le poste » reposait sur ma base presque vide. Elle compare maintenant AVANT et APRÈS la journée des trois profils (aucune ligne clinique ajoutée), et le parcours a été rejoué sur une base peuplée par `consultation.spec.ts`. Fusion dans `main` : à demander au demandeur (accord à chaque fois).
 
 ## Fusion de R01 et de G2 dans `main` (2026-11-07)
 
