@@ -548,12 +548,20 @@
    "notes": "Lot 2 (2026-10-23) codé, NON EXÉCUTÉ : contrôles recommandés, tâches de contact internes (une par source et échéance), aucun envoi externe (L2). Vérifié le 2026-10-24 (PHPUnit 2432, PHPStan, Vitest 2496, Playwright, CI 40044078785)."
   },
   "R01": {
-   "status": "IN_PROGRESS",
+   "status": "IN_REVIEW",
    "evidence": [
     "docs/implementation/billing.md",
-    "https://github.com/romiall/app.Eagle_Eye_Optics/actions/runs/39879707020"
+    "docs/implementation/progress.md",
+    "https://github.com/romiall/app.Eagle_Eye_Optics/actions/runs/39879707020",
+    "app/Domain/Billing/Reports/FinancialReports.php",
+    "resources/frontend/pages/reports/Financial.vue",
+    "tests/Feature/Billing/FinancialReportTest.php",
+    "tests/Feature/Billing/FinancialReportFreshnessTest.php",
+    "tests/frontend/billing/financial-report.test.ts",
+    "tests/e2e/finance.spec.ts",
+    "https://github.com/romiall/app.Eagle_Eye_Optics2/actions/runs/42206507325"
    ],
-   "notes": "Caisse du jour minimale en ligne, vérifiée ; tableaux de soldes et finance complets à faire. Vérification transversale de fin de phase 1 (2026-10-23, tools/dev/phase-check.sh --with-e2e) : contrats, Pint, PHPStan, PHPUnit complet, vue-tsc, ESLint, Prettier, Vitest complet, build, Playwright 47/47 verts sur le poste local ; CI GitHub verte (run 39879707020 sur 19d2bda). EN LIGNE seulement (hors-ligne O01–O05 non fait)."
+   "notes": "Caisse du jour (jour civil) vérifiée le 2026-10-23, puis finance du cabinet sur une période le 2026-11-06 (branche claude/r01-finance) : GET /api/v1/reports/financial (FinancialDashboard du contrat, gérante seule, module sales), chiffre d'affaires, encaissements, créances, crédits à rembourser, reprises papier, corrections, caisse clôturée et fraîcheur des postes hors ligne (WAITING, SILENT, UP_TO_DATE ; les totaux ne contiennent jamais une opération restée sur un poste). Pas de fanout paiement/avoir (vues sommées indépendamment), un fait de poste compté une fois même après renvoi, dates effectives au fuseau du cabinet. Preuves : PHPUnit FinancialReportTest et FinancialReportFreshnessTest (MySQL réel, vrais postes ES256), Vitest financial-report.test.ts, Playwright finance.spec.ts, fiche d'aide contrôlée ; détail et écarts dans billing.md, « Finance du cabinet sur une période (R01) ». IN_REVIEW et non DONE : seuil de silence de 24 h à confirmer avec la gérante, last_sync_at = dernière pièce acceptée et non dernier contact, écran dans sales, lecture en ligne seulement, ni export ni PDF ni âge des créances. CI verte le 2026-11-06 (run 42206507325 sur 6ed4db0, PHP, Frontend et E2E). Module offline FERMÉ en production."
   },
   "R02": {
    "status": "IN_REVIEW",

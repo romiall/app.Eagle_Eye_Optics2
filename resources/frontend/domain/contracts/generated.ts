@@ -8909,31 +8909,116 @@ export interface ExportRequestList {
 data: ExportRequest[]
 }
 /**
- * Gérante : chiffre d'affaires émis et encaissé distincts ; créances d'ouverture papier séparées ; postes non synchronisés signalés (totaux incomplets).
+ * Finance du cabinet sur une période de jours civils (gérante, finance.global.read). Le chiffre d'affaires (factures émises − avoirs émis, reprises papier exclues) et les encaissements (paiements − contre-écritures − remboursements, à leur date effective) sont des indicateurs DISTINCTS ; les créances (restes dus de toutes périodes, dont la part des reprises papier) et les crédits à rembourser sont lus à l'instant de la lecture et restent à part. Vente par auteur de l'émission, encaissement par auteur du paiement. freshness : un état par poste de caisse hors ligne actif (UP_TO_DATE, WAITING : commandes reçues en attente ou en conflit, SILENT : rien reçu depuis plus de silence_hours) ; les totaux ne contiennent jamais une opération restée sur un poste.
  */
 export interface FinancialReport {
+period: {
 from: CivilDate
 to: CivilDate
-issued_total: MoneyXaf
-collected_total: MoneyXaf
-credited_total: MoneyXaf
-refunded_total: MoneyXaf
-outstanding_total: SignedMoneyXaf
+}
+revenue: {
+issued: {
+count: number
+total_gross: MoneyXaf
+}
+credited: {
+count: number
+amount_gross: MoneyXaf
+}
+net: SignedMoneyXaf
 /**
  * @minItems 0
  */
-collected_by_method: {
+by_author: {
+user_id: NullableUlid
+display_name: (string | null)
+issued_count: number
+issued_gross: MoneyXaf
+credited_count: number
+credited_gross: MoneyXaf
+net: SignedMoneyXaf
+}[]
+}
+collections: {
+/**
+ * @minItems 0
+ */
+by_method: {
 method: PaymentsMethod
-amount: MoneyXaf
+payments_count: number
+payments_amount: MoneyXaf
+reversals_amount: MoneyXaf
+refunds_amount: MoneyXaf
+net_amount: SignedMoneyXaf
 }[]
-legacy_opening_balances: MoneyXaf
+net_total: SignedMoneyXaf
+corrections: {
+reversals: {
+count: number
+amount: MoneyXaf
+}
+refunds: {
+count: number
+amount: MoneyXaf
+}
+}
+on_legacy: {
+payments_count: number
+net_amount: SignedMoneyXaf
+}
 /**
  * @minItems 0
  */
-incomplete_devices: {
-device_id: Ulid
-last_sync_at: NullableInstant
+by_author: {
+user_id: NullableUlid
+display_name: (string | null)
+payments_count: number
+payments_amount: MoneyXaf
+reversals_amount: MoneyXaf
+refunds_amount: MoneyXaf
+net_amount: SignedMoneyXaf
 }[]
+}
+receivables: {
+invoices_count: number
+amount_due: MoneyXaf
+of_which_legacy: {
+invoices_count: number
+amount_due: MoneyXaf
+}
+refundable_credit: {
+invoices_count: number
+amount: MoneyXaf
+}
+}
+legacy_imported: {
+count: number
+opening_balance: MoneyXaf
+}
+cash_sessions: {
+closed_count: number
+expected_total: SignedMoneyXaf
+counted_total: SignedMoneyXaf
+variance_total: SignedMoneyXaf
+post_closure_reversals: MoneyXaf
+open_count: number
+}
+freshness: {
+complete: boolean
+silence_hours: number
+/**
+ * @minItems 0
+ */
+devices: {
+device_id: Ulid
+name: string
+last_sync_at: NullableInstant
+commands_pending: number
+commands_in_conflict: number
+state: ("UP_TO_DATE" | "WAITING" | "SILENT")
+}[]
+}
+generated_at: Instant
 }
 export interface FinancialReportResponse {
 data: FinancialReport

@@ -435,4 +435,131 @@ export const PAGES_CAISSE: readonly PageHelp[] = [
       'Session de caisse',
     ],
   },
+  {
+    route: 'finance',
+    title: 'Finance du cabinet',
+    module: 'sales',
+    anyPermission: ['finance.global.read'],
+    purpose:
+      'La gérante lit, sur la période de son choix, le chiffre d’affaires, ce qui a été encaissé, ce qui reste à encaisser, la caisse et la fraîcheur de ces totaux. Ce sont des chiffres différents, calculés par le serveur, qui ne se mélangent jamais.',
+    actions: [
+      {
+        label: 'Aujourd’hui',
+        effect: 'Lit la finance du jour en cours, au fuseau du cabinet.',
+      },
+      {
+        label: 'Cette semaine',
+        effect: 'Lit la semaine en cours, du lundi au dimanche.',
+      },
+      {
+        label: 'Ce mois',
+        effect: 'Lit le mois en cours. C’est la période affichée à l’ouverture de l’écran.',
+      },
+      {
+        label: 'Cette année',
+        effect: 'Lit l’année civile en cours.',
+      },
+      {
+        label: 'Afficher la période',
+        effect: 'Lit la période saisie dans « Du » et « Au » (366 jours au plus, bornes incluses).',
+      },
+      {
+        label: 'Voir les factures',
+        effect: 'Ouvre la liste des factures, pour suivre un reste à encaisser.',
+      },
+      {
+        label: 'Voir la caisse du jour',
+        effect: 'Ouvre la caisse d’un jour, avec ses sessions et leur relevé.',
+      },
+    ],
+    tasks: [
+      {
+        id: 'lire-la-finance-d-une-periode',
+        title: 'Lire la finance d’une période',
+        steps: [
+          'Ouvrez « Ventes et caisse », puis « Finance du cabinet ». La caisse du jour y mène aussi par « Voir la finance d’une période ».',
+          'Choisissez « Aujourd’hui », « Cette semaine », « Ce mois » ou « Cette année », ou saisissez « Du » et « Au », puis cliquez sur « Afficher la période ».',
+          'Lisez d’abord « Fraîcheur des totaux » : elle dit si les chiffres qui suivent sont complets.',
+          'Sous « Chiffre d’affaires de la période », lisez « Factures émises », « Avoirs émis » et « Chiffre d’affaires net ».',
+          'Sous « Encaissements de la période », lisez une carte par mode, puis « Espèces (tiroir) », « Autres modes (rapprochés à part) » et « Total net encaissé ».',
+          'Sous « Créances et crédits à rembourser », lisez « Reste à encaisser (factures ouvertes) » et « Crédits à rembourser ».',
+        ],
+        result:
+          'Vous distinguez ce qui a été vendu, ce qui a été encaissé et ce qui reste dû, pour la même période.',
+      },
+      {
+        id: 'verifier-la-fraicheur-des-totaux',
+        title: 'Vérifier que les totaux sont complets',
+        steps: [
+          'Ouvrez « Fraîcheur des totaux » en haut de l’écran : un encadré rouge annonce des totaux possiblement incomplets.',
+          'Pour chaque poste de caisse listé, lisez son état : « À jour », « Commandes en attente » ou « Sans nouvelle », avec la dernière pièce reçue.',
+          'Pour « Commandes en attente », ouvrez « Conflits de synchronisation » dans les Paramètres et décidez les commandes en conflit.',
+          'Pour « Sans nouvelle », ouvrez l’application sur ce poste, avec Internet : il transmet alors ses pièces au serveur. Relisez ensuite la période.',
+        ],
+        result:
+          'Vous savez quels postes manquent aux totaux, et vous relisez la période une fois leurs pièces transmises.',
+      },
+    ],
+    rules: [
+      'Le chiffre d’affaires d’une période est les factures émises pendant la période moins les avoirs émis pendant la période. Une créance reprise du carnet papier n’est jamais une vente.',
+      'Les encaissements d’une période sont les paiements, à leur date d’encaissement, moins les contre-écritures et les remboursements. Une ancienne facture réglée aujourd’hui augmente les encaissements d’aujourd’hui, sans devenir une vente d’aujourd’hui.',
+      'Les créances et les crédits à rembourser sont ceux de l’instant de la lecture, toutes périodes confondues : ils ne dépendent pas de la période choisie. Les créances reprises du carnet papier sont rappelées à part.',
+      'Celui qui vend et celui qui encaisse sont deux responsabilités : « Par personne » les présente séparément, la vente à l’auteur de l’émission, l’encaissement à l’auteur du paiement.',
+      'Les totaux ne contiennent jamais une opération restée sur un poste hors ligne. Le serveur ne connaît que ce qu’il a reçu : un poste « Sans nouvelle » peut détenir des pièces qu’il ne voit pas, et la période doit être relue après sa synchronisation.',
+      'Une session de caisse clôturée reste figée. Une correction postérieure à la clôture est comptée à part, dans « Corrections après clôture », et ne réécrit jamais l’attendu.',
+      'Cet écran est réservé à la gérante. Une lecture qui échoue est annoncée comme indisponible, jamais comme un total nul.',
+    ],
+    next: [
+      {
+        route: 'caisse-du-jour',
+        label: 'Caisse du jour',
+        why: 'Pour le détail d’un jour, session par session.',
+      },
+      {
+        route: 'factures',
+        label: 'Factures',
+        why: 'Pour encaisser un reste à encaisser.',
+      },
+      {
+        topic: 'notion-encaissement',
+        label: 'Comprendre l’encaissement et le reçu',
+      },
+    ],
+    tips: [
+      'Pour comparer deux périodes, lisez-les l’une après l’autre : le titre « Période » rappelle les jours réellement affichés.',
+      'Un chiffre d’affaires net négatif est possible : il arrive quand les avoirs de la période dépassent ses ventes, par exemple après un geste commercial sur une ancienne facture.',
+      'Un « Crédits à rembourser » n’est pas une dette réglée : c’est de l’argent encore dû à un patient, à rendre par un remboursement.',
+    ],
+    problems: [
+      {
+        symptom: '« Serveur indisponible »',
+        remedy:
+          'Le serveur n’a pas répondu : rien n’est conclu et aucune ancienne copie n’est montrée. Vérifiez la connexion Internet, puis cliquez sur « Réessayer ».',
+      },
+      {
+        symptom: '« Totaux possiblement incomplets »',
+        remedy:
+          'Au moins un poste hors ligne n’est pas à jour. Lisez l’état de chaque poste dans « Fraîcheur des totaux », transmettez ses pièces, puis relisez la période.',
+      },
+      {
+        symptom: '« Aucun encaissement sur cette période »',
+        remedy:
+          'Ce n’est pas une erreur : le serveur n’a enregistré aucun encaissement, contre-écriture ni remboursement dans la période. Vérifiez les dates affichées dans le titre.',
+      },
+      {
+        symptom: '« Date invalide : JJ/MM/AAAA ou AAAA-MM-JJ. »',
+        remedy:
+          'Écrivez les jours comme 15/10/2026 ou 15102026. La fin de la période ne précède pas son début, et la période couvre 366 jours au plus.',
+      },
+    ],
+    terms: [
+      'Reste à encaisser',
+      'Contre-écriture',
+      'Remboursement',
+      'Avoir',
+      'Écart de caisse',
+      'Créance papier',
+      'Session de caisse',
+    ],
+  },
 ]

@@ -5074,22 +5074,23 @@ paths:
   /v1/reports/financial:
     get:
       operationId: "FinancialDashboard"
-      summary: "Chiffre d'affaires et encaissements (gérante)"
+      summary: "Finance du cabinet sur une période (gérante)"
       tags:
         - "Rapports"
+      description: "Module sales, gérante seule. Chiffre d'affaires (vw_revenue_events) et encaissements (vw_collection_events) sont des indicateurs distincts ; créances et crédits à rembourser (vw_invoice_balances) à l'instant de la lecture ; sessions de caisse clôturées (vw_cash_session_totals) ; fraîcheur par poste (vw_device_sync_health) : les totaux ne contiennent jamais une opération restée sur un poste. Lecture EN LIGNE, complète à son instant (generated_at) ; jamais un statut « payé »."
       security:
         - sessionCookie: []
       parameters:
         - name: "from"
           in: "query"
           required: false
-          description: "Date civile de début."
+          description: "Premier jour civil AAAA-MM-JJ de la période, au fuseau du cabinet (aujourd'hui avec `to`, par défaut)."
           schema:
             type: "string"
         - name: "to"
           in: "query"
           required: false
-          description: "Date civile de fin."
+          description: "Dernier jour civil AAAA-MM-JJ de la période, bornes incluses, 366 jours au plus."
           schema:
             type: "string"
       responses:
@@ -5103,13 +5104,19 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
         "419":
           $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
       x-permission:
         - "finance.global.read"
       x-reauthentication: false
       x-idempotency: "none"
-      x-implementation-status: "PLANNED"
+      x-read-scope:
+        MANAGER: "finance.global.read : tout le cabinet (chiffre d'affaires, encaissements, créances, caisse, fraîcheur des postes)"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "R01"
   /v1/audit-events:
     get:

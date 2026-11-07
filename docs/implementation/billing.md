@@ -527,6 +527,7 @@ réussir dans la base e2e).
 | `GET /api/v1/cash-sessions?state=open\|closed` | sessions de toutes les caisses (ouvertes d'abord), noms actuels de la caissière et de qui a clôturé | `cash.manage` | B05 |
 | `GET /api/v1/cash-sessions/{id}/report` | relevé d'une session (tiroir, mouvements, encaissements, autres modes de la caissière pendant la session) ; une autre caissière : 403 sans `cash.manage` | `cash.own_session` | B05 |
 | `GET /api/v1/reports/cash-day?date=AAAA-MM-JJ` | caisse du jour : portée `CLINIC` (`finance.global.read`) ou `OWN` (caissière : ses encaissements et ses sessions, `issued`/`credited`/`outstanding` à null) | `finance.global.read` ou `cash.own_session` | R01 |
+| `GET /api/v1/reports/financial?from&to` | finance du cabinet sur une période (R01, gérante seule) : chiffre d'affaires, encaissements, créances, caisse, fraîcheur des postes ; voir « Finance du cabinet sur une période » | `finance.global.read` | R01 |
 | `GET /api/v1/stock/locations` | emplacements actifs du cabinet | `stock.read` | I00 |
 
 Ressources ajoutées : `Invoice.issued_by_name` et `InvoicePayment.received_by`/`received_by_name` (noms ACTUELS
@@ -575,7 +576,7 @@ Décisions :
 Hypothèses et points ouverts : le nom de l'émetteur n'est pas figé dans la facture (une v2 du snapshot le ferait) ;
 la liste des factures reste ouverte à toute personne `invoice.read` (la caissière voit toutes les factures, alors que
 le fichier 09 la limite à « la facture sélectionnée » : à trancher avec la cliente) ; la caisse du jour ne connaît que
-le central (aucun poste hors-ligne n'existe encore) ; `GET /reports/financial` (période, gérante) reste PLANNED.
+le central (aucun poste hors-ligne n'existe encore) ; `GET /reports/financial` (période, gérante) est faite par R01 (section « Finance du cabinet sur une période »).
 
 Tests écrits (non exécutés) : PHPUnit `tests/Feature/Billing/{InvoiceListFiltersTest,AbandonInvoiceDraftTest,
 CashSessionDirectoryTest,CashDayReportTest,SalesSettingsAndLocationsTest}.php` (droits des quatre profils, cabinet,
@@ -900,3 +901,86 @@ Code : `app/Domain/Cash/CashMovements.php`, `Handlers/{RecordCashMovement,SaveEx
 | Justificatif scanné d'une dépense | Référence texte seulement (`reference`) : aucune colonne de fichier dans `cash_movements`. |
 | Export de gestion des dépenses | L1D09. |
 | À confirmer avec la cliente | Liste des catégories ; plafond éventuel d'une dépense sans approbation ; qui peut enregistrer un dépôt. |
+
+## Finance du cabinet sur une période (R01, 2026-11-06, EN LIGNE)
+
+Tâche R01 « Afficher soldes, caisse et finance avec fraîcheur » : la gérante lit, sur une période de jours civils du
+cabinet, le chiffre d'affaires, les encaissements, les créances, la caisse et la FRAÎCHEUR de ces totaux. Statut
+IN_REVIEW (écarts plus bas). Contrat (fichier 08) : `FinancialDashboard`, `GET /api/v1/reports/financial?from&to`,
+`finance.global.read` seul (gérante, `x-permission`) ; module `sales` (404 fermé, comme la caisse du jour) ; 422 sur une
+période illisible, absente à moitié, inversée ou de plus de 366 jours. Le schéma prévu à la génération des contrats (totaux
+plats) est remplacé par une lecture structurée par indicateur : `schemas/resources/operations.json#/$defs/FinancialReport`.
+
+Code : `app/Domain/Billing/Reports/{ReportPeriod,FinancialReports}.php`,
+`app/Http/Controllers/Api/V1/FinancialReportController.php`, route `api.reports.financial` ; écran
+`resources/frontend/pages/reports/Financial.vue` (`/ventes/finance`, nom `finance`, module `sales`, `finance.global.read`),
+règles pures `domain/billing/financialReport.ts`, service `getFinancialReport` (`app/services/billing.ts`), entrées
+« Finance du cabinet » dans `SalesHomePage` et « Voir la finance d'une période » dans `CashDayPage`, fiche d'aide `finance`
+(`domain/help/content/pages-caisse.ts`).
+
+### Indicateurs (jamais additionnés entre eux)
+
+| Lecture | Définition (fichiers 03 et 06) | Source |
+| --- | --- | --- |
+| `revenue` : chiffre d'affaires | factures ÉMISES dans la période MOINS avoirs ÉMIS dans la période ; une reprise de créance papier n'est jamais une vente ; ventes par auteur de l'ÉMISSION | `vw_revenue_events` |
+| `collections` : encaissements | paiements confirmés à leur date EFFECTIVE MOINS contre-écritures et remboursements de la période, par mode et par auteur du PAIEMENT ; corrections à part ; part des reprises papier (`on_legacy`) | `vw_collection_events` (+ jointure 1-1 sur la facture pour l'origine) |
+| `receivables` : créances | restes dus des factures émises de TOUTES les périodes, à l'instant de la lecture, dont la part des reprises papier ; crédits à rembourser en ligne à part | `vw_invoice_balances` |
+| `legacy_imported` | créances papier reprises dans la période (reste dû à la reprise), hors chiffre d'affaires et hors encaissements | `invoices` (`origin = LEGACY_BALANCE`) |
+| `cash_sessions` : caisse | sessions CLÔTURÉES dans la période (attendu figé, compté, écart), corrections comptables postérieures à la clôture (jamais une réécriture), sessions encore ouvertes | `vw_cash_session_totals` |
+| `freshness` : fraîcheur | un état par poste de caisse hors ligne actif (voir ci-dessous) | `vw_device_sync_health` |
+
+Le jour civil est celui du cabinet (Africa/Douala) : fenêtre UTC début inclus, fin exclue (`DayWindow`), comme la caisse du
+jour. Une ancienne facture réglée aujourd'hui augmente les encaissements d'aujourd'hui sans devenir une vente d'aujourd'hui ;
+un avoir d'aujourd'hui diminue le chiffre d'affaires d'aujourd'hui même s'il porte sur une ancienne vente (AT24). Aucun statut
+« payé » n'est stocké ni déduit.
+
+**Pas de fanout paiement/avoir** (sortie de la fiche) : chaque registre (paiements, contre-écritures, avoirs, remboursements)
+est sommé INDÉPENDAMMENT par les vues avant toute jointure (`database/03_reporting_views.sql`) ; le rapport ne joint jamais
+deux registres entre eux, sa seule jointure (origine d'une facture) est 1-1 sur sa clé. Preuve : une facture de 80 000 payée
+deux fois, deux avoirs, une contre-écriture et un remboursement donnent chaque montant UNE fois
+(`FinancialReportTest::test_plusieurs_paiements_avoirs_contre_ecritures_et_remboursements_ne_se_multiplient_pas`).
+
+### Fraîcheur et totaux incomplets (fichier 19, AT45)
+
+Le serveur ne connaît que ce qu'il a reçu : les totaux ne contiennent JAMAIS une opération restée sur un poste. Sont listés
+les postes ACTIFS qui détiennent une plage de pièces financières (factures, reçus, avoirs, remboursements, reprises) ou la
+propriété d'une facture ; un poste d'accueil sans pièce financière, perdu ou remplacé n'est pas une caisse. États :
+
+| État | Sens | Totaux |
+| --- | --- | --- |
+| `WAITING` | des commandes reçues de ce poste attendent (pièce liée absente, conflit) : écart CONNU | incomplets |
+| `SILENT` | aucune pièce reçue depuis plus de 24 h avant la fin de la période (ou l'instant de la lecture), ou jamais : ce que le poste détient est INCONNU | possiblement incomplets |
+| `UP_TO_DATE` | ni l'un ni l'autre | complets à l'instant de la lecture |
+
+`complete` est faux dès qu'un poste n'est pas `UP_TO_DATE`. La fraîcheur est dite EN PREMIER à l'écran (encadré rouge,
+phrase par poste, dernière pièce reçue). Le seuil de 24 h (`FinancialReports::DEVICE_SILENCE_HOURS`) est une HYPOTHÈSE à
+confirmer avec la gérante. Limite : `enrolled_devices.last_sync_at` est l'instant de la dernière PIÈCE acceptée (ou rejetée après revue), non
+du dernier contact ; un poste réellement inactif (fermé le dimanche) peut apparaître `SILENT` sans rien détenir. Aucun suivi
+de contact n'a été ajouté (écrire dans une lecture ou changer le sens d'une colonne d'O05 dépassait cette tâche).
+
+**Local et central ne doublonnent pas les faits acquittés** : le central ne compte que les faits appliqués ; un lot renvoyé
+(ACK perdu) rend `ALREADY_ACCEPTED` sans second fait, donc sans second total
+(`FinancialReportFreshnessTest::test_un_fait_de_poste_est_compte_une_seule_fois_meme_apres_un_renvoi_...`). Côté poste, la
+projection du solde d'une facture ne compte jamais deux fois un paiement connu du poste et du serveur
+(`tests/frontend/offline/projections.test.ts`, « ne compte jamais deux fois un paiement connu du poste et du serveur »).
+
+### Tests et écarts
+
+Tests : PHPUnit `tests/Feature/Billing/{FinancialReportTest,FinancialReportFreshnessTest}.php` (AT24 : vente et encaissement
+distincts sur deux jours ; auteurs ; plusieurs avoirs et paiements sans multiplication ; dates effectives et bornes du jour
+à Douala ; reprise papier AT26 ; caisse clôturée et correction après clôture ; gérante seule, cabinet, module, période ;
+postes à jour, en attente, muets, jamais synchronisés, non financiers ; renvoi d'un lot) ; Vitest
+`tests/frontend/billing/financial-report.test.ts` (règles et écran) et `entry-points.test.ts` ; fiche d'aide contrôlée par
+`tests/frontend/help/` ; Playwright `tests/e2e/finance.spec.ts` (la gérante lit les quatre indicateurs, la fraîcheur d'abord,
+360 px sans débordement, la caissière sans accès).
+
+Écarts déclarés (R01 reste IN_REVIEW) :
+
+1. Le seuil de silence d'un poste (24 h) et le sens de `last_sync_at` (dernière pièce, non dernier contact) : voir plus haut.
+2. L'écran vit dans `sales` (comme la caisse du jour), non dans `reports` : le module des statistiques peut rester fermé sans
+   priver la gérante de sa finance.
+3. Lecture EN LIGNE seulement : la caisse du jour et cette finance ne sont pas lisibles hors ligne ; le tableau de bord LOCAL
+   de la caisse (pièces non synchronisées sans doublon après ACK) reste celui des projections du poste (A1).
+4. Ni export, ni PDF, ni graphique, ni âge des créances (`vw_invoice_balances` ne porte pas de date d'échéance exploitable
+   hors `due_date` facultative) ; la valeur du stock (coût de référence) relève de L1.
+5. Un module `reports` fermé n'est pas consulté : `finance.global.read` et `sales` suffisent.

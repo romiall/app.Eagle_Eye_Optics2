@@ -185,7 +185,12 @@ function signedVariance(amount: number): string {
           Reste à encaisser à l’instant de la lecture ({{ formatInstantFr(report.generated_at) }}),
           toutes factures émises confondues.
         </p>
-        <LinkButton :to="{ name: 'factures' }" variant="secondary">Voir les factures</LinkButton>
+        <div class="flex flex-wrap gap-3">
+          <LinkButton :to="{ name: 'factures' }" variant="secondary">Voir les factures</LinkButton>
+          <LinkButton :to="{ name: 'finance' }" variant="secondary"
+            >Voir la finance d’une période</LinkButton
+          >
+        </div>
       </section>
 
       <section aria-labelledby="titre-sessions-jour" class="space-y-3">
