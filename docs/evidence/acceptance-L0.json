@@ -100,7 +100,12 @@
     "production": {
       "url": "https://app-eagleseye.com",
       "release": "eeo-20261030T1916Z-bbd83c4",
-      "note": "La production n'exécute PAS ce candidat (module `offline` fermé) ; rien n'est déployé sans demande du demandeur."
+      "note": "Au moment de la recette, la production n'exécutait PAS ce candidat (module `offline` fermé) ; rien n'est déployé sans demande du demandeur.",
+      "deployed_after_recette": {
+        "release": "eeo-20261108T0854Z-a4e2e49",
+        "date": "2026-11-08",
+        "note": "Déployé à la demande du demandeur : commit a4e2e49, dont le code d'application, les migrations et le frontend sont identiques à ceux du candidat ; voir docs/implementation/progress.md."
+      }
     }
   },
   "ci": {
