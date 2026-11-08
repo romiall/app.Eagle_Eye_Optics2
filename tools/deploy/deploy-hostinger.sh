@@ -92,10 +92,12 @@ echo "  Build en ligne : ${BUILD_INFO:-inconnu}"
 echo "  Chaque navigateur garde l'ancienne version jusqu'à ce que la personne clique sur « Installer la nouvelle version »"
 echo "  dans le bandeau en haut de l'application ; le pied de page de chaque écran indique la version affichée."
 
-if [[ -n "${EEO_SMOKE_PASSWORD:-}" ]]; then
+if [[ -n "${EEO_SMOKE_PASSWORD:-}" && -n "${EEO_SMOKE_LOGIN:-}" ]]; then
   echo "==> 5/5 Contrôle de fumée complet (smoke.sh)…"
-  bash tools/deploy/smoke.sh "$APP_URL" "${EEO_SMOKE_LOGIN:-gerante}"
+  bash tools/deploy/smoke.sh "$APP_URL" "$EEO_SMOKE_LOGIN"
 else
   echo "==> 5/5 Déploiement terminé (${RELEASE_NAME} en ligne sur ${APP_URL})."
-  echo "    Pour le contrôle de fumée authentifié : EEO_SMOKE_PASSWORD='<mot-de-passe>' bash tools/deploy/smoke.sh ${APP_URL} gerante"
+  echo "    Contrôle de fumée authentifié, à lancer par la personne qui connaît le mot de passe de la gérante :"
+  echo "      bash tools/deploy/smoke.sh ${APP_URL} <identifiant de la gérante>"
+  echo "    (le mot de passe est demandé à l'invite, sans s'afficher ; ne pas le passer sur la ligne de commande)"
 fi
