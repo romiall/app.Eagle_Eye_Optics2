@@ -48,15 +48,20 @@ function nextWorkingDay(): { french: string; iso: string } {
 test.describe('agenda (S01) sur la vraie application', () => {
   test('prendre un rendez-vous, le retrouver dans l’agenda, l’annuler avec un motif', async ({
     page,
-  }) => {
+  }, testInfo) => {
     test.setTimeout(180_000)
+    // La base est partagée avec les autres parcours et, sur la CI, avec la première tentative : chaque essai a son
+    // patient et son numéro (deux noms sans ressemblance, la détection de doublon refuserait le second).
+    const attempt = Math.min(testInfo.retry, 1)
+    const lastName = ['Agenda Parcours', 'Planning Secours'][attempt] ?? 'Agenda Parcours'
+    const phone = ['+237 600 00 10 01', '+237 600 00 14 01'][attempt] ?? '+237 600 00 10 01'
     await signIn(page, 'RECEPTION')
-    const patientId = await createPatient(page, 'Agenda Parcours', '+237 600 00 10 01')
+    const patientId = await createPatient(page, lastName, phone)
     const day = nextWorkingDay()
 
     await page.goto(`/agenda/nouveau?patient=${patientId}`)
     await expect(page.getByRole('heading', { level: 1, name: 'Nouveau rendez-vous' })).toBeVisible()
-    await expect(page.getByRole('main')).toContainText('Agenda Parcours')
+    await expect(page.getByRole('main')).toContainText(lastName)
     // Le jour d'abord : le jour par défaut est AUJOURD'HUI, et avant l'ouverture du cabinet ses créneaux
     // s'affichent dès le choix de la ressource ; le test cocherait alors un créneau d'aujourd'hui (le
     // rendez-vous serait pris le jour même, selon l'heure à laquelle tourne le test).
@@ -74,8 +79,16 @@ test.describe('agenda (S01) sur la vraie application', () => {
     await page.goto('/agenda')
     await page.getByLabel('Jour', { exact: true }).fill(day.french)
     await page.getByRole('button', { name: 'Afficher' }).click()
-    const card = page.getByRole('article').filter({ hasText: 'Agenda Parcours' })
-    await expect(card).toBeVisible()
+    const card = page.getByRole('article').filter({ hasText: lastName })
+    try {
+      await expect(card).toBeVisible()
+    } catch (error) {
+      // Diagnostic pour la CI (un échec de ce point n'a pas pu être reproduit sur le poste) : ce que l'écran montrait.
+      const screen = (await page.getByRole('main').innerText()).replace(/\s+/g, ' ').slice(0, 1200)
+      throw new Error(`${(error as Error).message}\nÉcran de l’agenda : ${screen}`, {
+        cause: error,
+      })
+    }
     await expect(card).toContainText('Confirmé')
 
     await card.getByRole('button', { name: /Annuler le rendez-vous de/ }).click()
@@ -84,9 +97,7 @@ test.describe('agenda (S01) sur la vraie application', () => {
       .fill('Patient indisponible (fictif)')
     await page.getByRole('dialog').getByRole('button', { name: 'Annuler le rendez-vous' }).click()
     await expect(page.getByText(/annulé sur le serveur/)).toBeVisible()
-    await expect(page.getByRole('article').filter({ hasText: 'Agenda Parcours' })).toContainText(
-      'Annulé',
-    )
+    await expect(page.getByRole('article').filter({ hasText: lastName })).toContainText('Annulé')
   })
 
   test('la caisse lit l’agenda sans action d’écriture', async ({ page }) => {

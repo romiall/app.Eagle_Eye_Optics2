@@ -65,7 +65,11 @@ test.describe('finance du cabinet (R01) sur la vraie application', () => {
     // Le mois en cours est lu par défaut ; « Aujourd’hui » resserre la période sur un jour.
     await expect(main.getByRole('status').filter({ hasText: 'Période : du' })).toBeVisible()
     await main.getByRole('button', { name: 'Aujourd’hui' }).click()
-    await expect(main.getByRole('status').filter({ hasText: /^\s*Période : [^d]/ })).toBeVisible()
+    // Un seul jour : « Période : dimanche 8 novembre 2026 » (le NOM DU JOUR ouvre le libellé, « dimanche » comme
+    // les autres) ; seule la période « du … au … » commence par « du ». Ne pas déduire la forme d'une initiale.
+    await expect(
+      main.getByRole('status').filter({ hasText: /^\s*Période : (?!du )/ }),
+    ).toBeVisible()
     await expect(main.locator('[data-montant="ca-net"]')).toBeVisible()
 
     // Une période inversée est refusée sans interroger le serveur.
