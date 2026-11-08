@@ -77,18 +77,18 @@ test.describe('agenda (S01) sur la vraie application', () => {
     await expect(page.getByText(/Rendez-vous confirmé par le serveur/)).toBeVisible()
 
     await page.goto('/agenda')
+    // Lire la date saisie (sortie du champ) ne déplace rien : le clic sur « Afficher » ne peut pas être perdu. Constaté en
+    // CI un dimanche : le titre changeait de longueur à la sortie du champ, passait de deux lignes à une et le bouton
+    // montait de 36 px sous le clic (aucune lecture, écran « Aucun rendez-vous » pour un jour pas lu).
+    const show = page.getByRole('button', { name: 'Afficher' })
+    await expect(show).toBeVisible()
+    const placeBefore = await show.boundingBox()
     await page.getByLabel('Jour', { exact: true }).fill(day.french)
-    await page.getByRole('button', { name: 'Afficher' }).click()
+    await page.getByLabel('Jour', { exact: true }).blur()
+    expect(await show.boundingBox()).toEqual(placeBefore)
+    await show.click()
     const card = page.getByRole('article').filter({ hasText: lastName })
-    try {
-      await expect(card).toBeVisible()
-    } catch (error) {
-      // Diagnostic pour la CI (un échec de ce point n'a pas pu être reproduit sur le poste) : ce que l'écran montrait.
-      const screen = (await page.getByRole('main').innerText()).replace(/\s+/g, ' ').slice(0, 1200)
-      throw new Error(`${(error as Error).message}\nÉcran de l’agenda : ${screen}`, {
-        cause: error,
-      })
-    }
+    await expect(card).toBeVisible()
     await expect(card).toContainText('Confirmé')
 
     await card.getByRole('button', { name: /Annuler le rendez-vous de/ }).click()

@@ -561,7 +561,7 @@
     "tests/Feature/Scheduling/",
     "tests/e2e/agenda.spec.ts"
    ],
-   "notes": "Lot 2 (2026-10-23) codé, NON EXÉCUTÉ : agenda interne (ressources, horaires, exceptions, prestations, rendez-vous, arrivée depuis un rendez-vous), module agenda. Vérifié le 2026-10-24 (PHPUnit 2432, PHPStan, Vitest 2496, Playwright, CI 40044078785)."
+   "notes": "Lot 2 (2026-10-23) codé, NON EXÉCUTÉ : agenda interne (ressources, horaires, exceptions, prestations, rendez-vous, arrivée depuis un rendez-vous), module agenda. Vérifié le 2026-10-24 (PHPUnit 2432, PHPStan, Vitest 2496, Playwright, CI 40044078785). Correction du 2026-11-08 : la page Agenda affiche la période LUE, pas la saisie du champ « Jour » (clic sur « Afficher » perdu et faux « Aucun rendez-vous » en police large un dimanche) ; test Vitest et position du bouton en e2e ; en production au prochain déploiement."
   },
   "S02": {
    "status": "IN_REVIEW",

@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { AgendaConfiguration, Appointment, ContactTask } from '@/domain/contracts/generated'
 
+import { typeDate } from '../patients/support'
 import {
   apiError,
   buttonByName,
@@ -169,6 +170,43 @@ describe('agenda', () => {
     expect(cancel).toHaveLength(1)
     expect(cancel[0]!.body).toEqual({ reason: 'Patient indisponible', expected_version: 1 })
     expect(textOf(root)).toContain('annulé sur le serveur')
+    unmount()
+  })
+
+  it('lire la date saisie ne change ni le titre ni les cartes : seul « Afficher » lit la nouvelle période', async () => {
+    // Constaté en CI un dimanche (police large) : le titre « Agenda du dimanche 8 novembre » passait de deux lignes à une
+    // dès la sortie du champ « Jour », le bouton « Afficher » montait sous le clic qui le visait et le clic était perdu ;
+    // l'écran affichait alors « Aucun rendez-vous ce jour-là » pour un jour qu'il n'avait pas lu.
+    const api = stubSettingsApi({
+      permissions: RECEPTION,
+      handlers: {
+        'GET /api/v1/agenda/configuration': () => json(200, { data: configuration() }),
+        'GET /api/v1/appointments': (request) =>
+          json(200, { data: request.query.get('from') === '2026-10-23' ? [appointment()] : [] }),
+      },
+    })
+    const { root, unmount } = await openApp('/agenda')
+    await settle()
+    expect(textOf(root)).toContain('Agenda du vendredi 23 octobre 2026')
+    expect(textOf(root)).toContain('PATIENT FICTIF')
+
+    // Sortie du champ : la date est lue, mais rien n'est relu ni redessiné.
+    await typeDate(root, 'Jour', '26/10/2026')
+    expect(textOf(root)).toContain('Agenda du vendredi 23 octobre 2026')
+    expect(textOf(root)).not.toContain('Agenda du lundi 26 octobre 2026')
+    expect(textOf(root)).toContain('PATIENT FICTIF')
+    expect(textOf(root)).not.toContain('Aucun rendez-vous ce jour-là')
+    expect(callsTo(api, 'GET', /\/appointments$/)).toHaveLength(1)
+
+    // « Afficher » lit la période saisie, puis le titre et les cartes la suivent.
+    await click(buttonByName(root, 'Afficher'))
+    const reads = callsTo(api, 'GET', /\/appointments$/)
+    expect(reads).toHaveLength(2)
+    expect(reads[1]!.query.get('from')).toBe('2026-10-26')
+    expect(reads[1]!.query.get('to')).toBe('2026-10-26')
+    expect(textOf(root)).toContain('Agenda du lundi 26 octobre 2026')
+    expect(textOf(root)).toContain('Aucun rendez-vous ce jour-là')
+    expect(textOf(root)).not.toContain('PATIENT FICTIF')
     unmount()
   })
 

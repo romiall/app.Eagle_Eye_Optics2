@@ -8,7 +8,7 @@
  * Présentation : un jour par carte (repère « Aujourd’hui », nombre de rendez-vous), chaque rendez-vous avec sa
  * colonne d'heures et son statut en puce ; la semaine passe sur deux colonnes sur grand écran.
  */
-import { computed, ref } from 'vue'
+import { computed, ref, shallowRef } from 'vue'
 
 import { clinicTimeZone, clinicToday, formatDayFr } from '@/app/clinicTime'
 import { getAgendaConfiguration, listAppointments } from '@/app/services/agenda'
@@ -57,18 +57,41 @@ const resourceOptions = computed(() => [
     .map((resource) => ({ value: resource.id, label: resource.name })),
 ])
 
-const read = useServerRead<Appointment[]>(() => {
-  const list = days.value
-  return listAppointments(list[0]!.toString(), list[list.length - 1]!.toString(), {
-    resourceId: resourceId.value === '' ? null : resourceId.value,
+/**
+ * Ce qui est LU et affiché : la période et la ressource APPLIQUÉES par « Afficher », les flèches, « Aujourd’hui » ou
+ * « Jour / Semaine » (`show`). Saisir une date et sortir du champ ne les change pas : le titre et les cartes suivent la
+ * dernière lecture, jamais la saisie. (Avant, le titre changeait dès la sortie du champ : il pouvait se raccourcir d'une
+ * ligne, le bouton « Afficher » montait sous le clic qui le visait et ce clic était perdu ; et l'écran annonçait « Aucun
+ * rendez-vous ce jour-là » pour un jour qu'il n'avait pas lu. Constaté en CI un dimanche, police large.)
+ */
+const applied = shallowRef<{ days: CivilDate[]; resourceId: string | null }>({
+  days: days.value,
+  resourceId: null,
+})
+
+/** Les rendez-vous lus et les jours de CETTE lecture : ils voyagent ensemble, jamais l'un sans l'autre. */
+interface ShownAgenda {
+  days: CivilDate[]
+  appointments: Appointment[]
+}
+
+const read = useServerRead<ShownAgenda>(async () => {
+  const { days: list, resourceId: onlyResource } = applied.value
+  const outcome = await listAppointments(list[0]!.toString(), list[list.length - 1]!.toString(), {
+    resourceId: onlyResource,
   })
+  return { ...outcome, data: { days: list, appointments: outcome.data } }
 })
 const grouped = computed(() =>
-  read.data.value === null ? [] : groupByDay(read.data.value, days.value, timeZone),
+  read.data.value === null
+    ? []
+    : groupByDay(read.data.value.appointments, read.data.value.days, timeZone),
 )
+/** Vue en semaine : celle de la période appliquée (la bascule « Jour / Semaine » relit aussitôt). */
+const weekShown = computed(() => applied.value.days.length > 1)
 
 const title = computed(() => {
-  const list = days.value
+  const list = applied.value.days
   if (list.length === 1) return `Agenda du ${formatDayFr(list[0]!)}`
   return `Agenda : semaine du ${formatDayFr(list[0]!)} au ${formatDayFr(list[list.length - 1]!)}`
 })
@@ -78,24 +101,29 @@ function isToday(shownDay: CivilDate): boolean {
   return shownDay.compare(clinicToday()) === 0
 }
 
+/** Applique les champs : lit la période et la ressource choisies, puis les affiche. */
 function show(): void {
+  applied.value = {
+    days: days.value,
+    resourceId: resourceId.value === null || resourceId.value === '' ? null : resourceId.value,
+  }
   void read.reload()
 }
 
 function shift(direction: -1 | 1): void {
   const step = view.value === 'day' ? 1 : 7
   day.value = anchor.value.addDays(direction * step).toString()
-  void read.reload()
+  show()
 }
 
 function today(): void {
   day.value = clinicToday().toString()
-  void read.reload()
+  show()
 }
 
 function setView(next: 'day' | 'week'): void {
   view.value = next
-  void read.reload()
+  show()
 }
 
 function changed(message: string): void {
@@ -193,7 +221,7 @@ function staled(message: string): void {
     />
 
     <template v-else>
-      <div :class="view === 'week' ? 'grid gap-4 sm:gap-6 xl:grid-cols-2' : 'space-y-6'">
+      <div :class="weekShown ? 'grid gap-4 sm:gap-6 xl:grid-cols-2' : 'space-y-6'">
         <SectionCard
           v-for="group in grouped"
           :key="group.day.toString()"
@@ -208,7 +236,7 @@ function staled(message: string): void {
             >
           </template>
           <EmptyState
-            v-if="group.appointments.length === 0 && view === 'day'"
+            v-if="group.appointments.length === 0 && !weekShown"
             title="Aucun rendez-vous ce jour-là."
             icon="calendar"
             flat
