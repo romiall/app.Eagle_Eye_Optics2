@@ -260,7 +260,7 @@ Fichiers partagés touchés (modifications ciblées) : `app/router.ts` (route `d
    tests/frontend/contracts.test.ts` ; si un test de mise en page échoue, lire d'abord la section « Risques ».
 3. Revue visuelle : `EEO_DOCUMENT_GOLDEN=render npx vitest run tests/frontend/documents/golden`, ouvrir
    `test-results/documents/index.html`, imprimer en A4 noir et blanc (liste de contrôle dans `golden/README.md`),
-   puis `EEO_DOCUMENT_GOLDEN=update` pour figer les références.
+   puis `EEO_DOCUMENT_GOLDEN=update` pour figer les références. Fait le 2026-11-09 pour les 19 documents (revue de l'agent sur les pages rendues, résultat dans `golden/README.md`) ; l'impression réelle reste à faire.
 4. `npm run build` : contrôler la taille du paquet jsPDF et les morceaux `canvg`, `html2canvas`, `dompurify`
    (dépendances optionnelles de jsPDF importées dynamiquement ; inutiles ici, ils seront précachés). Si le poids est
    gênant, un alias vers un module vide dans `vite.config.ts` les écarte.

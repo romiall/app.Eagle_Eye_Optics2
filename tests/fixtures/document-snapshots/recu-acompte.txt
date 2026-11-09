@@ -1,0 +1,30 @@
+# recu-acompte : 1 page(s), PDF sha256 5758e67956e169a6044c68d47ba60d90074fd487c1b3b0ddd62faa23ed4a6f7a
+REÇU DE PAIEMENT
+LOGO À FOURNIR
+Acompte
+Numéro | TEST-REC-000001
+CABINET DE DÉMONSTRATION — | Date | 14/10/2026 à 10h30
+DONNÉES FICTIVES
+Adresse du cabinet : à renseigner
+Téléphone et courriel du cabinet : à renseigner
+Identifiant fiscal : à renseigner
+DOCUMENT DE TEST
+Données fictives ou mentions du cabinet non validées : ce document n’a aucune valeur comptable ni fiscale.
+Reçu de | PATIENT FICTIF Élodie Marie
+Dossier n° | TEST-P-000001
+Facture n° | TEST-FAC-000001
+Émise le | 14/10/2026
+Montant du versement | 30 000 FCFA
+Nature | Acompte
+Mode de règlement | Mobile money MTN
+Référence | REFERENCE_FICTIVE
+Total facturé | 80 000 FCFA
+Cumul encaissé net avant ce versement | 0 FCFA
+Cumul encaissé net après ce versement | 30 000 FCFA
+Reste après ce versement | 50 000 FCFA
+Encaissé par | Caisse (démonstration)
+Ce reçu atteste l’encaissement du versement indiqué ci-dessus. Il ne remplace pas la facture. Un reçu émis n’est jamais
+modifié : toute correction passe par des pièces liées.
+Une réimpression restitue ce même reçu, avec le même numéro ; elle n’enregistre aucun nouvel encaissement.
+Mentions légales et professionnelles du cabinet : à renseigner avant tout usage officiel. | Page 1/1
+Modèle TEST-1 · TEST-REC-000001 · DOCUMENT DE TEST

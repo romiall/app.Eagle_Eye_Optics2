@@ -1,0 +1,28 @@
+# devis : 1 page(s), PDF sha256 4e6b5f93fc99247be8dd65ff72c43ae79e4db80a13fe17d002b71849e408a27e
+DEVIS (brouillon)
+LOGO À FOURNIR
+Proforma — ne vaut pas facture
+Numéro | Non attribué (brouillon)
+CABINET DE DÉMONSTRATION — | Date du brouillon | 22/10/2026
+Valable jusqu’au | 14/11/2026
+DONNÉES FICTIVES
+Adresse du cabinet : à renseigner
+Téléphone et courriel du cabinet : à renseigner
+Identifiant fiscal : à renseigner
+DOCUMENT DE TEST
+Données fictives ou mentions du cabinet non validées : ce document n’a aucune valeur comptable ni fiscale.
+BROUILLON : sans numéro définitif, ce document n’est ni une facture ni un reçu.
+Devis — ne vaut pas facture.
+Devis établi pour | PATIENT FICTIF Élodie Marie
+Dossier n° | TEST-P-000001
+Réf. | Désignation | Quantité | Prix unitaire | Remise | Total (FCFA)
+(FCFA) | (FCFA)
+EX-001 | Examen de vue (fictif) | 1 Prestation | 15 000 | 0 | 15 000
+MT-001 | Monture fictive modèle Alpha | 1 Unité | 25 000 | 0 | 25 000
+VR-001 | Verres progressifs 1.60 (fictifs) | 1 Paire | 45 000 | 5 000 | 40 000
+Total du devis | 80 000 FCFA
+Régime de taxe non configuré : aucune taxe n’est détaillée sur ce document.
+Établi par | Caisse (démonstration)
+Ce devis n’est ni une facture ni un reçu : aucun règlement n’y est enregistré et il ne réserve aucun article.
+Mentions légales et professionnelles du cabinet : à renseigner avant tout usage officiel. | Page 1/1
+Modèle TEST-1 · DOCUMENT DE TEST

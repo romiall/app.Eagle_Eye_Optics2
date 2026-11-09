@@ -1,0 +1,35 @@
+# prescription-sans-correction : 1 page(s), PDF sha256 8d8f94de724ff0e071a88e49f2a18afafe6ad51290ad97f244dd52b71d97f355
+PRESCRIPTION OPTIQUE
+LOGO À FOURNIR
+Version 2
+Version | 2
+CABINET DE DÉMONSTRATION — | Consultation du | 14/10/2026
+Validée le | 14/10/2026
+DONNÉES FICTIVES
+Adresse du cabinet : à renseigner
+Téléphone et courriel du cabinet : à renseigner
+DOCUMENT DE TEST
+Données fictives ou mentions professionnelles non validées : ce document n’a aucune valeur médicale ni légale.
+Patient | PATIENT FICTIF Élodie Marie
+Dossier n° | TEST-P-000001
+Sexe | Féminin
+Né(e) le | 17/05/1990
+Prescripteur | Professionnel (démonstration)
+N° professionnel | à renseigner (mention réelle non fournie)
+Œil | Sphère (dioptries) | Cylindre (dioptries) | Axe (degrés) | Addition (dioptries)
+OD (œil droit) | -1,25 | -0,50 | 90° | —
+OG (œil gauche) | Absence de correction | — | — | —
+Œil | DP monoculaire (mm) | Hauteur de montage (mm)
+OD (œil droit) | 31,50 mm | 22,00 mm
+OG (œil gauche) | — | —
+DP totale | —
+— : valeur non mesurée ou non prescrite. Aucune valeur n’est remplacée par zéro.
+Usage | Progressifs
+Type de verre | Progressif
+Indice | 1.60
+Traitements | Anti-reflet, Durci / anti-rayures
+Observations | Observation fictive saisie par le professionnel de démonstration.
+Signature et cachet du professionnel
+Le nom du professionnel imprimé n’est pas une signature électronique certifiée. La signature et le cachet se posent sur la version imprimée.
+Mentions légales et professionnelles du cabinet : à renseigner avant tout usage officiel. | Page 1/1
+Modèle TEST-1 · Prescription V4W30033 · version 2 · DOCUMENT DE TEST

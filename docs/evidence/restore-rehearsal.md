@@ -4,6 +4,8 @@
 (Hostinger, accès SSH), puis chaque mois. Aucune valeur ci-dessous n'est constatée tant qu'une ligne `restore_tests`
 de statut `PASSED` ne la justifie pas. Procédure : `docs/runbooks/server-restore.md`.
 
+**Préparation du 2026-11-09 (exercice NON exécuté)** : il attend une base jetable VIDE dont le nom complet se termine par `_restore` (le nom de la base de l'application suivi de `_restore`), créée dans le panneau de l'hébergeur et accessible avec l'utilisateur de base de l'application (le script lit ses identifiants dans le `.env` sans les afficher). Sauvegarde à restaurer : la plus récente (`eeo-backup-20261108T210531Z`, chiffrée, clé `~/.eeo-backup.key`). Commande : `bash ~/eeo/tools/deploy/restore-check.sh ~/eeo-backups/eeo-backup-20261108T210531Z <base>_restore ~/eeo`. Rien n'est consigné dans `restore_tests` (donc rien n'est écrit dans la base de production) sans l'accord du demandeur ; la base jetable se supprime ensuite dans le panneau.
+
 Le code est prêt : sauvegarde chiffrée et journal `backup_runs` (`tools/deploy/backup.sh`, `eeo:backup:record`),
 restauration sur base jetable et contrôles (`tools/deploy/restore-check.sh`, `eeo:restore:verify`), tests
 `tests/Feature/Operations/RestoreVerifierTest.php` (base MySQL isolée de test, données fictives).

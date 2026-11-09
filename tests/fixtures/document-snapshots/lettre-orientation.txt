@@ -1,0 +1,30 @@
+# lettre-orientation : 1 page(s), PDF sha256 6be592a1ca97db23e5efc43ce90092133256d982b589090f92441750ea6b321a
+LETTRE D’ORIENTATION
+LOGO À FOURNIR
+Date | 14/10/2026
+CABINET DE DÉMONSTRATION —
+DONNÉES FICTIVES
+Adresse du cabinet : à renseigner
+Téléphone et courriel du cabinet : à renseigner
+DOCUMENT DE TEST
+Données fictives ou mentions professionnelles non validées : ce document n’a aucune valeur médicale ni légale.
+À l’attention de | Confrère ophtalmologiste
+Objet | Orientation du patient PATIENT FICTIF Élodie Marie (dossier n° TEST-P-000001)
+Patient | PATIENT FICTIF Élodie Marie
+Dossier n° | TEST-P-000001
+Sexe | Féminin
+Né(e) le | 17/05/1990
+Je vous adresse le patient désigné ci-dessus pour avis ophtalmologique.
+Niveau d’urgence | Consultation recommandée
+Motif(s) d’orientation | Autre
+Résumé clinique
+Résumé clinique fictif rédigé par le professionnel de démonstration.
+Mesures jointes
+OD : sphère -1,25 ; OG : sphère +0,75 (exemple fictif)
+Confraternellement,
+Professionnel | Professionnel (démonstration)
+N° professionnel | à renseigner (mention réelle non fournie)
+Signature et cachet du professionnel
+Le nom du professionnel imprimé n’est pas une signature électronique certifiée. La signature et le cachet se posent sur la version imprimée.
+Mentions légales et professionnelles du cabinet : à renseigner avant tout usage officiel. | Page 1/1
+Modèle TEST-1 · Lettre V4W30035 · DOCUMENT DE TEST

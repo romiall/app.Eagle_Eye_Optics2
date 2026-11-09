@@ -1,0 +1,28 @@
+# ordonnance : 1 page(s), PDF sha256 c6ae10cb227b9edf61854c460349758d131a55b3c5082da05fabb219dcfcc74a
+ORDONNANCE
+LOGO À FOURNIR
+Date | 14/10/2026
+CABINET DE DÉMONSTRATION —
+DONNÉES FICTIVES
+Adresse du cabinet : à renseigner
+Téléphone et courriel du cabinet : à renseigner
+DOCUMENT DE TEST
+Données fictives ou mentions professionnelles non validées : ce document n’a aucune valeur médicale ni légale.
+Patient | PATIENT FICTIF Élodie Marie
+Dossier n° | TEST-P-000001
+Sexe | Féminin
+Né(e) le | 17/05/1990
+Prescripteur | Professionnel (démonstration)
+N° professionnel | à renseigner (mention réelle non fournie)
+Produit | Forme | Dosage | Posologie | Fréquence | Durée | Instructions
+Produit fictif A | Collyre | dosage fictif | posologie saisie | fréquence | — | —
+(démonstration) | (exemple fictif) | saisie
+(exemple
+fictif)
+Produit fictif B | — | — | — | — | — | instruction saisie
+(démonstration) | (exemple fictif)
+— : information non précisée par le prescripteur. L’application ne complète aucune posologie.
+Signature et cachet du professionnel
+Le nom du professionnel imprimé n’est pas une signature électronique certifiée. La signature et le cachet se posent sur la version imprimée.
+Mentions légales et professionnelles du cabinet : à renseigner avant tout usage officiel. | Page 1/1
+Modèle TEST-1 · Ordonnance V4W30034 · DOCUMENT DE TEST

@@ -1,8 +1,9 @@
 # Rendu « golden » des documents (D01, D02)
 
 `render-demo.test.ts` génère les PDF de démonstration (données **fictives**, jeu `DEMO_DOCUMENTS`) avec
-le vrai moteur jsPDF et en contrôle le rendu. Il n'a **pas encore été exécuté** : la revue visuelle
-initiale se fait lors de la passe de vérification finale.
+le vrai moteur jsPDF et en contrôle le rendu. La revue visuelle initiale a été faite le 2026-11-09 (section
+« Revue du 2026-11-09 » en fin de fichier) et les références sont figées dans `tests/fixtures/document-snapshots/` ;
+l'impression réelle (A4 noir et blanc, ticket 80 mm) reste à faire.
 
 ## Procédure de revue visuelle (D02, « Inspecter tous PDFs et impression réelle A4 »)
 
@@ -57,3 +58,34 @@ voulue (nouvelle mention, correction de mise en page), **ajouter une nouvelle ve
 pièces en attente de synchronisation (contrat 23). N'écraser les références qu'après avoir compris
 l'écart ; une mise à jour de jsPDF peut aussi changer les octets : dans ce cas contrôler visuellement
 puis mettre à jour.
+
+## Revue du 2026-11-09 (19 documents, 24 pages)
+
+Faite par l'agent de développement sur les PDF rendus (`EEO_DOCUMENT_GOLDEN=render`), page par page, puis références
+figées (`EEO_DOCUMENT_GOLDEN=update`, 19 fichiers) ; rejeu ordinaire : 20 tests passés, 1 ignoré (le mode `update`).
+**Ce n'est ni la revue par une personne du cabinet ni l'impression réelle**, qui restent à faire (voir « Non fait »).
+
+Contrôles automatiques sur le texte de mise en page, sans constat : aucun « payé », « soldé », « acquitté » ni
+« gratuit » ; aucun montant groupé par des espaces ordinaires (un montant ne se coupe pas en fin de ligne) ; chaque
+document porte « DOCUMENT DE TEST », « BROUILLON » ou « DUPLICATA » ; aucun document ne mêle vocabulaire clinique et
+vocabulaire financier.
+
+Contrôles visuels, conformes : aucune cellule ni aucun total coupé, marges respectées ; accents, « œ » et « Œ »,
+apostrophes typographiques et « ° » lisibles ; zéro visible (« 0,00 »), valeurs non mesurées en tiret (« — »), signes
++ et - des valeurs optiques ; filigranes BROUILLON, DUPLICATA et DONNÉES DE TEST en gris clair, lisibles sans gêner la
+lecture ; bandeau « DOCUMENT DE TEST » et emplacements « à renseigner » présents ; facture longue (48 lignes, 5 pages) :
+en-tête du tableau répété à chaque page, aucune ligne coupée, bloc de totaux précédé de lignes sur la dernière page ;
+ticket 80 mm en une seule bande ; aucune donnée clinique sur une pièce financière, aucun montant sur un document
+clinique.
+
+Observations sans gravité, NON corrigées (un modèle publié ne se modifie pas : une correction demande une nouvelle
+version de modèle, à décider) :
+
+1. « 2 Paire » : l'unité n'est pas mise au pluriel quand la quantité dépasse 1 (facture longue).
+2. Fiche de consultation : le bloc des distances pupillaires se lit « DP totale, DP OG, DP OD » (l'œil gauche avant le
+   droit), chaque valeur restant étiquetée.
+3. Fiche de consultation : le tableau de la prescription optique est coupé entre la ligne OD (fin de la page 1) et la
+   ligne OG (page 2), avec l'en-tête répété.
+
+Non fait : impression A4 noir et blanc à l'échelle 100 % ; lisibilité du ticket 80 mm sur l'imprimante thermique réelle
+(Q02) ; revue par une personne du cabinet.

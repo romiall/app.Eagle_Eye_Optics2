@@ -1,0 +1,24 @@
+# facture-courte : 1 page(s), PDF sha256 272b3cefa3d8cda9b52c709b15f2e3cc48e86574bfd675b7dcf2aa8786734336
+FACTURE
+LOGO À FOURNIR
+Numéro | TEST-FAC-000001
+Date d’émission | 14/10/2026
+CABINET DE DÉMONSTRATION —
+DONNÉES FICTIVES
+Adresse du cabinet : à renseigner
+Téléphone et courriel du cabinet : à renseigner
+Identifiant fiscal : à renseigner
+DOCUMENT DE TEST
+Données fictives ou mentions du cabinet non validées : ce document n’a aucune valeur comptable ni fiscale.
+Facturé à | PATIENT FICTIF Élodie Marie
+Dossier n° | TEST-P-000001
+Réf. | Désignation | Quantité | Prix unitaire | Remise | Total (FCFA)
+(FCFA) | (FCFA)
+EX-001 | Examen de vue (fictif) | 1 Prestation | 15 000 | 0 | 15 000
+MT-001 | Monture fictive modèle Alpha | 1 Unité | 25 000 | 0 | 25 000
+VR-001 | Verres progressifs 1.60 (fictifs) | 1 Paire | 45 000 | 5 000 | 40 000
+Total | 80 000 FCFA
+Régime de taxe non configuré : aucune taxe n’est détaillée sur ce document.
+Établie par | Caisse (démonstration)
+Mentions légales et professionnelles du cabinet : à renseigner avant tout usage officiel. | Page 1/1
+Modèle TEST-1 · TEST-FAC-000001 · DOCUMENT DE TEST

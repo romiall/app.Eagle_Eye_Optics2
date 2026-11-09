@@ -1,0 +1,64 @@
+# dossier-clinique : 2 page(s), PDF sha256 f11feb0e5e89fa85e257b6e42553fe842e5ff43c05eeb62587b063a0f9c6f4b7
+FICHE DE CONSULTATION
+LOGO À FOURNIR
+Une consultation
+Exporté le | 22/10/2026 à 10h00
+CABINET DE DÉMONSTRATION — | Exporté par | Professionnel (démonstration)
+Sélection | Une consultation
+DONNÉES FICTIVES
+Adresse du cabinet : à renseigner
+Téléphone et courriel du cabinet : à renseigner
+DOCUMENT DE TEST
+Données fictives ou mentions professionnelles non validées : ce document n’a aucune valeur médicale ni légale.
+Patient | PATIENT FICTIF Élodie Marie
+Dossier n° | TEST-P-000001
+Sexe | Féminin
+Né(e) le | 17/05/1990
+Consultation du 14/10/2026 (version 1, terminée)
+Auteur de la révision | Professionnel (démonstration)
+Motifs de consultation | Vision floue, Fatigue visuelle
+Symptômes | Texte fictif saisi pour la démonstration.
+Porte des lunettes | Oui
+Depuis | depuis 2 ans (fictif)
+Correction précédente disponible | Non
+Antécédents oculaires | Aucun connu
+Antécédents médicaux | Diabète
+Antécédents familiaux oculaires | Non renseigné
+Contexte | Distance | Correction | OD | OG | OU | Échelle
+Préliminaire | De loin | Sans correction | 5/10 | 6/10 | 7/10 | échelle fictive
+Après réfraction | Non précisée | Avec correction | 10/10 | 10/10 | 10/10 | échelle fictive
+Examen | Œil | Sphère | Cylindre | Axe | Addition
+Subjective | OD (œil droit) | -1,25 | -0,50 | 90° | +2,00
+Subjective | OG (œil gauche) | +0,75 | 0,00 | — | +2,00
+Amétropies | Myopie, Presbytie
+— : valeur non mesurée ou non prescrite. Aucune valeur n’est remplacée par zéro.
+DP totale | 63,00 mm | DP OG | 31,50 mm
+DP OD | 31,50 mm
+Produit | Forme | Dosage | Posologie | Fréquence | Durée | Instructions
+Produit fictif A | Collyre | — | posologie saisie | — | — | —
+(démonstration) | (exemple fictif)
+Conclusion | Conclusion fictive saisie par le professionnel de démonstration.
+Orientation | Non
+Prescriptions
+Prescription optique, version 1 (validée, 14/10/2026)
+Œil | Sphère (dioptries) | Cylindre (dioptries) | Axe (degrés) | Addition (dioptries)
+OD (œil droit) | -1,25 | -0,50 | 90° | +2,00
+Mentions légales et professionnelles du cabinet : à renseigner avant tout usage officiel. | Page 1/2
+Modèle TEST-1 · Dossier V4W30036 · DOCUMENT DE TEST
+
+CABINET DE DÉMONSTRATION — DONNÉES FICTIVES | FICHE DE CONSULTATION (suite)
+Œil | Sphère (dioptries) | Cylindre (dioptries) | Axe (degrés) | Addition (dioptries)
+OG (œil gauche) | +0,75 | 0,00 | — | +2,00
+Œil | DP monoculaire (mm) | Hauteur de montage (mm)
+OD (œil droit) | 31,50 mm | 22,00 mm
+OG (œil gauche) | 31,50 mm | 22,00 mm
+DP totale | 63,00 mm
+— : valeur non mesurée ou non prescrite. Aucune valeur n’est remplacée par zéro.
+Usage | Progressifs
+Type de verre | Progressif
+Indice | 1.60
+Traitements | Anti-reflet, Durci / anti-rayures
+Observations | Observation fictive saisie par le professionnel de démonstration.
+Document confidentiel : il contient des données de santé.
+Mentions légales et professionnelles du cabinet : à renseigner avant tout usage officiel. | Page 2/2
+Modèle TEST-1 · Dossier V4W30036 · DOCUMENT DE TEST

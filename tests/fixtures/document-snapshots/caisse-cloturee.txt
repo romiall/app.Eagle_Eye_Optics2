@@ -1,0 +1,36 @@
+# caisse-cloturee : 1 page(s), PDF sha256 59bc02dcca0996d56f29b7580ba3e63bea67d108a831809586576c2be278f68c
+CLÔTURE DE CAISSE
+LOGO À FOURNIR
+Session clôturée
+Caissier(ère) | Caisse (démonstration)
+CABINET DE DÉMONSTRATION — | Ouverture | 20/10/2026 à 08h30
+Clôture | 20/10/2026 à 17h00
+DONNÉES FICTIVES
+Adresse du cabinet : à renseigner
+Téléphone et courriel du cabinet : à renseigner
+Identifiant fiscal : à renseigner
+DOCUMENT DE TEST
+Données fictives ou mentions du cabinet non validées : ce document n’a aucune valeur comptable ni fiscale.
+Tiroir espèces
+Fond de caisse à l’ouverture | 20 000 FCFA
+Encaissements en espèces | 80 000 FCFA
+Remboursements en espèces (à déduire) | 10 000 FCFA
+Entrées autorisées | 0 FCFA
+Sorties autorisées (à déduire) | 5 000 FCFA
+Espèces attendues | 85 000 FCFA
+Espèces comptées | 84 500 FCFA
+Écart (comptées - attendues) | -500 FCFA
+Motif de l’écart | Erreur de rendu de monnaie (motif fictif).
+Autres modes de règlement
+Rapprochés à part : ces montants n’entrent pas dans le tiroir espèces.
+Mode | Reçus | Montant (FCFA)
+Mobile money MTN | 1 | 30 000
+Mouvements de caisse autorisés
+Date et heure | Libellé | Montant (FCFA)
+20/10/2026 à 13h00 | Achat de fournitures (fictif) | -5 000
+Reçus de la session
+Reçu n° | Date | Facture | Mode | Montant (FCFA)
+TEST-REC-000002 | 20/10/2026 | TEST-FAC-000001 | Espèces | 80 000
+Caissier(ère) | Gérante (contrôle de clôture)
+Mentions légales et professionnelles du cabinet : à renseigner avant tout usage officiel. | Page 1/1
+Modèle TEST-1 · DOCUMENT DE TEST

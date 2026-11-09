@@ -1,0 +1,25 @@
+# remboursement : 1 page(s), PDF sha256 4de65bf7b58dc9fbe93af5a116602bbbedc1d176bbd6c09f3265cd2b2df4ac9d
+REÇU DE REMBOURSEMENT
+LOGO À FOURNIR
+Numéro | TEST-RMB-000001
+Date | 20/10/2026 à 11h30
+CABINET DE DÉMONSTRATION —
+DONNÉES FICTIVES
+Adresse du cabinet : à renseigner
+Téléphone et courriel du cabinet : à renseigner
+Identifiant fiscal : à renseigner
+DOCUMENT DE TEST
+Données fictives ou mentions du cabinet non validées : ce document n’a aucune valeur comptable ni fiscale.
+Bénéficiaire | PATIENT FICTIF Élodie Marie
+Dossier n° | TEST-P-000001
+Avoir n° | TEST-AV-000001
+Facture n° | TEST-FAC-000001
+Facture émise le | 14/10/2026
+Montant remboursé | 10 000 FCFA
+Mode de remboursement | Espèces
+Remboursement enregistré par | Gérante (démonstration)
+Signature du bénéficiaire | Signature ou cachet du cabinet
+Ce reçu atteste la sortie de fonds indiquée au profit du bénéficiaire désigné. Il est distinct de l’avoir et de tout reçu
+d’encaissement ; la décision d’approbation n’y figure pas.
+Mentions légales et professionnelles du cabinet : à renseigner avant tout usage officiel. | Page 1/1
+Modèle TEST-1 · TEST-RMB-000001 · DOCUMENT DE TEST
