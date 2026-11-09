@@ -47,7 +47,7 @@ bash ~/eeo/tools/deploy/restore-check.sh ~/eeo-backups/eeo-backup-<date> <base>_
 ssh -t eagleseye 'EEO_RESTORE_DB_USERNAME=<utilisateur de la base jetable> bash ~/eeo/tools/deploy/restore-check.sh ~/eeo-backups/eeo-backup-<date> <base jetable> ~/eeo'
 ```
 
-Supprimer ensuite la base jetable ET son utilisateur dans le panneau : elle contient une copie des données de production.
+Avec un utilisateur propre, le script retire les `DEFINER` du dump (les déclencheurs et les vues sont recréés au nom de cet utilisateur : sans cela le serveur refuse le chargement, erreur 1227). Supprimer ensuite la base jetable ET son utilisateur dans le panneau : elle contient une copie des données de production.
 
 Le script refuse la base de l'application, vérifie les empreintes, déchiffre, restaure, compare le schéma
 (`eagle:verify-schema`) et lance `eeo:restore:verify`. Lire chaque ligne :

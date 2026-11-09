@@ -104,7 +104,17 @@ if [[ "$existing" != "0" ]]; then
 fi
 
 echo "Restauration dans ${TARGET_DB}…"
-read_part "$DUMP" | gzip -dc | mysql --defaults-extra-file="$OPTIONS" --default-character-set=utf8mb4 "$TARGET_DB"
+# Utilisateur propre à la base jetable : les déclencheurs et les vues du dump ont pour DEFINER l'utilisateur de l'application, que le
+# serveur refuse à un autre utilisateur sans SUPER (erreur 1227 : 6 tables restaurées sur 124 à l'essai local du 2026-11-09). Ils sont
+# recréés au nom de l'utilisateur de la base jetable. Sans utilisateur propre (même utilisateur que l'application), le dump passe tel quel.
+strip_definers() {
+  if [[ -n "$RESTORE_USER" ]]; then
+    sed -E "s/DEFINER[[:space:]]*=[[:space:]]*(\`[^\`]+\`|'[^']+'|[A-Za-z0-9_]+)@(\`[^\`]+\`|'[^']+'|[A-Za-z0-9_.%-]+)//g"
+  else
+    cat
+  fi
+}
+read_part "$DUMP" | gzip -dc | strip_definers | mysql --defaults-extra-file="$OPTIONS" --default-character-set=utf8mb4 "$TARGET_DB"
 
 ARCHIVE="${BACKUP}/storage-app.tar.gz"; [[ -f "${ARCHIVE}.enc" ]] && ARCHIVE="${ARCHIVE}.enc"
 if [[ -f "$ARCHIVE" ]]; then
