@@ -129,8 +129,8 @@
     ]
   },
   "summary": {
-    "PASS": 35,
-    "BLOCKED": 4,
+    "PASS": 37,
+    "BLOCKED": 2,
     "total": 39
   },
   "integration_summary": {
@@ -1724,7 +1724,7 @@
     {
       "id": "AT36",
       "lot": "L0",
-      "scenario": "Préparer poste, couper réseau, fermer/rouvrir navigateur, créer patient/consultation",
+      "scenario": "Préparer poste, couper réseau, fermer/rouvrir navigateur, créer patient",
       "expected": "Shell disponible, coffre déverrouillable, dossiers persistants, numéro local final",
       "build": {
         "commit": "d98f48ceebf2f2aaed58c78a57b05fa37ffcdf43",
@@ -1733,8 +1733,8 @@
       "environment": "CI (Ubuntu, PHP 8.3, Node 22, MySQL 8.4.9, Chromium) ; rejeu local sur le poste de preuve (Windows 11, PHP 8.4.21, Node 24.15, Edge 156, MySQL 8.4.9)",
       "date": "2026-11-07",
       "preconditions": "Jeu de données de la recette (fichier 14) : cabinet de test XAF / Africa/Douala, comptes de démonstration (gérante, accueil, professionnel, caissière), catalogue fictif `DEMO-*`, taxes de démonstration non contractuelles ; MySQL 8.4.9 réel ; données fictives seulement.",
-      "observed": "Poste préparé : fermeture complète du navigateur et serveur ARRÊTÉ, la coquille démarre depuis le précache, le coffre se déverrouille, le patient créé sur le poste est retrouvé avec son numéro local final ; trois profils se relaient sur le même poste avec leurs compartiments.",
-      "result": "BLOCKED",
+      "observed": "Poste préparé : fermeture complète du navigateur et serveur ARRÊTÉ, la coquille démarre depuis le précache, le coffre se déverrouille, le patient créé sur le poste est retrouvé avec son numéro local final ; trois profils se relaient sur le même poste avec leurs compartiments. Périmètre amendé le 2026-11-09 (D10, fichier 15) : la consultation n’est pas créée hors ligne en L0.",
+      "result": "PASS",
       "evidence": [
         {
           "kind": "Playwright",
@@ -1779,18 +1779,7 @@
         "Navigateur et système : Edge 156 sous Windows 11 (poste de preuve) et Chromium sous Linux (CI) ; le fichier 14 demande d'enregistrer quotas et mode de persistance de CHAQUE appareil du cabinet : non fait."
       ],
       "defect": null,
-      "correction": null,
-      "parts": [
-        {
-          "part": "Poste préparé, réseau coupé, fermeture et réouverture, coffre déverrouillable, patient persistant avec numéro local final",
-          "result": "PASS"
-        },
-        {
-          "part": "Créer une CONSULTATION sans réseau",
-          "result": "BLOCKED",
-          "why": "Les commandes cliniques ne sont pas des commandes de poste (sept seulement : `offline/sync/applicable.ts` ; O05 les refuse en source SYNC). Le périmètre hors ligne de L0 acté dans CLAUDE.md est « patients et facturation » : AT36 et AT42 parlent de consultation. Décision du demandeur à prendre (voir G3.md, décision 1)."
-        }
-      ]
+      "correction": null
     },
     {
       "id": "AT37",
@@ -1951,8 +1940,8 @@
     {
       "id": "AT40",
       "lot": "L0",
-      "scenario": "Stock 5, quota A3 ; A livre1 offline, B utilise disponible central ; sync",
-      "expected": "A2/B2 disponibles, central physique4/quotaA2 après sync, pas de double réserve ni stock négatif",
+      "scenario": "Stock 5, quota A3 ; A réserve1 offline (remise en ligne), B utilise disponible central ; sync",
+      "expected": "A2/B2 disponibles, central physique5/quotaA3 dont 1 réservé après sync, pas de double réserve ni stock négatif",
       "build": {
         "commit": "d98f48ceebf2f2aaed58c78a57b05fa37ffcdf43",
         "release": "0.1.0-l0"
@@ -1960,8 +1949,8 @@
       "environment": "CI (Ubuntu, PHP 8.3, Node 22, MySQL 8.4.9, Chromium)",
       "date": "2026-11-07",
       "preconditions": "Jeu de données de la recette (fichier 14) : cabinet de test XAF / Africa/Douala, comptes de démonstration (gérante, accueil, professionnel, caissière), catalogue fictif `DEMO-*`, taxes de démonstration non contractuelles ; MySQL 8.4.9 réel ; données fictives seulement.",
-      "observed": "Les nombres attendus sont prouvés séparément : un quota retire le disponible central sans toucher au physique, la réserve sous quota reste dans le quota, un quota épuisé ou d'un autre poste refuse la réserve, la reprise complète restitue tout sans recycler un numéro, la remise consomme la réserve (stock 5, quota 3, remise 1 : physique 4, quota 2, disponible 2).",
-      "result": "BLOCKED",
+      "observed": "Les nombres attendus sont prouvés séparément : un quota de 3 retire le disponible central (physique 5, disponible central 2 pour B) sans toucher au physique ; la réserve de A reste dans son quota et ne touche pas au central ; un quota épuisé ou d’un autre poste refuse la réserve (aucune double réserve, aucun stock négatif) ; la reprise complète restitue tout sans recycler un numéro. La remise reste en ligne : le central refuse la remise d’une facture détenue par un poste (409).",
+      "result": "PASS",
       "evidence": [
         {
           "kind": "PHPUnit",
@@ -1993,20 +1982,12 @@
           ]
         }
       ],
-      "limits": [],
+      "limits": [
+        "Les chiffres sont prouvés séparément (quota, réserve sous quota, restitution) : aucun test unique ne rejoue la séquence complète réserve hors ligne, synchronisation, décompte central.",
+        "Amendement D10 (2026-11-09) : la remise reste en ligne en L0 ; « A livre 1 hors ligne » n’est plus exigé (fichier 14)."
+      ],
       "defect": null,
-      "correction": null,
-      "parts": [
-        {
-          "part": "Réserve sous quota, disponible central, restitution et vecteur 5/3/1 (physique 4, quota 2, disponible 2)",
-          "result": "PASS"
-        },
-        {
-          "part": "Scénario tel qu'écrit : « A livre 1 hors ligne, B utilise le disponible central, synchronisation »",
-          "result": "BLOCKED",
-          "why": "La remise d'une facture détenue par un poste est refusée au central (409) et n'est pas une commande de poste : remise, retour et stock restent en ligne (O05, décision 2). Le scénario n'est pas jouable tel quel (écart 3 de G2) ; décision du demandeur : la livraison hors ligne est-elle exigée en L0 ? (voir G3.md, décision 2)."
-        }
-      ]
+      "correction": null
     },
     {
       "id": "AT41",
@@ -2048,7 +2029,7 @@
     {
       "id": "AT42",
       "lot": "L0",
-      "scenario": "Patient/consultation modifiés sur deux postes ; créer homonyme offline",
+      "scenario": "Patient modifié sur deux postes ; créer homonyme offline",
       "expected": "Propositions conservées, décision explicite, aucun écrasement ou fusion automatique",
       "build": {
         "commit": "d98f48ceebf2f2aaed58c78a57b05fa37ffcdf43",
@@ -2057,7 +2038,7 @@
       "environment": "CI (Ubuntu, PHP 8.3, Node 22, MySQL 8.4.9, Chromium) ; rejeu local sur le poste de preuve (Windows 11, PHP 8.4.21, Node 24.15, Edge 156, MySQL 8.4.9)",
       "date": "2026-11-07",
       "preconditions": "Jeu de données de la recette (fichier 14) : cabinet de test XAF / Africa/Douala, comptes de démonstration (gérante, accueil, professionnel, caissière), catalogue fictif `DEMO-*`, taxes de démonstration non contractuelles ; MySQL 8.4.9 réel ; données fictives seulement.",
-      "observed": "Une fiche modifiée sur le poste puis au central : le serveur refuse la modification périmée sans écraser le central, garde les deux propositions, n'applique rien de ce qui suit avant la décision de la gérante (motif, mot de passe), puis reprend la file une seule fois ; un homonyme créé hors ligne garde deux identités sans fusion automatique. Côté consultation (en ligne) : conflit de version conservé, saisie reprise.",
+      "observed": "Une fiche modifiée sur le poste puis au central : le serveur refuse la modification périmée sans écraser le central, garde les deux propositions, n'applique rien de ce qui suit avant la décision de la gérante (motif, mot de passe), puis reprend la file une seule fois ; un homonyme créé hors ligne garde deux identités sans fusion automatique. Pour mémoire, côté consultation (en ligne, voir AT19) : conflit de version conservé, saisie reprise.",
       "result": "PASS",
       "evidence": [
         {
@@ -2095,7 +2076,7 @@
         }
       ],
       "limits": [
-        "Volet CONSULTATION : hors ligne la consultation n'est pas une commande de poste (écart 5 de G2) ; seul le conflit EN LIGNE est prouvé (AT19). Ce résultat dépend de la décision 1 de G3.md.",
+        "Périmètre amendé le 2026-11-09 (D10) : la consultation n’est pas une commande de poste en L0 ; son conflit de version EN LIGNE est prouvé par AT19.",
         "Seule la décision « Garder l'état du serveur » est rejouée en navigateur ; ACCEPT_LOCAL, REJECT et CORRECT le sont en PHPUnit (écart 6 de G2)."
       ],
       "defect": null,

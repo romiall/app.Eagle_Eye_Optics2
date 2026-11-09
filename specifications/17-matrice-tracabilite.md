@@ -16,7 +16,7 @@ PC/CDC/DP/U définis au fichier 00. `§` = section de l’original ; `P` = parag
 | EE010 | Médicaments, forme, dosage, posologie, fréquence, durée | DP §9 P044–046 ; CDC §4 P030 | L0 | 02,07,11 | AT20 |
 | EE011 | Conclusion et orientation avec motif/niveau | DP §10 P048–051 | L0 | 02,07 | AT20 |
 | EE012 | Contrôle, date calculée, canaux et anticipation | DP §11 P053–057 ; CDC §§4/7 | L0 interne/L2 envoi | 02,10 | AT22 AT23 AT34 |
-| EE013 | États de consultation, étapes et sauvegarde | DP §§14/18 P065 P081–082 | L0 | 02,04,06 | AT18 AT19 AT36 |
+| EE013 | États de consultation, étapes et sauvegarde | DP §§14/18 P065 P081–082 | L0 | 02,04,06 | AT18 AT19 |
 | EE014 | Impression/export PDF et boutons du dossier | DP §§8/13 P042 P063 P085 ; PC §3 P051 | L0 | 04,11 | AT20 AT28 AT37 |
 | EE015 | Dashboard patient et statistiques filtrées | DP §§1/15 P005 P067–069 | L0 tableaux/L1 approfondissement | 02,04 | AT25 AT29 |
 | EE016 | Rôles séparés et accès médicaux restreints | CDC §2 table 1 ; DP §17 P079 | L0 | 09 | AT01 AT02 AT43 |
@@ -45,7 +45,7 @@ PC/CDC/DP/U définis au fichier 00. `§` = section de l’original ; `P` = parag
 | EE039 | Vitrine/showroom, réservation, WhatsApp, contenu | PC §3 module 4 P059–062 table 11 ; U site existant | L3 | 02,10 | AT33 AT35 |
 | EE040 | Domaine/hébergement/HTTPS/emails/sauvegarde/restauration | PC §3 P054–058 ; DP §17 P076–077 ; CDC §10 P076 | L0 socle/L3 emails | 09,12 | AT27 AT44 |
 | EE041 | Propriété/restauration/export et changement prestataire | PC §6 P079 ; CDC §11 P083 | L0 export puis complet | 09,12 | AT26 AT27 |
-| EE042 | Hors-ligne avec reprise automatique dès livraison urgente | CDC §10 P074 ; U confirmation explicite | L0 obligatoire | 05,07,19 | AT36–AT45 |
+| EE042 | Hors-ligne avec reprise automatique dès livraison urgente | CDC §10 P074 ; U confirmation explicite ; D10 (hors-ligne L0 : patients et facturation) | L0 obligatoire | 05,07,19 | AT36–AT45 |
 | EE043 | Formation vidéo, garantie, coût/jalons/support | PC §§4–6 P065 P067–079 ; CDC §11 P082 P084–085 | L0 prise en main/L3 final | 00,12,13,15 | AT29 + PV livrables L3 |
 | EE044 | Ergonomie française responsive, intuitivité et parcours | U ; CDC §10 P073 P075 ; DP P081–085 | L0 tous écrans | 04,11 | AT28 AT29 |
 | EE045 | Intégrité et cohérence patients/ventes/stock sans ressaisie | CDC §1 P013 ; règles CDC §§5–6 ; U | L0 tous flux | 03,05,08,19 | AT10–AT17 AT38–AT42 |

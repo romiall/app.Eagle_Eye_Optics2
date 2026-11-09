@@ -15,6 +15,7 @@ Ce registre rend les choix explicites pour Claude. Il ne faut pas transformer un
 | D07 | Conserver Kommo/Google dans périmètre global, pas de remplacement déduit de Gemini | PC + consigne U sur les sources |
 | D08 | Définir immédiatement toute l’application, générer MCD, MLD et SQL complets ; priorité urgente seulement dans planification | Précision U du 14 octobre 2026 |
 | D09 | Rédiger un plan détaillé d’exécution pour Claude, cohérent avec le socle entier et évitant les décisions répétées pendant codage | Demande U du 14 octobre 2026 |
+| D10 | Le hors-ligne de L0 couvre l’enregistrement des patients et la facturation (précise D06) ; la consultation et la remise de stock restent en ligne en L0, à rouvrir dans un lot ultérieur si le cabinet en a besoin ; AT36, AT40 et AT42 amendés | Réponse U du 9 novembre 2026 (« Oui, amender ») |
 
 ## Choix de conception proposés
 
@@ -64,3 +65,9 @@ Q01/Q02/Q03/Q04/Q14 peuvent bloquer une mise en production fiable, pas la créat
 ## Traçabilité des évolutions
 
 Nouvelle décision : date, auteur, source, motif, exigence/ticket affecté et impacts sur coût/date. Modifier les fichiers concernés ensemble, pas seulement le prompt Claude. Aucun changement implicite du hors-ligne, de la confidentialité ou des pièces financières pour tenir une date.
+
+### Évolutions enregistrées
+
+| Date | Auteur | Source | Motif | Exigences et tickets touchés | Impact coût et date |
+| --- | --- | --- | --- | --- | --- |
+| 2026-11-09 | Demandeur (décision), agent de développement (rédaction) | Réponse « Oui, amender » à la question « Pour L0, le hors ligne reste-t-il limité aux patients et à la facturation ? », posée après la recette G3 (`docs/evidence/G3.md`, décisions 1 et 2) | D06 ne promet le hors-ligne que pour l’enregistrement et la facturation ; la consultation et la remise de stock ne sont pas des commandes de poste (O05) | D10 ; EE013, EE042 ; AT36, AT40, AT42 (fichier 14) ; fichier 19 ; G3 | Aucun coût ni délai ajouté : rien n’est construit ; la consultation et la remise hors-ligne restent à planifier si le cabinet les demande |

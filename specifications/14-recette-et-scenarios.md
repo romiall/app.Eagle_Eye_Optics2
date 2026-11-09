@@ -57,18 +57,18 @@ Préparer deux contextes de navigateurs/postes et deux onglets du même poste. T
 
 | ID | Exécution | Résultat attendu |
 | --- | --- | --- |
-| AT36 | Préparer poste, couper réseau, fermer/rouvrir navigateur, créer patient/consultation | Shell disponible, coffre déverrouillable, dossiers persistants, numéro local final |
+| AT36 | Préparer poste, couper réseau, fermer/rouvrir navigateur, créer patient | Shell disponible, coffre déverrouillable, dossiers persistants, numéro local final |
 | AT37 | Sans réseau : facture 80 000, acompte 30 000/reçu, solde 50 000/reçu, PDF/impression | Pièces réelles commitées localement, numéros pré-alloués, restes exacts et PDF disponible sans CDN |
 | AT38 | Couper après envoi sync avant réception ACK ; reconnecter/rejouer plusieurs fois | Une seule facture et chaque paiement une seule fois, aucun renumérotage ; commandes gardées avant ACK |
 | AT39 | Même solde ouvert sur autre poste ; essayer encaissement hors-ligne et transfert | Poste non propriétaire bloque ; transfert exige reprise/fermeture préalable ; aucune libération à simple expiration |
-| AT40 | Stock 5, quota A3 ; A livre1 offline, B utilise disponible central ; sync | A2/B2 disponibles, central physique4/quotaA2 après sync, pas de double réserve ni stock négatif |
+| AT40 | Stock 5, quota A3 ; A réserve1 offline (remise en ligne), B utilise disponible central ; sync | A2/B2 disponibles, central physique5/quotaA3 dont 1 réservé après sync, pas de double réserve ni stock négatif |
 | AT41 | Deux onglets consomment numéro/paiement, puis panne locale au milieu | Transaction tout ou rien, numéros uniques, au plus un paiement par clé ; pas de pièce annoncée avant commit |
-| AT42 | Patient/consultation modifiés sur deux postes ; créer homonyme offline | Propositions conservées, décision explicite, aucun écrasement ou fusion automatique |
+| AT42 | Patient modifié sur deux postes ; créer homonyme offline | Propositions conservées, décision explicite, aucun écrasement ou fusion automatique |
 | AT43 | Plage épuisée/autorisation expirée/date arrière/rôle non autorisé | Blocage expliqué des nouvelles opérations sensibles, pièces existantes conservées et exportables |
 | AT44 | Export chiffré local, simuler perte du poste, restaurer neuf puis sync | Mêmes pièces/IDs, pas de nouveau reçu pour reprendre un reçu ancien ; récupération testée |
 | AT45 | Mise à jour PWA avec pièces pendantes, profil verrouillé et dashboard distant | Aucune purge ; version ancienne reprise ; pas de plaintext visible ; totaux distants marqués incomplets |
 
-Pour AT36–45, enregistrer navigateur/version, système, quotas, mode de persistance, captures et montants avant/après sync. Aucun succès dans un seul navigateur de développement ne valide tous les appareils du cabinet.
+Pour AT36–45, enregistrer navigateur/version, système, quotas, mode de persistance, captures et montants avant/après sync. Aucun succès dans un seul navigateur de développement ne valide tous les appareils du cabinet. Amendement D10 (9 novembre 2026) : en L0 le hors-ligne couvre l’enregistrement des patients et la facturation ; AT36, AT40 et AT42 ne visent donc ni la consultation ni la remise hors-ligne (fichier 15).
 
 ## Critères de mise en service
 

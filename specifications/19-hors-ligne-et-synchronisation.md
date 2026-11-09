@@ -55,7 +55,7 @@ Le serveur transfère à la caisse hors-ligne un quota réservé par article/emp
 
 Disponible central = physique − réservations centrales − quotas locaux encore non consommés/rapatriés. Disponible local = quota alloué − sorties locales − réservations locales actives. Une réservation locale puis une remise locale ne consomment pas deux fois le quota. Une réservation synchronisée sous quota reste rattachée à ce quota, exclue des réservations centrales libres ; ne pas la soustraire deux fois. Une sortie synchronisée diminue physique et quota résiduel dans la même transaction.
 
-Exemple : physique 5, quota A 3 → disponible central 2, local 3. A remet 1 hors-ligne → disponible local 2 ; après sync physique central 4, quota A 2, disponible central 2. Pas de survente par le poste B. Une sortie/annulation serveur ne peut toucher des unités sous quota local sans transfert/restitution confirmée.
+Exemple : physique 5, quota A 3 → disponible central 2, local 3. A remet 1 hors-ligne → disponible local 2 ; après sync physique central 4, quota A 2, disponible central 2. Pas de survente par le poste B. Une sortie/annulation serveur ne peut toucher des unités sous quota local sans transfert/restitution confirmée. **L0 (D10, 9 novembre 2026) : la remise reste en ligne** ; l’exemple ci-dessus vaut pour le lot qui ouvrira la remise hors-ligne. En L0, A réserve 1 hors-ligne : disponible local 2 ; après sync physique central 5, quota A 3 dont 1 réservé, disponible central 2.
 
 Un lot expire aussi hors-ligne et reste bloqué à la date locale ; contrôles d’horloge du poste et alerte de date incohérente. Une réception/adjustement hors-ligne exige gérante autorisée présente et affecte uniquement les ressources de ce poste ; les fonctions fournisseurs avancées peuvent attendre L1. Aucun droit de stock disponible n’autorise une remise sans facture ou mouvement justifié.
 
@@ -94,7 +94,7 @@ Le client synchronise quand ouvert, à reconnexion détectée, à l’ouverture 
 
 Patient créé deux fois pendant coupure : conserver deux identités, signaler le doublon probable, fusionner seulement après revue gérante et préserver numéros/références de pièces. Une facture émise conserve son snapshot même après rattachement d’un dossier fusionné.
 
-Identité/consultation modifiée sur plusieurs postes : ne jamais appliquer dernier écrit gagne sur clinique. Garder version de base et propositions locales en conflit ; professionnel compare et choisit/crée une correction versionnée. Les consultations distinctes du même patient peuvent se synchroniser indépendamment.
+Identité/consultation modifiée sur plusieurs postes : ne jamais appliquer dernier écrit gagne sur clinique. Garder version de base et propositions locales en conflit ; professionnel compare et choisit/crée une correction versionnée. Les consultations distinctes du même patient peuvent se synchroniser indépendamment. **L0 (D10) : la consultation n’est pas une commande de poste** ; ce principe vaut pour le lot qui l’ouvrira hors-ligne, la fiche patient restant couverte dès L0.
 
 RDV pris hors-ligne : affiché « créneau à confirmer », car les autres calendriers sont inconnus. La recommandation de contrôle et sa date sont sauvegardées, mais la confirmation globale attend validation serveur/Google. Une réservation conflictuelle revient en proposition avec options, sans faux message de confirmation.
 
