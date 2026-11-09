@@ -50,7 +50,7 @@ ssh -t eagleseye 'EEO_RESTORE_DB_USERNAME=<utilisateur de la base jetable> bash 
 Avec un utilisateur propre, le script retire les `DEFINER` du dump (les déclencheurs et les vues sont recréés au nom de cet utilisateur : sans cela le serveur refuse le chargement, erreur 1227). Supprimer ensuite la base jetable ET son utilisateur dans le panneau : elle contient une copie des données de production.
 
 Le script refuse la base de l'application, vérifie les empreintes, déchiffre, restaure, compare le schéma
-(`eagle:verify-schema`) et lance `eeo:restore:verify`. Lire chaque ligne :
+(`eagle:verify-schema`, MySQL 8 seulement : sur MariaDB le script compte les tables, vues et déclencheurs restaurés et les rapproche de la baseline) et lance `eeo:restore:verify`. Lire chaque ligne :
 
 | Contrôle | Attendu | Si non |
 | --- | --- | --- |

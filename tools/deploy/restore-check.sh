@@ -64,6 +64,10 @@ if [[ ! "$TARGET_DB" =~ ^[A-Za-z0-9_]+_(restore|rest|test)$ ]]; then
   exit 2
 fi
 
+case "${EEO_RESTORE_SCHEMA_CHECK:-auto}" in
+  auto | baseline | counts) ;;
+  *) echo "EEO_RESTORE_SCHEMA_CHECK doit valoir auto, baseline ou counts." >&2; exit 2 ;;
+esac
 echo "Empreintes de la sauvegarde…"
 (cd "$BACKUP" && sha256sum -c SHA256SUMS)
 
@@ -82,6 +86,7 @@ DB_USERNAME="${RESTORE_USER:-$(env_value DB_USERNAME)}"
 DB_PASSWORD="${RESTORE_PASSWORD:-$(env_value DB_PASSWORD)}"
 # Début de la mesure de durée : APRÈS la saisie du mot de passe (le temps de frappe n'entre pas dans la durée constatée).
 STARTED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+SECONDS=0
 
 OPTIONS="$(mktemp)"
 FILES_DIR="$(mktemp -d)"
@@ -115,6 +120,7 @@ strip_definers() {
   fi
 }
 read_part "$DUMP" | gzip -dc | strip_definers | mysql --defaults-extra-file="$OPTIONS" --default-character-set=utf8mb4 "$TARGET_DB"
+echo "  base chargée : ${SECONDS} s depuis le début de la mesure"
 
 ARCHIVE="${BACKUP}/storage-app.tar.gz"; [[ -f "${ARCHIVE}.enc" ]] && ARCHIVE="${ARCHIVE}.enc"
 if [[ -f "$ARCHIVE" ]]; then
@@ -122,10 +128,35 @@ if [[ -f "$ARCHIVE" ]]; then
   read_part "$ARCHIVE" | tar -xzf - -C "$FILES_DIR"
 fi
 
-echo "Vérification du schéma (baseline complète)…"
-# Configuration relue sans le cache de production, base cible substituée : la base de l'application n'est pas lue.
-(cd "$APP" && APP_CONFIG_CACHE="$(mktemp -u)" DB_DATABASE="$TARGET_DB" DB_USERNAME="$DB_USERNAME" DB_PASSWORD="$DB_PASSWORD" \
-  php artisan eagle:verify-schema)
+# Comparaison à la baseline : `eagle:verify-schema` lit des colonnes d'information_schema propres à MySQL 8 (srs_id, is_visible, expression) et
+# échoue sur MariaDB (Hostinger : erreur 1054, constatée le 2026-11-09). Sur MariaDB, on compte les objets restaurés et on les rapproche de la baseline
+# (les 117 tables métier sont contrôlées par eeo:restore:verify, SCHEMA_TABLES). EEO_RESTORE_SCHEMA_CHECK : auto (défaut), baseline ou counts.
+SERVER_VERSION="$(mysql --defaults-extra-file="$OPTIONS" -N -B -e 'SELECT VERSION()')"
+case "${EEO_RESTORE_SCHEMA_CHECK:-auto}" in
+  baseline) SCHEMA_MODE=baseline ;;
+  counts) SCHEMA_MODE=counts ;;
+  auto) if [[ "$SERVER_VERSION" == *MariaDB* ]]; then SCHEMA_MODE=counts; else SCHEMA_MODE=baseline; fi ;;
+  *) echo "EEO_RESTORE_SCHEMA_CHECK doit valoir auto, baseline ou counts." >&2; exit 2 ;;
+esac
+if [[ "$SCHEMA_MODE" == "baseline" ]]; then
+  echo "Vérification du schéma (baseline complète)…"
+  # Configuration relue sans le cache de production, base cible substituée : la base de l'application n'est pas lue.
+  (cd "$APP" && APP_CONFIG_CACHE="$(mktemp -u)" DB_DATABASE="$TARGET_DB" DB_USERNAME="$DB_USERNAME" DB_PASSWORD="$DB_PASSWORD" \
+    php artisan eagle:verify-schema)
+else
+  echo "Vérification du schéma : comparaison à la baseline MySQL 8 non faite sur ${SERVER_VERSION} ; objets restaurés rapprochés de la baseline :"
+  EXPECTED="$(cd "$APP" && "${EEO_PHP_BIN:-php}" -r '$s = json_decode(file_get_contents("database/baseline/metadata.json"), true)["snapshot"]; echo count($s["tables"]), " ", count($s["views"]), " ", count($s["triggers"]);' 2>/dev/null || true)"
+  read -r EXPECTED_TABLES EXPECTED_VIEWS EXPECTED_TRIGGERS <<< "${EXPECTED:-? ? ?}"
+  FOUND="$(mysql --defaults-extra-file="$OPTIONS" -N -B -e "SELECT (SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = '${TARGET_DB}' AND table_type = 'BASE TABLE'), (SELECT COUNT(*) FROM information_schema.views WHERE table_schema = '${TARGET_DB}'), (SELECT COUNT(*) FROM information_schema.triggers WHERE trigger_schema = '${TARGET_DB}')")"
+  read -r FOUND_TABLES FOUND_VIEWS FOUND_TRIGGERS <<< "$FOUND"
+  printf '  %-14s %-9s %s\n' "objets" "restaurés" "baseline"
+  printf '  %-14s %-9s %s\n' "tables" "$FOUND_TABLES" "${EXPECTED_TABLES} métier + les tables techniques du framework"
+  printf '  %-14s %-9s %s\n' "vues" "$FOUND_VIEWS" "$EXPECTED_VIEWS"
+  printf '  %-14s %-9s %s\n' "déclencheurs" "$FOUND_TRIGGERS" "$EXPECTED_TRIGGERS"
+  if [[ "$EXPECTED_VIEWS" != "?" && ( "$FOUND_VIEWS" != "$EXPECTED_VIEWS" || "$FOUND_TRIGGERS" != "$EXPECTED_TRIGGERS" ) ]]; then
+    echo "  ÉCART : vues ou déclencheurs différents de la baseline." >&2
+  fi
+fi
 
 echo "Comptes de quelques tables restaurées :"
 for table in clinics users patient_records visits consultations invoices payments receipts audit_events; do

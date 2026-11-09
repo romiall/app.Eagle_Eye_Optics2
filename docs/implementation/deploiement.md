@@ -179,7 +179,7 @@ Puis :
 chmod 600 .env
 php artisan eeo:preflight                 # doit conclure « Aucun point bloquant »
 php artisan migrate --force               # crée les tables, les vues et les triggers (≈ 40 s à 3 minutes)
-php artisan eagle:verify-schema           # « Schéma équivalent à la baseline : aucun écart »
+php artisan eagle:verify-schema           # « Schéma équivalent à la baseline : aucun écart » (MySQL 8 seulement : échoue sur MariaDB, voir plus bas)
 php artisan eeo:setup-clinic --clinic-name "EAGLE'S EYE OPTICS MEDICAL" --manager-name "<Nom de la gérante>" --login <identifiant>
                                           # demande le mot de passe (12 caractères minimum) ; aucun mot de passe par défaut
 php artisan config:cache && php artisan route:cache && php artisan view:cache
@@ -297,7 +297,7 @@ la racine web, avec ses empreintes ; les sauvegardes plus anciennes que `EEO_BAC
    Le script refuse la base de l'application, vérifie les empreintes, déchiffre, restaure, compare le schéma à la
    baseline (`eagle:verify-schema`), puis lance `php artisan eeo:restore:verify` : diagnostics d'intégrité, séquences
    jamais remises à zéro, pièces numérotées, empreintes d'audit, fichiers privés restaurés, postes à synchroniser,
-   reçus perdus par rapport à la base vivante et durée constatée. Consigner l'exercice dans `restore_tests`
+   reçus perdus par rapport à la base vivante et durée constatée. **MariaDB (Hostinger)** : `eagle:verify-schema` ne lit que MySQL 8 (colonnes `srs_id`, `is_visible`, `expression` d'`information_schema`) et échoue sur MariaDB (erreur 1054, constatée le 2026-11-09, aussi sur la base de production) ; le script compte alors les tables, vues et déclencheurs restaurés et les rapproche de la baseline, et `eeo:preflight` contrôle les CHECK et les déclencheurs de l'hébergement. Consigner l'exercice dans `restore_tests`
    (`eeo:restore:verify <base>_restore --files=… --backup-run=<id> --tested-by=<identifiant> --record`), noter le
    résultat dans `docs/evidence/restore-rehearsal.md`, puis supprimer la base jetable. Procédure complète en cas de
    perte du serveur : `docs/runbooks/server-restore.md`.
