@@ -2,6 +2,8 @@
 *.sql -text
 *.json -text
 *.log -text
+# Références « golden » des documents : comparées octet par octet (render-demo.test.ts), donc LF partout, même sous Windows.
+tests/fixtures/document-snapshots/*.txt -text
 *.zip binary
 
 # Application Laravel / frontend
