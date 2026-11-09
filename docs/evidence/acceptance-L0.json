@@ -129,8 +129,8 @@
     ]
   },
   "summary": {
-    "PASS": 37,
-    "BLOCKED": 2,
+    "PASS": 38,
+    "BLOCKED": 1,
     "total": 39
   },
   "integration_summary": {
@@ -1575,11 +1575,11 @@
         "commit": "d98f48ceebf2f2aaed58c78a57b05fa37ffcdf43",
         "release": "0.1.0-l0"
       },
-      "environment": "CI (Ubuntu, PHP 8.3, Node 22, MySQL 8.4.9, Chromium)",
-      "date": "2026-11-07",
+      "environment": "CI (Ubuntu, PHP 8.3, Node 22, MySQL 8.4.9, Chromium) ; exercice sur l'hébergement du 2026-11-09 : Hostinger (MariaDB 11.8.9, PHP 8.3.36), release 3f15ac4, restore-check.sh du commit 4c27f26",
+      "date": "2026-11-09",
       "preconditions": "Jeu de données de la recette (fichier 14) : cabinet de test XAF / Africa/Douala, comptes de démonstration (gérante, accueil, professionnel, caissière), catalogue fictif `DEMO-*`, taxes de démonstration non contractuelles ; MySQL 8.4.9 réel ; données fictives seulement.",
-      "observed": "La base restaurée est vérifiée sur une base jetable (7 contrôles : catalogue des 117 tables, diagnostics d'intégrité, séquences, pièces numérotées, empreintes d'audit, fichiers privés, postes à synchroniser) : une base cohérente passe et rend le dernier reçu, une remise à zéro des séquences, une empreinte fausse ou un fichier manquant sont détectés. Répétition locale du 2026-10-24 sur l'archive de livraison réelle : 0 reçu et 0 facture émise absents, moins d'une minute sur un volume fictif.",
-      "result": "BLOCKED",
+      "observed": "La base restaurée est vérifiée sur une base jetable (7 contrôles : catalogue des 117 tables, diagnostics d'intégrité, séquences, pièces numérotées, empreintes d'audit, fichiers privés, postes à synchroniser) : une base cohérente passe et rend le dernier reçu, une remise à zéro des séquences, une empreinte fausse ou un fichier manquant sont détectés. Répétition locale du 2026-10-24 sur l'archive de livraison réelle : 0 reçu et 0 facture émise absents, moins d'une minute sur un volume fictif. Exercice sur l'hébergement, le 2026-11-09 : la sauvegarde `eeo-backup-20261109T150350Z` est restaurée dans une base jetable à utilisateur propre ; empreintes de la sauvegarde bonnes, base chargée en 3 s, 7 contrôles PASS (117 tables du catalogue, diagnostics d'intégrité, séquences, pièces numérotées, 35 empreintes d'audit recalculées, fichiers privés, postes à synchroniser), 124 tables, 10 vues et 88 déclencheurs restaurés comme la baseline, 0 reçu et 0 facture émise absents, durée constatée inférieure à une minute.",
+      "result": "PASS",
       "evidence": [
         {
           "kind": "PHPUnit",
@@ -1603,21 +1603,13 @@
         }
       ],
       "limits": [
-        "À lancer avec l'accord du demandeur (il touche l'hébergement de production : sauvegarde lue, restauration dans une base jetable à côté)."
+        "Volume minimal sur l'hébergement (1 cabinet, 1 fiche patient, 2 visites, 2 consultations, 35 événements d'audit, aucune facture ni aucun reçu) : la durée n'a aucune valeur pour le RTO réel et les pièces numérotées ne sont exercées que par PHPUnit et la répétition locale.",
+        "Aucune sauvegarde planifiée sur le serveur (les sauvegardes datent des déploiements) : le RPO proposé (24 h au plus) n'est pas garanti ; copie hors serveur non vérifiée ; ligne restore_tests non consignée.",
+        "La comparaison à la baseline (eagle:verify-schema) ne lit que MySQL 8 : sur MariaDB, les objets restaurés sont comptés (124 tables, 10 vues, 88 déclencheurs, conformes).",
+        "Exercice mené sur la release 3f15ac4 avec le script du commit 4c27f26, postérieurs au candidat d98f48c (correctif de la page Agenda et outil de restauration ; aucune migration)."
       ],
       "defect": null,
-      "correction": null,
-      "parts": [
-        {
-          "part": "Restauration vérifiée sur base jetable (pièces, historique, hash, séquences, soldes, dernier reçu)",
-          "result": "PASS"
-        },
-        {
-          "part": "Durée (RTO) et perte (RPO) CONSTATÉES sur l'hébergement cible",
-          "result": "BLOCKED",
-          "why": "L'exercice sur l'hébergement n'a pas été exécuté (`docs/evidence/restore-rehearsal.md`, tableau « Exercice » à compléter, ligne `restore_tests` absente) ; la durée de la répétition locale (volume fictif minime) n'a aucune valeur pour le RTO réel."
-        }
-      ]
+      "correction": null
     },
     {
       "id": "AT28",

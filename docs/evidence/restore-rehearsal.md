@@ -1,8 +1,6 @@
 # Exercice de restauration serveur (X03 ; AT27)
 
-**État : exercice sur l'hébergement NON EXÉCUTÉ** (répétition locale faite le 2026-10-24, voir ci-dessous). Ce document est le modèle de preuve à compléter lors de l'exercice sur l'hébergement cible
-(Hostinger, accès SSH), puis chaque mois. Aucune valeur ci-dessous n'est constatée tant qu'une ligne `restore_tests`
-de statut `PASSED` ne la justifie pas. Procédure : `docs/runbooks/server-restore.md`.
+**État : exercice sur l'hébergement EXÉCUTÉ le 2026-11-09 (Hostinger, MariaDB 11.8.9) : résultat PASS.** Les valeurs du tableau « Exercice » sont CONSTATÉES sur l'hébergement (répétition locale du 2026-10-24 et tentatives du même jour, qui ont corrigé quatre défauts d'outil, plus bas). La ligne `restore_tests` n'a pas été consignée (`--record` écrirait dans la base de production, le demandeur ne l'a pas demandé). À refaire chaque mois. Procédure : `docs/runbooks/server-restore.md`.
 
 **Deuxième tentative du 2026-11-09 (après le déploiement `3f15ac4`) : la restauration est FAITE, la vérification du schéma échoue sur MariaDB.** Sur l'hébergement, avec la base jetable `u720123645_eagleseye_rest` et son utilisateur propre, les empreintes de la sauvegarde `eeo-backup-20261109T150350Z` sont bonnes, le mot de passe est saisi à l'invite, la base est chargée (134 objets : 124 tables et 10 vues, déclencheurs compris : le filtre sur les propriétaires fonctionne) puis `eagle:verify-schema` échoue (erreur 1054, colonne `srs_id` inconnue) : cet outil ne lit que MySQL 8 et Hostinger est sous MariaDB 11.8.9. Le script rapproche désormais les objets restaurés de la baseline sur MariaDB. La base jetable n'est plus vide : la vider avant de rejouer.
 
@@ -40,26 +38,26 @@ dans `restore_tests`, copie hors serveur.
 
 | Élément | Valeur constatée |
 | --- | --- |
-| Date et personne (`--tested-by`) | à compléter |
-| Sauvegarde restaurée (`backup_runs.id`, fin) | à compléter |
-| Clé de chiffrement utilisée (identifiant) et sa copie hors serveur vérifiée | à compléter |
-| Base jetable | `<court>_restore` ou `<court>_rest` (14 caractères au plus après le préfixe sur Hostinger) |
-| Ligne `restore_tests` | à compléter |
-| Durée de restauration constatée (RTO) | à compléter (objectif proposé : 4 h) |
-| Perte constatée (RPO) : reçus / factures émises absents, fenêtre | à compléter (objectif proposé : ≤ 24 h avec sauvegarde quotidienne) |
-| Dernier reçu retrouvé | à compléter |
+| Date et personne (`--tested-by`) | 2026-11-09 ; mot de passe de la base jetable saisi à l'invite par le demandeur dans son terminal ; `--tested-by` non renseigné (pas de `--record`) |
+| Sauvegarde restaurée (`backup_runs.id`, fin) | `eeo-backup-20261109T150350Z`, prise par le déploiement de `3f15ac4` (`backup_runs` SERVER_DATABASE `01M70DCJX5D4B5YRHG482NQQB2`, terminée à 15:03:52Z) |
+| Clé de chiffrement utilisée (identifiant) et sa copie hors serveur vérifiée | clé du serveur `~/.eeo-backup.key` (déchiffrement réussi) ; copie hors serveur NON vérifiée |
+| Base jetable | `u720123645_eagleseye_rest`, vide au départ, avec son utilisateur propre (un utilisateur par base chez Hostinger) ; script `restore-check.sh` du commit `4c27f26`, copié dans le dossier personnel du serveur (hors release) ; base et utilisateur à supprimer dans le panneau après l'exercice (copie des données de production) |
+| Ligne `restore_tests` | non consignée (`--record` non demandé : il écrirait une ligne dans la base de production) |
+| Durée de restauration constatée (RTO) | chargement de la base : 3 s ; durée constatée par `eeo:restore:verify` : moins d'une minute (0 min), sur un volume minimal (1 cabinet, 1 fiche patient, 2 visites, 2 consultations, 35 événements d'audit, aucune facture ni aucun reçu) : sans valeur pour le RTO réel (objectif proposé : 4 h) |
+| Perte constatée (RPO) : reçus / factures émises absents, fenêtre | 0 reçu et 0 facture émise absents de la sauvegarde (la base de production n'en contient aucun) ; fenêtre non applicable. L'objectif proposé (≤ 24 h avec sauvegarde quotidienne) n'est PAS garanti : aucune sauvegarde planifiée n'existe, les huit sauvegardes les plus récentes datent toutes d'un déploiement |
+| Dernier reçu retrouvé | aucun : la production ne contient encore aucun reçu |
 
 ## Contrôles
 
 | Contrôle | Résultat | Écart et décision |
 | --- | --- | --- |
-| SCHEMA_TABLES | à compléter | |
-| INTEGRITY | à compléter | |
-| SEQUENCES | à compléter | |
-| NUMBERED_DOCUMENTS | à compléter | |
-| AUDIT_HASHES | à compléter | |
-| STORED_FILES | à compléter | |
-| OFFLINE_RECONCILIATION | à compléter | |
+| SCHEMA_TABLES | PASS (117 tables du catalogue) | Comparaison complète à la baseline (`eagle:verify-schema`) impossible sur MariaDB : 124 tables, 10 vues et 88 déclencheurs restaurés, comme la baseline |
+| INTEGRITY | PASS (aucune ligne aux diagnostics) | |
+| SEQUENCES | PASS | |
+| NUMBERED_DOCUMENTS | PASS (aucune pièce numérotée à lier) | pièces numérotées non exercées sur cette base : prouvées par PHPUnit et la répétition locale |
+| AUDIT_HASHES | PASS (35 empreintes recalculées à l'identique) | |
+| STORED_FILES | PASS (aucun fichier privé à retrouver) | |
+| OFFLINE_RECONCILIATION | PASS (aucun poste à synchroniser) | |
 
 ## Écarts connus avant l'exercice
 
@@ -67,3 +65,4 @@ dans `restore_tests`, copie hors serveur.
   sur l'offre (décision d'hébergement, fichier 09).
 - La copie hors serveur reste manuelle (`scp`, étape 7 de `docs/implementation/deploiement.md`).
 - La restauration d'un poste hors-ligne (export chiffré local, AT44) relève d'O07, non couverte ici.
+- **Constatés à l'exercice du 2026-11-09** : aucune sauvegarde planifiée n'existe (à créer dans le panneau de l'hébergeur : tâche cron quotidienne de `tools/deploy/backup.sh`) ; copie hors serveur non vérifiée ; `eagle:verify-schema` inutilisable sur MariaDB ; volume de la base trop faible pour un RTO réel ; production sans pièce financière.
