@@ -210,7 +210,7 @@ Depuis le poste (jamais depuis un site tiers), par la personne qui connaît le m
 bash tools/deploy/smoke.sh https://app.eagleeyeoptic.com <identifiant>
 ```
 
-Le script demande le mot de passe à l'invite, sans l'afficher : ne pas le passer sur la ligne de commande (il resterait dans l'historique du shell ; `EEO_SMOKE_PASSWORD` n'est prévu que pour un lancement automatisé, avec `EEO_SMOKE_LOGIN`). L'identifiant est celui choisi à l'étape `eeo:setup-clinic` (`--login`) : un identifiant inconnu, un mot de passe faux ou un compte désactivé donnent la même réponse 422, et le serveur limite à 5 essais par minute et 10 par dix minutes pour un identifiant.
+Le script demande le mot de passe à l'invite, sans l'afficher : ne pas le passer sur la ligne de commande (il resterait dans l'historique du shell ; `EEO_SMOKE_PASSWORD` n'est prévu que pour un lancement automatisé, avec `EEO_SMOKE_LOGIN`). L'identifiant est celui choisi à l'étape `eeo:setup-clinic` (`--login`) : un identifiant inconnu, un mot de passe faux ou un compte désactivé donnent la même réponse 422 (une simple faute de frappe sur le mot de passe suffit : n'en concluez pas que l'identifiant est faux), et le serveur limite à 5 essais par minute et 10 par dix minutes pour un identifiant.
 
 Le contrôle est **en lecture seule**. Il vérifie : `/up`, l'API (404 JSON), les fichiers du build, le service worker,
 que `.env`, `.git`, `composer.json`, `artisan` et les journaux **ne sont pas servis**, la connexion réelle, la lecture
