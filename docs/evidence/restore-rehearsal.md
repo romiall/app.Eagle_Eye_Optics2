@@ -4,7 +4,9 @@
 (Hostinger, accès SSH), puis chaque mois. Aucune valeur ci-dessous n'est constatée tant qu'une ligne `restore_tests`
 de statut `PASSED` ne la justifie pas. Procédure : `docs/runbooks/server-restore.md`.
 
-**Préparation du 2026-11-09 (exercice NON exécuté)** : il attend une base jetable VIDE dont le nom complet se termine par `_restore` (le nom de la base de l'application suivi de `_restore`), créée dans le panneau de l'hébergeur et accessible avec l'utilisateur de base de l'application (le script lit ses identifiants dans le `.env` sans les afficher). Sauvegarde à restaurer : la plus récente (`eeo-backup-20261108T210531Z`, chiffrée, clé `~/.eeo-backup.key`). Commande : `bash ~/eeo/tools/deploy/restore-check.sh ~/eeo-backups/eeo-backup-20261108T210531Z <base>_restore ~/eeo`. Rien n'est consigné dans `restore_tests` (donc rien n'est écrit dans la base de production) sans l'accord du demandeur ; la base jetable se supprime ensuite dans le panneau.
+**Tentative du 2026-11-09 (13 h 53 UTC) : NON aboutie, deux défauts d'outil trouvés et corrigés.** Sur l'hébergement, les quatre empreintes de la sauvegarde `eeo-backup-20261108T210531Z` sont bonnes, puis le serveur refuse à l'utilisateur de l'application l'accès à la base jetable (erreur 1044). Causes : (1) Hostinger limite le nom d'une base à 14 caractères après le préfixe du compte, donc `<base>_restore` (`u720123645_eagleseye_restore`) ne peut pas être créé, et la garde du nom n'acceptait que `_restore` et `_test` ; `_rest` est désormais accepté ; (2) Hostinger crée un utilisateur par base : celui de l'application n'a aucun droit sur la base jetable et `eeo:restore:verify` ignorait `EEO_RESTORE_DB_USERNAME`, pourtant documenté par le script ; la commande lit maintenant les identifiants de la base jetable dans l'environnement du shell. Aucune donnée n'a été restaurée ni modifiée.
+
+**Reprise** : après le déploiement de la correction, lancer l'exercice dans un terminal, le mot de passe de l'utilisateur de la base jetable étant saisi à l'invite par la personne qui mène l'exercice (commande dans `docs/runbooks/server-restore.md`, section 3) ; sauvegarde à restaurer : la plus récente. Rien n'est consigné dans `restore_tests` sans l'accord du demandeur ; la base jetable ET son utilisateur se suppriment ensuite dans le panneau.
 
 Le code est prêt : sauvegarde chiffrée et journal `backup_runs` (`tools/deploy/backup.sh`, `eeo:backup:record`),
 restauration sur base jetable et contrôles (`tools/deploy/restore-check.sh`, `eeo:restore:verify`), tests
@@ -39,7 +41,7 @@ dans `restore_tests`, copie hors serveur.
 | Date et personne (`--tested-by`) | à compléter |
 | Sauvegarde restaurée (`backup_runs.id`, fin) | à compléter |
 | Clé de chiffrement utilisée (identifiant) et sa copie hors serveur vérifiée | à compléter |
-| Base jetable | `<base>_restore` |
+| Base jetable | `<court>_restore` ou `<court>_rest` (14 caractères au plus après le préfixe sur Hostinger) |
 | Ligne `restore_tests` | à compléter |
 | Durée de restauration constatée (RTO) | à compléter (objectif proposé : 4 h) |
 | Perte constatée (RPO) : reçus / factures émises absents, fenêtre | à compléter (objectif proposé : ≤ 24 h avec sauvegarde quotidienne) |

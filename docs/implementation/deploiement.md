@@ -288,7 +288,7 @@ la racine web, avec ses empreintes ; les sauvegardes plus anciennes que `EEO_BAC
    `.env` (mot de passe de la base, clé de l'application) et des données de santé : le garder chiffré (disque ou
    coffre), jamais par courriel ni messagerie.
 4. **Exercice de restauration** avant la mise en service, puis chaque mois : créer dans le panneau une base vide dont
-   le nom finit par `_restore`, puis
+   le nom finit par `_restore`, `_rest` ou `_test` (sur Hostinger : 14 caractères au plus après le préfixe du compte et un utilisateur par base, voir `docs/runbooks/server-restore.md`), puis
 
    ```bash
    bash ~/eeo/tools/deploy/restore-check.sh ~/eeo-backups/eeo-backup-<date> <base>_restore ~/eeo

@@ -117,6 +117,23 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Exercice de restauration (X03)
+    |--------------------------------------------------------------------------
+    |
+    | Identifiants de la base JETABLE quand ce n'est pas l'utilisateur de l'application : sur un hébergement qui
+    | donne un utilisateur par base (Hostinger), celui de l'application n'a aucun droit sur la base jetable.
+    | Lus dans l'ENVIRONNEMENT du shell au lancement (jamais en argument, jamais versionnés) ; `restore-check.sh`
+    | contourne le cache de configuration pour `eeo:restore:verify`, sans quoi ces valeurs seraient figées vides.
+    |
+    */
+
+    'restore' => [
+        'db_username' => (string) env('EEO_RESTORE_DB_USERNAME', ''),
+        'db_password' => (string) env('EEO_RESTORE_DB_PASSWORD', ''),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Documents de production
     |--------------------------------------------------------------------------
     |

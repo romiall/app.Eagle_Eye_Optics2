@@ -41,6 +41,14 @@ plus récent avec `SHA256SUMS` valide). Noter l'heure de fin de cette sauvegarde
 bash ~/eeo/tools/deploy/restore-check.sh ~/eeo-backups/eeo-backup-<date> <base>_restore ~/eeo
 ```
 
+**Nom et utilisateur de la base jetable (Hostinger).** Le nom se termine par `_restore`, `_rest` ou `_test`. Hostinger limite le nom d'une base à 14 caractères après le préfixe du compte (`u…_`) et crée UN utilisateur par base : prendre un nom court (`eagle_restore`, 13 caractères, ou `eagleseye_rest`, 14) ; l'utilisateur de l'application n'a alors aucun droit sur la base jetable. Lancer dans un terminal (le mot de passe de l'utilisateur de la base jetable est demandé à l'invite, sans s'afficher ; il n'est jamais passé en argument ni lu par l'agent) :
+
+```bash
+ssh -t eagleseye 'EEO_RESTORE_DB_USERNAME=<utilisateur de la base jetable> bash ~/eeo/tools/deploy/restore-check.sh ~/eeo-backups/eeo-backup-<date> <base jetable> ~/eeo'
+```
+
+Supprimer ensuite la base jetable ET son utilisateur dans le panneau : elle contient une copie des données de production.
+
 Le script refuse la base de l'application, vérifie les empreintes, déchiffre, restaure, compare le schéma
 (`eagle:verify-schema`) et lance `eeo:restore:verify`. Lire chaque ligne :
 

@@ -14,12 +14,16 @@ use Throwable;
 
 /**
  * Exercice de restauration (X03 ; AT27) : vérifie une base RESTAURÉE dans une base JETABLE (nom terminé par
- * « _restore » ou « _test », jamais la base de l'application), avec les fichiers privés restaurés, puis mesure la
+ * « _restore », « _rest » (hébergeur qui limite le nom d'une base) ou « _test », jamais la base de l'application), avec les fichiers privés restaurés, puis mesure la
  * perte contre la base vivante (derniers reçus, factures, paiements, audit) et, sur demande, consigne l'exercice dans
  * `restore_tests` de la base de l'application, avec la sauvegarde restaurée (`backup_runs`) et la personne qui l'a mené.
  *
  *   php artisan eeo:restore:verify eeo_restore --files=/chemin/restaure/private --started-at=2026-10-23T10:00:00Z
  *   php artisan eeo:restore:verify eeo_restore --files=… --backup-run=<id> --tested-by=<identifiant> --record
+ *
+ * Base jetable à utilisateur propre (hébergeur qui donne UN utilisateur par base, comme Hostinger : celui de l'application
+ * n'a aucun droit sur elle) : ses identifiants viennent de l'ENVIRONNEMENT du shell (EEO_RESTORE_DB_USERNAME et
+ * EEO_RESTORE_DB_PASSWORD, configuration `eeo.restore`), jamais d'un argument.
  *
  * Sortie non nulle si un contrôle échoue. Les plages de numéros et quotas encore ouverts sur des postes sont une
  * ALERTE : ces postes se synchronisent avant toute réouverture des ventes (runbook docs/runbooks/server-restore.md).
@@ -27,7 +31,7 @@ use Throwable;
 final class VerifyRestore extends Command
 {
     protected $signature = 'eeo:restore:verify
-        {database : Base jetable restaurée (nom terminé par _restore ou _test)}
+        {database : Base jetable restaurée (nom terminé par _restore, _rest ou _test)}
         {--files= : Dossier des fichiers privés restaurés (storage/app/private de la sauvegarde)}
         {--started-at= : Début de la restauration, instant ISO 8601 (durée constatée)}
         {--backup-run= : Identifiant de la sauvegarde restaurée (backup_runs), pour consigner l\'exercice}
@@ -49,8 +53,8 @@ final class VerifyRestore extends Command
 
             return self::INVALID;
         }
-        if (preg_match('/^[A-Za-z0-9_]+_(restore|test)$/', $database) !== 1) {
-            $this->error('Refus : le nom de la base jetable doit se terminer par _restore ou _test (reçu '.$database.').');
+        if (preg_match('/^[A-Za-z0-9_]+_(restore|rest|test)$/', $database) !== 1) {
+            $this->error('Refus : le nom de la base jetable doit se terminer par _restore, _rest ou _test (reçu '.$database.').');
 
             return self::INVALID;
         }
@@ -64,9 +68,14 @@ final class VerifyRestore extends Command
             return self::INVALID;
         }
 
+        $restore = (array) config('eeo.restore');
+        $own = (string) ($restore['db_username'] ?? '') !== ''
+            ? ['username' => (string) $restore['db_username'], 'password' => (string) ($restore['db_password'] ?? '')]
+            : [];
         config(['database.connections.'.self::CONNECTION => array_merge(
             (array) config('database.connections.'.$default),
             ['database' => $database],
+            $own,
         )]);
         DB::purge(self::CONNECTION);
 

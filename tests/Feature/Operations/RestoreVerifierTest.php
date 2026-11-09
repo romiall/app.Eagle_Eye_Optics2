@@ -179,6 +179,28 @@ final class RestoreVerifierTest extends TestCase
         $this->assertSame(2, Artisan::call('eeo:restore:verify', ['database' => 'eeo_restore', '--started-at' => 'hier']));
     }
 
+    public function test_le_nom_d_une_base_jetable_accepte_le_suffixe_court_des_hebergeurs_a_noms_limites(): void
+    {
+        // Hostinger limite le nom d'une base à 14 caractères après le préfixe du compte : « eagleseye_rest » tient, « eagleseye_restore » non.
+        $this->assertSame(2, Artisan::call('eeo:restore:verify', ['database' => 'eagleseye_rest', '--started-at' => 'hier']));
+        $this->assertStringNotContainsString('le nom de la base jetable', Artisan::output());
+
+        $this->assertSame(2, Artisan::call('eeo:restore:verify', ['database' => 'eagleseye_rester', '--started-at' => 'hier']));
+        $this->assertStringContainsString('le nom de la base jetable', Artisan::output());
+    }
+
+    public function test_la_base_jetable_se_lit_avec_son_propre_utilisateur_quand_il_est_fourni(): void
+    {
+        // Un utilisateur par base (Hostinger) : celui de l'application n'a aucun droit sur la base jetable. Un utilisateur inconnu
+        // est refusé par le serveur, ce qui prouve que les identifiants fournis remplacent ceux de l'application.
+        config(['eeo.restore.db_username' => 'utilisateur_inconnu_x', 'eeo.restore.db_password' => 'mot-de-passe-factice']);
+
+        $this->assertSame(1, Artisan::call('eeo:restore:verify', ['database' => 'eeo_absente_restore']));
+        $output = Artisan::output(); // la sortie se vide à la lecture : une seule fois
+        $this->assertStringContainsString('Vérification impossible', $output);
+        $this->assertStringContainsString('utilisateur_inconnu_x', $output);
+    }
+
     public function test_une_sauvegarde_sans_cle_est_consignee_non_chiffree(): void
     {
         $this->assertSame(0, Artisan::call('eeo:backup:record', [
