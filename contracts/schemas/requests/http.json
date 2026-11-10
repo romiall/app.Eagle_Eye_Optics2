@@ -2051,6 +2051,142 @@
         }
       }
     },
+    "OpenInventoryCountRequest": {
+      "description": "Ouverture d'un inventaire (L1D02) : un emplacement, théorique figé à l'instant d'ouverture ; un seul inventaire actif par emplacement. Droit stock.inventory.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_version",
+        "location_id",
+        "reference"
+      ],
+      "properties": {
+        "expected_version": {
+          "type": "null"
+        },
+        "location_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "reference": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        }
+      }
+    },
+    "RecordInventoryCountsRequest": {
+      "description": "Quantités comptées d'un inventaire ouvert : zéro admis, null efface le comptage ; le motif de l'écart est facultatif ici, obligatoire à la validation pour tout écart non nul. Aucun stock n'est modifié.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_version",
+        "lines"
+      ],
+      "properties": {
+        "expected_version": {
+          "type": "null"
+        },
+        "lines": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "line_id",
+              "counted_quantity"
+            ],
+            "properties": {
+              "line_id": {
+                "$ref": "../../schemas/common.json#/$defs/Ulid"
+              },
+              "counted_quantity": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "description": "Quantité comptée DECIMAL(12,3), zéro admis (rien trouvé).",
+                    "pattern": "^(0|[1-9][0-9]{0,8})(\\.[0-9]{1,3})?$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "variance_reason": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 0,
+                    "maxLength": 1000
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          },
+          "maxItems": 500
+        }
+      }
+    },
+    "InventoryCountActionRequest": {
+      "description": "Terminer le comptage (toutes les lignes comptées) ou rouvrir un inventaire compté (corps réduit à expected_version null).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_version"
+      ],
+      "properties": {
+        "expected_version": {
+          "type": "null"
+        }
+      }
+    },
+    "AbandonInventoryCountRequest": {
+      "description": "Abandon d'un inventaire ouvert ou compté, sans effet sur le stock ; motif facultatif conservé dans l'audit.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_version"
+      ],
+      "properties": {
+        "expected_version": {
+          "type": "null"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 1000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "ValidateInventoryCountRequest": {
+      "description": "Validation par la gérante réauthentifiée : motif de l'approbation (3 à 1 000 caractères) ; chaque écart non nul doit déjà porter son motif.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_version",
+        "reason"
+      ],
+      "properties": {
+        "expected_version": {
+          "type": "null"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 1000
+        }
+      }
+    },
     "DeleteGoodsReceiptDraftRequest": {
       "description": "Suppression d'un brouillon de réception jamais validé (corps vide).",
       "type": "object",

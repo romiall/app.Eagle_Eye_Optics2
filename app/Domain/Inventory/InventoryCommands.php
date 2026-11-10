@@ -5,12 +5,16 @@ namespace App\Domain\Inventory;
 use App\Application\CommandDefinition;
 use App\Domain\Inventory\Handlers\ConfirmDeliveryHandler;
 use App\Domain\Inventory\Handlers\DeleteGoodsReceiptDraftHandler;
+use App\Domain\Inventory\Handlers\OpenInventoryCountHandler;
+use App\Domain\Inventory\Handlers\RecordInventoryCountsHandler;
 use App\Domain\Inventory\Handlers\RegisterOpeningStockHandler;
 use App\Domain\Inventory\Handlers\RegisterPhysicalReturnHandler;
 use App\Domain\Inventory\Handlers\RegisterStockMovementHandler;
 use App\Domain\Inventory\Handlers\SaveGoodsReceiptDraftHandler;
 use App\Domain\Inventory\Handlers\SaveSupplierHandler;
+use App\Domain\Inventory\Handlers\TransitionInventoryCountHandler;
 use App\Domain\Inventory\Handlers\ValidateGoodsReceiptHandler;
+use App\Domain\Inventory\Handlers\ValidateInventoryCountHandler;
 use App\Domain\Shared\CommandSource;
 
 /**
@@ -30,6 +34,9 @@ use App\Domain\Shared\CommandSource;
  * Achats (L1D01) : `SaveSupplier`, `SaveGoodsReceiptDraft`, `ValidateGoodsReceipt` et `DeleteGoodsReceiptDraft` sont des
  * opérations EN LIGNE seulement (route directe, hors du catalogue des commandes d'un poste) : leur corps est validé par
  * le schéma `schemas/requests/http.json` de leur route, la clé d'idempotence est obligatoire.
+ *
+ * Inventaires (L1D02) : ouverture, saisie des comptages, terminer, rouvrir, abandonner (un même gestionnaire sous trois
+ * noms) et valider (gérante) suivent la même règle : en ligne seulement, aucune commande de poste.
  */
 final class InventoryCommands
 {
@@ -103,6 +110,54 @@ final class InventoryCommands
                 null,
                 true,
                 'schemas/requests/http.json#/$defs/DeleteGoodsReceiptDraftRequest',
+            ),
+            new CommandDefinition(
+                OpenInventoryCountHandler::COMMAND,
+                OpenInventoryCountHandler::class,
+                [CommandSource::Direct],
+                null,
+                true,
+                'schemas/requests/http.json#/$defs/OpenInventoryCountRequest',
+            ),
+            new CommandDefinition(
+                RecordInventoryCountsHandler::COMMAND,
+                RecordInventoryCountsHandler::class,
+                [CommandSource::Direct],
+                null,
+                true,
+                'schemas/requests/http.json#/$defs/RecordInventoryCountsRequest',
+            ),
+            new CommandDefinition(
+                TransitionInventoryCountHandler::COMPLETE,
+                TransitionInventoryCountHandler::class,
+                [CommandSource::Direct],
+                null,
+                true,
+                'schemas/requests/http.json#/$defs/InventoryCountActionRequest',
+            ),
+            new CommandDefinition(
+                TransitionInventoryCountHandler::REOPEN,
+                TransitionInventoryCountHandler::class,
+                [CommandSource::Direct],
+                null,
+                true,
+                'schemas/requests/http.json#/$defs/InventoryCountActionRequest',
+            ),
+            new CommandDefinition(
+                TransitionInventoryCountHandler::ABANDON,
+                TransitionInventoryCountHandler::class,
+                [CommandSource::Direct],
+                null,
+                true,
+                'schemas/requests/http.json#/$defs/AbandonInventoryCountRequest',
+            ),
+            new CommandDefinition(
+                ValidateInventoryCountHandler::COMMAND,
+                ValidateInventoryCountHandler::class,
+                [CommandSource::Direct],
+                null,
+                true,
+                'schemas/requests/http.json#/$defs/ValidateInventoryCountRequest',
             ),
         ];
     }

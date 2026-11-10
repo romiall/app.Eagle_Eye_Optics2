@@ -739,6 +739,11 @@ SchemasRequestsHttpJsonOpeningStockRequest?: OpeningStockRequest
 SchemasRequestsHttpJsonSupplierRequest?: SupplierRequest
 SchemasRequestsHttpJsonGoodsReceiptDraftRequest?: GoodsReceiptDraftRequest
 SchemasRequestsHttpJsonValidateGoodsReceiptRequest?: ValidateGoodsReceiptRequest
+SchemasRequestsHttpJsonOpenInventoryCountRequest?: OpenInventoryCountRequest
+SchemasRequestsHttpJsonRecordInventoryCountsRequest?: RecordInventoryCountsRequest
+SchemasRequestsHttpJsonInventoryCountActionRequest?: InventoryCountActionRequest
+SchemasRequestsHttpJsonAbandonInventoryCountRequest?: AbandonInventoryCountRequest
+SchemasRequestsHttpJsonValidateInventoryCountRequest?: ValidateInventoryCountRequest
 SchemasRequestsHttpJsonDeleteGoodsReceiptDraftRequest?: DeleteGoodsReceiptDraftRequest
 SchemasRequestsHttpJsonEnrollDeviceRequest?: EnrollDeviceRequest
 SchemasRequestsHttpJsonIssueOfflineGrantRequest?: IssueOfflineGrantRequest
@@ -966,6 +971,11 @@ SchemasResourcesStockJsonGoodsReceiptLine?: GoodsReceiptLine
 SchemasResourcesStockJsonGoodsReceiptResponse?: GoodsReceiptResponse
 SchemasResourcesStockJsonDeleteGoodsReceiptDraftResult?: DeleteGoodsReceiptDraftResult
 SchemasResourcesStockJsonDeleteGoodsReceiptDraftResponse?: DeleteGoodsReceiptDraftResponse
+SchemasResourcesStockJsonInventoryCountLine?: InventoryCountLine
+SchemasResourcesStockJsonInventoryCountSummary?: InventoryCountSummary
+SchemasResourcesStockJsonInventoryCountPage?: InventoryCountPage
+SchemasResourcesStockJsonInventoryCount?: InventoryCount
+SchemasResourcesStockJsonInventoryCountResponse?: InventoryCountResponse
 SchemasRuleVectorsJson?: RuleVectors
 SchemasRuleVectorsJsonVectorCase?: VectorCase
 SchemasRuleVectorsJsonVectorRefusal?: VectorRefusal
@@ -6451,6 +6461,53 @@ unit_cost: (MoneyXaf | null)
 })[]]
 }
 /**
+ * Ouverture d'un inventaire (L1D02) : un emplacement, théorique figé à l'instant d'ouverture ; un seul inventaire actif par emplacement. Droit stock.inventory.
+ */
+export interface OpenInventoryCountRequest {
+expected_version: null
+location_id: Ulid
+reference: string
+}
+/**
+ * Quantités comptées d'un inventaire ouvert : zéro admis, null efface le comptage ; le motif de l'écart est facultatif ici, obligatoire à la validation pour tout écart non nul. Aucun stock n'est modifié.
+ */
+export interface RecordInventoryCountsRequest {
+expected_version: null
+/**
+ * @minItems 1
+ * @maxItems 500
+ */
+lines: [{
+line_id: Ulid
+counted_quantity: (string | null)
+variance_reason?: (string | null)
+}, ...({
+line_id: Ulid
+counted_quantity: (string | null)
+variance_reason?: (string | null)
+})[]]
+}
+/**
+ * Terminer le comptage (toutes les lignes comptées) ou rouvrir un inventaire compté (corps réduit à expected_version null).
+ */
+export interface InventoryCountActionRequest {
+expected_version: null
+}
+/**
+ * Abandon d'un inventaire ouvert ou compté, sans effet sur le stock ; motif facultatif conservé dans l'audit.
+ */
+export interface AbandonInventoryCountRequest {
+expected_version: null
+reason?: (string | null)
+}
+/**
+ * Validation par la gérante réauthentifiée : motif de l'approbation (3 à 1 000 caractères) ; chaque écart non nul doit déjà porter son motif.
+ */
+export interface ValidateInventoryCountRequest {
+expected_version: null
+reason: string
+}
+/**
  * Suppression d'un brouillon de réception jamais validé (corps vide).
  */
 export interface DeleteGoodsReceiptDraftRequest {
@@ -10009,6 +10066,78 @@ deleted: boolean
 }
 export interface DeleteGoodsReceiptDraftResponse {
 data: DeleteGoodsReceiptDraftResult
+}
+/**
+ * Ligne d'inventaire : théorique figé à l'ouverture, quantité comptée, écart brut, ajustement écrit à la validation ; coût et valeur seulement avec stock.valuation.read (null ailleurs, et null quand le coût est inconnu).
+ */
+export interface InventoryCountLine {
+line_id: Ulid
+item_id: Ulid
+item_reference: string
+item_name: string
+lot: ({
+lot_id: Ulid
+batch_number: string
+expires_on: NullableCivilDate
+} | null)
+/**
+ * DECIMAL(12,3) en chaîne exacte, zéro admis.
+ */
+theoretical_quantity: string
+counted_quantity: (string | null)
+variance_quantity: (string | null)
+variance_reason: (string | null)
+adjustment_quantity: (string | null)
+unit_cost: (MoneyXaf | null)
+variance_value: (SignedMoneyXaf | null)
+}
+/**
+ * Inventaire sans ses lignes (liste) : périmètre = un emplacement, figé à snapshot_at ; valeur des écarts au coût connu, lignes à coût inconnu comptées à part.
+ */
+export interface InventoryCountSummary {
+id: Ulid
+reference: string
+location_id: Ulid
+location_name: string
+snapshot_at: Instant
+status: InventoryCountsStatus
+validated_at: NullableInstant
+line_count: number
+counted_lines: number
+variance_lines: number
+variance_value_known: (SignedMoneyXaf | null)
+unknown_cost_lines: (number | null)
+}
+export interface InventoryCountPage {
+/**
+ * @minItems 0
+ */
+data: InventoryCountSummary[]
+meta: Pagination
+}
+/**
+ * Inventaire (L1D02) : le comptage ne change jamais le stock ; la validation écrit un mouvement ADJUSTMENT signé par écart non nul, approuvé par la gérante.
+ */
+export interface InventoryCount {
+id: Ulid
+reference: string
+location_id: Ulid
+location_name: string
+snapshot_at: Instant
+status: InventoryCountsStatus
+validated_at: NullableInstant
+line_count: number
+counted_lines: number
+variance_lines: number
+variance_value_known: (SignedMoneyXaf | null)
+unknown_cost_lines: (number | null)
+/**
+ * @minItems 0
+ */
+lines: InventoryCountLine[]
+}
+export interface InventoryCountResponse {
+data: InventoryCount
 }
 export interface RuleVectors {
 /**

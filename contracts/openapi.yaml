@@ -4588,6 +4588,379 @@ paths:
       x-idempotency: "required"
       x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "L1D01"
+  /v1/inventory-counts:
+    get:
+      operationId: "ListInventoryCounts"
+      summary: "Inventaires"
+      tags:
+        - "Stock"
+      description: "Module stock, droit stock.inventory. À terminer d'abord (ouverts, comptés), puis les plus récents. Coût et valeur des écarts seulement avec stock.valuation.read."
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: "page"
+          in: "query"
+          required: false
+          description: "Page (pagination, 1 par défaut)."
+          schema:
+            type: "integer"
+            minimum: 1
+        - name: "status"
+          in: "query"
+          required: false
+          description: "Filtre : OPEN, COUNTED, VALIDATED ou ABANDONED."
+          schema:
+            type: "string"
+        - name: "location_id"
+          in: "query"
+          required: false
+          description: "Filtre : emplacement (ULID)."
+          schema:
+            type: "string"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/stock.json#/$defs/InventoryCountPage"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "stock.inventory"
+      x-reauthentication: false
+      x-idempotency: "none"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "L1D02"
+    post:
+      operationId: "OpenInventoryCount"
+      summary: "Ouvrir un inventaire (périmètre et théorique figés)"
+      tags:
+        - "Stock"
+      description: "Module stock, en ligne seulement. Un emplacement, le physique de chaque article et de chaque lot à l'instant d'ouverture (réserves et quotas des postes compris) ; positions vides non listées ; un seul inventaire actif par emplacement et une référence unique (422 sinon). N'écrit aucun mouvement. Clé d'idempotence obligatoire."
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/OpenInventoryCountRequest"
+      responses:
+        "201":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/stock.json#/$defs/InventoryCountResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "stock.inventory"
+      x-reauthentication: false
+      x-idempotency: "required"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "L1D02"
+  /v1/inventory-counts/{id}:
+    get:
+      operationId: "GetInventoryCount"
+      summary: "Inventaire avec ses lignes"
+      tags:
+        - "Stock"
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/stock.json#/$defs/InventoryCountResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+      x-permission:
+        - "stock.inventory"
+      x-reauthentication: false
+      x-idempotency: "none"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "L1D02"
+  /v1/inventory-counts/{id}/lines:
+    patch:
+      operationId: "RecordInventoryCounts"
+      summary: "Saisir les quantités comptées"
+      tags:
+        - "Stock"
+      description: "Module stock, en ligne seulement, inventaire ouvert seulement (409 STATE_TRANSITION_REFUSED sinon). Zéro admis, null efface ; entier pour un article vendu à l'unité. Aucun mouvement, aucun stock modifié."
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/RecordInventoryCountsRequest"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/stock.json#/$defs/InventoryCountResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "stock.inventory"
+      x-reauthentication: false
+      x-idempotency: "required"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "L1D02"
+  /v1/inventory-counts/{id}/complete:
+    post:
+      operationId: "CompleteInventoryCount"
+      summary: "Terminer le comptage"
+      tags:
+        - "Stock"
+      description: "Module stock, en ligne seulement. OPEN vers COUNTED : toutes les lignes doivent être comptées (422 sinon). Sans effet sur le stock."
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/InventoryCountActionRequest"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/stock.json#/$defs/InventoryCountResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "stock.inventory"
+      x-reauthentication: false
+      x-idempotency: "required"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "L1D02"
+  /v1/inventory-counts/{id}/reopen:
+    post:
+      operationId: "ReopenInventoryCount"
+      summary: "Rouvrir un inventaire compté"
+      tags:
+        - "Stock"
+      description: "Module stock, en ligne seulement. COUNTED vers OPEN pour corriger un comptage avant validation. Sans effet sur le stock."
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/InventoryCountActionRequest"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/stock.json#/$defs/InventoryCountResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+      x-permission:
+        - "stock.inventory"
+      x-reauthentication: false
+      x-idempotency: "required"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "L1D02"
+  /v1/inventory-counts/{id}/abandon:
+    post:
+      operationId: "AbandonInventoryCount"
+      summary: "Abandonner un inventaire"
+      tags:
+        - "Stock"
+      description: "Module stock, en ligne seulement. OPEN ou COUNTED vers ABANDONED, sans effet sur le stock ; un inventaire validé est définitif (409)."
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/AbandonInventoryCountRequest"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/stock.json#/$defs/InventoryCountResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "stock.inventory"
+      x-reauthentication: false
+      x-idempotency: "required"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "L1D02"
+  /v1/inventory-counts/{id}/validate:
+    post:
+      operationId: "ValidateInventoryCount"
+      summary: "Valider l'inventaire : écarts approuvés et ajustés"
+      tags:
+        - "Stock"
+      description: "Module stock, gérante réauthentifiée (403 sinon). Comptage terminé seulement (409). Théorique jugé au moment du comptage de chaque ligne (ouverture + mouvements jusque-là) ; chaque écart non nul exige son motif (422) et devient un mouvement ADJUSTMENT SIGNÉ approuvé, jamais un remplacement de la quantité. Un retrait ne prend jamais la marchandise réservée ni confiée à un poste (409 STOCK_UNAVAILABLE, lignes nommées) : aucun effet si une ligne est refusée. Valeur au coût connu (lot, sinon catalogue) ; coût absent = inconnu, compté à part. Un rejeu de la même clé rend la réponse d'origine."
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/ValidateInventoryCountRequest"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/stock.json#/$defs/InventoryCountResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+        "423":
+          $ref: "#/components/responses/ReauthenticationRequired"
+      x-permission:
+        - "stock.inventory"
+      x-reauthentication: true
+      x-idempotency: "required"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "L1D02"
   /v1/agenda/configuration:
     get:
       operationId: "GetAgendaConfiguration"

@@ -666,6 +666,10 @@ def stock_resources():
                        'supplier_reference': text(100), 'received_at': instant(), 'status': enum('goods_receipts.status'),
                        'validated_at': n_instant(), 'notes': n_text(2000), 'line_count': integer(0, 200),
                        'known_cost_total': money(), 'unknown_cost_lines': integer(0, 200)}
+    count_summary = {'id': ulid(), 'reference': text(64), 'location_id': ulid(), 'location_name': text(180), 'snapshot_at': instant(),
+                     'status': enum('inventory_counts.status'), 'validated_at': n_instant(), 'line_count': integer(0, 100000),
+                     'counted_lines': integer(0, 100000), 'variance_lines': integer(0, 100000),
+                     'variance_value_known': nullable(signed_money()), 'unknown_cost_lines': nullable(integer(0, 100000))}
     defs = {
         'StockAvailability': obj({'item_id': ulid(), 'location_id': ulid(), 'stock_position_id': ulid(), 'on_hand': decimal(),
                                   'reserved': decimal(), 'offline_allocated': decimal(), 'central_available': decimal(),
@@ -701,6 +705,18 @@ def stock_resources():
         'GoodsReceiptResponse': data('GoodsReceipt'),
         'DeleteGoodsReceiptDraftResult': obj({'receipt_id': ulid(), 'deleted': boolean()}),
         'DeleteGoodsReceiptDraftResponse': data('DeleteGoodsReceiptDraftResult'),
+        'InventoryCountLine': obj({'line_id': ulid(), 'item_id': ulid(), 'item_reference': text(64), 'item_name': text(180),
+                                   'lot': nullable(obj({'lot_id': ulid(), 'batch_number': text(80), 'expires_on': ref('NullableCivilDate')})),
+                                   'theoretical_quantity': decimal(), 'counted_quantity': nullable(decimal()), 'variance_quantity': nullable(decimal()),
+                                   'variance_reason': n_text(1000), 'adjustment_quantity': nullable(decimal()),
+                                   'unit_cost': nullable(money()), 'variance_value': nullable(signed_money())},
+                                  description='Ligne d\'inventaire : théorique figé à l\'ouverture, quantité comptée, écart brut, ajustement écrit à la validation ; coût et valeur seulement avec stock.valuation.read (null ailleurs, et null quand le coût est inconnu).'),
+        'InventoryCountSummary': obj(count_summary,
+                                     description='Inventaire sans ses lignes (liste) : périmètre = un emplacement, figé à snapshot_at ; valeur des écarts au coût connu, lignes à coût inconnu comptées à part.'),
+        'InventoryCountPage': page('InventoryCountSummary'),
+        'InventoryCount': obj({**count_summary, 'lines': array(local('InventoryCountLine'))},
+                              description='Inventaire (L1D02) : le comptage ne change jamais le stock ; la validation écrit un mouvement ADJUSTMENT signé par écart non nul, approuvé par la gérante.'),
+        'InventoryCountResponse': data('InventoryCount'),
     }
     return schema_file('schemas/resources/stock.json', 'Ressources : stock', 'Disponibilités, mouvements, stock initial, retours physiques, fournisseurs et réceptions.', defs)
 
@@ -968,6 +984,7 @@ def quote_line_input():
 
 
 def requests():
+    counted_quantity = {'type': 'string', 'description': 'Quantité comptée DECIMAL(12,3), zéro admis (rien trouvé).', 'pattern': '^(0|[1-9][0-9]{0,8})(\.[0-9]{1,3})?$'}
     password = text(200)
     defs = {
         'LoginRequest': obj({'login': text(180), 'password': password}),
@@ -1117,6 +1134,18 @@ def requests():
                                                                 'lot': nullable(obj({'batch_number': text(80), 'expires_on': ref('NullableCivilDate')})),
                                                                 'unit_cost': nullable(money())}), 1, 200)},
                                            description='Validation d\'une réception (L1D01) : CHAQUE ligne du brouillon confirme son lot (obligatoire pour un article périssable ou déjà suivi par lots) et son coût final (null = inconnu).'),
+        'OpenInventoryCountRequest': obj({'expected_version': {'type': 'null'}, 'location_id': ulid(), 'reference': text(64)},
+                                         description='Ouverture d\'un inventaire (L1D02) : un emplacement, théorique figé à l\'instant d\'ouverture ; un seul inventaire actif par emplacement. Droit stock.inventory.'),
+        'RecordInventoryCountsRequest': obj({'expected_version': {'type': 'null'},
+                                             'lines': array(obj({'line_id': ulid(), 'counted_quantity': nullable(counted_quantity), 'variance_reason': n_text(1000)},
+                                                                optional=('variance_reason',)), 1, 500)},
+                                            description='Quantités comptées d\'un inventaire ouvert : zéro admis, null efface le comptage ; le motif de l\'écart est facultatif ici, obligatoire à la validation pour tout écart non nul. Aucun stock n\'est modifié.'),
+        'InventoryCountActionRequest': obj({'expected_version': {'type': 'null'}},
+                                           description='Terminer le comptage (toutes les lignes comptées) ou rouvrir un inventaire compté (corps réduit à expected_version null).'),
+        'AbandonInventoryCountRequest': obj({'expected_version': {'type': 'null'}, 'reason': n_text(1000)}, optional=('reason',),
+                                            description='Abandon d\'un inventaire ouvert ou compté, sans effet sur le stock ; motif facultatif conservé dans l\'audit.'),
+        'ValidateInventoryCountRequest': obj({'expected_version': {'type': 'null'}, 'reason': text(1000, 3)},
+                                             description='Validation par la gérante réauthentifiée : motif de l\'approbation (3 à 1 000 caractères) ; chaque écart non nul doit déjà porter son motif.'),
         'DeleteGoodsReceiptDraftRequest': obj({'expected_version': {'type': 'null'}}, description='Suppression d\'un brouillon de réception jamais validé (corps vide).'),
         'EnrollDeviceRequest': obj({'expected_version': {'type': 'null'}, 'device_code': text(64), 'name': text(180),
                                     'public_key_jwk': {'$ref': '../resources/operations.json#/$defs/PublicJwk'},

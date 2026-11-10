@@ -22,6 +22,7 @@ use App\Http\Controllers\Api\V1\DocumentController;
 use App\Http\Controllers\Api\V1\ExportController;
 use App\Http\Controllers\Api\V1\FinancialReportController;
 use App\Http\Controllers\Api\V1\FollowUpController;
+use App\Http\Controllers\Api\V1\InventoryCountController;
 use App\Http\Controllers\Api\V1\InvoiceController;
 use App\Http\Controllers\Api\V1\LegacyBalanceController;
 use App\Http\Controllers\Api\V1\PatientActivityController;
@@ -446,6 +447,39 @@ Route::prefix('v1')->group(function (): void {
                 ->middleware('can:stock.receive')
                 ->whereUlid('id')
                 ->name('api.goods-receipts.delete');
+
+            // Inventaires (L1D02) : droit stock.inventory. Le comptage ne change jamais le stock ; la validation, seule à
+            // écrire des ajustements signés et approuvés, exige la gérante réauthentifiée.
+            Route::get('inventory-counts', [InventoryCountController::class, 'index'])
+                ->middleware('can:stock.inventory')
+                ->name('api.inventory-counts.index');
+            Route::post('inventory-counts', [InventoryCountController::class, 'store'])
+                ->middleware('can:stock.inventory')
+                ->name('api.inventory-counts.store');
+            Route::get('inventory-counts/{id}', [InventoryCountController::class, 'show'])
+                ->middleware('can:stock.inventory')
+                ->whereUlid('id')
+                ->name('api.inventory-counts.show');
+            Route::patch('inventory-counts/{id}/lines', [InventoryCountController::class, 'record'])
+                ->middleware('can:stock.inventory')
+                ->whereUlid('id')
+                ->name('api.inventory-counts.lines');
+            Route::post('inventory-counts/{id}/complete', [InventoryCountController::class, 'complete'])
+                ->middleware('can:stock.inventory')
+                ->whereUlid('id')
+                ->name('api.inventory-counts.complete');
+            Route::post('inventory-counts/{id}/reopen', [InventoryCountController::class, 'reopen'])
+                ->middleware('can:stock.inventory')
+                ->whereUlid('id')
+                ->name('api.inventory-counts.reopen');
+            Route::post('inventory-counts/{id}/abandon', [InventoryCountController::class, 'abandon'])
+                ->middleware('can:stock.inventory')
+                ->whereUlid('id')
+                ->name('api.inventory-counts.abandon');
+            Route::post('inventory-counts/{id}/validate', [InventoryCountController::class, 'validateCount'])
+                ->middleware(['can:stock.inventory', 'reauthenticated'])
+                ->whereUlid('id')
+                ->name('api.inventory-counts.validate');
         });
 
         // Agenda interne (S01) et suivis (S02) : module « agenda ». Lecture de l'agenda (agenda.read : gérante, accueil,
