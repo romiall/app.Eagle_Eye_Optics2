@@ -4,9 +4,13 @@ namespace App\Domain\Inventory;
 
 use App\Application\CommandDefinition;
 use App\Domain\Inventory\Handlers\ConfirmDeliveryHandler;
+use App\Domain\Inventory\Handlers\DeleteGoodsReceiptDraftHandler;
 use App\Domain\Inventory\Handlers\RegisterOpeningStockHandler;
 use App\Domain\Inventory\Handlers\RegisterPhysicalReturnHandler;
 use App\Domain\Inventory\Handlers\RegisterStockMovementHandler;
+use App\Domain\Inventory\Handlers\SaveGoodsReceiptDraftHandler;
+use App\Domain\Inventory\Handlers\SaveSupplierHandler;
+use App\Domain\Inventory\Handlers\ValidateGoodsReceiptHandler;
 use App\Domain\Shared\CommandSource;
 
 /**
@@ -22,6 +26,10 @@ use App\Domain\Shared\CommandSource;
  *
  * Il n'existe volontairement AUCUNE commande « réserver du stock » : la réserve est un service interne d'IssueInvoice,
  * consommé par ConfirmDelivery (`ReservationService`).
+ *
+ * Achats (L1D01) : `SaveSupplier`, `SaveGoodsReceiptDraft`, `ValidateGoodsReceipt` et `DeleteGoodsReceiptDraft` sont des
+ * opérations EN LIGNE seulement (route directe, hors du catalogue des commandes d'un poste) : leur corps est validé par
+ * le schéma `schemas/requests/http.json` de leur route, la clé d'idempotence est obligatoire.
  */
 final class InventoryCommands
 {
@@ -63,6 +71,38 @@ final class InventoryCommands
                 'commands/RegisterStockMovement.v1.json',
                 true,
                 'commands/RegisterStockMovement.v1.json#/$defs/DirectRequest',
+            ),
+            new CommandDefinition(
+                SaveSupplierHandler::COMMAND,
+                SaveSupplierHandler::class,
+                [CommandSource::Direct],
+                null,
+                true,
+                'schemas/requests/http.json#/$defs/SupplierRequest',
+            ),
+            new CommandDefinition(
+                SaveGoodsReceiptDraftHandler::COMMAND,
+                SaveGoodsReceiptDraftHandler::class,
+                [CommandSource::Direct],
+                null,
+                true,
+                'schemas/requests/http.json#/$defs/GoodsReceiptDraftRequest',
+            ),
+            new CommandDefinition(
+                ValidateGoodsReceiptHandler::COMMAND,
+                ValidateGoodsReceiptHandler::class,
+                [CommandSource::Direct],
+                null,
+                true,
+                'schemas/requests/http.json#/$defs/ValidateGoodsReceiptRequest',
+            ),
+            new CommandDefinition(
+                DeleteGoodsReceiptDraftHandler::COMMAND,
+                DeleteGoodsReceiptDraftHandler::class,
+                [CommandSource::Direct],
+                null,
+                true,
+                'schemas/requests/http.json#/$defs/DeleteGoodsReceiptDraftRequest',
             ),
         ];
     }

@@ -662,6 +662,10 @@ def billing_resources():
 def stock_resources():
     lot = obj({'lot_id': ulid(), 'batch_number': text(80), 'expires_on': ref('NullableCivilDate'), 'status': enum('stock_lots.status'),
                'on_hand': decimal(), 'reserved': decimal(), 'offline_allocated': decimal()})
+    receipt_summary = {'id': ulid(), 'supplier_id': ulid(), 'supplier_name': text(180), 'location_id': ulid(), 'location_name': text(180),
+                       'supplier_reference': text(100), 'received_at': instant(), 'status': enum('goods_receipts.status'),
+                       'validated_at': n_instant(), 'notes': n_text(2000), 'line_count': integer(0, 200),
+                       'known_cost_total': money(), 'unknown_cost_lines': integer(0, 200)}
     defs = {
         'StockAvailability': obj({'item_id': ulid(), 'location_id': ulid(), 'stock_position_id': ulid(), 'on_hand': decimal(),
                                   'reserved': decimal(), 'offline_allocated': decimal(), 'central_available': decimal(),
@@ -680,8 +684,25 @@ def stock_resources():
                                'condition_code': enum('physical_returns.condition_code'), 'accepted_for_restock': boolean(),
                                'occurred_at': instant(), 'stock_movement_id': n_ulid(), 'credit_note_id': n_ulid()}),
         'PhysicalReturnResponse': data('PhysicalReturn'),
+        'Supplier': obj({'id': ulid(), 'name': text(180), 'reference': text(64), 'phone': n_text(32), 'email': n_text(254),
+                         'address': n_text(2000), 'is_optical_lab': boolean(), 'active': boolean()},
+                        description='Fournisseur ou laboratoire (L1D01) : coordonnées d\'une entreprise ; il se désactive, il ne se supprime jamais.'),
+        'SupplierResponse': data('Supplier'),
+        'SupplierList': obj({'data': array(local('Supplier'))}),
+        'GoodsReceiptSummary': obj(receipt_summary,
+                                   description='Réception fournisseur sans ses lignes (liste) : valeur au coût connu arrondie au FCFA par ligne, lignes sans coût comptées à part (jamais valorisées à zéro).'),
+        'GoodsReceiptPage': page('GoodsReceiptSummary'),
+        'GoodsReceipt': obj({**receipt_summary, 'lines': array(local('GoodsReceiptLine'))},
+                            description='Réception fournisseur (L1D01) : brouillon sans lot, ou validée (lots, coûts confirmés, un mouvement RECEIPT par ligne). Une réception validée est définitive.'),
+        'GoodsReceiptLine': obj({'position': integer(1, 200), 'item_id': ulid(), 'item_reference': text(64), 'item_name': text(180),
+                                 'quantity': decimal(), 'unit_cost': nullable(money()),
+                                 'lot': nullable(obj({'lot_id': ulid(), 'batch_number': text(80), 'expires_on': ref('NullableCivilDate')}))},
+                                description='Ligne de réception : coût unitaire connu ou null (inconnu, jamais zéro) ; lot renseigné à la validation.'),
+        'GoodsReceiptResponse': data('GoodsReceipt'),
+        'DeleteGoodsReceiptDraftResult': obj({'receipt_id': ulid(), 'deleted': boolean()}),
+        'DeleteGoodsReceiptDraftResponse': data('DeleteGoodsReceiptDraftResult'),
     }
-    return schema_file('schemas/resources/stock.json', 'Ressources : stock', 'Disponibilités, mouvements, stock initial et retours physiques.', defs)
+    return schema_file('schemas/resources/stock.json', 'Ressources : stock', 'Disponibilités, mouvements, stock initial, retours physiques, fournisseurs et réceptions.', defs)
 
 
 def scheduling_resources():
@@ -1083,6 +1104,20 @@ def requests():
                                                                              'expires_on': ref('NullableCivilDate')})),
                                                         'quantity': quantity(), 'unit_cost': nullable(money())}), 1, 500)},
                                    description='Stock initial validé (I00) : un mouvement OPENING par ligne, lots créés au besoin ; gérante.'),
+        'SupplierRequest': obj({'expected_version': {'type': 'null'}, 'name': text(180, 2), 'reference': text(64), 'phone': n_text(32), 'email': n_text(254), 'address': n_text(2000),
+                                'is_optical_lab': boolean(), 'active': boolean()},
+                               optional=('phone', 'email', 'address', 'is_optical_lab', 'active'),
+                               description='Fournisseur ou laboratoire (L1D01), création ou modification complète ; code unique par cabinet, désactivation par `active` faux. Droit stock.receive.'),
+        'GoodsReceiptDraftRequest': obj({'expected_version': {'type': 'null'}, 'supplier_id': ulid(), 'location_id': ulid(), 'supplier_reference': text(100), 'received_at': instant(),
+                                         'notes': n_text(2000),
+                                         'lines': array(obj({'item_id': ulid(), 'quantity': quantity(), 'unit_cost': nullable(money())}), 1, 200)},
+                                        optional=('notes',),
+                                        description='Brouillon de réception (L1D01), création ou remplacement complet : aucun lot ni stock avant la validation ; coût unitaire connu ou null (inconnu).'),
+        'ValidateGoodsReceiptRequest': obj({'expected_version': {'type': 'null'}, 'lines': array(obj({'position': integer(1, 200),
+                                                                'lot': nullable(obj({'batch_number': text(80), 'expires_on': ref('NullableCivilDate')})),
+                                                                'unit_cost': nullable(money())}), 1, 200)},
+                                           description='Validation d\'une réception (L1D01) : CHAQUE ligne du brouillon confirme son lot (obligatoire pour un article périssable ou déjà suivi par lots) et son coût final (null = inconnu).'),
+        'DeleteGoodsReceiptDraftRequest': obj({'expected_version': {'type': 'null'}}, description='Suppression d\'un brouillon de réception jamais validé (corps vide).'),
         'EnrollDeviceRequest': obj({'expected_version': {'type': 'null'}, 'device_code': text(64), 'name': text(180),
                                     'public_key_jwk': {'$ref': '../resources/operations.json#/$defs/PublicJwk'},
                                     'responsible_user_id': ulid(), 'app_version': text(64), 'proof': ref('CompactJws')},

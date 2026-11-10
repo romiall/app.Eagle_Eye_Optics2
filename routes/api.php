@@ -28,6 +28,7 @@ use App\Http\Controllers\Api\V1\PatientActivityController;
 use App\Http\Controllers\Api\V1\PatientController;
 use App\Http\Controllers\Api\V1\PatientMergeController;
 use App\Http\Controllers\Api\V1\PrescriptionController;
+use App\Http\Controllers\Api\V1\PurchasingController;
 use App\Http\Controllers\Api\V1\QuoteController;
 use App\Http\Controllers\Api\V1\ReceiptController;
 use App\Http\Controllers\Api\V1\SalesSettingsController;
@@ -410,6 +411,41 @@ Route::prefix('v1')->group(function (): void {
             Route::post('stock/opening', [StockController::class, 'opening'])
                 ->middleware(['can:stock.adjust', 'reauthenticated'])
                 ->name('api.stock.opening');
+
+            // Achats (L1D01) : fournisseurs et réceptions, droit stock.receive (les coûts d'achat y figurent). Un brouillon
+            // ne touche jamais au stock ; la validation, seule à l'augmenter, exige une réauthentification récente.
+            Route::get('suppliers', [PurchasingController::class, 'suppliers'])
+                ->middleware('can:stock.receive')
+                ->name('api.suppliers.index');
+            Route::post('suppliers', [PurchasingController::class, 'storeSupplier'])
+                ->middleware('can:stock.receive')
+                ->name('api.suppliers.store');
+            Route::patch('suppliers/{id}', [PurchasingController::class, 'updateSupplier'])
+                ->middleware('can:stock.receive')
+                ->whereUlid('id')
+                ->name('api.suppliers.update');
+            Route::get('goods-receipts', [PurchasingController::class, 'receipts'])
+                ->middleware('can:stock.receive')
+                ->name('api.goods-receipts.index');
+            Route::post('goods-receipts', [PurchasingController::class, 'storeReceipt'])
+                ->middleware('can:stock.receive')
+                ->name('api.goods-receipts.store');
+            Route::get('goods-receipts/{id}', [PurchasingController::class, 'receipt'])
+                ->middleware('can:stock.receive')
+                ->whereUlid('id')
+                ->name('api.goods-receipts.show');
+            Route::patch('goods-receipts/{id}', [PurchasingController::class, 'updateReceipt'])
+                ->middleware('can:stock.receive')
+                ->whereUlid('id')
+                ->name('api.goods-receipts.update');
+            Route::post('goods-receipts/{id}/validate', [PurchasingController::class, 'validateReceipt'])
+                ->middleware(['can:stock.receive', 'reauthenticated'])
+                ->whereUlid('id')
+                ->name('api.goods-receipts.validate');
+            Route::post('goods-receipts/{id}/delete', [PurchasingController::class, 'deleteReceipt'])
+                ->middleware('can:stock.receive')
+                ->whereUlid('id')
+                ->name('api.goods-receipts.delete');
         });
 
         // Agenda interne (S01) et suivis (S02) : module « agenda ». Lecture de l'agenda (agenda.read : gérante, accueil,

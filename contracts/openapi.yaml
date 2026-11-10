@@ -4188,6 +4188,406 @@ paths:
       x-offline-command: "RegisterPhysicalReturn"
       x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "I02"
+  /v1/suppliers:
+    get:
+      operationId: "ListSuppliers"
+      summary: "Fournisseurs et laboratoires"
+      tags:
+        - "Stock"
+      description: "Module stock, droit stock.receive. Actifs d'abord, puis par nom."
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: "active"
+          in: "query"
+          required: false
+          description: "Filtre : 1 pour les fournisseurs actifs, 0 pour les désactivés (tous par défaut)."
+          schema:
+            type: "string"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/stock.json#/$defs/SupplierList"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "stock.receive"
+      x-reauthentication: false
+      x-idempotency: "none"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "L1D01"
+    post:
+      operationId: "CreateSupplier"
+      summary: "Créer un fournisseur ou un laboratoire"
+      tags:
+        - "Stock"
+      description: "Module stock, en ligne seulement. Le code est unique par cabinet (422 sinon, casse et accents ignorés). Clé d'idempotence obligatoire."
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/SupplierRequest"
+      responses:
+        "201":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/stock.json#/$defs/SupplierResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "stock.receive"
+      x-reauthentication: false
+      x-idempotency: "required"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "L1D01"
+  /v1/suppliers/{id}:
+    patch:
+      operationId: "UpdateSupplier"
+      summary: "Modifier ou désactiver un fournisseur"
+      tags:
+        - "Stock"
+      description: "Module stock, en ligne seulement. Corps complet ; un fournisseur ne se supprime jamais, il se désactive (active faux) et reste lisible sur ses réceptions passées."
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/SupplierRequest"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/stock.json#/$defs/SupplierResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "stock.receive"
+      x-reauthentication: false
+      x-idempotency: "required"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "L1D01"
+  /v1/goods-receipts:
+    get:
+      operationId: "ListGoodsReceipts"
+      summary: "Réceptions fournisseur"
+      tags:
+        - "Stock"
+      description: "Module stock, droit stock.receive (les coûts d'achat y figurent, jamais stock.read). Brouillons d'abord, puis les plus récentes ; valeur au coût connu arrondie au FCFA par ligne et lignes sans coût comptées à part."
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: "page"
+          in: "query"
+          required: false
+          description: "Page (pagination, 1 par défaut)."
+          schema:
+            type: "integer"
+            minimum: 1
+        - name: "status"
+          in: "query"
+          required: false
+          description: "Filtre : DRAFT, VALIDATED ou ABANDONED."
+          schema:
+            type: "string"
+        - name: "supplier_id"
+          in: "query"
+          required: false
+          description: "Filtre : fournisseur (ULID)."
+          schema:
+            type: "string"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/stock.json#/$defs/GoodsReceiptPage"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "stock.receive"
+      x-reauthentication: false
+      x-idempotency: "none"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "L1D01"
+    post:
+      operationId: "CreateGoodsReceiptDraft"
+      summary: "Créer un brouillon de réception"
+      tags:
+        - "Stock"
+      description: "Module stock, en ligne seulement. Un brouillon ne touche JAMAIS au stock (ni position, ni lot, ni mouvement). Référence de livraison unique par fournisseur (422 sinon) ; article actif géré en stock ; coût unitaire connu ou null. Clé d'idempotence obligatoire."
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/GoodsReceiptDraftRequest"
+      responses:
+        "201":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/stock.json#/$defs/GoodsReceiptResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "stock.receive"
+      x-reauthentication: false
+      x-idempotency: "required"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "L1D01"
+  /v1/goods-receipts/{id}:
+    get:
+      operationId: "GetGoodsReceipt"
+      summary: "Réception fournisseur avec ses lignes"
+      tags:
+        - "Stock"
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/stock.json#/$defs/GoodsReceiptResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+      x-permission:
+        - "stock.receive"
+      x-reauthentication: false
+      x-idempotency: "none"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "L1D01"
+    patch:
+      operationId: "UpdateGoodsReceiptDraft"
+      summary: "Remplacer un brouillon de réception"
+      tags:
+        - "Stock"
+      description: "Module stock, en ligne seulement. Corps complet (en-tête et lignes remplacés). Brouillon seulement : une réception validée est définitive (409 STATE_TRANSITION_REFUSED)."
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/GoodsReceiptDraftRequest"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/stock.json#/$defs/GoodsReceiptResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "stock.receive"
+      x-reauthentication: false
+      x-idempotency: "required"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "L1D01"
+  /v1/goods-receipts/{id}/validate:
+    post:
+      operationId: "ValidateGoodsReceipt"
+      summary: "Valider la réception : lots, coûts et mouvements"
+      tags:
+        - "Stock"
+      description: "Module stock, réauthentification récente. Chaque ligne du brouillon confirme son lot (numéro et expiration, obligatoires pour un article périssable ou déjà suivi par lots ; lot expiré à la date locale de réception refusé) et son coût final (null = inconnu, jamais zéro). Dans une transaction : positions et lots trouvés ou créés, un mouvement RECEIPT par ligne, lignes complétées, puis réception VALIDATED, définitive. Un lot en quarantaine ne reçoit rien ; un lot en stock garde son coût et son expiration. Un rejeu de la même clé rend la réponse d'origine, jamais une seconde entrée en stock."
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/ValidateGoodsReceiptRequest"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/stock.json#/$defs/GoodsReceiptResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+        "423":
+          $ref: "#/components/responses/ReauthenticationRequired"
+      x-permission:
+        - "stock.receive"
+      x-reauthentication: true
+      x-idempotency: "required"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "L1D01"
+  /v1/goods-receipts/{id}/delete:
+    post:
+      operationId: "DeleteGoodsReceiptDraft"
+      summary: "Supprimer un brouillon de réception jamais validé"
+      tags:
+        - "Stock"
+      description: "Module stock, en ligne seulement. Brouillon seulement (409 STATE_TRANSITION_REFUSED sinon) : un brouillon n'a jamais touché au stock ; l'audit garde la référence de livraison. Libère la référence de livraison du fournisseur."
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/DeleteGoodsReceiptDraftRequest"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/stock.json#/$defs/DeleteGoodsReceiptDraftResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+      x-permission:
+        - "stock.receive"
+      x-reauthentication: false
+      x-idempotency: "required"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "L1D01"
   /v1/agenda/configuration:
     get:
       operationId: "GetAgendaConfiguration"

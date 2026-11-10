@@ -1838,6 +1838,232 @@
         }
       }
     },
+    "SupplierRequest": {
+      "description": "Fournisseur ou laboratoire (L1D01), création ou modification complète ; code unique par cabinet, désactivation par `active` faux. Droit stock.receive.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_version",
+        "name",
+        "reference"
+      ],
+      "properties": {
+        "expected_version": {
+          "type": "null"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 180
+        },
+        "reference": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "phone": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 32
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "email": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 254
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "address": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 2000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "is_optical_lab": {
+          "type": "boolean"
+        },
+        "active": {
+          "type": "boolean"
+        }
+      }
+    },
+    "GoodsReceiptDraftRequest": {
+      "description": "Brouillon de réception (L1D01), création ou remplacement complet : aucun lot ni stock avant la validation ; coût unitaire connu ou null (inconnu).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_version",
+        "supplier_id",
+        "location_id",
+        "supplier_reference",
+        "received_at",
+        "lines"
+      ],
+      "properties": {
+        "expected_version": {
+          "type": "null"
+        },
+        "supplier_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "location_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "supplier_reference": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "received_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        },
+        "notes": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 2000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "lines": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "item_id",
+              "quantity",
+              "unit_cost"
+            ],
+            "properties": {
+              "item_id": {
+                "$ref": "../../schemas/common.json#/$defs/Ulid"
+              },
+              "quantity": {
+                "$ref": "../../schemas/common.json#/$defs/Quantity"
+              },
+              "unit_cost": {
+                "anyOf": [
+                  {
+                    "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          },
+          "maxItems": 200
+        }
+      }
+    },
+    "ValidateGoodsReceiptRequest": {
+      "description": "Validation d'une réception (L1D01) : CHAQUE ligne du brouillon confirme son lot (obligatoire pour un article périssable ou déjà suivi par lots) et son coût final (null = inconnu).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_version",
+        "lines"
+      ],
+      "properties": {
+        "expected_version": {
+          "type": "null"
+        },
+        "lines": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "position",
+              "lot",
+              "unit_cost"
+            ],
+            "properties": {
+              "position": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 200
+              },
+              "lot": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "batch_number",
+                      "expires_on"
+                    ],
+                    "properties": {
+                      "batch_number": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 80
+                      },
+                      "expires_on": {
+                        "$ref": "../../schemas/common.json#/$defs/NullableCivilDate"
+                      }
+                    }
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "unit_cost": {
+                "anyOf": [
+                  {
+                    "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          },
+          "maxItems": 200
+        }
+      }
+    },
+    "DeleteGoodsReceiptDraftRequest": {
+      "description": "Suppression d'un brouillon de réception jamais validé (corps vide).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_version"
+      ],
+      "properties": {
+        "expected_version": {
+          "type": "null"
+        }
+      }
+    },
     "EnrollDeviceRequest": {
       "description": "Enrôlement (O02) : clé publique ES256 du poste et preuve de possession (JWS compact ES256 signé par la clé PRIVÉE du poste, typ eeo-device-proof+jws, kid = empreinte RFC 7638, charge JCS {clinic_id, device_code, issued_at, jwk_thumbprint, purpose=enroll, v=1}, fraîche de 10 minutes).",
       "type": "object",

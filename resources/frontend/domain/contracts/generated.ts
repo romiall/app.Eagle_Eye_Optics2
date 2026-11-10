@@ -736,6 +736,10 @@ SchemasRequestsHttpJsonCancelFollowUpRequest?: CancelFollowUpRequest
 SchemasRequestsHttpJsonDeleteConsultationDraftRequest?: DeleteConsultationDraftRequest
 SchemasRequestsHttpJsonCancelVisitRequest?: CancelVisitRequest
 SchemasRequestsHttpJsonOpeningStockRequest?: OpeningStockRequest
+SchemasRequestsHttpJsonSupplierRequest?: SupplierRequest
+SchemasRequestsHttpJsonGoodsReceiptDraftRequest?: GoodsReceiptDraftRequest
+SchemasRequestsHttpJsonValidateGoodsReceiptRequest?: ValidateGoodsReceiptRequest
+SchemasRequestsHttpJsonDeleteGoodsReceiptDraftRequest?: DeleteGoodsReceiptDraftRequest
 SchemasRequestsHttpJsonEnrollDeviceRequest?: EnrollDeviceRequest
 SchemasRequestsHttpJsonIssueOfflineGrantRequest?: IssueOfflineGrantRequest
 SchemasRequestsHttpJsonRevokeDeviceRequest?: RevokeDeviceRequest
@@ -952,6 +956,16 @@ SchemasResourcesStockJsonOpeningStockResult?: OpeningStockResult
 SchemasResourcesStockJsonOpeningStockResponse?: OpeningStockResponse
 SchemasResourcesStockJsonPhysicalReturn?: PhysicalReturn
 SchemasResourcesStockJsonPhysicalReturnResponse?: PhysicalReturnResponse
+SchemasResourcesStockJsonSupplier?: Supplier
+SchemasResourcesStockJsonSupplierResponse?: SupplierResponse
+SchemasResourcesStockJsonSupplierList?: SupplierList
+SchemasResourcesStockJsonGoodsReceiptSummary?: GoodsReceiptSummary
+SchemasResourcesStockJsonGoodsReceiptPage?: GoodsReceiptPage
+SchemasResourcesStockJsonGoodsReceipt?: GoodsReceipt
+SchemasResourcesStockJsonGoodsReceiptLine?: GoodsReceiptLine
+SchemasResourcesStockJsonGoodsReceiptResponse?: GoodsReceiptResponse
+SchemasResourcesStockJsonDeleteGoodsReceiptDraftResult?: DeleteGoodsReceiptDraftResult
+SchemasResourcesStockJsonDeleteGoodsReceiptDraftResponse?: DeleteGoodsReceiptDraftResponse
 SchemasRuleVectorsJson?: RuleVectors
 SchemasRuleVectorsJsonVectorCase?: VectorCase
 SchemasRuleVectorsJsonVectorRefusal?: VectorRefusal
@@ -6375,6 +6389,74 @@ unit_cost: (MoneyXaf | null)
 })[]]
 }
 /**
+ * Fournisseur ou laboratoire (L1D01), création ou modification complète ; code unique par cabinet, désactivation par `active` faux. Droit stock.receive.
+ */
+export interface SupplierRequest {
+expected_version: null
+name: string
+reference: string
+phone?: (string | null)
+email?: (string | null)
+address?: (string | null)
+is_optical_lab?: boolean
+active?: boolean
+}
+/**
+ * Brouillon de réception (L1D01), création ou remplacement complet : aucun lot ni stock avant la validation ; coût unitaire connu ou null (inconnu).
+ */
+export interface GoodsReceiptDraftRequest {
+expected_version: null
+supplier_id: Ulid
+location_id: Ulid
+supplier_reference: string
+received_at: Instant
+notes?: (string | null)
+/**
+ * @minItems 1
+ * @maxItems 200
+ */
+lines: [{
+item_id: Ulid
+quantity: Quantity
+unit_cost: (MoneyXaf | null)
+}, ...({
+item_id: Ulid
+quantity: Quantity
+unit_cost: (MoneyXaf | null)
+})[]]
+}
+/**
+ * Validation d'une réception (L1D01) : CHAQUE ligne du brouillon confirme son lot (obligatoire pour un article périssable ou déjà suivi par lots) et son coût final (null = inconnu).
+ */
+export interface ValidateGoodsReceiptRequest {
+expected_version: null
+/**
+ * @minItems 1
+ * @maxItems 200
+ */
+lines: [{
+position: number
+lot: ({
+batch_number: string
+expires_on: NullableCivilDate
+} | null)
+unit_cost: (MoneyXaf | null)
+}, ...({
+position: number
+lot: ({
+batch_number: string
+expires_on: NullableCivilDate
+} | null)
+unit_cost: (MoneyXaf | null)
+})[]]
+}
+/**
+ * Suppression d'un brouillon de réception jamais validé (corps vide).
+ */
+export interface DeleteGoodsReceiptDraftRequest {
+expected_version: null
+}
+/**
  * Enrôlement (O02) : clé publique ES256 du poste et preuve de possession (JWS compact ES256 signé par la clé PRIVÉE du poste, typ eeo-device-proof+jws, kid = empreinte RFC 7638, charge JCS {clinic_id, device_code, issued_at, jwk_thumbprint, purpose=enroll, v=1}, fraîche de 10 minutes).
  */
 export interface EnrollDeviceRequest {
@@ -9829,6 +9911,104 @@ credit_note_id: NullableUlid
 }
 export interface PhysicalReturnResponse {
 data: PhysicalReturn
+}
+/**
+ * Fournisseur ou laboratoire (L1D01) : coordonnées d'une entreprise ; il se désactive, il ne se supprime jamais.
+ */
+export interface Supplier {
+id: Ulid
+name: string
+reference: string
+phone: (string | null)
+email: (string | null)
+address: (string | null)
+is_optical_lab: boolean
+active: boolean
+}
+export interface SupplierResponse {
+data: Supplier
+}
+export interface SupplierList {
+/**
+ * @minItems 0
+ */
+data: Supplier[]
+}
+/**
+ * Réception fournisseur sans ses lignes (liste) : valeur au coût connu arrondie au FCFA par ligne, lignes sans coût comptées à part (jamais valorisées à zéro).
+ */
+export interface GoodsReceiptSummary {
+id: Ulid
+supplier_id: Ulid
+supplier_name: string
+location_id: Ulid
+location_name: string
+supplier_reference: string
+received_at: Instant
+status: GoodsReceiptsStatus
+validated_at: NullableInstant
+notes: (string | null)
+line_count: number
+known_cost_total: MoneyXaf
+unknown_cost_lines: number
+}
+export interface GoodsReceiptPage {
+/**
+ * @minItems 0
+ */
+data: GoodsReceiptSummary[]
+meta: Pagination
+}
+/**
+ * Réception fournisseur (L1D01) : brouillon sans lot, ou validée (lots, coûts confirmés, un mouvement RECEIPT par ligne). Une réception validée est définitive.
+ */
+export interface GoodsReceipt {
+id: Ulid
+supplier_id: Ulid
+supplier_name: string
+location_id: Ulid
+location_name: string
+supplier_reference: string
+received_at: Instant
+status: GoodsReceiptsStatus
+validated_at: NullableInstant
+notes: (string | null)
+line_count: number
+known_cost_total: MoneyXaf
+unknown_cost_lines: number
+/**
+ * @minItems 0
+ */
+lines: GoodsReceiptLine[]
+}
+/**
+ * Ligne de réception : coût unitaire connu ou null (inconnu, jamais zéro) ; lot renseigné à la validation.
+ */
+export interface GoodsReceiptLine {
+position: number
+item_id: Ulid
+item_reference: string
+item_name: string
+/**
+ * DECIMAL(12,3) en chaîne exacte, zéro admis.
+ */
+quantity: string
+unit_cost: (MoneyXaf | null)
+lot: ({
+lot_id: Ulid
+batch_number: string
+expires_on: NullableCivilDate
+} | null)
+}
+export interface GoodsReceiptResponse {
+data: GoodsReceipt
+}
+export interface DeleteGoodsReceiptDraftResult {
+receipt_id: Ulid
+deleted: boolean
+}
+export interface DeleteGoodsReceiptDraftResponse {
+data: DeleteGoodsReceiptDraftResult
 }
 export interface RuleVectors {
 /**
