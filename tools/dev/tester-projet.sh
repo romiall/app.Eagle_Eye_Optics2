@@ -18,7 +18,7 @@
 #   bash tools/dev/tester-projet.sh --nettoyer       supprime la copie de vérification et s'arrête
 #   (--garder-mysql : ne pas arrêter le moteur de test que ce script a démarré)
 #
-# COPIE PROPRE. Le commit est cloné dans %LOCALAPPDATA%\eeo-verification (Linux : ~/.cache/eeo-verification ;
+# COPIE PROPRE. Le commit est cloné dans %USERPROFILE%\eeo-verification (Linux : ~/.cache/eeo-verification ;
 # EEO_VERIF_DIR pour la changer) : les fichiers non validés du dossier de travail, d'une autre session par exemple, ne
 # faussent rien et ne sont pas modifiés. Les dépendances y sont installées d'après les verrous (comme la CI) et gardées
 # d'une fois sur l'autre. Bases eeo_verif_test et eeo_verif_e2e_test, port Playwright libre : ni la base ni le serveur
@@ -105,11 +105,9 @@ fi
 # --- Poste --------------------------------------------------------------------------------------------------------
 IS_WINDOWS=0
 case "$(uname -s 2>/dev/null)" in MINGW* | MSYS* | CYGWIN*) IS_WINDOWS=1 ;; esac
-if ((IS_WINDOWS)); then
-  if [[ -n "${LOCALAPPDATA:-}" ]]; then BASE_DIR="$(cygpath -u "$LOCALAPPDATA")"; else BASE_DIR="$HOME/AppData/Local"; fi
-else
-  BASE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}"
-fi
+# Windows : jamais sous %LOCALAPPDATA% : l'application Claude de bureau (paquet MSIX) y virtualise les écritures, et un
+# Python lancé par l'alias du Store n'y retrouve pas les fichiers (échec constaté le 2026-11-10, schema_parity_report.py).
+if ((IS_WINDOWS)); then BASE_DIR="$HOME"; else BASE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}"; fi
 WORK="${EEO_VERIF_DIR:-$BASE_DIR/eeo-verification}"
 LOCK="$BASE_DIR/eeo-verification.lock"
 
@@ -548,15 +546,28 @@ step_ci() {
   remote="$(git remote get-url origin 2>/dev/null)" || { echo "Pas de remote origin."; return 77; }
   remote="${remote%.git}"
   slug="${remote#*github.com[:/]}"
-  curl -sS --max-time 25 "https://api.github.com/repos/${slug}/actions/runs?head_sha=${SHA}&per_page=10" -o "$LOGS/ci.json" || {
+  # API publique : 60 appels par heure et par adresse (partagés avec les autres sessions) ; GITHUB_TOKEN, facultatif, lève la limite.
+  local auth=()
+  [[ -n "${GITHUB_TOKEN:-${GH_TOKEN:-}}" ]] && auth=(-H "Authorization: Bearer ${GITHUB_TOKEN:-${GH_TOKEN:-}}")
+  curl -sS --max-time 25 ${auth[@]+"${auth[@]}"} -D "$LOGS/ci.headers" "https://api.github.com/repos/${slug}/actions/runs?head_sha=${SHA}&per_page=10" -o "$LOGS/ci.json" || {
     echo "API GitHub injoignable."
     return 77
   }
-  node - "$LOGS/ci.json" "$SHA" <<'JS'
+  node - "$LOGS/ci.json" "$SHA" "$LOGS/ci.headers" <<'JS'
 const fs = require("fs");
 const data = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
 if (data.message) {
-  console.log("API GitHub : " + data.message);
+  let quand = "";
+  try {
+    const trouve = /^x-ratelimit-reset:\s*(\d+)/im.exec(fs.readFileSync(process.argv[4], "utf8"));
+    if (trouve) {
+      const heure = new Date(Number(trouve[1]) * 1000).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+      quand = " ; remise à zéro à " + heure + " (relancer alors --ci)";
+    }
+  } catch (erreur) {
+    quand = "";
+  }
+  console.log("API GitHub : " + String(data.message).split(".")[0] + quand);
   process.exit(77);
 }
 const runs = (data.workflow_runs || []).filter((run) => run.head_sha === process.argv[3]);
