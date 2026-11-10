@@ -126,7 +126,9 @@ check('Base adoptée puis migrée : eagle:verify-schema sans écart, baseline 4/
 divergent = []
 for line in filter(None, env['BAD_JOINED'].split('\n')):
     exit_code, rows, sql, path = line.split('|', 3)
-    message = clean(Path(path).read_text(encoding='utf-8', errors='replace')) if Path(path).exists() else ''
+    # Le chemin transmis par le script shell est POSIX (/tmp/…) : un Python Windows ne le retrouve pas. Le fichier est
+    # toujours dans WORK : on le relit par son nom.
+    message = read(Path(path).name)
     ok = exit_code != '0' and rows.strip() == '0' and 'Adoption refusée' in message
     divergent.append({'divergence': sql, 'exit': int(exit_code), 'baseline_rows': rows.strip(), 'refused': ok,
                       'first_difference': next((l.strip() for l in message.splitlines() if l.strip().startswith('- ')), None)})
