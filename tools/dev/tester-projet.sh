@@ -552,7 +552,7 @@ step_en_ligne() {
     return 77
   fi
   bash tools/deploy/smoke.sh "$url" --anonyme || return 1
-  info="$(curl -sS --max-time 20 "$url/build/build-info.json")" || return 1
+  info="$(curl -sS --retry 2 --retry-delay 2 --max-time 20 "$url/build/build-info.json")" || return 1
   id="$(printf '%s' "$info" | node -pe 'JSON.parse(require("fs").readFileSync(0, "utf8")).id')" || return 1
   if git cat-file -e "${id}^{commit}" 2>/dev/null && git merge-base --is-ancestor "$id" "$SHA" 2>/dev/null; then
     changed="$(git diff --name-only "$id" "$SHA" -- app bootstrap config contracts database public resources routes lang artisan composer.json composer.lock package.json package-lock.json vite.config.ts | wc -l | tr -d ' ')"
