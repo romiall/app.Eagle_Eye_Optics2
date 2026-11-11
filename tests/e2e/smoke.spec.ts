@@ -1,8 +1,9 @@
-import { expect, test } from '@playwright/test'
+import { expect } from '@playwright/test'
 
 import { activeServiceWorkerScope, foreignRequests, recordRequests } from './support/browser'
 import { startLaravelServer } from './support/laravel-server'
 import { OFFLINE_PORT } from './support/ports'
+import { test } from './support/test'
 
 test.describe('application construite : coquille, PWA et API', () => {
   test('charge la coquille en français sans erreur de console', async ({ page }) => {

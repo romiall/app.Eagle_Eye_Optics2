@@ -1,7 +1,6 @@
-import { expect, test, type Locator, type Page } from '@playwright/test'
+import { expect, type Locator, type Page } from '@playwright/test'
 
 import { demoAccount } from './support/accounts'
-import { retireDevice } from './support/database'
 import {
   addLocalProfile,
   createPatientOnDevice,
@@ -25,6 +24,7 @@ import {
   readEntityCounts,
   readProfileCompartments,
 } from './support/device-db'
+import { test } from './support/test'
 
 /**
  * P04 — parcours entre profils sur le poste principal (fichier 19 : « le flux L0 complet peut se faire sur le poste
@@ -106,7 +106,6 @@ test.describe('P04 : parcours entre profils sur le poste principal (AT02, AT05, 
     const supervisor = await supervisorContext.newPage()
     const deviceCode = `PRF-${run}`.toUpperCase()
     const patientName = `PATIENT PROFILS ${run}`.toUpperCase()
-    let released = false
 
     try {
       // --- 1. La gérante prépare le poste et ses trois profils, en ligne ---------------------------------------------
@@ -293,9 +292,7 @@ test.describe('P04 : parcours entre profils sur le poste principal (AT02, AT05, 
         `e2e-p04-release-${run}`,
         'Fin du parcours entre profils (e2e, P04)',
       )
-      released = true
     } finally {
-      if (!released) retireDevice(deviceCode)
       await deviceContext.close().catch(() => undefined)
       await supervisorContext.close().catch(() => undefined)
     }

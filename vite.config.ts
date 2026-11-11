@@ -74,6 +74,18 @@ export default defineConfig({
   },
   build: {
     sourcemap: false,
+    // Seuil de l'avertissement « Some chunks are larger than … » de Vite, en kB de 1 000 octets (l'unité du rapport).
+    // Le chunk principal pèse 1 436,76 kB (423 kB gzip, mesuré le 2026-11-10) : le routeur importe statiquement les
+    // 52 écrans, et le code de l'application fait 86 % du chunk (écrans, domaine, coffre local, documents) contre 14 %
+    // de dépendances (Dexie, Vue, vue-router). Les parties lourdes et rares sont déjà à part (import dynamique) : moteur
+    // PDF et textes de l'aide. Le service worker précache tout assets/ (pwa.config.ts) : découper ce chunk ne réduirait
+    // pas ce que le poste conserve hors ligne, seulement le détail du téléchargement d'une mise à jour.
+    // Le défaut de 500 kB affichait donc le même avertissement à chaque build, sans rien signaler de nouveau. Posé juste
+    // au-dessus de la taille actuelle (63 kB de marge), le seuil en refait un SIGNAL : il réapparaît quand le chunk grossit.
+    // Décider alors en connaissance de cause : relever ce nombre en le consignant (docs/implementation/build.md), ou
+    // découper (écrans en import dynamique, build.rolldownOptions.output.codeSplitting). Le seuil vaut pour tous les
+    // chunks (les autres font au plus 417 kB). Il ne pilote que le rapport : aucun fichier produit ne change.
+    chunkSizeWarningLimit: 1500,
   },
   server: {
     watch: { ignored: ['**/storage/framework/views/**', '**/vendor/**'] },

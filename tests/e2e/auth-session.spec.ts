@@ -1,11 +1,12 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
-import { expect, test, type Page } from '@playwright/test'
+import { expect, type Page } from '@playwright/test'
 
 import { activeServiceWorkerScope } from './support/browser'
 import { startLaravelServer } from './support/laravel-server'
 import { AUTH_OFFLINE_PORT } from './support/ports'
+import { test } from './support/test'
 
 // Comptes de démonstration FICTIFS créés par prepare-env.mjs (mots de passe aléatoires, fichier ignoré).
 interface DemoAccount {

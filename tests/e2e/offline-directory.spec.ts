@@ -1,10 +1,11 @@
-import { expect, test } from '@playwright/test'
+import { expect } from '@playwright/test'
 
 import { demoAccount } from './support/accounts'
 import { activeServiceWorkerScope, foreignRequests, recordRequests } from './support/browser'
 import {
   api,
   deviceIdByCode,
+  forgetServerSession,
   navigateInApp,
   openFromSearch,
   prepareThisDevice,
@@ -15,6 +16,7 @@ import {
 import { startLaravelServer } from './support/laravel-server'
 import { DIRECTORY_OFFLINE_PORT } from './support/ports'
 import { newProfileDirectory, openProfile, removeProfileDirectory } from './support/profile'
+import { test } from './support/test'
 
 /**
  * Annuaire du poste (A2) : la fiche d'un patient du SERVEUR, reçue par le pull, se lit, se modifie et se facture sur un
@@ -161,6 +163,7 @@ test.describe('annuaire du poste : patient du serveur lu, modifié et facturé S
       await expect(page.getByRole('main')).toContainText('Opticienne')
 
       // --- 5. Le serveur revient : connexion depuis l'en-tête, envoi, preuve côté serveur --------------------------
+      await forgetServerSession(context) // sinon la page se rattache seule et le lien disparaît (voir support/device.ts)
       server = await startLaravelServer(DIRECTORY_OFFLINE_PORT, SERVER_ENVIRONMENT)
       // La tête du journal du poste est lue dans le lot envoyé : elle sert à rendre les ressources en fin de parcours.
       const journal: { head: { sequence: string; hash: string } | null } = { head: null }

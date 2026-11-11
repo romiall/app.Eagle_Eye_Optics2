@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
-import { expect, test, type Page } from '@playwright/test'
+import { expect, type Page } from '@playwright/test'
 
 import { LOCAL_SCHEMA_VERSION } from '../../resources/frontend/offline/migrations/registry'
 import { demoAccount } from './support/accounts'
@@ -24,6 +24,7 @@ import {
 import { startLaravelServer } from './support/laravel-server'
 import { UPDATE_BACKEND_PORT, UPDATE_PROXY_PORT } from './support/ports'
 import { newProfileDirectory, openProfile, removeProfileDirectory } from './support/profile'
+import { test } from './support/test'
 import { startUpdateProxy } from './support/update-proxy'
 
 /**

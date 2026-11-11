@@ -1,12 +1,13 @@
 import { readFileSync } from 'node:fs'
 
-import { expect, test, type Locator, type Page } from '@playwright/test'
+import { expect, type Locator, type Page } from '@playwright/test'
 
 import { demoAccount } from './support/accounts'
 import { activeServiceWorkerScope, foreignRequests, recordRequests } from './support/browser'
 import {
   api,
   deviceIdByCode,
+  forgetServerSession,
   navigateInApp,
   numberRange,
   numberValue,
@@ -19,6 +20,7 @@ import {
 import { startLaravelServer } from './support/laravel-server'
 import { INVOICE_OFFLINE_PORT } from './support/ports'
 import { newProfileDirectory, openProfile, removeProfileDirectory } from './support/profile'
+import { test } from './support/test'
 
 /**
  * AT37 à la lettre (fichier 14) : « Sans réseau : facture 80 000, acompte 30 000/reçu, solde 50 000/reçu, PDF/impression »,
@@ -238,6 +240,7 @@ test.describe('AT37 à la lettre : facture, acompte, solde et PDF SANS réseau (
       await expect(reopened).toContainText('Facture de ce poste')
 
       // --- 5. Le serveur revient : connexion depuis l'en-tête, envoi, preuve côté serveur --------------------------
+      await forgetServerSession(context) // sinon la page se rattache seule et le lien disparaît (voir support/device.ts)
       server = await startLaravelServer(INVOICE_OFFLINE_PORT, SERVER_ENVIRONMENT)
       // La tête du journal du poste est lue dans le lot envoyé : elle sert à rendre les ressources en fin de parcours.
       const journal: { head: { sequence: string; hash: string } | null } = { head: null }

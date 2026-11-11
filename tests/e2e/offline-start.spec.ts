@@ -1,12 +1,13 @@
 import { join } from 'node:path'
 
-import { expect, test, type Page } from '@playwright/test'
+import { expect, type Page } from '@playwright/test'
 
 import { demoAccount } from './support/accounts'
 import { activeServiceWorkerScope, foreignRequests, recordRequests } from './support/browser'
 import {
   api,
   deviceIdByCode,
+  forgetServerSession,
   navigateInApp,
   numberRange,
   numberValue,
@@ -17,6 +18,7 @@ import {
 import { startLaravelServer } from './support/laravel-server'
 import { START_OFFLINE_PORT } from './support/ports'
 import { newProfileDirectory, openProfile, removeProfileDirectory } from './support/profile'
+import { test } from './support/test'
 
 /**
  * AT36 à la lettre (fichier 14) : DÉMARRAGE sans réseau d'un poste préparé, sur un vrai profil de navigateur persistant
@@ -218,6 +220,7 @@ test.describe('démarrage sans réseau : déverrouillage public du poste (AT36, 
       expect(foreign, 'aucune requête hors de l’origine, démarrage compris').toEqual([])
 
       // --- 4. Le serveur revient : connexion depuis l'en-tête, envoi, preuve côté serveur ---------------------------
+      await forgetServerSession(context) // sinon la page se rattache seule et le lien disparaît (voir support/device.ts)
       server = await startLaravelServer(START_OFFLINE_PORT, SERVER_ENVIRONMENT)
       // La tête du journal du poste est lue dans le lot envoyé : elle sert à rendre les ressources en fin de parcours.
       const journal: { head: { sequence: string; hash: string } | null } = { head: null }

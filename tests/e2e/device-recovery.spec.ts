@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs'
 
-import { expect, test } from '@playwright/test'
+import { expect } from '@playwright/test'
 
 import {
   api,
@@ -13,10 +13,12 @@ import {
   numberValue,
   payRemainingOffline,
   prepareThisDevice,
+  reloadResources,
   reserveNumbers,
   signIn,
   unlockVault,
 } from './support/device'
+import { test } from './support/test'
 
 /**
  * Export chiffré d'un poste et reprise sur un poste NEUF (O07 ; AT39, AT44) sur la vraie application :
@@ -41,6 +43,10 @@ test.describe('export chiffré et reprise d’un poste sur un poste neuf (O07)',
     browser,
   }, testInfo) => {
     test.setTimeout(300_000)
+    // La base est partagée avec les autres parcours et, à la reprise de la CI, avec la première tentative : chaque essai a
+    // son téléphone (la recherche de fiches proches du formulaire « Nouveau patient » en demanderait la confirmation).
+    const stamp = String(Date.now()).slice(-4)
+    const phone = `+237 600 07 ${stamp.slice(0, 2)} ${stamp.slice(2)}`
 
     // --- 1. Poste A : préparation, encaissement hors ligne, export ------------------------------------------------
     const contextA = await browser.newContext({ acceptDownloads: true })
@@ -58,13 +64,12 @@ test.describe('export chiffré et reprise d’un poste sur un poste neuf (O07)',
     const { invoicePath, invoiceId } = await issueInvoiceForDevice(pageA, {
       deviceId: deviceA,
       patientName: `REPRISE POSTE ${RUN}`.toUpperCase(),
-      phone: '+237 600 00 09 91',
+      phone,
       run: RUN,
     })
     await pageA.goto('/parametres/poste')
     await unlockVault(pageA, SECRET_A)
-    await pageA.getByRole('button', { name: 'Relire les ressources du serveur' }).click()
-    await expect(pageA.getByText(/1 facture\(s\) attribuée\(s\)/)).toBeVisible()
+    await reloadResources(pageA, 1)
 
     await navigateInApp(pageA, invoicePath)
     await expect(pageA.getByRole('form', { name: 'Encaisser' })).toBeVisible()

@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs'
 
-import { expect, test, type Locator, type Page } from '@playwright/test'
+import { expect, type Locator, type Page } from '@playwright/test'
 
 import {
   api,
@@ -13,10 +13,12 @@ import {
   payAmountOffline,
   payRemainingOffline,
   prepareThisDevice,
+  reloadResources,
   signIn,
   unlockVault,
 } from './support/device'
 import { newProfileDirectory, openProfile, removeProfileDirectory } from './support/profile'
+import { test } from './support/test'
 
 /**
  * G1 : la tranche urgente, PERSISTANTE et REJOUABLE, sur la vraie application et un vrai profil de navigateur
@@ -146,8 +148,7 @@ test.describe('G1 : tranche urgente persistante et rejouable (AT36 à AT38)', ()
 
       await page.goto('/parametres/poste')
       await unlockVault(page, VAULT_SECRET)
-      await page.getByRole('button', { name: 'Relire les ressources du serveur' }).click()
-      await expect(page.getByText(/1 facture\(s\) attribuée\(s\)/)).toBeVisible()
+      await reloadResources(page, 1)
 
       await navigateInApp(page, invoicePath)
       const heading = page.getByRole('heading', { level: 1, name: /^Facture TEST-FAC-/ })

@@ -39,27 +39,33 @@ check() { # libellé, condition (0 = réussi), détail
   if [[ "$2" == "0" ]]; then echo "  OK      $1"; else echo "  ÉCHEC   $1 $3"; FAILURES=$((FAILURES + 1)); fi
 }
 
-http_code() { curl -sS -o /dev/null -w '%{http_code}' --max-time 30 "$@"; }
+# Lectures de la partie publique : un délai ou une coupure ponctuels (réseau lent, hébergement chargé) sont retentés deux
+# fois (curl --retry reprend un délai dépassé ; le message du premier essai reste affiché) ; un échec qui persiste
+# devient un contrôle en ÉCHEC (« reçu 000 ») au lieu d'arrêter le script en silence (set -e).
+curl_retry() { curl -sS --retry 2 --retry-delay 2 "$@"; }
+http_code() { curl_retry -o /dev/null -w '%{http_code}' --max-time 30 "$@" || true; }
 
 echo "Contrôle de ${BASE}"
 
 code="$(http_code "${BASE}/up")"
 check "GET /up répond 200" "$([[ "$code" == "200" ]] && echo 0 || echo 1)" "(reçu ${code})"
 
-body="$(curl -sS --max-time 30 "${BASE}/up")"
+body="$(curl_retry --max-time 30 "${BASE}/up" || true)"
 check "/up rend {\"status\":\"ok\"}" "$([[ "$body" == '{"status":"ok"}' ]] && echo 0 || echo 1)" "(reçu ${body})"
 
 code="$(http_code -H 'Accept: application/json' "${BASE}/api/v1/inconnu")"
 check "API inconnue : 404 JSON, jamais la page HTML" "$([[ "$code" == "404" ]] && echo 0 || echo 1)" "(reçu ${code})"
 
-home="$(curl -sS --max-time 30 "${BASE}/")"
+home="$(curl_retry --max-time 30 "${BASE}/" || true)"
 assets="$(printf '%s' "$home" | grep -Eo '(src|href)="[^"]*/build/[^"]*"' || true)"
 bad="$(printf '%s' "$assets" | grep -Ev '="/build/' || true)"
 check "La page d'accueil référence des fichiers /build/ locaux" "$([[ -n "$assets" && -z "$bad" ]] && echo 0 || echo 1)" "(vérifier le build et APP_URL)"
 
 first_asset="$(printf '%s' "$assets" | grep -Eo '/build/assets/[^"]*\.js' | head -n 1 || true)"
 if [[ -n "$first_asset" ]]; then
-  code="$(http_code "${BASE}${first_asset}")"
+  # Le script principal pèse plus d'un mégaoctet : transfert compressé comme le fait un navigateur, et 90 s au lieu de 30
+  # (la dernière option --max-time l'emporte) ; sur un réseau lent, 30 s ne suffisaient pas.
+  code="$(http_code --max-time 90 --compressed "${BASE}${first_asset}")"
   check "Le script de l'application est servi (${first_asset})" "$([[ "$code" == "200" ]] && echo 0 || echo 1)" "(reçu ${code})"
 fi
 
@@ -73,7 +79,7 @@ check "L'identité du build /build/build-info.json est servie" "$([[ "$code" == 
 # adresse inconnue : on contrôle donc le CONTENU (signature du fichier), pas seulement le code de réponse.
 check_not_served() { # chemin, expression de signature
   local page
-  page="$(curl -sS --max-time 30 "${BASE}$1" || true)"
+  page="$(curl_retry --max-time 30 "${BASE}$1" || true)"
   if printf '%s' "$page" | grep -Eq "$2"; then
     check "$1 n'est pas servi" 1 "(contenu exposé : la racine web doit être le dossier public/)"
   else

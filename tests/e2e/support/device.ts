@@ -8,11 +8,20 @@ import {
 } from '@playwright/test'
 
 import { demoAccount } from './accounts'
+import { rememberDevice, retireStrayDevices } from './device-isolation'
 
 /**
  * Gestes communs des parcours « poste préparé » (O01 à O07) : connexion, confirmation du mot de passe de la gérante,
  * navigation interne sans réseau, lectures de contrôle de l'API, coffre et préparation complète d'un poste.
  */
+
+/**
+ * Marge des attentes POSITIVES qui suivent un calcul de signature ou une lecture complète du serveur de test (une requête
+ * à la fois) : sur un poste chargé, la connexion, la préparation d'un poste et la relecture de ses ressources dépassent les
+ * 20 s habituelles (constaté le 2026-11-10 : 20 s dépassées une fois à la relecture, 60 s de parcours épuisées dans une
+ * connexion). Un test réussi n'attend que le temps nécessaire ; jamais appliquée à une assertion négative.
+ */
+const SLOW = { timeout: 60_000 }
 
 export async function signIn(page: Page, role: string): Promise<void> {
   const account = demoAccount(role)
@@ -20,7 +29,7 @@ export async function signIn(page: Page, role: string): Promise<void> {
   await page.getByLabel('Identifiant').fill(account.login)
   await page.getByLabel('Mot de passe').fill(account.password)
   await page.getByRole('button', { name: 'Se connecter' }).click()
-  await expect(page.getByRole('heading', { level: 1, name: /^Bonjour / })).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1, name: /^Bonjour / })).toBeVisible(SLOW)
 }
 
 /** Confirme le mot de passe de la gérante si le serveur le demande (423), puis attend le succès. */
@@ -28,13 +37,12 @@ export async function confirmPasswordIfAsked(page: Page, success: Locator): Prom
   const dialog = page.getByRole('dialog', { name: 'Confirmer votre mot de passe' })
   // L'inscription et la préparation d'un poste demandent des calculs de signature : le serveur de test, qui traite une
   // requête à la fois, peut dépasser les 20 s habituelles sur un poste chargé.
-  const slow = { timeout: 60_000 }
-  await expect(dialog.or(success).first()).toBeVisible(slow)
+  await expect(dialog.or(success).first()).toBeVisible(SLOW)
   if (await dialog.isVisible()) {
     await dialog.getByLabel('Mot de passe').fill(demoAccount('MANAGER').password)
     await dialog.getByRole('button', { name: 'Confirmer et reprendre' }).click()
   }
-  await expect(success.first()).toBeVisible(slow)
+  await expect(success.first()).toBeVisible(SLOW)
 }
 
 /** Navigation interne de l'application (sans rechargement ni réseau) : comme un lien du menu. */
@@ -100,12 +108,20 @@ export function numberValue(rendered: string): number {
  * ouverture, enrôlement, autorisation signée du profil de la gérante, numéros réservés (sauf `reserveNumbers: false`).
  * Rend la clé de récupération
  * affichée (à garder HORS du poste) ; le coffre reste ouvert.
+ *
+ * Isolation (voir `device-isolation.ts`) : avant tout, un poste qui détient encore une ressource financière sans avoir été
+ * préparé par ce parcours (processus tué, parcours précédent mal terminé) est sorti, sinon la réservation des numéros serait
+ * refusée par « une seule caisse hors ligne principale » ; puis le poste est noté comme celui de ce parcours, que la
+ * fixture de `support/test.ts` sortira si le parcours n'a pas réussi. Le parcours rend les ressources de son poste
+ * (`releaseDevice`) avant sa fin quand il réussit.
  */
 export async function prepareThisDevice(
   page: Page,
   input: { secret: string; code: string; name: string; reserveNumbers?: boolean },
 ): Promise<{ recoveryKey: string }> {
   const manager = demoAccount('MANAGER')
+  retireStrayDevices()
+  rememberDevice(input.code)
   await page.goto('/parametres/poste')
   await expect(page.getByRole('heading', { level: 1, name: 'Préparer ce poste' })).toBeVisible()
   await page.getByLabel('Secret local de la gérante').fill(input.secret)
@@ -151,6 +167,19 @@ export async function reserveNumbers(page: Page): Promise<void> {
     page,
     page.getByText(/Ressources conservées sur ce poste : 3 plage\(s\)/),
   )
+}
+
+/**
+ * Relit les ressources de ce poste auprès du serveur (page « Préparer ce poste », coffre ouvert) et attend la synthèse qui
+ * annonce `invoices` facture(s) attribuée(s) (`issueInvoiceForDevice` les attribue). La relecture lit la préparation
+ * complète du poste puis la range dans le coffre chiffré : une lecture complète du serveur, qui dépasse les 20 s habituelles
+ * sur un poste chargé (constaté une fois, `device-recovery.spec.ts`).
+ */
+export async function reloadResources(page: Page, invoices: number): Promise<void> {
+  await page.getByRole('button', { name: 'Relire les ressources du serveur' }).click()
+  await expect(
+    page.getByText(new RegExp(`${String(invoices)} facture\\(s\\) attribuée\\(s\\)`)),
+  ).toBeVisible(SLOW)
 }
 
 /**
@@ -456,6 +485,19 @@ export async function logInToServer(page: Page, role: string): Promise<void> {
   await page.getByLabel('Mot de passe').fill(account.password)
   await page.getByRole('button', { name: 'Se connecter' }).click()
   await expect(page.getByRole('heading', { level: 1, name: /^Bonjour / })).toBeVisible()
+}
+
+/**
+ * À appeler AVANT de relancer le serveur de test d'un poste rouvert sans lui, quand le parcours prouve la connexion DEPUIS
+ * L'EN-TÊTE (lien « Se connecter au serveur »). Le cookie de session survit à la fermeture complète du navigateur et le
+ * serveur, relancé sur la même base, reconnaît cette session : la page se rattache alors d'elle-même (relecture de la
+ * session toutes les 30 secondes, `recheckSession` d'`App.vue`, puis envoi des pièces) et le lien disparaît. Quand le
+ * démarrage du serveur dure plus de 30 secondes (poste chargé), le clic sur le lien attendait pour rien jusqu'au délai du
+ * parcours (échec du 2026-11-11 : 15 minutes, puis une reprise trompée par le serveur resté actif). L'application se
+ * comporte comme prévu (le serveur fait foi) : c'est le parcours qui ne doit pas courir contre ce rattachement.
+ */
+export async function forgetServerSession(context: BrowserContext): Promise<void> {
+  await context.clearCookies()
 }
 
 /** Fiches du serveur dont le nom contient le texte (recherche de l'API). */

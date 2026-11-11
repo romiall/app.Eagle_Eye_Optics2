@@ -16,13 +16,22 @@ import { demoAccount } from './support/accounts'
  */
 const WIDE_FONT = 'Verdana'
 
+/**
+ * Marges d'un poste chargé, comme `support/device.ts` : le 2026-11-10, le premier essai du premier test a épuisé ses 60 s
+ * dans sa connexion (attente du titre « Bonjour », limitée à 20 s) avant que cette attente ait pu échouer, puis a réussi à
+ * la reprise en 42 s ; il dure 29 s au troisième passage. La connexion attend donc 60 s et le délai de chaque test passe à
+ * 180 s (le triple du délai de base, comme `test.slow()`). Aucune mesure de mise en page ni assertion négative n'est élargie.
+ */
+const SLOW = { timeout: 60_000 }
+test.describe.configure({ timeout: 180_000 })
+
 async function signIn(page: Page, role: string): Promise<void> {
   const account = demoAccount(role)
   await page.goto('/connexion')
   await page.getByLabel('Identifiant').fill(account.login)
   await page.getByLabel('Mot de passe').fill(account.password)
   await page.getByRole('button', { name: 'Se connecter' }).click()
-  await expect(page.getByRole('heading', { level: 1, name: /^Bonjour / })).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1, name: /^Bonjour / })).toBeVisible(SLOW)
 }
 
 /** Impose la police large à chaque page, avant son premier rendu (nécessite `bypassCSP`). */

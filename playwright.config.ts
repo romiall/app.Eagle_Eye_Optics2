@@ -25,6 +25,12 @@ export default defineConfig({
   expect: { timeout: 20_000 },
   globalSetup: './tests/e2e/global-setup.ts',
   use: {
+    // Sans ces bornes, un clic ou une navigation dont la cible n'arrive jamais attend jusqu'au délai du PARCOURS (15 minutes
+    // pour les parcours hors ligne) : le `finally` du parcours ne s'exécute pas, son serveur reste actif et sa reprise est
+    // faussée (vérification du 2026-11-11 : 15 min d'attente pour un lien disparu). Une minute couvre largement une requête
+    // lente du serveur intégré sur un poste chargé ; un fichier peut fixer sa propre valeur (`test.use`).
+    actionTimeout: 60_000,
+    navigationTimeout: 60_000,
     baseURL: BASE_URL,
     locale: 'fr-FR',
     timezoneId: 'Africa/Douala',

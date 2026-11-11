@@ -97,7 +97,24 @@ describe('script unique de vérification du projet', () => {
     expect(script).toContain('VERDICT :')
     expect(script).toContain('eeo_verif_test')
     expect(script).toContain('eeo_verif_e2e_test')
-    expect(script).toContain('git -C "$WORK" clean -fdxq -e /vendor -e /node_modules')
+    expect(script).toContain('git clean -fdxq -e /vendor -e /node_modules')
     expect(script).not.toMatch(/git (stash|reset|switch|checkout) .*\$SRC/)
+  })
+
+  it('protège vendor/ et node_modules/ du nettoyage sous Git Bash (« -e /vendor » y devient un chemin Windows)', () => {
+    // Sans MSYS_NO_PATHCONV, le motif ne protège rien : les dépendances sont effacées puis réinstallées à chaque passage.
+    // La conversion n'est coupée que dans le dossier de la copie : « git -C /c/... » en a besoin (git.exe ignore les chemins POSIX).
+    expect(script).toMatch(
+      /\(cd "\$WORK" && MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='\*' git clean -fdxq -e \/vendor -e \/node_modules\)/,
+    )
+  })
+
+  it('garde des journaux sans ANSI ni avertissement de couleur, et conserve les artefacts d’un échec e2e', () => {
+    // NO_COLOR avec FORCE_COLOR (posé par Playwright) fait avertir Node dans chaque journal e2e.
+    expect(script).not.toMatch(/^export .*NO_COLOR=/m)
+    expect(script).toContain('phpunit --no-progress --colors=never')
+    // Le « git clean » du passage suivant efface test-results/ et le journal du serveur : on les garde à l’échec.
+    expect(script).toContain('keep_e2e_artifacts')
+    expect(script).toContain('e2e-artefacts')
   })
 })

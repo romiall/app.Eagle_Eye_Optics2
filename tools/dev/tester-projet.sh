@@ -151,7 +151,9 @@ any_selected contrats schema pint phpstan phpunit vue-tsc eslint prettier vitest
 any_selected schema phpunit e2e && need_mysql=1
 
 # --- Environnement ------------------------------------------------------------------------------------------------
-export EEO_REQUIRE_MYSQL=1 COMPOSER_NO_INTERACTION=1 NO_COLOR=1 FORCE_COLOR=0
+# Pas de NO_COLOR avec FORCE_COLOR : Playwright pose FORCE_COLOR dans ses processus et Node avertit alors « The 'NO_COLOR' env is ignored
+# due to the 'FORCE_COLOR' env being set » (bruit constaté dans chaque journal e2e du 2026-11-10). FORCE_COLOR=0 suffit aux outils Node.
+export EEO_REQUIRE_MYSQL=1 COMPOSER_NO_INTERACTION=1 FORCE_COLOR=0
 export EEO_TEST_DB_DATABASE="${EEO_VERIF_DB:-eeo_verif_test}"
 export EEO_E2E_DB_DATABASE="${EEO_VERIF_E2E_DB:-eeo_verif_e2e_test}"
 if ((IS_WINDOWS)); then
@@ -211,7 +213,9 @@ fmt() { # secondes -> 1h02m, 3m05s, 12s
   fi
 }
 
-clean_log() { tr -d '\r' <"$1"; }
+# Retire les retours chariot et les séquences ANSI : sans cela, « ^OK » de PHPUnit ne reconnaissait pas sa ligne de résultat colorée
+# et le détail de l'étape phpunit restait vide (journaux du 2026-11-10).
+clean_log() { tr -d '\r' <"$1" | sed -E $'s/\x1b\\[[0-9;]*[A-Za-z]//g'; }
 
 digest() { # nom, journal, état : le détail court d'une ligne de résultat
   local name="$1" log="$2" status="$3" line
@@ -345,7 +349,11 @@ step_preparation() {
   fi
   git -C "$WORK" fetch --quiet "$SRC" '+refs/*:refs/src/*' '+HEAD:refs/src/HEAD' || return 1
   git -C "$WORK" -c advice.detachedHead=false checkout --quiet --force --detach "$SHA" || return 1
-  git -C "$WORK" clean -fdxq -e /vendor -e /node_modules || return 1
+  # Sous Git Bash (MSYS), un argument qui commence par « / » est converti en chemin Windows : sans MSYS_NO_PATHCONV, « -e /vendor »
+  # ne protégeait RIEN et vendor/ et node_modules/ étaient effacés à chaque passage, donc réinstallés (604 paquets npm, 116 Composer :
+  # 6 à 11 min perdues par passage, constaté le 2026-11-10). La conversion n'est coupée que pour CETTE commande, lancée DANS le dossier
+  # (pas de « -C /c/... », qui a besoin d'elle : git.exe ne comprend pas un chemin POSIX). Sans effet sous Linux.
+  (cd "$WORK" && MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*' git clean -fdxq -e /vendor -e /node_modules) || return 1
   echo "RESUME: copie propre de $SHORT ($WORK)"
 }
 
@@ -431,7 +439,7 @@ step_phpstan() {
 step_phpunit() {
   cd "$WORK" || return 1
   ((MYSQL_OK)) || { echo "MySQL de test indisponible (étape mysql)."; return 77; }
-  php vendor/bin/phpunit --no-progress
+  php vendor/bin/phpunit --no-progress --colors=never
 }
 
 step_vue_tsc() {
@@ -510,11 +518,30 @@ step_e2e() {
   # --max-failures borne la durée d'une régression en cascade (la caisse hors ligne principale reste réservée après un échec).
   npx playwright test --retries=1 --max-failures=30 --reporter=list ${args[@]+"${args[@]}"}
   local rc=$?
-  if ((rc != 0)) && [[ -f storage/logs/e2e-php-server.log ]]; then
-    echo "--- fin du journal du serveur de test"
-    tail -n 20 storage/logs/e2e-php-server.log
+  if ((rc != 0)); then
+    keep_e2e_artifacts
+    if [[ -f storage/logs/e2e-php-server.log ]]; then
+      echo "--- fin du journal du serveur de test"
+      tail -n 20 storage/logs/e2e-php-server.log
+    fi
   fi
   return "$rc"
+}
+
+# À l'échec de Playwright : garde de quoi diagnostiquer avant que le « git clean » du passage suivant n'efface test-results/ et le journal du
+# serveur (l'échec isolé du 2026-11-10 n'a pas pu être expliqué faute de ces fichiers). Plafonné : journal du serveur 4 Mo, 30 fichiers
+# error-context.md, et la trace du PREMIER échec seulement (la plus ancienne).
+keep_e2e_artifacts() {
+  local dest="$LOGS/e2e-artefacts" context first
+  mkdir -p "$dest" || return 0
+  [[ -f storage/logs/e2e-php-server.log ]] && tail -c 4000000 storage/logs/e2e-php-server.log >"$dest/e2e-php-server.log"
+  while IFS= read -r context; do
+    cp "$context" "$dest/$(printf '%s' "${context#test-results/}" | tr '/\\' '__')" 2>/dev/null
+  done < <(find test-results -name error-context.md 2>/dev/null | head -n 30)
+  first="$(ls -tr test-results/*/trace.zip 2>/dev/null | head -n 1)"
+  [[ -n "$first" ]] && cp "$first" "$dest/premiere-trace.zip"
+  echo "--- artefacts conservés (journal du serveur, error-context.md, première trace) : $dest"
+  return 0
 }
 
 step_en_ligne() {
@@ -525,7 +552,7 @@ step_en_ligne() {
     return 77
   fi
   bash tools/deploy/smoke.sh "$url" --anonyme || return 1
-  info="$(curl -sS --max-time 20 "$url/build/build-info.json")" || return 1
+  info="$(curl -sS --retry 2 --retry-delay 2 --max-time 20 "$url/build/build-info.json")" || return 1
   id="$(printf '%s' "$info" | node -pe 'JSON.parse(require("fs").readFileSync(0, "utf8")).id')" || return 1
   if git cat-file -e "${id}^{commit}" 2>/dev/null && git merge-base --is-ancestor "$id" "$SHA" 2>/dev/null; then
     changed="$(git diff --name-only "$id" "$SHA" -- app bootstrap config contracts database public resources routes lang artisan composer.json composer.lock package.json package-lock.json vite.config.ts | wc -l | tr -d ' ')"
