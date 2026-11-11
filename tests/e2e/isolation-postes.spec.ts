@@ -7,6 +7,8 @@ import { demoAccount } from './support/accounts'
 import { blockingDevices } from './support/database'
 import { api, deviceIdByCode, prepareThisDevice, signIn } from './support/device'
 import { forgetDevicesOfThisTest } from './support/device-isolation'
+import { startLaravelServer } from './support/laravel-server'
+import { ISOLATION_SERVER_PORT } from './support/ports'
 import { test } from './support/test'
 
 /**
@@ -21,7 +23,10 @@ import { test } from './support/test'
  *  2. le test suivant constate, AVANT toute préparation, qu'aucun poste ne détient de ressource financière et que le poste
  *     du parcours tombé est sorti (REPLACED) ; un nouveau poste se prépare alors et réserve ses numéros ;
  *  3. un poste qui reste actif sans que le parcours en cours le connaisse (un processus de test tué perd sa mémoire, pas la
- *     base : `forgetDevicesOfThisTest`) est sorti par la préparation du poste suivant, qui réserve ses numéros.
+ *     base : `forgetDevicesOfThisTest`) est sorti par la préparation du poste suivant, qui réserve ses numéros ;
+ *  4. même principe pour les SERVEURS : un parcours qui démarre son serveur dédié puis tombe sans l'arrêter (comme un délai
+ *     dépassé, qui n'exécute pas le `finally`) ne le laisse pas actif : la fixture `serverIsolation` l'arrête et son port se
+ *     réutilise (vérification du 2026-11-11 : un serveur resté actif avait faussé la reprise du parcours).
  *
  * Deux contrôles statiques, sans navigateur, veillent en plus à ce que chaque parcours qui prépare un poste ou démarre son
  * serveur importe le `test` commun (les fixtures de nettoyage, postes et serveurs, n'agissent que dans les fichiers qui
@@ -203,5 +208,33 @@ test.describe.serial('isolation des postes après un parcours tombé', () => {
     } finally {
       for (const context of contexts) await context.close().catch(() => undefined)
     }
+  })
+})
+
+/** Constats du premier test de serveur, lus par le suivant (même principe que `fallenRun`). */
+const fallenServer = { started: false, url: '' }
+
+test.describe.serial('isolation des serveurs après un parcours tombé', () => {
+  test.fail(
+    'un parcours démarre son serveur dédié puis tombe sans l’arrêter (échec attendu)',
+    async () => {
+      const server = await startLaravelServer(ISOLATION_SERVER_PORT)
+      fallenServer.url = server.url
+      fallenServer.started = true
+      // Ni `server.stop()` ni `finally` : comme un parcours interrompu par son délai, dont le serveur PHP (détaché) reste actif.
+      throw new Error('Échec volontaire du parcours : son serveur n’a pas été arrêté.')
+    },
+  )
+
+  test('le serveur du parcours tombé est arrêté : son port ne répond plus et se réutilise', async () => {
+    expect(fallenServer.started, 'le premier test a démarré son serveur puis est tombé').toBe(true)
+    // C'est la fixture `serverIsolation` du parcours tombé qui l'a arrêté (aucun `finally` ne l'a fait).
+    await expect(
+      fetch(`${fallenServer.url}/up`, { signal: AbortSignal.timeout(2_000) }),
+      'le serveur du parcours tombé répond encore',
+    ).rejects.toThrow()
+    // Le port se réutilise : sans cela, `startLaravelServer` refuserait (« répond déjà ») ou adopterait le serveur resté actif.
+    const server = await startLaravelServer(ISOLATION_SERVER_PORT)
+    await server.stop()
   })
 })
