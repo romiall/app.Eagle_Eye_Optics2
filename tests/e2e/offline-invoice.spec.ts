@@ -7,6 +7,7 @@ import { activeServiceWorkerScope, foreignRequests, recordRequests } from './sup
 import {
   api,
   deviceIdByCode,
+  forgetServerSession,
   navigateInApp,
   numberRange,
   numberValue,
@@ -239,6 +240,7 @@ test.describe('AT37 à la lettre : facture, acompte, solde et PDF SANS réseau (
       await expect(reopened).toContainText('Facture de ce poste')
 
       // --- 5. Le serveur revient : connexion depuis l'en-tête, envoi, preuve côté serveur --------------------------
+      await forgetServerSession(context) // sinon la page se rattache seule et le lien disparaît (voir support/device.ts)
       server = await startLaravelServer(INVOICE_OFFLINE_PORT, SERVER_ENVIRONMENT)
       // La tête du journal du poste est lue dans le lot envoyé : elle sert à rendre les ressources en fin de parcours.
       const journal: { head: { sequence: string; hash: string } | null } = { head: null }

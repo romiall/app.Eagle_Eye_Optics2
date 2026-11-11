@@ -1,9 +1,10 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, type Page } from '@playwright/test'
 
 import { activeServiceWorkerScope, foreignRequests, recordRequests } from './support/browser'
 import { chromiumLaunchOptions } from './support/chromium'
 import { startLaravelServer, type RunningServer } from './support/laravel-server'
 import { HTTPS_BACKEND_PORT, HTTPS_HOSTNAME, HTTPS_PROXY_PORT } from './support/ports'
+import { test } from './support/test'
 import { startTlsProxy, type TlsProxy } from './support/tls-proxy'
 
 /**

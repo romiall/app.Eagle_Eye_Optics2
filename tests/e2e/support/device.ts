@@ -487,6 +487,19 @@ export async function logInToServer(page: Page, role: string): Promise<void> {
   await expect(page.getByRole('heading', { level: 1, name: /^Bonjour / })).toBeVisible()
 }
 
+/**
+ * À appeler AVANT de relancer le serveur de test d'un poste rouvert sans lui, quand le parcours prouve la connexion DEPUIS
+ * L'EN-TÊTE (lien « Se connecter au serveur »). Le cookie de session survit à la fermeture complète du navigateur et le
+ * serveur, relancé sur la même base, reconnaît cette session : la page se rattache alors d'elle-même (relecture de la
+ * session toutes les 30 secondes, `recheckSession` d'`App.vue`, puis envoi des pièces) et le lien disparaît. Quand le
+ * démarrage du serveur dure plus de 30 secondes (poste chargé), le clic sur le lien attendait pour rien jusqu'au délai du
+ * parcours (échec du 2026-11-11 : 15 minutes, puis une reprise trompée par le serveur resté actif). L'application se
+ * comporte comme prévu (le serveur fait foi) : c'est le parcours qui ne doit pas courir contre ce rattachement.
+ */
+export async function forgetServerSession(context: BrowserContext): Promise<void> {
+  await context.clearCookies()
+}
+
 /** Fiches du serveur dont le nom contient le texte (recherche de l'API). */
 export async function patientsNamed(
   page: Page,

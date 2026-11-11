@@ -7,6 +7,7 @@ import { activeServiceWorkerScope, foreignRequests, recordRequests } from './sup
 import {
   api,
   deviceIdByCode,
+  forgetServerSession,
   navigateInApp,
   numberRange,
   numberValue,
@@ -219,6 +220,7 @@ test.describe('démarrage sans réseau : déverrouillage public du poste (AT36, 
       expect(foreign, 'aucune requête hors de l’origine, démarrage compris').toEqual([])
 
       // --- 4. Le serveur revient : connexion depuis l'en-tête, envoi, preuve côté serveur ---------------------------
+      await forgetServerSession(context) // sinon la page se rattache seule et le lien disparaît (voir support/device.ts)
       server = await startLaravelServer(START_OFFLINE_PORT, SERVER_ENVIRONMENT)
       // La tête du journal du poste est lue dans le lot envoyé : elle sert à rendre les ressources en fin de parcours.
       const journal: { head: { sequence: string; hash: string } | null } = { head: null }

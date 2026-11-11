@@ -23,8 +23,10 @@ import { test } from './support/test'
  *  3. un poste qui reste actif sans que le parcours en cours le connaisse (un processus de test tué perd sa mémoire, pas la
  *     base : `forgetDevicesOfThisTest`) est sorti par la préparation du poste suivant, qui réserve ses numéros.
  *
- * Un contrôle statique, sans navigateur, veille en plus à ce que chaque parcours qui prépare un poste importe le `test`
- * commun : la fixture de nettoyage n'agit que dans les fichiers qui l'importent.
+ * Deux contrôles statiques, sans navigateur, veillent en plus à ce que chaque parcours qui prépare un poste ou démarre son
+ * serveur importe le `test` commun (les fixtures de nettoyage, postes et serveurs, n'agissent que dans les fichiers qui
+ * l'importent), et à ce que chaque parcours qui RELANCE un serveur oublie d'abord la session du navigateur
+ * (`forgetServerSession`, vérification du 2026-11-11).
  *
  * Le fichier rend à la fin les ressources du dernier poste et passe avant `zz-diagnostics-sql.spec.ts` (ordre alphabétique).
  * Les postes sortis gardent leurs plages ouvertes : alerte « poste à synchroniser » des diagnostics, jamais une anomalie.
@@ -80,14 +82,35 @@ async function releaseEmptyDevice(page: Page, deviceId: string, key: string): Pr
   expect(released.status(), await released.text()).toBe(200)
 }
 
-test('tout parcours qui prépare un poste importe le `test` commun de support/test.ts', () => {
-  const offenders = readdirSync(import.meta.dirname)
+/** Sources des parcours (`*.spec.ts` de ce dossier). */
+function specSources(): { file: string; source: string }[] {
+  return readdirSync(import.meta.dirname)
     .filter((file) => file.endsWith('.spec.ts'))
-    .filter((file) => {
-      const source = readFileSync(join(import.meta.dirname, file), 'utf8')
-      return /\bprepareThisDevice\(/.test(source) && !source.includes("from './support/test'")
-    })
-  expect(offenders, 'parcours qui préparent un poste avec le `test` de Playwright').toEqual([])
+    .map((file) => ({ file, source: readFileSync(join(import.meta.dirname, file), 'utf8') }))
+}
+
+test('tout parcours qui prépare un poste ou démarre un serveur importe le `test` commun', () => {
+  const offenders = specSources()
+    .filter(
+      ({ source }) =>
+        /\b(prepareThisDevice|startLaravelServer)\(/.test(source) &&
+        !source.includes("from './support/test'"),
+    )
+    .map(({ file }) => file)
+  expect(offenders, 'parcours qui utilisent le `test` de Playwright sans le nettoyage').toEqual([])
+})
+
+test('tout parcours qui relance un serveur oublie d’abord la session du navigateur', () => {
+  // L'affectation `server = await startLaravelServer(` (pas la déclaration `let server = …`) : le serveur REVIENT. La session
+  // du navigateur survit à la fermeture : sans `forgetServerSession`, la page se rattache seule et le lien disparaît.
+  const offenders = specSources()
+    .filter(
+      ({ source }) =>
+        /^\s+server = await startLaravelServer\(/m.test(source) &&
+        !source.includes('forgetServerSession('),
+    )
+    .map(({ file }) => file)
+  expect(offenders, 'parcours sans forgetServerSession (support/device.ts)').toEqual([])
 })
 
 test.describe.serial('isolation des postes après un parcours tombé', () => {
