@@ -94,14 +94,6 @@ export async function startLaravelServer(
     windowsHide: true,
   })
 
-  try {
-    await waitUntilReady(url, server)
-    await warmUp(url)
-  } catch (error) {
-    killTree(server)
-    throw error
-  }
-
   let stopped = false
 
   const handle: RunningServer = {
@@ -120,8 +112,21 @@ export async function startLaravelServer(
       await waitUntilRefusing(url)
     },
   }
+  // Suivi dès le démarrage du processus : un délai de parcours qui tombe PENDANT le démarrage (poste chargé : la première
+  // requête de chaque chemin compile Laravel) laisse aussi un serveur actif.
   const entry: TrackedServer = { port, startedAt: Date.now(), server: handle }
   alive.add(entry)
+
+  try {
+    await waitUntilReady(url, server)
+    await warmUp(url)
+  } catch (error) {
+    stopped = true
+    alive.delete(entry)
+    killTree(server)
+    throw error
+  }
+
   return handle
 }
 

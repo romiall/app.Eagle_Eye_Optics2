@@ -218,6 +218,8 @@ test.describe.serial('isolation des serveurs après un parcours tombé', () => {
   test.fail(
     'un parcours démarre son serveur dédié puis tombe sans l’arrêter (échec attendu)',
     async () => {
+      // Le démarrage compile Laravel (six requêtes de préchauffage) : plus d'une minute sur un poste chargé.
+      test.setTimeout(180_000)
       const server = await startLaravelServer(ISOLATION_SERVER_PORT)
       fallenServer.url = server.url
       fallenServer.started = true
@@ -227,6 +229,7 @@ test.describe.serial('isolation des serveurs après un parcours tombé', () => {
   )
 
   test('le serveur du parcours tombé est arrêté : son port ne répond plus et se réutilise', async () => {
+    test.setTimeout(180_000)
     expect(fallenServer.started, 'le premier test a démarré son serveur puis est tombé').toBe(true)
     // C'est la fixture `serverIsolation` du parcours tombé qui l'a arrêté (aucun `finally` ne l'a fait).
     await expect(
