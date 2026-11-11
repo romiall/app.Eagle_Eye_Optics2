@@ -108,4 +108,13 @@ describe('script unique de vérification du projet', () => {
       /\(cd "\$WORK" && MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='\*' git clean -fdxq -e \/vendor -e \/node_modules\)/,
     )
   })
+
+  it('garde des journaux sans ANSI ni avertissement de couleur, et conserve les artefacts d’un échec e2e', () => {
+    // NO_COLOR avec FORCE_COLOR (posé par Playwright) fait avertir Node dans chaque journal e2e.
+    expect(script).not.toMatch(/^export .*NO_COLOR=/m)
+    expect(script).toContain('phpunit --no-progress --colors=never')
+    // Le « git clean » du passage suivant efface test-results/ et le journal du serveur : on les garde à l’échec.
+    expect(script).toContain('keep_e2e_artifacts')
+    expect(script).toContain('e2e-artefacts')
+  })
 })
