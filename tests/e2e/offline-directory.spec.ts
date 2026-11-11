@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect } from '@playwright/test'
 
 import { demoAccount } from './support/accounts'
 import { activeServiceWorkerScope, foreignRequests, recordRequests } from './support/browser'
@@ -15,6 +15,7 @@ import {
 import { startLaravelServer } from './support/laravel-server'
 import { DIRECTORY_OFFLINE_PORT } from './support/ports'
 import { newProfileDirectory, openProfile, removeProfileDirectory } from './support/profile'
+import { test } from './support/test'
 
 /**
  * Annuaire du poste (A2) : la fiche d'un patient du SERVEUR, reçue par le pull, se lit, se modifie et se facture sur un

@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect } from '@playwright/test'
 
 import {
   api,
@@ -11,10 +11,12 @@ import {
   payRemainingOffline,
   prepareThisDevice,
   releaseDevice,
+  reloadResources,
   signIn,
   trackJournalHead,
   unlockVault,
 } from './support/device'
+import { test } from './support/test'
 
 /**
  * Poste préparé, coupure RÉELLE du réseau, reprise et ACK (O05 ; G1 ; AT36 à AT39, AT42) sur la vraie application :
@@ -38,6 +40,10 @@ test.describe('poste préparé : coupure réseau, reprise et ACK (O05)', () => {
     browser,
   }) => {
     test.setTimeout(300_000)
+    // La base est partagée avec les autres parcours et, à la reprise de la CI, avec la première tentative : chaque essai a
+    // son téléphone (la recherche de fiches proches du formulaire « Nouveau patient » en demanderait la confirmation).
+    const stamp = String(Date.now()).slice(-4)
+    const invoicePhone = `+237 600 01 ${stamp.slice(0, 2)} ${stamp.slice(2)}`
     const context = await browser.newContext()
     const journal = trackJournalHead(context)
     let page = await context.newPage()
@@ -56,14 +62,13 @@ test.describe('poste préparé : coupure réseau, reprise et ACK (O05)', () => {
     const { invoicePath, invoiceId } = await issueInvoiceForDevice(page, {
       deviceId,
       patientName: `FACTURE POSTE ${RUN}`,
-      phone: '+237 600 00 09 81',
+      phone: invoicePhone,
       run: RUN,
     })
 
     await page.goto('/parametres/poste')
     await unlockVault(page, VAULT_SECRET)
-    await page.getByRole('button', { name: 'Relire les ressources du serveur' }).click()
-    await expect(page.getByText(/1 facture\(s\) attribuée\(s\)/)).toBeVisible()
+    await reloadResources(page, 1)
 
     // Facture affichée en ligne, coffre ouvert : ce poste en est le propriétaire, il pourra l'encaisser sans réseau.
     await navigateInApp(page, invoicePath)

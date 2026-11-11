@@ -1,0 +1,184 @@
+import { readdirSync, readFileSync } from 'node:fs'
+import { join } from 'node:path'
+
+import { expect, type BrowserContext, type Page } from '@playwright/test'
+
+import { demoAccount } from './support/accounts'
+import { blockingDevices } from './support/database'
+import { api, deviceIdByCode, prepareThisDevice, signIn } from './support/device'
+import { forgetDevicesOfThisTest } from './support/device-isolation'
+import { test } from './support/test'
+
+/**
+ * Garde de l'isolation des parcours qui préparent un poste (vérification unique du 2026-11-10, anomalie 4) : UNE SEULE
+ * caisse hors ligne principale détient les numéros financiers à la fois (`FINANCIAL_DEVICE_ELSEWHERE`), donc un parcours
+ * qui tombe sans rendre les ressources de son poste ne doit ni faire échouer les parcours suivants ni sa propre reprise.
+ * Ce fichier prouve la propriété, sur la vraie application, en trois temps (chaque temps lit la base, pas l'écran) :
+ *
+ *  1. un parcours prépare un poste (ses plages financières sont réservées) puis tombe volontairement : échec ATTENDU
+ *     (`test.fail`), qui n'est pas un échec de la suite mais un parcours « non réussi » comme un autre pour la fixture de
+ *     `support/test.ts` ;
+ *  2. le test suivant constate, AVANT toute préparation, qu'aucun poste ne détient de ressource financière et que le poste
+ *     du parcours tombé est sorti (REPLACED) ; un nouveau poste se prépare alors et réserve ses numéros ;
+ *  3. un poste qui reste actif sans que le parcours en cours le connaisse (un processus de test tué perd sa mémoire, pas la
+ *     base : `forgetDevicesOfThisTest`) est sorti par la préparation du poste suivant, qui réserve ses numéros.
+ *
+ * Un contrôle statique, sans navigateur, veille en plus à ce que chaque parcours qui prépare un poste importe le `test`
+ * commun : la fixture de nettoyage n'agit que dans les fichiers qui l'importent.
+ *
+ * Le fichier rend à la fin les ressources du dernier poste et passe avant `zz-diagnostics-sql.spec.ts` (ordre alphabétique).
+ * Les postes sortis gardent leurs plages ouvertes : alerte « poste à synchroniser » des diagnostics, jamais une anomalie.
+ * Données FICTIVES. Le module « offline » est ouvert par prepare-env.mjs.
+ */
+
+// Une étape qui ne trouve pas son élément échoue après une minute, pas à la fin du délai du parcours.
+test.use({ actionTimeout: 60_000 })
+
+const SECRETS = {
+  fallen: 'cedre-lagune-opale-brume-35',
+  next: 'verveine-ardoise-sentier-orage-46',
+  stray: 'tilleul-granit-ecume-cobalt-57',
+} as const
+
+/**
+ * Constats du premier test, lus par le suivant : un échec attendu n'arrête pas le processus de test, qui garde ce module.
+ * `reachedFailure` n'est vrai que si le parcours a VRAIMENT préparé un poste bloquant avant de tomber (sans cela, un échec
+ * ailleurs dans le premier test passerait pour l'échec attendu).
+ */
+const fallenRun = { reachedFailure: false, code: '' }
+
+function codes(devices: { code: string }[]): string[] {
+  return devices.map((device) => device.code)
+}
+
+/** Statut d'un poste d'après son code, lu par l'API de la gérante. */
+async function deviceStatus(page: Page, code: string): Promise<string | undefined> {
+  const { request, headers } = await api(page)
+  const response = await request.get('/api/v1/devices', { headers })
+  expect(response.status(), await response.text()).toBe(200)
+  const devices = (await response.json()) as { data: { device_code: string; status: string }[] }
+  return devices.data.find((device) => device.device_code === code)?.status
+}
+
+/** Rend les ressources d'un poste qui n'a envoyé aucune pièce : journal vide (séquence 0, aucune empreinte). */
+async function releaseEmptyDevice(page: Page, deviceId: string, key: string): Promise<void> {
+  const { request, headers } = await api(page)
+  const reauthenticated = await request.post('/api/v1/auth/reauthenticate', {
+    headers,
+    data: { password: demoAccount('MANAGER').password },
+  })
+  expect(reauthenticated.status(), await reauthenticated.text()).toBe(200)
+  const released = await request.post(`/api/v1/devices/${deviceId}/release`, {
+    headers: { ...headers, 'Idempotency-Key': key },
+    data: {
+      expected_version: null,
+      last_device_sequence: '0',
+      last_event_hash: null,
+      reason: 'Fin du test de garde de l’isolation des postes (e2e)',
+    },
+  })
+  expect(released.status(), await released.text()).toBe(200)
+}
+
+test('tout parcours qui prépare un poste importe le `test` commun de support/test.ts', () => {
+  const offenders = readdirSync(import.meta.dirname)
+    .filter((file) => file.endsWith('.spec.ts'))
+    .filter((file) => {
+      const source = readFileSync(join(import.meta.dirname, file), 'utf8')
+      return /\bprepareThisDevice\(/.test(source) && !source.includes("from './support/test'")
+    })
+  expect(offenders, 'parcours qui préparent un poste avec le `test` de Playwright').toEqual([])
+})
+
+test.describe.serial('isolation des postes après un parcours tombé', () => {
+  test.fail(
+    'un parcours prépare un poste et réserve ses numéros, puis tombe volontairement (échec attendu)',
+    async ({ browser }) => {
+      test.setTimeout(600_000)
+      const run = Date.now().toString(36)
+      fallenRun.code = `ISO-A-${run}`.toUpperCase()
+      const context = await browser.newContext()
+      try {
+        const page = await context.newPage()
+        await signIn(page, 'MANAGER')
+        await prepareThisDevice(page, {
+          secret: SECRETS.fallen,
+          code: fallenRun.code,
+          name: `Poste isolation A ${run} (e2e)`,
+        })
+        // Le poste détient ses plages financières : il bloquerait toute autre caisse tant qu'il reste actif.
+        expect(codes(blockingDevices())).toContain(fallenRun.code)
+        fallenRun.reachedFailure = true
+        throw new Error('Échec volontaire du parcours : son poste n’a pas rendu ses ressources.')
+      } finally {
+        await context.close().catch(() => undefined)
+      }
+    },
+  )
+
+  test('le poste du parcours tombé est sorti ; un nouveau poste réserve ses numéros ; un poste inconnu du parcours est retiré', async ({
+    browser,
+  }) => {
+    test.setTimeout(900_000)
+    const run = Date.now().toString(36)
+    const contexts: BrowserContext[] = []
+    const openManagerPage = async (): Promise<Page> => {
+      const context = await browser.newContext()
+      contexts.push(context)
+      const page = await context.newPage()
+      await signIn(page, 'MANAGER')
+      return page
+    }
+
+    try {
+      expect(
+        fallenRun.reachedFailure,
+        'le premier test a préparé un poste qui bloque la caisse, puis est tombé volontairement',
+      ).toBe(true)
+
+      // --- 1. Constat IMMÉDIAT, avant toute préparation : c'est la fixture du parcours tombé qui a sorti son poste -------
+      // (le filet de `prepareThisDevice`, plus bas, n'a pas encore pu le faire à sa place).
+      expect(
+        codes(blockingDevices()),
+        'postes qui détiennent encore une ressource financière après la fin du parcours tombé',
+      ).toEqual([])
+      const nextPage = await openManagerPage()
+      expect(await deviceStatus(nextPage, fallenRun.code), 'poste du parcours tombé').toBe(
+        'REPLACED',
+      )
+
+      // --- 2. Un nouveau poste se prépare et réserve ses numéros : sans cela, FINANCIAL_DEVICE_ELSEWHERE --------------
+      const nextCode = `ISO-B-${run}`.toUpperCase()
+      await prepareThisDevice(nextPage, {
+        secret: SECRETS.next,
+        code: nextCode,
+        name: `Poste isolation B ${run} (e2e)`,
+      })
+      expect(codes(blockingDevices()), 'le nouveau poste détient ses plages').toEqual([nextCode])
+
+      // --- 3. Filet : un poste actif que le parcours en cours ne connaît pas est sorti par la préparation suivante ------
+      forgetDevicesOfThisTest()
+      const strayPage = await openManagerPage()
+      const strayCode = `ISO-C-${run}`.toUpperCase()
+      await prepareThisDevice(strayPage, {
+        secret: SECRETS.stray,
+        code: strayCode,
+        name: `Poste isolation C ${run} (e2e)`,
+      })
+      expect(await deviceStatus(strayPage, nextCode), 'poste inconnu du parcours').toBe('REPLACED')
+      expect(codes(blockingDevices()), 'seul le dernier poste détient des plages').toEqual([
+        strayCode,
+      ])
+
+      // --- 4. Les ressources du dernier poste sont rendues : plus aucune caisse n'est bloquante -----------------------
+      await releaseEmptyDevice(
+        strayPage,
+        await deviceIdByCode(strayPage, strayCode),
+        `e2e-isolation-release-${run}`,
+      )
+      expect(codes(blockingDevices()), 'après la reprise complète du dernier poste').toEqual([])
+    } finally {
+      for (const context of contexts) await context.close().catch(() => undefined)
+    }
+  })
+})

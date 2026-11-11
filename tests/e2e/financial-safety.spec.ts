@@ -1,8 +1,7 @@
-import { expect, test, type Locator, type Page } from '@playwright/test'
+import { expect, type Locator, type Page } from '@playwright/test'
 
 import { newUlid } from '../../resources/frontend/domain/values/ulid'
 import { demoAccount } from './support/accounts'
-import { retireDevice } from './support/database'
 import {
   api,
   createPatientOnDevice,
@@ -19,12 +18,14 @@ import {
   prepareThisDevice,
   receiveDirectory,
   releaseDevice,
+  reloadResources,
   signIn,
   trackJournalHead,
   unlockFromPublicScreen,
   unlockVault,
 } from './support/device'
 import { readDeviceDatabase } from './support/device-db'
+import { test } from './support/test'
 
 /**
  * Gate G2 — risques financiers, concurrence et conflits, dans le VRAI navigateur (fichier 25, « Preuve G1 et G2 pas à
@@ -44,7 +45,8 @@ import { readDeviceDatabase } from './support/device-db'
  *     en plein commit ne laisse aucune pièce à moitié écrite.
  *
  * Données FICTIVES (comptes de démonstration, articles DEMO-*). Le module « offline » est ouvert par prepare-env.mjs.
- * Chaque parcours rend à la fin les ressources de son poste : une seule caisse hors ligne principale à la fois.
+ * Chaque parcours rend à la fin les ressources de son poste : une seule caisse hors ligne principale à la fois. S'il tombe
+ * avant, le `test` de `support/test.ts` sort son poste (voir `support/device-isolation.ts`).
  */
 
 // Une étape qui ne trouve pas son élément échoue après une minute, pas à la fin du délai du parcours (dix minutes).
@@ -139,7 +141,6 @@ test.describe('G2 : conflit de synchronisation décidé par la gérante (AT42)',
     const manager = demoAccount('MANAGER')
     const deviceName = `Poste conflit ${run} (e2e)`
     const deviceCode = `CFL-${run}`.toUpperCase()
-    let released = false
 
     try {
       // --- 1. En ligne : une fiche du SERVEUR, le poste préparé, l'annuaire reçu --------------------------------------
@@ -303,9 +304,7 @@ test.describe('G2 : conflit de synchronisation décidé par la gérante (AT42)',
         `e2e-g2-conflict-release-${run}`,
         RELEASE_REASON,
       )
-      released = true
     } finally {
-      if (!released) retireDevice(deviceCode)
       await deviceContext.close().catch(() => undefined)
       await centralContext.close().catch(() => undefined)
     }
@@ -325,7 +324,6 @@ test.describe('G2 : facture détenue par un poste et deux onglets du même poste
     const tab1 = await deviceContext.newPage()
     const cashier = await centralContext.newPage()
     const deviceCode = `ONG-${run}`.toUpperCase()
-    let released = false
 
     try {
       // --- 1. Poste préparé ; facture de 60 000 émise EN LIGNE puis attribuée à ce poste -----------------------------
@@ -345,8 +343,7 @@ test.describe('G2 : facture détenue par un poste et deux onglets du même poste
       })
       await tab1.goto('/parametres/poste')
       await unlockVault(tab1, TABS_SECRET)
-      await tab1.getByRole('button', { name: 'Relire les ressources du serveur' }).click()
-      await expect(tab1.getByText(/1 facture\(s\) attribuée\(s\)/)).toBeVisible()
+      await reloadResources(tab1, 1)
 
       // --- 2. AT39 : le caissier du central ne peut pas encaisser une facture détenue par un poste --------------------
       await signIn(cashier, 'CASHIER')
@@ -501,9 +498,7 @@ test.describe('G2 : facture détenue par un poste et deux onglets du même poste
       expect(numberValue(payments[0]?.receipt_number ?? '')).toBe(receipts.start)
 
       await releaseDevice(tab1, deviceId, journal, `e2e-g2-tabs-release-${run}`, RELEASE_REASON)
-      released = true
     } finally {
-      if (!released) retireDevice(deviceCode)
       await deviceContext.close().catch(() => undefined)
       await centralContext.close().catch(() => undefined)
     }

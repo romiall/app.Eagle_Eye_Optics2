@@ -44,11 +44,33 @@ export function integrityReport(): IntegrityReport {
   return JSON.parse(runDatabaseAction('integrity')) as IntegrityReport
 }
 
+export interface BlockingDevice {
+  code: string
+  status: string
+}
+
 /**
- * Sort un poste de test (code explicite) resté actif d'un parcours échoué : sans cela, ses plages et ses droits d'écriture
- * ouverts feraient échouer, par « une seule caisse hors ligne principale », tous les parcours suivants. À n'appeler que
- * quand le parcours n'a PAS rendu les ressources du poste.
+ * Postes dont les ressources financières encore ouvertes (plage de numéros, quota de stock, propriété de facture) feraient
+ * refuser, par « une seule caisse hors ligne principale » (`FINANCIAL_DEVICE_ELSEWHERE`), la préparation d'un autre poste.
+ * Lecture seule. Sert au filet de `prepareThisDevice` (voir `device-isolation.ts`) et au test de garde.
  */
-export function retireDevice(deviceCode: string): void {
-  runDatabaseAction('retire-device', deviceCode)
+export function blockingDevices(): BlockingDevice[] {
+  const report = JSON.parse(runDatabaseAction('blocking-devices')) as {
+    blocking: { device_code: string; status: string }[]
+  }
+  return report.blocking.map((device) => ({ code: device.device_code, status: device.status }))
+}
+
+/**
+ * Sort des postes de test (codes explicites) restés actifs d'un parcours échoué : sans cela, leurs plages et leurs droits
+ * d'écriture ouverts feraient échouer, par « une seule caisse hors ligne principale », tous les parcours suivants et la
+ * reprise du parcours lui-même. Idempotent : rend le nombre de postes réellement sortis (un poste déjà sorti ou inconnu ne
+ * compte pas). À n'appeler que pour des postes dont le parcours n'a PAS rendu les ressources.
+ */
+export function retireDevices(deviceCodes: readonly string[]): number {
+  if (deviceCodes.length === 0) return 0
+  const report = JSON.parse(runDatabaseAction('retire-device', ...deviceCodes)) as {
+    retired: number
+  }
+  return report.retired
 }

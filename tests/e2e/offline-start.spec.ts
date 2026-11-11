@@ -1,6 +1,6 @@
 import { join } from 'node:path'
 
-import { expect, test, type Page } from '@playwright/test'
+import { expect, type Page } from '@playwright/test'
 
 import { demoAccount } from './support/accounts'
 import { activeServiceWorkerScope, foreignRequests, recordRequests } from './support/browser'
@@ -17,6 +17,7 @@ import {
 import { startLaravelServer } from './support/laravel-server'
 import { START_OFFLINE_PORT } from './support/ports'
 import { newProfileDirectory, openProfile, removeProfileDirectory } from './support/profile'
+import { test } from './support/test'
 
 /**
  * AT36 à la lettre (fichier 14) : DÉMARRAGE sans réseau d'un poste préparé, sur un vrai profil de navigateur persistant
