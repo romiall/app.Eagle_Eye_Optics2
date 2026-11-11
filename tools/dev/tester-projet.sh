@@ -347,8 +347,9 @@ step_preparation() {
   git -C "$WORK" -c advice.detachedHead=false checkout --quiet --force --detach "$SHA" || return 1
   # Sous Git Bash (MSYS), un argument qui commence par « / » est converti en chemin Windows : sans MSYS_NO_PATHCONV, « -e /vendor »
   # ne protégeait RIEN et vendor/ et node_modules/ étaient effacés à chaque passage, donc réinstallés (604 paquets npm, 116 Composer :
-  # 6 à 11 min perdues par passage, constaté le 2026-11-10). Sans effet sous Linux.
-  MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*' git -C "$WORK" clean -fdxq -e /vendor -e /node_modules || return 1
+  # 6 à 11 min perdues par passage, constaté le 2026-11-10). La conversion n'est coupée que pour CETTE commande, lancée DANS le dossier
+  # (pas de « -C /c/... », qui a besoin d'elle : git.exe ne comprend pas un chemin POSIX). Sans effet sous Linux.
+  (cd "$WORK" && MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*' git clean -fdxq -e /vendor -e /node_modules) || return 1
   echo "RESUME: copie propre de $SHORT ($WORK)"
 }
 

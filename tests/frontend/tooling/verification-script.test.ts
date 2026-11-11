@@ -97,14 +97,15 @@ describe('script unique de vérification du projet', () => {
     expect(script).toContain('VERDICT :')
     expect(script).toContain('eeo_verif_test')
     expect(script).toContain('eeo_verif_e2e_test')
-    expect(script).toContain('git -C "$WORK" clean -fdxq -e /vendor -e /node_modules')
+    expect(script).toContain('git clean -fdxq -e /vendor -e /node_modules')
     expect(script).not.toMatch(/git (stash|reset|switch|checkout) .*\$SRC/)
   })
 
   it('protège vendor/ et node_modules/ du nettoyage sous Git Bash (« -e /vendor » y devient un chemin Windows)', () => {
     // Sans MSYS_NO_PATHCONV, le motif ne protège rien : les dépendances sont effacées puis réinstallées à chaque passage.
+    // La conversion n'est coupée que dans le dossier de la copie : « git -C /c/... » en a besoin (git.exe ignore les chemins POSIX).
     expect(script).toMatch(
-      /MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='\*' git -C "\$WORK" clean -fdxq -e \/vendor -e \/node_modules/,
+      /\(cd "\$WORK" && MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='\*' git clean -fdxq -e \/vendor -e \/node_modules\)/,
     )
   })
 })
