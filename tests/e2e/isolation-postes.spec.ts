@@ -7,7 +7,7 @@ import { demoAccount } from './support/accounts'
 import { blockingDevices } from './support/database'
 import { api, deviceIdByCode, prepareThisDevice, signIn } from './support/device'
 import { forgetDevicesOfThisTest } from './support/device-isolation'
-import { startLaravelServer } from './support/laravel-server'
+import { abandonTrackedServers, startLaravelServer } from './support/laravel-server'
 import { ISOLATION_SERVER_PORT } from './support/ports'
 import { test } from './support/test'
 
@@ -26,7 +26,10 @@ import { test } from './support/test'
  *     base : `forgetDevicesOfThisTest`) est sorti par la préparation du poste suivant, qui réserve ses numéros ;
  *  4. même principe pour les SERVEURS : un parcours qui démarre son serveur dédié puis tombe sans l'arrêter (comme un délai
  *     dépassé, qui n'exécute pas le `finally`) ne le laisse pas actif : la fixture `serverIsolation` l'arrête et son port se
- *     réutilise (vérification du 2026-11-11 : un serveur resté actif avait faussé la reprise du parcours).
+ *     réutilise (vérification du 2026-11-11 : un serveur resté actif avait faussé la reprise du parcours) ;
+ *  5. un serveur laissé par un processus de test TOMBÉ (plantage natif du 2026-11-11 : code 0xC0000409, aucune trace) est repris
+ *     par la reprise du parcours : ses serveurs PHP, détachés, lui survivent et seul le registre de `support/laravel-server.ts`
+ *     les retrouve ; sans cela, le second essai échouait aussitôt sur le port occupé.
  *
  * Deux contrôles statiques, sans navigateur, veillent en plus à ce que chaque parcours qui prépare un poste ou démarre son
  * serveur importe le `test` commun (les fixtures de nettoyage, postes et serveurs, n'agissent que dans les fichiers qui
@@ -239,5 +242,42 @@ test.describe.serial('isolation des serveurs après un parcours tombé', () => {
     // Le port se réutilise : sans cela, `startLaravelServer` refuserait (« répond déjà ») ou adopterait le serveur resté actif.
     const server = await startLaravelServer(ISOLATION_SERVER_PORT)
     await server.stop()
+  })
+
+  test('un serveur laissé par un processus tombé est repris par la reprise du parcours', async () => {
+    // Deux démarrages (le second compile Laravel après avoir arrêté le premier) : plus d'une minute sur un poste chargé.
+    test.setTimeout(300_000)
+    const orphan = await startLaravelServer(ISOLATION_SERVER_PORT)
+    // Un processus de test tombé perd sa mémoire, pas ses serveurs PHP (détachés) : on simule cette perte.
+    abandonTrackedServers()
+    const before = await fetch(`${orphan.url}/up`, { signal: AbortSignal.timeout(20_000) })
+    expect(before.ok, 'le serveur laissé par le processus tombé répond encore').toBe(true)
+
+    // La reprise du parcours démarre son serveur sur le même port : l'orphelin est arrêté puis remplacé, jamais adopté.
+    const resumed = await startLaravelServer(ISOLATION_SERVER_PORT)
+    const after = await fetch(`${resumed.url}/up`, { signal: AbortSignal.timeout(20_000) })
+    expect(after.ok, 'le serveur de la reprise répond').toBe(true)
+
+    // `stop()` n'arrête que le serveur de la reprise : si l'orphelin avait été adopté, le port répondrait encore et l'arrêt échouerait.
+    await resumed.stop()
+    await expect(
+      fetch(`${resumed.url}/up`, { signal: AbortSignal.timeout(2_000) }),
+      'le port répond encore après l’arrêt du serveur de la reprise',
+    ).rejects.toThrow()
+  })
+
+  test('un serveur que ce parcours n’a pas arrêté n’est jamais repris en silence', async () => {
+    test.setTimeout(180_000)
+    const first = await startLaravelServer(ISOLATION_SERVER_PORT)
+    try {
+      await expect(startLaravelServer(ISOLATION_SERVER_PORT)).rejects.toThrow(
+        /y a déjà démarré un serveur/,
+      )
+      // Le refus n'a touché ni à son processus ni à son port.
+      const response = await fetch(`${first.url}/up`, { signal: AbortSignal.timeout(20_000) })
+      expect(response.ok, 'le serveur du parcours répond encore après le refus').toBe(true)
+    } finally {
+      await first.stop()
+    }
   })
 })
