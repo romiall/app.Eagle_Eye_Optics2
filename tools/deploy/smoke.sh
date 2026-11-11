@@ -6,16 +6,19 @@
 #   EEO_SMOKE_PASSWORD='…' tools/deploy/smoke.sh https://app.exemple.cm gerante.login
 #   tools/deploy/smoke.sh https://app.exemple.cm gerante.login        (le mot de passe est demandé)
 #   tools/deploy/smoke.sh http://127.0.0.1:8000 gerante.login --insecure-local   (essai local sans HTTPS)
+#   tools/deploy/smoke.sh https://app.exemple.cm --anonyme   (sans identifiant ni mot de passe : partie publique seulement)
 #
 # Le mot de passe n'est jamais passé en argument de ligne de commande. Aucune donnée n'est créée.
 set -euo pipefail
 
 BASE="${1:-}"
 LOGIN="${2:-}"
+ANON=0
+[[ "$LOGIN" == "--anonyme" ]] && ANON=1
 LOCAL=0
 [[ "${3:-}" == "--insecure-local" ]] && LOCAL=1
 if [[ -z "$BASE" || -z "$LOGIN" ]]; then
-  sed -n '2,10p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+  sed -n '2,11p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
   exit 2
 fi
 BASE="${BASE%/}"
@@ -23,7 +26,7 @@ if [[ "$LOCAL" == "0" && "$BASE" != https://* ]]; then
   echo "L'adresse doit commencer par https:// (HTTPS est obligatoire en production)." >&2
   exit 2
 fi
-if [[ -z "${EEO_SMOKE_PASSWORD:-}" ]]; then
+if [[ "$ANON" == "0" && -z "${EEO_SMOKE_PASSWORD:-}" ]]; then
   read -r -s -p "Mot de passe de ${LOGIN} : " EEO_SMOKE_PASSWORD
   echo
 fi
@@ -86,6 +89,14 @@ check_not_served /RELEASE.json '"commit"'
 
 code="$(http_code -H 'Accept: application/json' "${BASE}/api/v1/auth/me")"
 check "Sans connexion, /api/v1/auth/me répond 401" "$([[ "$code" == "401" ]] && echo 0 || echo 1)" "(reçu ${code})"
+
+# Mode anonyme (tools/dev/tester-projet.sh) : la partie publique est contrôlée, aucune connexion n'est tentée.
+if [[ "$ANON" == "1" ]]; then
+  echo
+  if [[ "$FAILURES" == "0" ]]; then echo "Contrôle anonyme réussi."; exit 0; fi
+  echo "${FAILURES} contrôle(s) en échec."
+  exit 1
+fi
 
 # Connexion réelle (cookie de session + jeton CSRF), comme l'application.
 curl -sS --max-time 30 -c "$JAR" -o /dev/null "${BASE}/api/sanctum/csrf-cookie"
