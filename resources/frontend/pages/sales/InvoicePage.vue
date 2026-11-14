@@ -73,6 +73,16 @@ function onAbandoned(abandoned: Invoice): void {
   read.data.value = abandoned
 }
 
+function onRecorded(update: { balance: Invoice['balance']; ledgerVersion: number }): void {
+  if (read.data.value !== null && update.ledgerVersion > (read.data.value.ledger_version ?? 0)) {
+    read.data.value = {
+      ...read.data.value,
+      balance: update.balance,
+      ledger_version: update.ledgerVersion,
+    }
+  }
+}
+
 function reload(): void {
   void read.reload()
 }
@@ -126,6 +136,7 @@ function reload(): void {
         v-else-if="invoice.status === 'ISSUED'"
         :invoice="invoice"
         :local="onDevice"
+        @recorded="onRecorded"
         @reload="reload"
       />
       <StateMessage v-else state="empty" title="Facture abandonnée">

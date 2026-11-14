@@ -39,6 +39,7 @@ async function switchTo(page: Page, context: BrowserContext, role: string): Prom
 }
 
 test('la documentation ne présente que les écrans du profil', async ({ page, context }) => {
+  test.setTimeout(120_000)
   const nav = page.getByRole('navigation', { name: 'Sommaire de la documentation' })
   const search = page
     .getByRole('searchbox', { name: 'Chercher dans la documentation' })

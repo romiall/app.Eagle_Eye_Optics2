@@ -18,6 +18,7 @@ tags:
   - name: "Approbations"
   - name: "Caisse"
   - name: "Stock"
+  - name: "Atelier optique"
   - name: "Agenda et suivi"
   - name: "Rapports"
   - name: "Documents"
@@ -292,6 +293,7 @@ paths:
         - "finance.global.read"
         - "clinical.read"
         - "clinical.export"
+        - "workshop.manage"
       x-reauthentication: false
       x-idempotency: "none"
       x-implementation-status: "IMPLEMENTED"
@@ -3834,6 +3836,383 @@ paths:
       x-idempotency: "required"
       x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "L1D05"
+  /v1/payment-reconciliations:
+    get:
+      operationId: "ListPaymentReconciliations"
+      summary: "Rapprochements par canal de paiement"
+      tags:
+        - "Caisse"
+      description: "Module sales, droit finance.reconcile. Rapprochements du plus récent au plus ancien."
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: "method"
+          in: "query"
+          required: false
+          description: "Canal : CASH, MTN_MOMO, ORANGE_MONEY, BANK_TRANSFER, CHEQUE ou OTHER."
+          schema:
+            type: "string"
+        - name: "status"
+          in: "query"
+          required: false
+          description: "État : DRAFT ou VALIDATED."
+          schema:
+            type: "string"
+        - name: "page"
+          in: "query"
+          required: false
+          description: "Page (pagination, 1 par défaut)."
+          schema:
+            type: "integer"
+            minimum: 1
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/billing.json#/$defs/PaymentReconciliationPage"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "finance.reconcile"
+      x-reauthentication: false
+      x-idempotency: "none"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "L1D06"
+    post:
+      operationId: "CreatePaymentReconciliation"
+      summary: "Créer un brouillon de rapprochement par canal"
+      tags:
+        - "Caisse"
+      description: "Module sales, en ligne seulement. Enregistre un brouillon et ses lignes sans dupliquer un paiement ou remboursement déjà pointé dans un autre rapprochement."
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/SavePaymentReconciliationRequest"
+      responses:
+        "201":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/billing.json#/$defs/PaymentReconciliationResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "finance.reconcile"
+      x-reauthentication: false
+      x-idempotency: "required"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "L1D06"
+  /v1/payment-reconciliations/candidates:
+    get:
+      operationId: "ListPaymentReconciliationCandidates"
+      summary: "Mouvements éligibles au rapprochement d'un canal"
+      tags:
+        - "Caisse"
+      description: "Module sales, droit finance.reconcile. Encaissements confirmés nets et remboursements du canal non rapprochés ailleurs, plus montant attendu serveur et fraîcheur des postes."
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: "method"
+          in: "query"
+          required: false
+          description: "Canal du rapprochement."
+          schema:
+            type: "string"
+        - name: "period_starts_at"
+          in: "query"
+          required: false
+          description: "Début UTC ISO de la période (inclus)."
+          schema:
+            type: "string"
+        - name: "period_ends_at"
+          in: "query"
+          required: false
+          description: "Fin UTC ISO de la période (exclusive, > period_starts_at)."
+          schema:
+            type: "string"
+        - name: "reconciliation_id"
+          in: "query"
+          required: false
+          description: "Rapprochement courant facultatif dont les lignes restent éligibles."
+          schema:
+            type: "string"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/billing.json#/$defs/PaymentReconciliationCandidatesResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "finance.reconcile"
+      x-reauthentication: false
+      x-idempotency: "none"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "L1D06"
+  /v1/payment-reconciliations/statement-file:
+    post:
+      operationId: "StoreStatementEvidence"
+      summary: "Déposer un relevé de canal numérisé (PDF, JPEG ou PNG)"
+      tags:
+        - "Caisse"
+      description: "Module sales, en ligne seulement, mot de passe confirmé récemment (423 sinon). Classement FINANCIAL dans le stockage privé."
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/pdf:
+            schema:
+              type: "string"
+              contentMediaType: "application/pdf"
+          image/jpeg:
+            schema:
+              type: "string"
+              contentMediaType: "image/jpeg"
+          image/png:
+            schema:
+              type: "string"
+              contentMediaType: "image/png"
+      responses:
+        "201":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/billing.json#/$defs/StatementEvidenceResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+        "423":
+          $ref: "#/components/responses/ReauthenticationRequired"
+      x-permission:
+        - "finance.reconcile"
+      x-reauthentication: true
+      x-idempotency: "required"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "L1D06"
+  /v1/payment-reconciliations/statement-file/{id}:
+    get:
+      operationId: "GetReconciliationStatementFile"
+      summary: "Télécharger un relevé de paiement déposé"
+      tags:
+        - "Caisse"
+      description: "Module sales, droit finance.reconcile. Octets privés du relevé associé à un rapprochement du cabinet."
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      responses:
+        "200":
+          description: "Fichier privé."
+          content:
+            application/octet-stream:
+              schema:
+                type: "string"
+                contentMediaType: "application/octet-stream"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+      x-permission:
+        - "finance.reconcile"
+      x-reauthentication: false
+      x-idempotency: "none"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "L1D06"
+  /v1/payment-reconciliations/{id}:
+    get:
+      operationId: "GetPaymentReconciliation"
+      summary: "Détail d'un rapprochement et de ses lignes"
+      tags:
+        - "Caisse"
+      description: "Module sales, droit finance.reconcile."
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/billing.json#/$defs/PaymentReconciliationResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+      x-permission:
+        - "finance.reconcile"
+      x-reauthentication: false
+      x-idempotency: "none"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "L1D06"
+    patch:
+      operationId: "UpdatePaymentReconciliation"
+      summary: "Modifier un brouillon de rapprochement"
+      tags:
+        - "Caisse"
+      description: "Module sales, en ligne seulement, brouillon seulement (409 si déjà VALIDATED)."
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/SavePaymentReconciliationRequest"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/billing.json#/$defs/PaymentReconciliationResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "finance.reconcile"
+      x-reauthentication: false
+      x-idempotency: "required"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "L1D06"
+  /v1/payment-reconciliations/{id}/validate:
+    post:
+      operationId: "ValidatePaymentReconciliation"
+      summary: "Valider et figer un rapprochement par canal"
+      tags:
+        - "Caisse"
+      description: "Module sales, en ligne seulement, mot de passe confirmé récemment (423 sinon). Recalcule expected_amount, exige un motif si écart non nul, passe à VALIDATED."
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/ValidatePaymentReconciliationRequest"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/billing.json#/$defs/PaymentReconciliationResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+        "423":
+          $ref: "#/components/responses/ReauthenticationRequired"
+      x-permission:
+        - "finance.reconcile"
+      x-reauthentication: true
+      x-idempotency: "required"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "L1D06"
   /v1/reports/cash-day:
     get:
       operationId: "GetCashDayReport"
@@ -4961,6 +5340,445 @@ paths:
       x-idempotency: "required"
       x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "L1D02"
+  /v1/stock/alerts:
+    get:
+      operationId: "ListStockAlerts"
+      summary: "Alertes de stock bas et de péremption"
+      tags:
+        - "Stock"
+      description: "Module stock, droit stock.read. Alertes actives (OPEN puis ACKNOWLEDGED) d'abord, avec détail physique, réservé, quotas des postes et disponible central ; ne crée jamais de mouvement de stock."
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: "page"
+          in: "query"
+          required: false
+          description: "Page (pagination, 1 par défaut)."
+          schema:
+            type: "integer"
+            minimum: 1
+        - name: "status"
+          in: "query"
+          required: false
+          description: "Filtre : OPEN, ACKNOWLEDGED ou RESOLVED."
+          schema:
+            type: "string"
+        - name: "kind"
+          in: "query"
+          required: false
+          description: "Filtre : LOW_STOCK ou EXPIRY."
+          schema:
+            type: "string"
+        - name: "location_id"
+          in: "query"
+          required: false
+          description: "Filtre : emplacement (ULID)."
+          schema:
+            type: "string"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/stock.json#/$defs/StockAlertPage"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "stock.read"
+      x-reauthentication: false
+      x-idempotency: "none"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "L1D03"
+  /v1/stock/alerts/evaluate:
+    post:
+      operationId: "EvaluateStockAlerts"
+      summary: "Évaluer les seuils bas et péremptions du stock"
+      tags:
+        - "Stock"
+      description: "Module stock, en ligne seulement. Calcule les seuils bas (disponible central <= seuil) et lots proches de péremption ou expirés sans jamais créer de mouvement ; déduplique par (type, article, emplacement, lot), émet StockThresholdCrossed uniquement sur nouvelle ouverture ou réouverture, et résout automatiquement les alertes redevenues conformes."
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/EvaluateStockAlertsRequest"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/stock.json#/$defs/StockAlertEvaluationResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "stock.adjust"
+        - "stock.receive"
+        - "stock.inventory"
+      x-reauthentication: false
+      x-idempotency: "required"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "L1D03"
+  /v1/stock/alerts/{id}/acknowledge:
+    post:
+      operationId: "AcknowledgeStockAlert"
+      summary: "Accuser réception d'une alerte de stock"
+      tags:
+        - "Stock"
+      description: "Module stock, en ligne seulement. Transition OPEN vers ACKNOWLEDGED : consigne le compte qui accuse réception ; le scheduler répété conserve cet état."
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/StockAlertActionRequest"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/stock.json#/$defs/StockAlertResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "stock.adjust"
+        - "stock.receive"
+        - "stock.inventory"
+      x-reauthentication: false
+      x-idempotency: "required"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "L1D03"
+  /v1/stock/alerts/{id}/resolve:
+    post:
+      operationId: "ResolveStockAlert"
+      summary: "Résoudre manuellement une alerte de stock"
+      tags:
+        - "Stock"
+      description: "Module stock, en ligne seulement. Transition OPEN ou ACKNOWLEDGED vers RESOLVED sans créer aucun mouvement de stock (le blocage des lots expirés ou en quarantaine reste effectif hors-ligne)."
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/StockAlertActionRequest"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/stock.json#/$defs/StockAlertResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "stock.adjust"
+        - "stock.receive"
+        - "stock.inventory"
+      x-reauthentication: false
+      x-idempotency: "required"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "L1D03"
+  /v1/workshop-orders:
+    get:
+      operationId: "ListWorkshopOrders"
+      summary: "Commandes atelier par état ou retard"
+      tags:
+        - "Atelier optique"
+      description: "Module workshop, droit workshop.manage. Commandes triées du plus récent au plus ancien sans prix de vente ni antécédents médicaux."
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: "page"
+          in: "query"
+          required: false
+          description: "Page (pagination, 1 par défaut)."
+          schema:
+            type: "integer"
+            minimum: 1
+        - name: "status"
+          in: "query"
+          required: false
+          description: "Filtre : ORDERED, RECEIVED, MOUNTING, QUALITY_CHECK, READY, DELIVERED ou CANCELLED."
+          schema:
+            type: "string"
+        - name: "overdue"
+          in: "query"
+          required: false
+          description: "true/1 : commandes actives dont l'échéance (expected_at) est dépassée."
+          schema:
+            type: "string"
+        - name: "patient_id"
+          in: "query"
+          required: false
+          description: "Filtre : patient (ULID)."
+          schema:
+            type: "string"
+        - name: "supplier_id"
+          in: "query"
+          required: false
+          description: "Filtre : laboratoire (ULID)."
+          schema:
+            type: "string"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/workshop.json#/$defs/WorkshopOrderPage"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "workshop.manage"
+      x-reauthentication: false
+      x-idempotency: "none"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "L1D04"
+    post:
+      operationId: "CreateWorkshopOrder"
+      summary: "Créer une commande atelier (bon laboratoire)"
+      tags:
+        - "Atelier optique"
+      description: "Module workshop, en ligne seulement. Contrôle facture émise + reliquat, prescription validée du MÊME patient et laboratoire optique actif ; attribue un numéro central WORKSHOP, fige snapshot anonymisé et prepare generated_documents PENDING."
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/CreateWorkshopOrderRequest"
+      responses:
+        "201":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/workshop.json#/$defs/WorkshopOrderResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "workshop.manage"
+      x-reauthentication: false
+      x-idempotency: "required"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "L1D04"
+  /v1/workshop-orders/eligible-lines:
+    get:
+      operationId: "ListWorkshopEligibleLines"
+      summary: "Lignes facturées et prescriptions éligibles à l'atelier"
+      tags:
+        - "Atelier optique"
+      description: "Module workshop, droit workshop.manage. Lignes de factures ÉMISES ayant un reliquat à commander > 0, accompagnées des prescriptions optiques VALIDÉES de ces patients, laboratoires optiques actifs et montures actives. Aucun montant financier."
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: "query"
+          in: "query"
+          required: false
+          description: "Recherche par numéro de facture, patient ou numéro de dossier."
+          schema:
+            type: "string"
+        - name: "patient_id"
+          in: "query"
+          required: false
+          description: "Filtre : patient (ULID)."
+          schema:
+            type: "string"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/workshop.json#/$defs/WorkshopEligibleLinesResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "workshop.manage"
+      x-reauthentication: false
+      x-idempotency: "none"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "L1D04"
+  /v1/workshop-orders/{id}:
+    get:
+      operationId: "GetWorkshopOrder"
+      summary: "Commande atelier complète, yeux OD/OG, journal et remises liables"
+      tags:
+        - "Atelier optique"
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/workshop.json#/$defs/WorkshopOrderResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+      x-permission:
+        - "workshop.manage"
+      x-reauthentication: false
+      x-idempotency: "none"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "L1D04"
+  /v1/workshop-orders/{id}/advance:
+    post:
+      operationId: "AdvanceWorkshopOrder"
+      summary: "Faire progresser, contrôler, reprendre ou annuler une commande atelier"
+      tags:
+        - "Atelier optique"
+      description: "Module workshop, en ligne seulement, version optimiste. Transitions ordonnées, contrôle qualité (PASSED -> READY, ready_revision +1 et WorkshopReady dans outbox ; FAILED -> MOUNTING), reprise avec observations, ajustement référence/échéance, livraison liée à une delivery_line confirmée, ou annulation avant remise."
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/AdvanceWorkshopOrderRequest"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/workshop.json#/$defs/WorkshopOrderResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "workshop.manage"
+      x-reauthentication: false
+      x-idempotency: "required"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "L1D04"
   /v1/agenda/configuration:
     get:
       operationId: "GetAgendaConfiguration"
@@ -5844,6 +6662,208 @@ paths:
       x-idempotency: "none"
       x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "R02"
+  /v1/reports/accounting-export:
+    get:
+      operationId: "GetAccountingExportReport"
+      summary: "Restitution comptable Q13 (CA, encaissements, dépenses, rapprochements et impayés)"
+      tags:
+        - "Rapports"
+      description: "Module sales, droit finance.global.read. Format comptable Q13 sans double compte : CA (hors reprises papier), encaissements nets par mode, dépenses par catégorie, rapprochements, impayés à l'instant de la lecture et valorisation au coût connu."
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: "from"
+          in: "query"
+          required: false
+          description: "Premier jour civil AAAA-MM-JJ (inclus)."
+          schema:
+            type: "string"
+        - name: "to"
+          in: "query"
+          required: false
+          description: "Dernier jour civil AAAA-MM-JJ (inclus)."
+          schema:
+            type: "string"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/operations.json#/$defs/AccountingExportReportResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "finance.global.read"
+      x-reauthentication: false
+      x-idempotency: "none"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "L1D06"
+  /v1/reports/accounting-export/download:
+    get:
+      operationId: "DownloadAccountingExport"
+      summary: "Télécharger l'export comptable Q13 (CSV)"
+      tags:
+        - "Rapports"
+      description: "Module sales, droit finance.global.read. Fichier CSV UTF-8 (séparateur ;) conforme à la restitution comptable Q13."
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: "from"
+          in: "query"
+          required: false
+          description: "Premier jour civil AAAA-MM-JJ (inclus)."
+          schema:
+            type: "string"
+        - name: "to"
+          in: "query"
+          required: false
+          description: "Dernier jour civil AAAA-MM-JJ (inclus)."
+          schema:
+            type: "string"
+      responses:
+        "200":
+          description: "Export comptable Q13 au format CSV."
+          content:
+            text/csv:
+              schema:
+                type: "string"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "finance.global.read"
+      x-reauthentication: false
+      x-idempotency: "none"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "L1D06"
+  /v1/reports/management:
+    get:
+      operationId: "GetManagementReport"
+      summary: "Tableaux de gestion consolidés multi-domaines (L1D09)"
+      tags:
+        - "Rapports"
+      description: "Module reports. Synthèse par rôle et modules actifs, comparée à la période précédente équivalente, avec inconnus et exclusions explicites, définitions et empreinte de provenance."
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: "from"
+          in: "query"
+          required: false
+          description: "Premier jour civil AAAA-MM-JJ (inclus)."
+          schema:
+            type: "string"
+        - name: "to"
+          in: "query"
+          required: false
+          description: "Dernier jour civil AAAA-MM-JJ (inclus)."
+          schema:
+            type: "string"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/operations.json#/$defs/ManagementReportResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "statistics.activity"
+        - "statistics.clinical"
+        - "finance.global.read"
+        - "stock.read"
+        - "workshop.manage"
+      x-reauthentication: false
+      x-idempotency: "none"
+      x-read-scope:
+        MANAGER: "Toutes les rubriques actives du cabinet (finance, stock valorisé, atelier, patients, clinique)"
+        CLINICIAN: "Patients, clinique et quantités/alertes stock sans valorisation financière (stock.valuation.read absent)"
+        CASHIER: "Quantités/alertes stock sans valorisation financière (ni finance globale ni clinique)"
+        RECEPTION: "Activité patients uniquement"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "L1D09"
+  /v1/reports/management/download:
+    get:
+      operationId: "DownloadManagementReport"
+      summary: "Télécharger les tableaux de gestion (CSV ou JSON avec dictionnaire)"
+      tags:
+        - "Rapports"
+      description: "Module reports. Exporte exactement les rubriques autorisées au profil demandeur, accompagnées du dictionnaire des indicateurs et de la provenance."
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: "from"
+          in: "query"
+          required: false
+          description: "Premier jour civil AAAA-MM-JJ (inclus)."
+          schema:
+            type: "string"
+        - name: "to"
+          in: "query"
+          required: false
+          description: "Dernier jour civil AAAA-MM-JJ (inclus)."
+          schema:
+            type: "string"
+        - name: "format"
+          in: "query"
+          required: false
+          description: "Format du téléchargement : csv (défaut) ou json."
+          schema:
+            type: "string"
+      responses:
+        "200":
+          description: "Tableaux de gestion multi-domaines (CSV ou JSON avec dictionnaire et provenance)."
+          content:
+            text/csv:
+              schema:
+                type: "string"
+            application/json:
+              schema:
+                $ref: "./schemas/resources/operations.json#/$defs/ManagementReportResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "statistics.activity"
+        - "statistics.clinical"
+        - "finance.global.read"
+        - "stock.read"
+        - "workshop.manage"
+      x-reauthentication: false
+      x-idempotency: "none"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "L1D09"
   /v1/reports/financial:
     get:
       operationId: "FinancialDashboard"
@@ -5958,7 +6978,7 @@ paths:
       summary: "Télécharger un document privé"
       tags:
         - "Documents"
-      description: "Policy du document : pièce financière avec invoice.read, document clinique avec clinical.export ; stockage privé, jamais d'URL publique. Réponse application/pdf."
+      description: "Policy du document : pièce financière avec invoice.read, document clinique avec clinical.export, bon laboratoire avec workshop.manage ; stockage privé, jamais d'URL publique. Réponse application/pdf."
       security:
         - sessionCookie: []
       parameters:
@@ -5987,6 +7007,7 @@ paths:
       x-permission:
         - "invoice.read"
         - "clinical.export"
+        - "workshop.manage"
       x-reauthentication: false
       x-idempotency: "none"
       x-implementation-status: "IMPLEMENTED"
@@ -6039,6 +7060,7 @@ paths:
         - "invoice.issue"
         - "payment.collect"
         - "clinical.complete"
+        - "workshop.manage"
       x-reauthentication: false
       x-idempotency: "required"
       x-implementation-status: "IMPLEMENTED"
@@ -7046,6 +8068,46 @@ paths:
       x-idempotency: "none"
       x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "X02"
+  /v1/exports/{id}/manifest:
+    get:
+      operationId: "GetExportManifest"
+      summary: "Manifeste permanent d'un export (conservé après expiration 48 h)"
+      tags:
+        - "Restitution"
+      description: "Module settings. Manifeste structuré conservé dans l'audit après purge/expiration de l'archive ZIP : filtres appliqués, tables incluses, exclusions par rôle et empreintes SHA-256."
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/operations.json#/$defs/ExportManifestResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+      x-permission:
+        - "export.global"
+        - "clinical.export"
+      x-reauthentication: false
+      x-idempotency: "none"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "L1D09"
   /v1/imports/catalog:
     post:
       operationId: "ImportCatalog"

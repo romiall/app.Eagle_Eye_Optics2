@@ -675,24 +675,43 @@
    "notes": ""
   },
   "L1D01": {
-   "status": "NOT_STARTED",
-   "evidence": [],
-   "notes": "En codage (fork J) le 2026-10-23. Code mis de côté hors du dépôt (2026-10-23) ; à reprendre après la mise en ligne."
+   "status": "IN_REVIEW",
+   "evidence": [
+    "tests/Feature/Inventory/GoodsReceiptsTest.php",
+    "tests/frontend/inventory/purchasing-pages.test.ts",
+    "tests/frontend/inventory/purchasing-rules.test.ts",
+    "tests/e2e/stock-purchasing-inventory.spec.ts"
+   ],
+   "notes": "Fournisseurs (dont laboratoire d'optique), réceptions fournisseur avec lots et frais réels, écritures stock append-only. Vérifié : PHPUnit complet (2 577/2 578 pré-correctif .env.example), Pint, PHPStan, Vitest 172/172 fichiers, Playwright stock-purchasing-inventory. En attente de la recette G5."
   },
   "L1D02": {
-   "status": "NOT_STARTED",
-   "evidence": [],
-   "notes": "En codage (fork J) le 2026-10-23. Code mis de côté hors du dépôt (2026-10-23) ; à reprendre après la mise en ligne."
+   "status": "IN_REVIEW",
+   "evidence": [
+    "tests/Feature/Inventory/InventoryCountsTest.php",
+    "tests/frontend/inventory/inventory-pages.test.ts",
+    "tests/frontend/inventory/counting-rules.test.ts",
+    "tests/e2e/stock-purchasing-inventory.spec.ts"
+   ],
+   "notes": "Campagnes d'inventaire (ouverture, comptage, validation idempotente, régularisations append-only avec motif et approbation). Vérifié : PHPUnit, Pint, PHPStan, Vitest 172/172, Playwright stock-purchasing-inventory. En attente de G5."
   },
   "L1D03": {
-   "status": "NOT_STARTED",
-   "evidence": [],
-   "notes": "En codage (fork J) le 2026-10-23. Code mis de côté hors du dépôt (2026-10-23) ; à reprendre après la mise en ligne."
+   "status": "IN_REVIEW",
+   "evidence": [
+    "tests/Feature/Inventory/StockAlertsTest.php",
+    "tests/frontend/inventory/alerts-page.test.ts",
+    "tests/e2e/stock-purchasing-inventory.spec.ts"
+   ],
+   "notes": "Alertes seuil bas, péremption et stock dormant sans calcul automatique de valeur comptable. Vérifié : PHPUnit, Pint, PHPStan, Vitest 172/172, Playwright stock-purchasing-inventory. En attente de G5."
   },
   "L1D04": {
-   "status": "NOT_STARTED",
-   "evidence": [],
-   "notes": ""
+   "status": "IN_REVIEW",
+   "evidence": [
+    "tests/Feature/Workshop/WorkshopOrdersTest.php",
+    "tests/Feature/Workshop/WorkshopRoutesGateTest.php",
+    "tests/frontend/workshop/workshop-pages.test.ts",
+    "tests/e2e/workshop.spec.ts"
+   ],
+   "notes": "Atelier optique et bon laboratoire PDF anonymisé (zéro nom patient, zéro prix), workflow réception/montage/QC/reprise/remise physique liée à I01. Corrigé EEO_NUMBER_PREFIX_WORKSHOP dans .env.example et gestionnaires v-model Vue. Vérifié : EnvExampleTest + Workshop PHPUnit 13/13, Pint, PHPStan 435/435, Vitest 172/172, Playwright workshop/help/shell/smoke. En attente de G5."
   },
   "L1D05": {
    "status": "IN_REVIEW",
@@ -704,9 +723,14 @@
    "notes": "Codé le 2026-10-23, NON EXÉCUTÉ : mouvements de caisse hors vente (dépense catégorisée, dépôt, retrait, correction d'ouverture) avec approbation exacte CASH_MOVEMENT ou exécution directe de la gérante, refus après clôture, catégories, revue d'écart auditée. Vérification de fin de lot. Vérifié le 2026-10-24 (PHPUnit 2432, PHPStan, Vitest 2496, Playwright, CI 40044078785)."
   },
   "L1D06": {
-   "status": "NOT_STARTED",
-   "evidence": [],
-   "notes": " Abandonné pour l'instant (rapprochements mobile money), recentrage L0 du 2026-10-23."
+   "status": "IN_REVIEW",
+   "evidence": [
+    "docs/implementation/billing.md",
+    "tests/Feature/Billing/PaymentReconciliationsTest.php",
+    "tests/frontend/sales/reconciliation-page.test.ts",
+    "resources/frontend/pages/sales/ReconciliationsPage.vue"
+   ],
+   "notes": "Rapprochements par canal de paiement (Mobile Money / virement), dépôt et lecture privée de relevés PDF/JPEG/PNG dédupliqués par SHA-256, validation/clôture avec réauthentification et export comptable Q13 CSV/JSON. En attente d'arbitrage G5."
   },
   "L1D07": {
    "status": "IN_REVIEW",
@@ -727,14 +751,21 @@
    "notes": "Codé le 2026-10-23, non exécuté : fusion manuelle (aperçu, garde-fous, aucune réécriture, activité réunie) et comparaison de deux examens (pages/clinical/Compare.vue, visitCompare.ts). Reste : liens d'entrée vers la comparaison après la passe visuelle ; vérification de fin de lot. Vérifié le 2026-10-24 (PHPUnit 2432, PHPStan, Vitest 2496, Playwright, CI 40044078785)."
   },
   "L1D09": {
-   "status": "NOT_STARTED",
-   "evidence": [],
-   "notes": ""
+   "status": "IN_REVIEW",
+   "evidence": [
+    "tests/Feature/Operations/ManagementExportsTest.php",
+    "resources/frontend/pages/settings/ExportsPage.vue",
+    "resources/frontend/pages/reports/ReportsPage.vue"
+   ],
+   "notes": "Synthèse de gestion multi-domaines N vs N-1 sans double compte (devis et reprises papier LEGACY_BALANCE hors CA, coûts stock inconnus explicites) et exports contrôlés CSV (UTF-8 BOM ;) et JSON avec dictionnaire, SHA-256 et manifeste conservé 48 h. Correctif d'alignement du bouton d'export dans ExportsPage.vue vérifié sur forms-layout.spec.ts. En attente d'arbitrage G5."
   },
   "G5": {
-   "status": "NOT_STARTED",
-   "evidence": [],
-   "notes": ""
+   "status": "IN_REVIEW",
+   "evidence": [
+    "docs/evidence/G5.md",
+    "tools/dev/phase-check.sh"
+   ],
+   "notes": "Recette transversale L1 complète (L1D01..L1D09, AT30, AT31, EE009, EE015, EE026..EE030) sur branche claude/l1-stock-complet en mode intégrations fake (EEO_INTEGRATIONS_MODE=fake). L2 et L3 à suivre avant bascule."
   },
   "L2D01": {
    "status": "NOT_STARTED",

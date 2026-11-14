@@ -264,11 +264,25 @@ final class TransactionLocks
         return $this->byId('invoices', $invoiceId);
     }
 
+    public function workshopOrder(string $workshopOrderId): ?stdClass
+    {
+        $this->enter(LockRank::WorkshopOrder, $workshopOrderId);
+
+        return $this->byId('workshop_orders', $workshopOrderId);
+    }
+
     public function cashSession(string $sessionId): ?stdClass
     {
         $this->enter(LockRank::CashSession, $sessionId);
 
         return $this->byId('cash_sessions', $sessionId);
+    }
+
+    public function paymentReconciliation(string $reconciliationId): ?stdClass
+    {
+        $this->enter(LockRank::PaymentReconciliation, $reconciliationId);
+
+        return $this->byId('payment_reconciliations', $reconciliationId);
     }
 
     /**

@@ -44,7 +44,8 @@ const overrides = {
   // « agenda » : agenda interne et suivis (S01, S02), avec l'agenda de démonstration (eeo:demo:agenda).
   // « offline » : préparation d'un poste et synchronisation (O01 à O05, parcours offline-sync.spec.ts) ; sans coffre de
   // poste ouvert, il ne change rien aux autres parcours (toutes les mutations suivent la route directe).
-  EEO_ENABLED_MODULES: 'patients,today,consultations,sales,stock,settings,reports,agenda,offline',
+  EEO_ENABLED_MODULES:
+    'patients,today,consultations,sales,stock,workshop,settings,reports,agenda,offline',
   // Les parcours e2e se connectent souvent, vite : la limite de 20 connexions par minute et par adresse IP
   // (production) les bloquerait sur une machine rapide.
   EEO_RATE_LOGIN_IP: '1000',

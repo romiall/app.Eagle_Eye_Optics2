@@ -9,6 +9,7 @@ import { PAGES_FACTURES } from './content/pages-factures'
 import { PAGES_PATIENTS } from './content/pages-patients'
 import { PAGES_PILOTAGE } from './content/pages-pilotage'
 import { PAGES_STOCK } from './content/pages-stock'
+import { PAGES_WORKSHOP } from './content/pages-workshop'
 import type { PageHelp } from './model'
 
 /**
@@ -25,6 +26,7 @@ export const PAGE_HELP: readonly PageHelp[] = [
   ...PAGES_DEVIS_CATALOGUE,
   ...PAGES_CAISSE,
   ...PAGES_STOCK,
+  ...PAGES_WORKSHOP,
   ...PAGES_AGENDA,
   ...PAGES_PILOTAGE,
 ]

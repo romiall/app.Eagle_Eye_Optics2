@@ -18,9 +18,11 @@ import FreshnessNote from '@/components/feedback/FreshnessNote.vue'
 import StateMessage from '@/components/feedback/StateMessage.vue'
 import DateField from '@/components/form/DateField.vue'
 import PageHeader from '@/components/layout/PageHeader.vue'
+import { canOnScreen } from '@/app/session'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
 import LinkButton from '@/components/ui/LinkButton.vue'
+import AccountingExportPanel from './AccountingExportPanel.vue'
 import {
   authorLabel,
   collectionRows,
@@ -375,10 +377,20 @@ function count(value: number, singular: string, pluralForm: string = `${singular
           Une session clôturée reste figée : une correction postérieure s’ajoute à part et ne
           réécrit jamais l’attendu.
         </p>
-        <LinkButton :to="{ name: 'caisse-du-jour' }" variant="secondary"
-          >Voir la caisse du jour</LinkButton
-        >
+        <div class="flex flex-wrap gap-3">
+          <LinkButton :to="{ name: 'caisse-du-jour' }" variant="secondary"
+            >Voir la caisse du jour</LinkButton
+          >
+          <LinkButton
+            v-if="canOnScreen('finance.reconcile')"
+            :to="{ name: 'rapprochement' }"
+            variant="secondary"
+            >Rapprochements par canal</LinkButton
+          >
+        </div>
       </section>
+
+      <AccountingExportPanel :from="shown.from" :to="shown.to" />
 
       <section aria-labelledby="titre-auteurs" class="space-y-3">
         <h2 id="titre-auteurs" class="text-lg font-semibold">Par personne</h2>

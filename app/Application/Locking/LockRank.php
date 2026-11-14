@@ -38,7 +38,9 @@ enum LockRank: int
     // Devis (L1D07) : après le dossier patient qu'il vise, avant la facture que sa conversion crée.
     case Quote = 55;
     case Invoice = 60;
+    case WorkshopOrder = 65;
     case CashSession = 70;
+    case PaymentReconciliation = 75;
     case StockPosition = 80;
     case StockLot = 81;
     case StockQuota = 82;
@@ -63,7 +65,9 @@ enum LockRank: int
             self::AppointmentService => "prestation de l'agenda",
             self::Quote => 'devis',
             self::Invoice => 'facture',
+            self::WorkshopOrder => 'commande atelier',
             self::CashSession => 'session de caisse',
+            self::PaymentReconciliation => 'rapprochement de paiement',
             self::StockPosition => 'position de stock',
             self::StockLot => 'lot de stock',
             self::StockQuota => 'quota de poste',

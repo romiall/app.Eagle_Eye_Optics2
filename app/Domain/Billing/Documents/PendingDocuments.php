@@ -34,6 +34,14 @@ final class PendingDocuments
     /** Devis (L1D07) : un document par révision figée (révision 1 à l'émission, puis une par correction). */
     public const QUOTE_TEMPLATE = 'quote.v1';
 
+    /** Bon laboratoire de l'atelier (L1D04) : anonymisé (sans nom patient, antécédents ni prix). */
+    public const WORKSHOP_TEMPLATE = 'workshop.v1';
+
+    public static function workshopSourceKey(string $workshopOrderId): string
+    {
+        return 'workshop:'.$workshopOrderId;
+    }
+
     public static function quoteSourceKey(string $quoteId): string
     {
         return 'quote:'.$quoteId;
@@ -90,6 +98,11 @@ final class PendingDocuments
     public static function forQuoteRevision(CommandContext $context, string $documentId, string $quoteId, int $revisionNo, CarbonImmutable $at): void
     {
         self::insert($context, $documentId, 'QUOTE', ['quote_id' => $quoteId], self::quoteSourceKey($quoteId), self::QUOTE_TEMPLATE, $at, $revisionNo);
+    }
+
+    public static function forWorkshop(CommandContext $context, string $documentId, string $workshopOrderId, CarbonImmutable $at): void
+    {
+        self::insert($context, $documentId, 'WORKSHOP', ['workshop_order_id' => $workshopOrderId], self::workshopSourceKey($workshopOrderId), self::WORKSHOP_TEMPLATE, $at, 1);
     }
 
     /**

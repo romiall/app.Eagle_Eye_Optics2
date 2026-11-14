@@ -306,7 +306,7 @@ export const TOPICS_NOTIONS_BASE: readonly HandbookTopic[] = [
       {
         kind: 'note',
         tone: 'info',
-        text: 'Comparer deux examens différents d’un même patient n’a pas encore de bouton dans cette version. Seule la comparaison des révisions d’un même examen est proposée.',
+        text: 'Pour comparer deux examens différents d’un même patient, utilisez « Comparer deux examens » depuis l’onglet « Activité » du dossier patient ou « Comparer à un autre examen » sur une consultation terminée.',
       },
     ],
     related: [

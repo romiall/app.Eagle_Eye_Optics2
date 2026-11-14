@@ -55,7 +55,7 @@ function lastKind(): string | undefined {
 
 describe('écran d’aperçu des documents (données fictives)', () => {
   beforeEach(() => {
-    state.allowed = new Set<string>([...FINANCIAL, ...CLINICAL])
+    state.allowed = new Set<string>([...FINANCIAL, ...CLINICAL, 'WORKSHOP'])
     state.render = async (model) => fakeRendered(model)
   })
 
@@ -119,7 +119,9 @@ describe('écran d’aperçu des documents (données fictives)', () => {
     const wrapper = await mountPage()
     const labels = wrapper.findAll('option').map((option) => option.text())
 
-    expect(labels.length).toBe(DEMO_DOCUMENTS.filter((entry) => !entry.clinical).length + 1)
+    expect(labels.length).toBe(
+      DEMO_DOCUMENTS.filter((entry) => !entry.clinical && entry.kind !== 'WORKSHOP').length + 1,
+    )
     for (const forbidden of ['Prescription', 'Ordonnance', 'Lettre', 'Fiche de consultation']) {
       expect(
         labels.some((label) => label.includes(forbidden)),

@@ -102,9 +102,9 @@ describe('correspondance avec le serveur', () => {
       `${entry.document_type}|${entry.template_version}`
 
     expect(declared.map(key).sort()).toEqual(templateCompatibility().map(key).sort())
-    // 8 types serveur en TEST-1, invoice.v1, receipt.v1, credit_note.v1, refund.v1, quote.v1, optical_prescription.v1,
-    // clinical_record.v1.
-    expect(declared.length).toBe(15)
+    // 9 types serveur en TEST-1, invoice.v1, receipt.v1, credit_note.v1, refund.v1, quote.v1, workshop.v1,
+    // optical_prescription.v1, clinical_record.v1.
+    expect(declared.length).toBe(17)
   })
 })
 

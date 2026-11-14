@@ -1,0 +1,1275 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eeo.invalid/contracts/schemas/resources/workshop.json",
+  "title": "Ressources : atelier optique",
+  "description": "Commandes laboratoire, suivi montage/contrôle qualité et préparation bon laboratoire (L1D04). Généré par contracts/tools/build_resources.py : ne pas modifier à la main.",
+  "$defs": {
+    "WorkshopPatient": {
+      "description": "Identité administrative de base du patient dans l'application atelier (jamais imprimée sur le bon laboratoire anonymisé).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "record_number",
+        "last_name",
+        "first_names"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "record_number": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "last_name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "first_names": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 180
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "WorkshopOrderEye": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "eye",
+        "sphere",
+        "cylinder",
+        "axis",
+        "addition",
+        "pd",
+        "fitting_height",
+        "lens_type",
+        "lens_index",
+        "treatments_snapshot",
+        "frame_reference_snapshot"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "eye": {
+          "$ref": "../../schemas/enums.json#/$defs/workshop_order_eyes.eye"
+        },
+        "sphere": {
+          "$ref": "../../schemas/common.json#/$defs/NullableDiopter"
+        },
+        "cylinder": {
+          "$ref": "../../schemas/common.json#/$defs/NullableDiopter"
+        },
+        "axis": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 180
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "addition": {
+          "$ref": "../../schemas/common.json#/$defs/NullableDiopter"
+        },
+        "pd": {
+          "$ref": "../../schemas/common.json#/$defs/NullableDiopter"
+        },
+        "fitting_height": {
+          "$ref": "../../schemas/common.json#/$defs/NullableDiopter"
+        },
+        "lens_type": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "lens_index": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]?)(\\.[0-9]{1,2})?$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "treatments_snapshot": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 180
+          }
+        },
+        "frame_reference_snapshot": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 100
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "WorkshopEvent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "sequence_no",
+        "event_type",
+        "previous_status",
+        "new_status",
+        "quality_result",
+        "observations",
+        "occurred_at",
+        "actor_id",
+        "actor_name",
+        "delivery_line_id"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "sequence_no": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "event_type": {
+          "$ref": "../../schemas/enums.json#/$defs/workshop_events.event_type"
+        },
+        "previous_status": {
+          "anyOf": [
+            {
+              "$ref": "../../schemas/enums.json#/$defs/workshop_orders.status"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "new_status": {
+          "anyOf": [
+            {
+              "$ref": "../../schemas/enums.json#/$defs/workshop_orders.status"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "quality_result": {
+          "$ref": "../../schemas/enums.json#/$defs/workshop_events.quality_result"
+        },
+        "observations": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "occurred_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        },
+        "actor_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "actor_name": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 180
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "delivery_line_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        }
+      }
+    },
+    "WorkshopDeliveryCandidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "delivery_id",
+        "delivery_line_id",
+        "delivered_at",
+        "quantity",
+        "item_name",
+        "batch_number"
+      ],
+      "properties": {
+        "delivery_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "delivery_line_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "delivered_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        },
+        "quantity": {
+          "$ref": "../../schemas/common.json#/$defs/Quantity"
+        },
+        "item_name": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 500
+        },
+        "batch_number": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 80
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "WorkshopOrderSummary": {
+      "description": "Commande atelier sans détail des yeux ni journal (liste et recherche).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "reference",
+        "lab_reference",
+        "status",
+        "is_overdue",
+        "ordered_at",
+        "expected_at",
+        "received_at",
+        "ready_revision",
+        "quantity",
+        "supplier_id",
+        "supplier_name",
+        "patient",
+        "invoice_line_id",
+        "invoice_id",
+        "invoice_number",
+        "invoice_line_description",
+        "prescription_id",
+        "prescription_version_no",
+        "frame_item_id",
+        "frame_reference",
+        "version",
+        "document"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "reference": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "lab_reference": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 100
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "status": {
+          "$ref": "../../schemas/enums.json#/$defs/workshop_orders.status"
+        },
+        "is_overdue": {
+          "type": "boolean"
+        },
+        "ordered_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        },
+        "expected_at": {
+          "$ref": "../../schemas/common.json#/$defs/NullableInstant"
+        },
+        "received_at": {
+          "$ref": "../../schemas/common.json#/$defs/NullableInstant"
+        },
+        "ready_revision": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "quantity": {
+          "$ref": "../../schemas/common.json#/$defs/Quantity"
+        },
+        "supplier_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "supplier_name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        },
+        "patient": {
+          "$ref": "#/$defs/WorkshopPatient"
+        },
+        "invoice_line_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "invoice_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "invoice_number": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "invoice_line_description": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 500
+        },
+        "prescription_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "prescription_version_no": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "frame_item_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "frame_reference": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 100
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "version": {
+          "$ref": "../../schemas/common.json#/$defs/Version"
+        },
+        "document": {
+          "anyOf": [
+            {
+              "description": "État central du PDF (generated_documents) : document_id et statut (PENDING, READY, FAILED).",
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "document_id",
+                "document_status"
+              ],
+              "properties": {
+                "document_id": {
+                  "$ref": "../../schemas/common.json#/$defs/Ulid"
+                },
+                "document_status": {
+                  "$ref": "../../schemas/enums.json#/$defs/generated_documents.status"
+                }
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "WorkshopOrder": {
+      "description": "Commande atelier complète (L1D04) : spécifications OD/OG figées, journal append-only, liaisons remise, snapshot anonymisé du bon laboratoire.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "reference",
+        "lab_reference",
+        "status",
+        "is_overdue",
+        "ordered_at",
+        "expected_at",
+        "received_at",
+        "ready_revision",
+        "quantity",
+        "supplier_id",
+        "supplier_name",
+        "patient",
+        "invoice_line_id",
+        "invoice_id",
+        "invoice_number",
+        "invoice_line_description",
+        "prescription_id",
+        "prescription_version_no",
+        "frame_item_id",
+        "frame_reference",
+        "version",
+        "document",
+        "notes",
+        "created_by",
+        "created_by_name",
+        "patient_id",
+        "prescription",
+        "supplier",
+        "frame",
+        "eyes",
+        "events",
+        "eligible_delivery_lines",
+        "snapshot"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "reference": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "lab_reference": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 100
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "status": {
+          "$ref": "../../schemas/enums.json#/$defs/workshop_orders.status"
+        },
+        "is_overdue": {
+          "type": "boolean"
+        },
+        "ordered_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        },
+        "expected_at": {
+          "$ref": "../../schemas/common.json#/$defs/NullableInstant"
+        },
+        "received_at": {
+          "$ref": "../../schemas/common.json#/$defs/NullableInstant"
+        },
+        "ready_revision": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "quantity": {
+          "$ref": "../../schemas/common.json#/$defs/Quantity"
+        },
+        "supplier_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "supplier_name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        },
+        "patient": {
+          "$ref": "#/$defs/WorkshopPatient"
+        },
+        "invoice_line_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "invoice_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "invoice_number": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "invoice_line_description": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 500
+        },
+        "prescription_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "prescription_version_no": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "frame_item_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "frame_reference": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 100
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "version": {
+          "$ref": "../../schemas/common.json#/$defs/Version"
+        },
+        "document": {
+          "anyOf": [
+            {
+              "description": "État central du PDF (generated_documents) : document_id et statut (PENDING, READY, FAILED).",
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "document_id",
+                "document_status"
+              ],
+              "properties": {
+                "document_id": {
+                  "$ref": "../../schemas/common.json#/$defs/Ulid"
+                },
+                "document_status": {
+                  "$ref": "../../schemas/enums.json#/$defs/generated_documents.status"
+                }
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "notes": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "created_by": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "created_by_name": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 180
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "patient_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "prescription": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "series_id",
+            "version_no",
+            "origin",
+            "validated_at",
+            "usage_code",
+            "lens_type_code",
+            "lens_index",
+            "pd_total",
+            "pd_od",
+            "pd_og"
+          ],
+          "properties": {
+            "id": {
+              "$ref": "../../schemas/common.json#/$defs/Ulid"
+            },
+            "series_id": {
+              "$ref": "../../schemas/common.json#/$defs/Ulid"
+            },
+            "version_no": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "origin": {
+              "$ref": "../../schemas/enums.json#/$defs/optical_prescriptions.origin"
+            },
+            "validated_at": {
+              "$ref": "../../schemas/common.json#/$defs/Instant"
+            },
+            "usage_code": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 0,
+                  "maxLength": 40
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "lens_type_code": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 0,
+                  "maxLength": 40
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "lens_index": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^(0|[1-9][0-9]?)(\\.[0-9]{1,2})?$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "pd_total": {
+              "$ref": "../../schemas/common.json#/$defs/NullableDiopter"
+            },
+            "pd_od": {
+              "$ref": "../../schemas/common.json#/$defs/NullableDiopter"
+            },
+            "pd_og": {
+              "$ref": "../../schemas/common.json#/$defs/NullableDiopter"
+            }
+          }
+        },
+        "supplier": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "name",
+            "reference",
+            "phone",
+            "email"
+          ],
+          "properties": {
+            "id": {
+              "$ref": "../../schemas/common.json#/$defs/Ulid"
+            },
+            "name": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 180
+            },
+            "reference": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            },
+            "phone": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 0,
+                  "maxLength": 32
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "email": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 0,
+                  "maxLength": 254
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        },
+        "frame": {
+          "anyOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "id",
+                "reference",
+                "name",
+                "brand",
+                "model"
+              ],
+              "properties": {
+                "id": {
+                  "$ref": "../../schemas/common.json#/$defs/Ulid"
+                },
+                "reference": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64
+                },
+                "name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 180
+                },
+                "brand": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 0,
+                      "maxLength": 120
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "model": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 0,
+                      "maxLength": 120
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "eyes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/WorkshopOrderEye"
+          },
+          "maxItems": 2
+        },
+        "events": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/WorkshopEvent"
+          }
+        },
+        "eligible_delivery_lines": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/WorkshopDeliveryCandidate"
+          }
+        },
+        "snapshot": {
+          "$ref": "../../snapshots/workshop-order.json"
+        }
+      }
+    },
+    "WorkshopOrderPage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data",
+        "meta"
+      ],
+      "properties": {
+        "data": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/WorkshopOrderSummary"
+          }
+        },
+        "meta": {
+          "$ref": "../../schemas/common.json#/$defs/Pagination"
+        }
+      }
+    },
+    "WorkshopOrderResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/WorkshopOrder"
+        }
+      }
+    },
+    "WorkshopEligibleInvoiceLine": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "invoice_line_id",
+        "invoice_id",
+        "invoice_number",
+        "issued_at",
+        "description",
+        "item_id",
+        "item_reference",
+        "category_code",
+        "quantity",
+        "ordered_quantity",
+        "remaining_quantity",
+        "linked_prescription_id",
+        "patient"
+      ],
+      "properties": {
+        "invoice_line_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "invoice_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "invoice_number": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "issued_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 500
+        },
+        "item_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "item_reference": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 64
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "category_code": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 40
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "quantity": {
+          "$ref": "../../schemas/common.json#/$defs/Quantity"
+        },
+        "ordered_quantity": {
+          "type": "string",
+          "pattern": "^-?(0|[1-9][0-9]{0,8})(\\.[0-9]{1,3})?$",
+          "description": "DECIMAL(12,3) en chaîne exacte, zéro admis."
+        },
+        "remaining_quantity": {
+          "type": "string",
+          "pattern": "^-?(0|[1-9][0-9]{0,8})(\\.[0-9]{1,3})?$",
+          "description": "DECIMAL(12,3) en chaîne exacte, zéro admis."
+        },
+        "linked_prescription_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "patient": {
+          "$ref": "#/$defs/WorkshopPatient"
+        }
+      }
+    },
+    "WorkshopEligiblePrescription": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "patient_id",
+        "series_id",
+        "version_no",
+        "origin",
+        "validated_at",
+        "usage_code",
+        "usage_other",
+        "lens_type_code",
+        "lens_type_other",
+        "lens_index",
+        "pd_total",
+        "pd_od",
+        "pd_og",
+        "treatments",
+        "eyes"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "patient_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "series_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "version_no": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "origin": {
+          "$ref": "../../schemas/enums.json#/$defs/optical_prescriptions.origin"
+        },
+        "validated_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        },
+        "usage_code": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 40
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "usage_other": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 500
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "lens_type_code": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 40
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "lens_type_other": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 500
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "lens_index": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]?)(\\.[0-9]{1,2})?$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "pd_total": {
+          "$ref": "../../schemas/common.json#/$defs/NullableDiopter"
+        },
+        "pd_od": {
+          "$ref": "../../schemas/common.json#/$defs/NullableDiopter"
+        },
+        "pd_og": {
+          "$ref": "../../schemas/common.json#/$defs/NullableDiopter"
+        },
+        "treatments": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "term_code",
+              "other_text"
+            ],
+            "properties": {
+              "term_code": {
+                "$ref": "../../schemas/common.json#/$defs/Code"
+              },
+              "other_text": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 0,
+                    "maxLength": 500
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "eyes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "eye",
+              "no_correction",
+              "sphere",
+              "cylinder",
+              "axis",
+              "addition",
+              "fitting_height"
+            ],
+            "properties": {
+              "eye": {
+                "$ref": "../../schemas/enums.json#/$defs/optical_prescription_eyes.eye"
+              },
+              "no_correction": {
+                "type": "boolean"
+              },
+              "sphere": {
+                "$ref": "../../schemas/common.json#/$defs/NullableDiopter"
+              },
+              "cylinder": {
+                "$ref": "../../schemas/common.json#/$defs/NullableDiopter"
+              },
+              "axis": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 180
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "addition": {
+                "$ref": "../../schemas/common.json#/$defs/NullableDiopter"
+              },
+              "fitting_height": {
+                "$ref": "../../schemas/common.json#/$defs/NullableDiopter"
+              }
+            }
+          },
+          "maxItems": 2
+        }
+      }
+    },
+    "WorkshopEligibleSupplier": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "reference",
+        "phone",
+        "email"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        },
+        "reference": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "phone": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 32
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "email": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 254
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "WorkshopEligibleFrame": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "reference",
+        "name",
+        "brand",
+        "model"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "reference": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        },
+        "brand": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 120
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "model": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 120
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "WorkshopEligibleLines": {
+      "description": "Éléments disponibles pour créer une commande atelier (L1D04) : lignes facturées avec reliquat > 0, prescriptions validées correspondantes, laboratoires optiques actifs et montures actives. Aucun montant ni antécédent.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "lines",
+        "prescriptions",
+        "suppliers",
+        "frames"
+      ],
+      "properties": {
+        "lines": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/WorkshopEligibleInvoiceLine"
+          }
+        },
+        "prescriptions": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/WorkshopEligiblePrescription"
+          }
+        },
+        "suppliers": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/WorkshopEligibleSupplier"
+          }
+        },
+        "frames": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/WorkshopEligibleFrame"
+          }
+        }
+      }
+    },
+    "WorkshopEligibleLinesResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/WorkshopEligibleLines"
+        }
+      }
+    }
+  }
+}

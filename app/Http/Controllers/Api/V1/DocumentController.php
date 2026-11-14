@@ -114,7 +114,11 @@ final class DocumentController extends CommandController
             throw BusinessError::notFound();
         }
         $type = (string) $document->document_type;
-        $module = DocumentPolicy::isClinical($type) ? 'consultations' : 'sales';
+        $module = match (true) {
+            DocumentPolicy::isClinical($type) => 'consultations',
+            DocumentPolicy::isWorkshop($type) => 'workshop',
+            default => 'sales',
+        };
         if (! Modules::isEnabled($module)) {
             throw BusinessError::notFound();
         }

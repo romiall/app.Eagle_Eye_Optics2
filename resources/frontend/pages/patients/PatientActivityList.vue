@@ -29,6 +29,7 @@ import StateMessage, { type ScreenState } from '@/components/feedback/StateMessa
 import EmptyState from '@/components/layout/EmptyState.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
+import LinkButton from '@/components/ui/LinkButton.vue'
 import PaginationControls from '@/components/ui/PaginationControls.vue'
 import type {
   PatientActivity,
@@ -85,6 +86,12 @@ const sections = computed<readonly PatientActivitySection[]>(
 )
 
 const allTotal = computed(() => sections.value.reduce((sum, entry) => sum + entry.total, 0))
+const canCompareExams = computed(
+  () =>
+    canAny(['clinical.read']) &&
+    enabledModules.value.includes('consultations') &&
+    (sections.value.find((entry) => entry.section === 'EXAMS')?.total ?? 0) >= 2,
+)
 const pastTheEnd = computed(
   () => read.state.value === 'empty' && result.value !== null && result.value.meta.total > 0,
 )
@@ -323,6 +330,14 @@ const LINK_CLASS = 'text-link inline-flex min-h-11 items-center font-semibold br
     </StateMessage>
 
     <template v-else-if="result !== null">
+      <div v-if="canCompareExams" class="flex flex-wrap gap-3">
+        <LinkButton
+          :to="{ name: 'patient-comparaison', params: { id: props.patientId } }"
+          variant="secondary"
+          >Comparer deux examens</LinkButton
+        >
+      </div>
+
       <ol
         id="activite-liste"
         class="relative space-y-4 before:absolute before:top-5 before:bottom-5 before:left-5 before:w-px before:bg-line"

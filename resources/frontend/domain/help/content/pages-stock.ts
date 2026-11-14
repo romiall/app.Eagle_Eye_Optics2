@@ -11,8 +11,12 @@ export const PAGES_STOCK: readonly PageHelp[] = [
     module: 'stock',
     anyPermission: ['stock.read'],
     purpose:
-      'C’est ici que vous voyez ce qui reste de chaque article, emplacement par emplacement. La gérante y saisit aussi le stock d’ouverture. L’écran n’a pas d’entrée dans le menu : ouvrez « Ventes et caisse », puis « Stock ».',
+      'C’est ici que vous voyez ce qui reste de chaque article, emplacement par emplacement, et ouvrez « Fournisseurs », « Réceptions fournisseur », « Inventaires » ou « Alertes et seuils ». La gérante y saisit aussi le stock d’ouverture.',
     actions: [
+      {
+        label: 'Alertes et seuils',
+        effect: 'Ouvre les alertes de stock bas et de lots proches de la péremption ou expirés.',
+      },
       {
         label: 'Casse ou ajustement',
         effect:
@@ -145,7 +149,7 @@ export const PAGES_STOCK: readonly PageHelp[] = [
     tips: [
       'La gérante, la caissière et le professionnel lisent cet écran ; l’accueil n’y a pas accès. Seule la gérante saisit le stock initial et enregistre une casse ou un ajustement.',
       'Sous chaque article géré en stock d’un brouillon de facture ou de devis, l’écran affiche « Disponible en stock (lecture du serveur) ». C’est le total de ses emplacements.',
-      'Cette version ne propose ni réception de marchandise, ni inventaire complet, ni alerte de stock bas ou de péremption proche, ni valeur du stock. L’écran montre des quantités seulement.',
+      'Cette version gère les réceptions fournisseur, l’inventaire complet et les alertes de seuil ou de péremption depuis cet écran ; la valeur globale du stock viendra ensuite.',
       'La liste « Article géré en stock » ne reprend que les 100 premiers articles actifs du catalogue. Au-delà, passez par le fichier CSV, qui lit tout le catalogue.',
       'Si vous quittez l’écran avec un comptage non enregistré, le navigateur demande : « Des saisies ne sont pas encore enregistrées. Quitter cet écran sans les enregistrer ? »',
     ],
@@ -288,7 +292,7 @@ export const PAGES_STOCK: readonly PageHelp[] = [
       'Pour un ajustement, saisissez l’écart constaté (2 en plus ou 2 en moins), pas le total compté.',
       'Un article rapporté par un patient ne s’enregistre pas ici : utilisez « Enregistrer un retour », dans « Remise au patient » sur la facture.',
       'Après un enregistrement, l’article, l’emplacement et le lot restent choisis : seules la quantité et le motif sont vidés, pour enchaîner un autre mouvement.',
-      'Il n’existe pas encore d’écran de réception de marchandise ni d’inventaire complet. Une entrée par « Ajustement après comptage » enregistre seulement des articles trouvés en plus, sans fournisseur ni coût.',
+      'Pour une livraison fournisseur ou un comptage complet d’emplacement, passez plutôt par « Réceptions fournisseur » ou « Inventaires » depuis « Stock ».',
       'Par défaut, seule la gérante ouvre cet écran. Elle peut donner ce droit à un autre compte, qui pourra alors seulement demander l’autorisation.',
     ],
     problems: [
@@ -320,5 +324,440 @@ export const PAGES_STOCK: readonly PageHelp[] = [
       },
     ],
     terms: ['Stock disponible', 'Lot', 'Approbation', 'Retour'],
+  },
+  {
+    route: 'suppliers',
+    title: 'Fournisseurs',
+    module: 'stock',
+    anyPermission: ['stock.receive'],
+    purpose:
+      'Enregistrez ici les fournisseurs et laboratoires d’optique auprès desquels le cabinet s’approvisionne avant de saisir une réception.',
+    actions: [
+      {
+        label: 'Modifier',
+        effect: 'Charge les coordonnées du fournisseur dans le formulaire pour les mettre à jour.',
+      },
+      {
+        label: 'Désactiver',
+        effect: 'Masque un fournisseur des nouvelles réceptions sans effacer son historique.',
+      },
+      {
+        label: 'Réactiver',
+        effect: 'Rend de nouveau un fournisseur sélectionnable lors des prochaines réceptions.',
+      },
+      {
+        label: 'Annuler la modification',
+        effect: 'Vide le formulaire en cours pour revenir à l’ajout d’un nouveau fournisseur.',
+      },
+      {
+        label: 'Réceptions fournisseur',
+        effect: 'Ouvre la liste des réceptions de marchandises enregistrées pour les fournisseurs.',
+      },
+      {
+        label: 'Retour au stock',
+        effect: 'Revient à l’écran « Stock ».',
+      },
+    ],
+    tasks: [
+      {
+        id: 'creer-fournisseur',
+        title: 'Ajouter un fournisseur ou un laboratoire',
+        steps: [
+          'Saisissez « Nom » et « Code du fournisseur » uniques pour le cabinet.',
+          'Renseignez si besoin « Téléphone (facultatif) », « Adresse e-mail (facultatif) » et « Adresse (facultatif) ».',
+          'Cochez « C’est un laboratoire d’optique » s’il fabrique ou taille les verres.',
+          'Validez l’enregistrement pour l’ajouter immédiatement à la liste.',
+        ],
+        result: 'Le fournisseur apparaît dans la liste et devient disponible pour les réceptions.',
+      },
+    ],
+    rules: [
+      'Un fournisseur désactivé reste visible sur les anciennes réceptions mais ne peut plus être choisi sur un nouveau brouillon.',
+      'Le code fournisseur est unique dans le cabinet.',
+    ],
+    next: [
+      {
+        route: 'goods-receipts',
+        label: 'Réceptions fournisseur',
+        why: 'Pour enregistrer une livraison reçue de ce fournisseur.',
+      },
+      {
+        route: 'stock',
+        label: 'Stock',
+        why: 'Pour consulter les quantités disponibles en stock.',
+      },
+    ],
+    tips: [
+      'Décochez « Fournisseur actif (décochez pour le désactiver) » en modification si le partenariat s’arrête.',
+    ],
+    terms: ['Catalogue'],
+  },
+  {
+    route: 'goods-receipts',
+    title: 'Réceptions fournisseur',
+    module: 'stock',
+    anyPermission: ['stock.receive'],
+    purpose:
+      'Consultez les livraisons reçues des fournisseurs, retrouvez un brouillon en cours ou créez une nouvelle réception.',
+    actions: [
+      {
+        label: 'Nouvelle réception',
+        effect: 'Ouvre un brouillon vide de réception fournisseur.',
+      },
+      {
+        label: 'Fournisseurs',
+        effect: 'Ouvre la liste des fournisseurs et laboratoires du cabinet.',
+      },
+      {
+        label: 'Retour au stock',
+        effect: 'Revient à l’écran « Stock ».',
+      },
+    ],
+    tasks: [
+      {
+        id: 'ouvrir-reception',
+        title: 'Retrouver ou démarrer une réception',
+        steps: [
+          'Utilisez « Afficher » pour filtrer entre brouillons, réceptions validées ou toutes les réceptions.',
+          'Cliquez sur une ligne pour ouvrir sa fiche, ou cliquez sur « Nouvelle réception ».',
+        ],
+        result: 'L’écran de la réception s’ouvre pour lecture ou modification du brouillon.',
+      },
+    ],
+    rules: [
+      'Un brouillon de réception ne modifie jamais le stock tant qu’il n’est pas validé.',
+      'Une fois validée, la réception devient définitive et alimente les quantités disponibles.',
+    ],
+    next: [
+      {
+        route: 'goods-receipt-new',
+        label: 'Nouvelle réception',
+        why: 'Pour saisir le bon de livraison d’un fournisseur.',
+      },
+      {
+        route: 'suppliers',
+        label: 'Fournisseurs',
+        why: 'Pour créer ou corriger une fiche fournisseur avant réception.',
+      },
+      {
+        route: 'stock',
+        label: 'Stock',
+        why: 'Pour vérifier l’impact après validation.',
+      },
+    ],
+    tips: ['Vous pouvez supprimer un brouillon tant qu’il n’est pas validé.'],
+    terms: ['Brouillon', 'Stock physique', 'Lot'],
+  },
+  {
+    route: 'goods-receipt-new',
+    title: 'Nouvelle réception',
+    module: 'stock',
+    anyPermission: ['stock.receive'],
+    purpose:
+      'Enregistrez un nouveau brouillon de livraison fournisseur : fournisseur, emplacement, référence, articles et quantités reçues.',
+    actions: [
+      {
+        label: 'Ajouter une ligne',
+        effect: 'Ajoute une ligne vide pour saisir un autre article géré en stock.',
+      },
+      {
+        label: 'Retirer la ligne',
+        effect: 'Supprime cette ligne du brouillon non encore validé.',
+      },
+      {
+        label: 'Enregistrer le brouillon',
+        effect: 'Sauvegarde la réception sur le serveur sans modifier encore le stock.',
+      },
+      {
+        label: 'Passer à la validation',
+        effect:
+          'Enregistre d’abord le brouillon puis prépare la validation finale avec lots et coûts.',
+      },
+      {
+        label: 'Retour aux réceptions',
+        effect: 'Revient à la liste « Réceptions fournisseur ».',
+      },
+    ],
+    tasks: [
+      {
+        id: 'creer-brouillon-reception',
+        title: 'Saisir un brouillon de réception fournisseur',
+        steps: [
+          'Choisissez « Fournisseur », « Emplacement de réception », « Référence de livraison » et « Date de réception ».',
+          'Sur chaque ligne, sélectionnez « Article géré en stock » et indiquez « Quantité reçue ».',
+          'Renseignez si besoin « Coût d’achat unitaire (facultatif) » puis cliquez sur « Enregistrer le brouillon ».',
+        ],
+        result: 'Le brouillon est créé avec un lien permanent et peut être complété plus tard.',
+      },
+    ],
+    rules: [
+      'Enregistrer le brouillon laisse les quantités en stock inchangées.',
+      'Seuls les articles marqués comme gérés en stock au catalogue peuvent figurer sur une réception.',
+    ],
+    next: [
+      {
+        route: 'goods-receipts',
+        label: 'Réceptions fournisseur',
+        why: 'Pour retrouver tous les brouillons et réceptions validées.',
+      },
+      {
+        route: 'stock',
+        label: 'Stock',
+        why: 'Pour contrôler le stock de l’emplacement.',
+      },
+    ],
+    tips: ['Ajoutez « Remarques (facultatif) » pour noter un colis incomplet ou une réserve.'],
+    terms: ['Brouillon', 'Stock physique', 'Lot'],
+  },
+  {
+    route: 'goods-receipt',
+    title: 'Réception fournisseur',
+    module: 'stock',
+    anyPermission: ['stock.receive'],
+    purpose:
+      'Relisez une réception validée ou terminez un brouillon en renseignant les lots, dates d’expiration et coûts d’achat avant validation.',
+    actions: [
+      {
+        label: 'Enregistrer le brouillon',
+        effect:
+          'Sauvegarde les modifications du brouillon sans toucher encore aux quantités en stock.',
+      },
+      {
+        label: 'Passer à la validation',
+        effect:
+          'Ouvre l’étape finale où chaque article périssable reçoit son numéro de lot et sa date d’expiration.',
+      },
+      {
+        label: 'Supprimer le brouillon',
+        effect: 'Efface définitivement ce brouillon avant toute entrée en stock.',
+      },
+      {
+        label: 'Confirmer mon mot de passe',
+        effect:
+          'Déverrouille la confirmation finale lorsqu’elle demande le mot de passe du compte.',
+      },
+      {
+        label: 'Valider la réception',
+        effect: 'Enregistre l’entrée définitive en stock pour chaque ligne reçue.',
+      },
+      {
+        label: 'Retour au brouillon',
+        effect: 'Revient à l’édition des lignes avant validation.',
+      },
+      {
+        label: 'Retour aux réceptions',
+        effect: 'Revient à la liste des réceptions.',
+      },
+    ],
+    tasks: [
+      {
+        id: 'valider-reception',
+        title: 'Valider définitivement une réception en stock',
+        steps: [
+          'Relisez les lignes puis cliquez sur « Passer à la validation ».',
+          'Complétez « Numéro de lot », « Date d’expiration » si l’article est périssable, et « Coût d’achat unitaire (FCFA) ».',
+          'Cliquez sur « Valider la réception » pour créditer le stock.',
+        ],
+        result:
+          'Les quantités entrent en stock, les lots sont créés et la réception passe en lecture seule.',
+      },
+    ],
+    rules: [
+      'Un article suivi par lots exige un « Numéro de lot » et une « Date d’expiration » au moment de valider.',
+      'Une réception validée ne se modifie ni ne se supprime ; toute correction passe par un mouvement ou un retour.',
+    ],
+    next: [
+      {
+        route: 'goods-receipts',
+        label: 'Réceptions fournisseur',
+        why: 'Pour consulter ou créer une autre réception.',
+      },
+      {
+        route: 'stock',
+        label: 'Stock',
+        why: 'Pour vérifier les nouveaux disponibles.',
+      },
+    ],
+    tips: [
+      'En cas d’incident de saisie après validation, ajustez l’écart depuis « Casse ou ajustement » ou par inventaire.',
+    ],
+    terms: ['Brouillon', 'Stock physique', 'Lot'],
+  },
+  {
+    route: 'inventories',
+    title: 'Inventaires',
+    module: 'stock',
+    anyPermission: ['stock.inventory'],
+    purpose:
+      'Ouvrez un nouveau comptage d’inventaire sur un emplacement ou retrouvez les inventaires en cours et terminés.',
+    actions: [
+      {
+        label: 'Ouvrir l’inventaire',
+        effect:
+          'Crée un nouvel inventaire pour l’emplacement choisi à partir des quantités théoriques actuelles.',
+      },
+      {
+        label: 'Retour au stock',
+        effect: 'Revient à l’écran « Stock ».',
+      },
+    ],
+    tasks: [
+      {
+        id: 'ouvrir-un-inventaire',
+        title: 'Démarrer un nouvel inventaire',
+        steps: [
+          'Choisissez « Emplacement à inventorier » et saisissez « Référence de l’inventaire ».',
+          'Cliquez sur « Ouvrir l’inventaire » pour figer la base de comptage.',
+        ],
+        result: 'L’inventaire s’ouvre avec la liste des articles à compter sur cet emplacement.',
+      },
+    ],
+    rules: [
+      'Utilisez « Afficher » pour filtrer les inventaires selon leur état.',
+      'Le stock ne change qu’au moment où la gérante valide l’inventaire terminé.',
+    ],
+    next: [
+      {
+        route: 'stock',
+        label: 'Stock',
+        why: 'Pour lire les disponibilités avant ou après comptage.',
+      },
+    ],
+    tips: ['Donnez une référence datée claire à chaque inventaire pour le retrouver facilement.'],
+    terms: ['Stock physique', 'Stock disponible'],
+  },
+  {
+    route: 'inventory',
+    title: 'Inventaire',
+    module: 'stock',
+    anyPermission: ['stock.inventory'],
+    purpose:
+      'Saisissez la « Quantité trouvée » pour chaque article, signalez les écarts puis soumettez le comptage à la validation de la gérante.',
+    actions: [
+      {
+        label: 'Enregistrer les comptages',
+        effect: 'Sauvegarde les quantités saisies et les motifs sans modifier le stock.',
+      },
+      {
+        label: 'Terminer le comptage',
+        effect: 'Clôture la saisie du comptage et prépare l’écran de validation.',
+      },
+      {
+        label: 'Valider l’inventaire',
+        effect: 'Applique les écarts constatés au stock réel (réservé à la gérante).',
+        anyPermission: ['stock.adjust'],
+      },
+      {
+        label: 'Rouvrir pour corriger',
+        effect: 'Remet l’inventaire en cours de comptage pour corriger une quantité.',
+      },
+      {
+        label: 'Abandonner l’inventaire',
+        effect: 'Annule cet inventaire sans appliquer aucun mouvement de stock.',
+      },
+      {
+        label: 'Retour aux inventaires',
+        effect: 'Revient à la liste « Inventaires ».',
+      },
+    ],
+    tasks: [
+      {
+        id: 'compter-et-valider',
+        title: 'Compter les articles puis valider les écarts',
+        steps: [
+          'Pour chaque ligne, saisissez « Quantité trouvée » et expliquez tout écart dans « Motif de l’écart ».',
+          'Cliquez sur « Enregistrer les comptages », puis sur « Terminer le comptage ».',
+          'La gérante saisit « Motif de l’approbation » et clique sur « Valider l’inventaire ».',
+        ],
+        result:
+          'Chaque écart devient un mouvement d’ajustement tracé et le stock reflète le comptage.',
+      },
+    ],
+    rules: [
+      'Un écart constaté exige un « Motif de l’écart » avant de terminer le comptage.',
+      'Seule la gérante peut valider un inventaire terminé et mettre le stock à jour.',
+      'Abandonner un inventaire n’altère jamais les quantités en stock.',
+    ],
+    next: [
+      {
+        route: 'inventories',
+        label: 'Inventaires',
+        why: 'Pour consulter les autres campagnes d’inventaire.',
+      },
+      {
+        route: 'stock',
+        label: 'Stock',
+        why: 'Pour vérifier les quantités ajustées.',
+      },
+    ],
+    tips: [
+      'Confirmez votre mot de passe si l’écran vous invite à cliquer sur « Confirmer mon mot de passe ».',
+    ],
+    terms: ['Stock physique', 'Stock réservé', 'Approbation'],
+  },
+  {
+    route: 'stock-alerts',
+    title: 'Alertes et seuils',
+    module: 'stock',
+    anyPermission: ['stock.read'],
+    purpose:
+      'Consultez les articles passés sous leur seuil de stock bas et les lots proches de la péremption ou expirés, sans modifier aucun solde.',
+    actions: [
+      {
+        label: 'Actualiser les alertes',
+        effect:
+          'Recalcule immédiatement les seuils et les dates de péremption, sans doublon et sans toucher au stock.',
+        anyPermission: ['stock.adjust', 'stock.receive', 'stock.inventory'],
+      },
+      {
+        label: 'Prendre en compte',
+        effect: 'Marque une alerte ouverte comme prise en compte par l’équipe.',
+        anyPermission: ['stock.adjust', 'stock.receive', 'stock.inventory'],
+      },
+      {
+        label: 'Marquer résolue',
+        effect:
+          'Clôture manuellement une alerte ; si la cause persiste, un réapprovisionnement ou un écoulement reste nécessaire.',
+        anyPermission: ['stock.adjust', 'stock.receive', 'stock.inventory'],
+      },
+      {
+        label: 'Retour au stock',
+        effect: 'Revient à l’écran « Stock » pour consulter les positions et lots.',
+      },
+    ],
+    tasks: [
+      {
+        id: 'traiter-alertes-stock',
+        title: 'Filtrer et traiter les alertes de stock',
+        steps: [
+          'Filtrez la liste avec « Afficher », « Type » et « Emplacement ».',
+          'Comparez « Physique », « Réservé », « Quotas des postes » et « Disponible » sur la carte.',
+          'Cliquez sur « Prendre en compte » quand une commande ou action est lancée, puis sur « Marquer résolue » une fois traitée.',
+        ],
+        result:
+          'L’équipe suit les ruptures annoncées et les péremptions sans jamais bloquer la caisse.',
+      },
+    ],
+    rules: [
+      'Le disponible comparé au seuil est « Physique » moins « Réservé » moins « Quotas des postes ».',
+      'Une alerte ne modifie jamais les quantités en stock : elle informe l’équipe et se résout automatiquement au réapprovisionnement.',
+      'Un lot expiré reste bloqué à la remise tant qu’il n’est pas retiré du stock.',
+    ],
+    next: [
+      {
+        route: 'stock',
+        label: 'Stock',
+        why: 'Pour consulter le détail des emplacements et des lots.',
+      },
+      {
+        route: 'goods-receipts',
+        label: 'Réceptions fournisseur',
+        why: 'Pour enregistrer une livraison sur un article en alerte.',
+      },
+    ],
+    tips: [
+      'Les seuils de stock bas et les délais d’alerte de péremption se règlent sur chaque fiche article du catalogue.',
+    ],
+    terms: ['Stock physique', 'Stock réservé', 'Stock disponible', 'Lot'],
   },
 ]

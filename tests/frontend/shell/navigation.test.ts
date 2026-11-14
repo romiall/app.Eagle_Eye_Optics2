@@ -104,6 +104,10 @@ describe('navigation de la coquille (fichier 04)', () => {
       'agenda:S01',
       // Ventes et caisse (B02 à B05, en ligne) : caisse, factures, encaissements, catalogue.
       'sales:B02',
+      // Stock, achats fournisseurs et inventaires (R01, L1D01, L1D02).
+      'stock:L1D01',
+      // Atelier optique et bon laboratoire anonymisé (L1D04, en ligne).
+      'workshop:L1D04',
       // Paramètres : comptes du personnel et identité du cabinet (écrans F09 des routes F05).
       'settings:F09',
       'new-patient:P01',
@@ -123,6 +127,8 @@ describe('navigation de la coquille (fichier 04)', () => {
       'Consultations',
       'Agenda',
       'Ventes et caisse',
+      'Stock',
+      'Atelier',
       'Paramètres',
     ])
     expect(visibleHomeActions(everything, ALL_MODULES).map((action) => action.label)).toEqual([

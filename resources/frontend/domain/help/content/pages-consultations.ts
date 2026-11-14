@@ -826,9 +826,8 @@ export const PAGES_CONSULTATIONS: readonly PageHelp[] = [
     title: 'Comparer deux examens',
     module: 'consultations',
     anyPermission: ['clinical.read'],
-    maturity: 'validation',
     purpose:
-      'Compare deux examens terminés d’un même patient : mesures, échelles et dernière prescription validée de chacun. Dans cette version, aucun bouton n’y mène depuis le dossier ou l’examen : l’écran n’est pas encore ouvert au personnel.',
+      'Compare deux examens terminés d’un même patient : mesures, échelles et dernière prescription validée de chacun. Ouvrez-le depuis « Activité » (« Comparer deux examens », dès deux examens) ou un examen terminé (« Comparer à un autre examen »).',
     actions: [
       {
         label: 'Examen de référence',
@@ -895,7 +894,7 @@ export const PAGES_CONSULTATIONS: readonly PageHelp[] = [
       },
     ],
     tips: [
-      'Aucun menu ni bouton n’ouvre cet écran dans cette version.',
+      'Sur l’onglet « Activité » du dossier, le bouton « Comparer deux examens » s’affiche dès que le patient compte deux examens.',
       'Si un examen n’a pas de prescription validée, l’écran le dit au-dessus du tableau de prescription : ses lignes comptent alors comme « Non renseigné ».',
       'Quand le patient a beaucoup d’examens, l’écran signale : « Seuls les examens les plus récents sont proposés : la liste complète est plus longue. »',
     ],

@@ -34,6 +34,7 @@ import DevicePreparationPage from '@/pages/settings/DevicePreparationPage.vue'
 import CashDayPage from '@/pages/cash/CashDayPage.vue'
 import CashSessionPage from '@/pages/cash/CashSessionPage.vue'
 import ExpenseCategoriesPage from '@/pages/cash/ExpenseCategories.vue'
+import ReconciliationPage from '@/pages/cash/ReconciliationPage.vue'
 import FinancialPage from '@/pages/reports/Financial.vue'
 import CatalogPage from '@/pages/sales/CatalogPage.vue'
 import InvoiceCreatePage from '@/pages/sales/InvoiceCreatePage.vue'
@@ -50,9 +51,19 @@ import SettingsHomePage from '@/pages/settings/SettingsHomePage.vue'
 import StaffCreatePage from '@/pages/settings/StaffCreatePage.vue'
 import StaffListPage from '@/pages/settings/StaffListPage.vue'
 import StaffMemberPage from '@/pages/settings/StaffMemberPage.vue'
+import InventoriesPage from '@/pages/inventory/InventoriesPage.vue'
+import InventoryPage from '@/pages/inventory/InventoryPage.vue'
+import ReceiptPage from '@/pages/purchasing/ReceiptPage.vue'
+import ReceiptsPage from '@/pages/purchasing/ReceiptsPage.vue'
+import SuppliersPage from '@/pages/purchasing/SuppliersPage.vue'
+import StockAlertsPage from '@/pages/stock/Alerts.vue'
+import WorkshopCreatePage from '@/pages/workshop/WorkshopCreatePage.vue'
+import WorkshopOrderDetailPage from '@/pages/workshop/WorkshopOrderDetailPage.vue'
+import WorkshopOrdersPage from '@/pages/workshop/WorkshopOrdersPage.vue'
 import MovementForm from '@/pages/stock/MovementForm.vue'
 import StockPage from '@/pages/stock/StockPage.vue'
 import ArrivalPage from '@/pages/today/ArrivalPage.vue'
+import ManagementReportPage from '@/pages/reports/Advanced.vue'
 import TodayPage from '@/pages/today/TodayPage.vue'
 
 import {
@@ -334,6 +345,17 @@ export function createEeoRouter(history: RouterHistory = createWebHistory()): Ro
         },
       },
       {
+        // Rapprochements par canal de paiement (L1D06) : la gérante pointe les encaissements et remboursements.
+        path: '/ventes/rapprochement',
+        name: 'rapprochement',
+        component: ReconciliationPage,
+        meta: {
+          title: 'Rapprochements par canal',
+          permissions: ['finance.reconcile'],
+          module: 'sales',
+        },
+      },
+      {
         path: '/ventes/factures',
         name: 'factures',
         component: InvoiceListPage,
@@ -415,6 +437,73 @@ export function createEeoRouter(history: RouterHistory = createWebHistory()): Ro
         name: 'stock-movement',
         component: MovementForm,
         meta: { title: 'Casse ou ajustement', permissions: ['stock.adjust'], module: 'stock' },
+      },
+      // Achats (L1D01) : fournisseurs et réceptions fournisseur, droit stock.receive (les coûts d'achat y figurent).
+      {
+        path: '/stock/fournisseurs',
+        name: 'suppliers',
+        component: SuppliersPage,
+        meta: { title: 'Fournisseurs', permissions: ['stock.receive'], module: 'stock' },
+      },
+      {
+        path: '/stock/receptions',
+        name: 'goods-receipts',
+        component: ReceiptsPage,
+        meta: { title: 'Réceptions fournisseur', permissions: ['stock.receive'], module: 'stock' },
+      },
+      {
+        path: '/stock/receptions/nouvelle',
+        name: 'goods-receipt-new',
+        component: ReceiptPage,
+        meta: { title: 'Nouvelle réception', permissions: ['stock.receive'], module: 'stock' },
+      },
+      {
+        path: `/stock/receptions/${ULID_ID}`,
+        name: 'goods-receipt',
+        component: ReceiptPage,
+        meta: { title: 'Réception fournisseur', permissions: ['stock.receive'], module: 'stock' },
+      },
+      // Inventaires (L1D02) : droit stock.inventory ; la validation des écarts est celle de la gérante.
+      {
+        path: '/stock/inventaires',
+        name: 'inventories',
+        component: InventoriesPage,
+        meta: { title: 'Inventaires', permissions: ['stock.inventory'], module: 'stock' },
+      },
+      {
+        path: `/stock/inventaires/${ULID_ID}`,
+        name: 'inventory',
+        component: InventoryPage,
+        meta: { title: 'Inventaire', permissions: ['stock.inventory'], module: 'stock' },
+      },
+      {
+        path: '/stock/alertes',
+        name: 'stock-alerts',
+        component: StockAlertsPage,
+        meta: { title: 'Alertes et seuils', permissions: ['stock.read'], module: 'stock' },
+      },
+      // Atelier optique et bon laboratoire anonymisé (L1D04), module « workshop », droit workshop.manage.
+      {
+        path: '/atelier',
+        name: 'workshop',
+        component: WorkshopOrdersPage,
+        meta: { title: 'Atelier optique', permissions: ['workshop.manage'], module: 'workshop' },
+      },
+      {
+        path: '/atelier/nouveau',
+        name: 'atelier-nouveau',
+        component: WorkshopCreatePage,
+        meta: {
+          title: 'Nouvelle commande atelier',
+          permissions: ['workshop.manage'],
+          module: 'workshop',
+        },
+      },
+      {
+        path: `/atelier/${ULID_ID}`,
+        name: 'atelier-detail',
+        component: WorkshopOrderDetailPage,
+        meta: { title: 'Commande atelier', permissions: ['workshop.manage'], module: 'workshop' },
       },
       // Paramètres (module « settings ») : comptes du personnel et identité du cabinet, gérante seulement
       // (users.manage ; le serveur revérifie et exige une réauthentification pour chaque écriture).
@@ -515,6 +604,23 @@ export function createEeoRouter(history: RouterHistory = createWebHistory()): Ro
         meta: {
           title: 'Statistiques',
           permissions: ['statistics.activity', 'statistics.clinical'],
+          module: 'reports',
+        },
+      },
+      {
+        // Tableaux et exports de gestion multi-domaines (L1D09), module « reports ».
+        path: '/rapports/gestion',
+        name: 'rapports-gestion',
+        component: ManagementReportPage,
+        meta: {
+          title: 'Rapports de gestion',
+          permissions: [
+            'statistics.activity',
+            'statistics.clinical',
+            'finance.global.read',
+            'stock.read',
+            'workshop.manage',
+          ],
           module: 'reports',
         },
       },

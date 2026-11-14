@@ -1030,6 +1030,195 @@
         }
       }
     },
+    "StoreStatementEvidenceCommand": {
+      "description": "Charge INTERNE de la commande StoreStatementEvidence, construite par le serveur après contrôle des octets reçus (POST /payment-reconciliations/statement-file) : jamais envoyée par un poste.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sha256",
+        "size_bytes",
+        "mime_type",
+        "private_path"
+      ],
+      "properties": {
+        "expected_version": {
+          "type": "null"
+        },
+        "sha256": {
+          "$ref": "../../schemas/common.json#/$defs/Sha256Hex"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "mime_type": {
+          "type": "string",
+          "enum": [
+            "application/pdf",
+            "image/jpeg",
+            "image/png"
+          ]
+        },
+        "private_path": {
+          "type": "string",
+          "pattern": "^evidence/[0-9A-HJKMNP-TV-Z]{26}/[0-9a-f]{64}[.](?:pdf|jpg|png)$"
+        }
+      }
+    },
+    "SavePaymentReconciliationRequest": {
+      "description": "Création ou modification complète d'un brouillon de rapprochement par canal (L1D06) : un règlement ou remboursement ne peut être pointé qu'une seule fois ; expected_amount recalculé côté serveur.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_version",
+        "reconciliation_id",
+        "method",
+        "period_starts_at",
+        "period_ends_at",
+        "statement_amount",
+        "statement_file_id",
+        "variance_reason",
+        "lines"
+      ],
+      "properties": {
+        "expected_version": {
+          "type": "null"
+        },
+        "reconciliation_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "method": {
+          "$ref": "../../schemas/enums.json#/$defs/payment_reconciliations.method"
+        },
+        "period_starts_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        },
+        "period_ends_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        },
+        "statement_amount": {
+          "anyOf": [
+            {
+              "$ref": "../../schemas/common.json#/$defs/SignedMoneyXaf"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "statement_file_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "variance_reason": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 2000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "lines": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "line_id",
+              "payment_id",
+              "refund_id",
+              "external_reference",
+              "statement_amount",
+              "status"
+            ],
+            "properties": {
+              "line_id": {
+                "$ref": "../../schemas/common.json#/$defs/Ulid"
+              },
+              "payment_id": {
+                "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+              },
+              "refund_id": {
+                "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+              },
+              "external_reference": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 0,
+                    "maxLength": 180
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "statement_amount": {
+                "$ref": "../../schemas/common.json#/$defs/SignedMoneyXaf"
+              },
+              "status": {
+                "$ref": "../../schemas/enums.json#/$defs/payment_reconciliation_lines.status"
+              },
+              "note": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 0,
+                    "maxLength": 1000
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          },
+          "maxItems": 500
+        }
+      }
+    },
+    "ValidatePaymentReconciliationRequest": {
+      "description": "Validation réauthentifiée d'un rapprochement (L1D06) : fige attendu serveur, montant du relevé, écart motivé si non nul et lignes ; refuse 409 si déjà validé ou si une ligne chevauche un autre rapprochement.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_version",
+        "reconciliation_id",
+        "statement_amount",
+        "statement_file_id",
+        "variance_reason"
+      ],
+      "properties": {
+        "expected_version": {
+          "type": "null"
+        },
+        "reconciliation_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "statement_amount": {
+          "$ref": "../../schemas/common.json#/$defs/SignedMoneyXaf"
+        },
+        "statement_file_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "variance_reason": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 2000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
     "TaxRuleRequest": {
       "description": "Règle fiscale saisie par la gérante ; validate = true enregistre la validation (réauthentification). Aucune taxe n'est préconfigurée.",
       "type": "object",
@@ -2200,6 +2389,207 @@
         }
       }
     },
+    "EvaluateStockAlertsRequest": {
+      "description": "Évaluation des seuils bas et péremptions du stock (corps réduit à expected_version null).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_version"
+      ],
+      "properties": {
+        "expected_version": {
+          "type": "null"
+        }
+      }
+    },
+    "StockAlertActionRequest": {
+      "description": "Accuser réception ou résoudre une alerte de stock (corps réduit à expected_version null).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_version"
+      ],
+      "properties": {
+        "expected_version": {
+          "type": "null"
+        }
+      }
+    },
+    "CreateWorkshopOrderRequest": {
+      "description": "Création en ligne d'une commande atelier (L1D04) à partir d'une ligne de facture émise et d'une prescription optique validée.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_version",
+        "invoice_line_id",
+        "prescription_id",
+        "supplier_id",
+        "quantity"
+      ],
+      "properties": {
+        "expected_version": {
+          "type": "null"
+        },
+        "invoice_line_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "prescription_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "supplier_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "frame_item_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "lab_reference": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 100
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "expected_at": {
+          "$ref": "../../schemas/common.json#/$defs/NullableInstant"
+        },
+        "quantity": {
+          "$ref": "../../schemas/common.json#/$defs/Quantity"
+        },
+        "lens_type": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 100
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "frame_reference_snapshot": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 100
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "pd_od": {
+          "$ref": "../../schemas/common.json#/$defs/NullableDiopter"
+        },
+        "pd_og": {
+          "$ref": "../../schemas/common.json#/$defs/NullableDiopter"
+        },
+        "fitting_height_od": {
+          "$ref": "../../schemas/common.json#/$defs/NullableDiopter"
+        },
+        "fitting_height_og": {
+          "$ref": "../../schemas/common.json#/$defs/NullableDiopter"
+        },
+        "notes": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "AdvanceWorkshopOrderRequest": {
+      "description": "Transition, contrôle qualité, reprise, ajustement ou annulation d'une commande atelier (L1D04, version optimiste).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_version",
+        "workshop_order_id",
+        "event_type"
+      ],
+      "properties": {
+        "expected_version": {
+          "$ref": "../../schemas/common.json#/$defs/Version"
+        },
+        "workshop_order_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "event_type": {
+          "$ref": "../../schemas/enums.json#/$defs/workshop_events.event_type"
+        },
+        "new_status": {
+          "anyOf": [
+            {
+              "$ref": "../../schemas/enums.json#/$defs/workshop_orders.status"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "quality_result": {
+          "anyOf": [
+            {
+              "$ref": "../../schemas/enums.json#/$defs/workshop_events.quality_result"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "observations": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "lab_reference": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 100
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "expected_at": {
+          "$ref": "../../schemas/common.json#/$defs/NullableInstant"
+        },
+        "notes": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "delivery_line_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        }
+      }
+    },
     "EnrollDeviceRequest": {
       "description": "Enrôlement (O02) : clé publique ES256 du poste et preuve de possession (JWS compact ES256 signé par la clé PRIVÉE du poste, typ eeo-device-proof+jws, kid = empreinte RFC 7638, charge JCS {clinic_id, device_code, issued_at, jwk_thumbprint, purpose=enroll, v=1}, fraîche de 10 minutes).",
       "type": "object",
@@ -2548,7 +2938,34 @@
         "filters": {
           "anyOf": [
             {
-              "type": "object"
+              "description": "Filtres facultatifs d'un export contrôlé (période civile inclusive et profil de portée qui restreint sans jamais élargir les droits).",
+              "type": "object",
+              "additionalProperties": false,
+              "required": [],
+              "properties": {
+                "from": {
+                  "$ref": "../../schemas/common.json#/$defs/NullableCivilDate"
+                },
+                "to": {
+                  "$ref": "../../schemas/common.json#/$defs/NullableCivilDate"
+                },
+                "scope_role": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "CASHIER",
+                        "CLINICIAN",
+                        "MANAGER",
+                        "RECEPTION"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              }
             },
             {
               "type": "null"

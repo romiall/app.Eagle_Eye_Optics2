@@ -375,6 +375,659 @@
         }
       }
     },
+    "StatementEvidence": {
+      "description": "Relevé numérisé (MoMo, banque, bordereau) d'un rapprochement de paiement (L1D06), conservé dans le stockage privé (classement FINANCIAL).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "file_id",
+        "sha256",
+        "mime_type",
+        "size_bytes"
+      ],
+      "properties": {
+        "file_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "sha256": {
+          "$ref": "../../schemas/common.json#/$defs/Sha256Hex"
+        },
+        "mime_type": {
+          "type": "string",
+          "enum": [
+            "application/pdf",
+            "image/jpeg",
+            "image/png"
+          ]
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "StatementEvidenceResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/StatementEvidence"
+        }
+      }
+    },
+    "PaymentReconciliationLine": {
+      "description": "Ligne de rapprochement d'un canal de paiement : pointée sur un paiement ou un remboursement distinct (jamais les deux), ou écriture du relevé sans pièce interne (frais, rejet, écart).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "payment_id",
+        "refund_id",
+        "external_reference",
+        "statement_amount",
+        "expected_item_amount",
+        "status",
+        "note",
+        "kind",
+        "piece_number",
+        "effective_at",
+        "payment_reference"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "payment_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "refund_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "external_reference": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 180
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "statement_amount": {
+          "$ref": "../../schemas/common.json#/$defs/SignedMoneyXaf"
+        },
+        "expected_item_amount": {
+          "anyOf": [
+            {
+              "$ref": "../../schemas/common.json#/$defs/SignedMoneyXaf"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "status": {
+          "$ref": "../../schemas/enums.json#/$defs/payment_reconciliation_lines.status"
+        },
+        "note": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 1000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "kind": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "PAYMENT",
+                "REFUND"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "piece_number": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 100
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "effective_at": {
+          "$ref": "../../schemas/common.json#/$defs/NullableInstant"
+        },
+        "payment_reference": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 180
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "PaymentReconciliation": {
+      "description": "Rapprochement de canal de paiement (L1D06 : Mobile Money, banque, chèque, espèces) : attendus calculés par le serveur ; un règlement ne se rapproche jamais dans deux rapprochements ; écart motivé à la validation ; immuable une fois VALIDATED.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "method",
+        "period_starts_at",
+        "period_ends_at",
+        "status",
+        "expected_amount",
+        "current_expected_amount",
+        "statement_amount",
+        "variance_amount",
+        "matched_lines_amount",
+        "disputed_lines_count",
+        "unmatched_lines_count",
+        "statement_file",
+        "variance_reason",
+        "validated_by",
+        "validated_by_name",
+        "validated_at",
+        "lines",
+        "created_at",
+        "updated_at"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "method": {
+          "$ref": "../../schemas/enums.json#/$defs/payment_reconciliations.method"
+        },
+        "period_starts_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        },
+        "period_ends_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        },
+        "status": {
+          "$ref": "../../schemas/enums.json#/$defs/payment_reconciliations.status"
+        },
+        "expected_amount": {
+          "$ref": "../../schemas/common.json#/$defs/SignedMoneyXaf"
+        },
+        "current_expected_amount": {
+          "$ref": "../../schemas/common.json#/$defs/SignedMoneyXaf"
+        },
+        "statement_amount": {
+          "anyOf": [
+            {
+              "$ref": "../../schemas/common.json#/$defs/SignedMoneyXaf"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "variance_amount": {
+          "anyOf": [
+            {
+              "$ref": "../../schemas/common.json#/$defs/SignedMoneyXaf"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "matched_lines_amount": {
+          "$ref": "../../schemas/common.json#/$defs/SignedMoneyXaf"
+        },
+        "disputed_lines_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unmatched_lines_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "statement_file": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/StatementEvidence"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "variance_reason": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 2000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "validated_by": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "validated_by_name": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 180
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "validated_at": {
+          "$ref": "../../schemas/common.json#/$defs/NullableInstant"
+        },
+        "lines": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/PaymentReconciliationLine"
+          }
+        },
+        "created_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        },
+        "updated_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        }
+      }
+    },
+    "PaymentReconciliationSummary": {
+      "description": "En-tête d'un rapprochement de canal sans ses lignes (liste).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "method",
+        "period_starts_at",
+        "period_ends_at",
+        "status",
+        "expected_amount",
+        "statement_amount",
+        "variance_amount",
+        "statement_file",
+        "variance_reason",
+        "validated_by",
+        "validated_by_name",
+        "validated_at",
+        "lines_count",
+        "disputed_lines_count",
+        "unmatched_lines_count",
+        "created_at",
+        "updated_at"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "method": {
+          "$ref": "../../schemas/enums.json#/$defs/payment_reconciliations.method"
+        },
+        "period_starts_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        },
+        "period_ends_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        },
+        "status": {
+          "$ref": "../../schemas/enums.json#/$defs/payment_reconciliations.status"
+        },
+        "expected_amount": {
+          "$ref": "../../schemas/common.json#/$defs/SignedMoneyXaf"
+        },
+        "statement_amount": {
+          "anyOf": [
+            {
+              "$ref": "../../schemas/common.json#/$defs/SignedMoneyXaf"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "variance_amount": {
+          "anyOf": [
+            {
+              "$ref": "../../schemas/common.json#/$defs/SignedMoneyXaf"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "statement_file": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/StatementEvidence"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "variance_reason": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 2000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "validated_by": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "validated_by_name": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 180
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "validated_at": {
+          "$ref": "../../schemas/common.json#/$defs/NullableInstant"
+        },
+        "lines_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "disputed_lines_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unmatched_lines_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "created_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        },
+        "updated_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        }
+      }
+    },
+    "PaymentReconciliationResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/PaymentReconciliation"
+        }
+      }
+    },
+    "PaymentReconciliationPage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data",
+        "meta"
+      ],
+      "properties": {
+        "data": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/PaymentReconciliationSummary"
+          }
+        },
+        "meta": {
+          "$ref": "../../schemas/common.json#/$defs/Pagination"
+        }
+      }
+    },
+    "PaymentReconciliationCandidate": {
+      "description": "Mouvement du grand livre (encaissement net de contre-écritures ou remboursement) du canal et de la période qui n'est rattaché à aucun autre rapprochement.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "payment_id",
+        "refund_id",
+        "method",
+        "amount",
+        "gross_amount",
+        "reversed_amount",
+        "effective_at",
+        "reference",
+        "invoice_id",
+        "invoice_number",
+        "piece_number",
+        "patient_name"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "PAYMENT",
+            "REFUND"
+          ]
+        },
+        "payment_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "refund_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "method": {
+          "$ref": "../../schemas/enums.json#/$defs/payment_reconciliations.method"
+        },
+        "amount": {
+          "$ref": "../../schemas/common.json#/$defs/SignedMoneyXaf"
+        },
+        "gross_amount": {
+          "$ref": "../../schemas/common.json#/$defs/PositiveMoneyXaf"
+        },
+        "reversed_amount": {
+          "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+        },
+        "effective_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        },
+        "reference": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 180
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "invoice_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "invoice_number": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 64
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "piece_number": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 64
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "patient_name": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 300
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "PaymentReconciliationCandidates": {
+      "description": "Attendu serveur et mouvements éligibles au pointage pour un canal et une période, accompagnés de la fraîcheur des postes hors ligne.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method",
+        "period_starts_at",
+        "period_ends_at",
+        "expected_amount",
+        "candidates",
+        "freshness"
+      ],
+      "properties": {
+        "method": {
+          "$ref": "../../schemas/enums.json#/$defs/payment_reconciliations.method"
+        },
+        "period_starts_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        },
+        "period_ends_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        },
+        "expected_amount": {
+          "$ref": "../../schemas/common.json#/$defs/SignedMoneyXaf"
+        },
+        "candidates": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/PaymentReconciliationCandidate"
+          }
+        },
+        "freshness": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "complete",
+            "silence_hours",
+            "devices"
+          ],
+          "properties": {
+            "complete": {
+              "type": "boolean"
+            },
+            "silence_hours": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "devices": {
+              "type": "array",
+              "minItems": 0,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "device_id",
+                  "name",
+                  "last_sync_at",
+                  "commands_pending",
+                  "commands_in_conflict",
+                  "state"
+                ],
+                "properties": {
+                  "device_id": {
+                    "$ref": "../../schemas/common.json#/$defs/Ulid"
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 180
+                  },
+                  "last_sync_at": {
+                    "$ref": "../../schemas/common.json#/$defs/NullableInstant"
+                  },
+                  "commands_pending": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "commands_in_conflict": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "state": {
+                    "type": "string",
+                    "enum": [
+                      "UP_TO_DATE",
+                      "WAITING",
+                      "SILENT"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "PaymentReconciliationCandidatesResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/PaymentReconciliationCandidates"
+        }
+      }
+    },
     "InvoiceLine": {
       "type": "object",
       "additionalProperties": false,

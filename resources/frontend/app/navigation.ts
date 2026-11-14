@@ -93,8 +93,8 @@ export const APP_MODULES: readonly AppModule[] = [
     label: 'Stock',
     path: '/stock',
     permissions: ['stock.read'],
-    deliveredBy: 'I01',
-    delivered: false,
+    deliveredBy: 'L1D01',
+    delivered: true,
     mobileShortcut: false,
   },
   {
@@ -103,7 +103,7 @@ export const APP_MODULES: readonly AppModule[] = [
     path: '/atelier',
     permissions: ['workshop.manage'],
     deliveredBy: 'L1D04',
-    delivered: false,
+    delivered: true,
     mobileShortcut: false,
   },
   {

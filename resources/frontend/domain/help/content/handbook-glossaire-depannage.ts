@@ -935,13 +935,13 @@ export const TOPICS_GLOSSAIRE_DEPANNAGE: readonly HandbookTopic[] = [
           ],
           [
             'Réception de marchandises et inventaire',
-            'Pas encore disponible : commandes et réceptions fournisseur, inventaire complet, valeur du stock. Les champs « Seuil de stock bas (facultatif) » et « Délai d’alerte de péremption, en jours (facultatif) » du catalogue sont enregistrés, mais aucune alerte ne s’affiche.',
-            'Le stock évolue par le stock initial, les remises au patient, les retours et « Casse ou ajustement ». Contrôlez les disponibilités et les lots dans « Stock ».',
+            'Disponibles dans « Stock » : « Fournisseurs », « Réceptions fournisseur », « Inventaires » et « Alertes et seuils ». La valeur globale du stock et les statistiques avancées arrivent ensuite.',
+            'Le stock évolue par le stock initial, les réceptions fournisseur, les remises au patient, les retours, les inventaires validés et « Casse ou ajustement ». Contrôlez les disponibilités, lots et alertes dans « Stock ».',
           ],
           [
             'Comparer deux examens d’un patient',
-            'L’écran « Comparer deux examens » existe, mais aucun bouton ne l’ouvre encore.',
-            'Ouvrez les deux examens l’un après l’autre, depuis l’onglet « Activité » du dossier. Seule la comparaison des révisions d’un même examen est proposée : « Révisions et comparaison ».',
+            'L’écran « Comparer deux examens » compare côte à côte deux consultations clôturées du même patient.',
+            'Depuis l’onglet « Activité » du dossier patient, cliquez sur « Comparer deux examens », ou depuis une consultation terminée sur « Comparer à un autre examen ».',
           ],
           [
             'Lire le journal des actions',

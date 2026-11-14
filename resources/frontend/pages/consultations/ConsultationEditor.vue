@@ -384,6 +384,15 @@ function stepBadge(step: DeliveredStep): string {
               >Révisions et comparaison</LinkButton
             >
             <LinkButton
+              :to="{
+                name: 'patient-comparaison',
+                params: { id: baseline.patient_id },
+                query: { compare: baseline.id },
+              }"
+              variant="secondary"
+              >Comparer à un autre examen</LinkButton
+            >
+            <LinkButton
               :to="{ name: 'consultation-prescriptions', params: { id: props.consultationId } }"
               variant="secondary"
               >Prescription optique</LinkButton

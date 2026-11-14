@@ -293,7 +293,7 @@ final class FinancialReports
      *
      * @return array{complete: bool, silence_hours: int, devices: list<array<string, mixed>>}
      */
-    private static function freshness(string $clinicId, ReportPeriod $period, CarbonImmutable $now): array
+    public static function freshness(string $clinicId, ReportPeriod $period, CarbonImmutable $now): array
     {
         $end = CarbonImmutable::parse($period->end, 'UTC');
         $horizon = $end < $now ? $end : $now;

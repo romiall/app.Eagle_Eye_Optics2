@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Application\Command;
+use App\Domain\Inventory\StockAlerts;
 use App\Domain\Inventory\StockAvailabilityReader;
 use App\Domain\Inventory\StockLocations;
 use App\Domain\Shared\BusinessError;
@@ -80,6 +81,59 @@ final class StockController extends CommandController
         $result = $this->dispatchCommand($request, new Command('RegisterStockMovement', $payload, $movementId, null));
 
         return new JsonResponse(['data' => $result->result], 201);
+    }
+
+    public function alerts(Request $request): JsonResponse
+    {
+        $clinicId = (string) $this->actor($request)->clinic_id;
+        $page = StockAlerts::page($clinicId, $request->query('status'), $request->query('kind'), $request->query('location_id'), $request->query('page'));
+
+        return new JsonResponse([
+            'data' => StockAlerts::presentMany($clinicId, array_values($page->items())),
+            'meta' => ['current_page' => $page->currentPage(), 'last_page' => $page->lastPage(), 'per_page' => $page->perPage(), 'total' => $page->total()],
+        ]);
+    }
+
+    public function evaluateAlerts(Request $request): JsonResponse
+    {
+        $result = $this->dispatchCommand($request, new Command('EvaluateStockAlerts', $this->body($request), null, null));
+
+        return new JsonResponse(['data' => $result->result]);
+    }
+
+    public function acknowledgeAlert(Request $request, string $id): JsonResponse
+    {
+        $this->dispatchCommand($request, new Command('AcknowledgeStockAlert', $this->body($request), $id, null));
+
+        return new JsonResponse(['data' => $this->alertDetail($request, $id)]);
+    }
+
+    public function resolveAlert(Request $request, string $id): JsonResponse
+    {
+        $this->dispatchCommand($request, new Command('ResolveStockAlert', $this->body($request), $id, null));
+
+        return new JsonResponse(['data' => $this->alertDetail($request, $id)]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function body(Request $request): array
+    {
+        [$payload, $expected, $present] = $this->directBody($request);
+        if (! $present || $expected !== null) {
+            throw BusinessError::validation(['expected_version' => ['La version attendue vaut null (champ obligatoire : ces ressources n\'ont pas de version).']]);
+        }
+
+        return $payload;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function alertDetail(Request $request, string $id): array
+    {
+        return StockAlerts::find((string) $this->actor($request)->clinic_id, $id) ?? throw BusinessError::notFound('Alerte de stock introuvable dans ce cabinet.');
     }
 
     private function actor(Request $request): User

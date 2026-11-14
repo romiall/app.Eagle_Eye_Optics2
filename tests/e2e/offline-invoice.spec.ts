@@ -14,8 +14,10 @@ import {
   payRemainingOffline,
   prepareThisDevice,
   signIn,
+  trackJournalHead,
   unlockFromPublicScreen,
 } from './support/device'
+import { retireDevice } from './support/database'
 import { startLaravelServer } from './support/laravel-server'
 import { INVOICE_OFFLINE_PORT } from './support/ports'
 import { newProfileDirectory, openProfile, removeProfileDirectory } from './support/profile'
@@ -95,7 +97,9 @@ test.describe('AT37 à la lettre : facture, acompte, solde et PDF SANS réseau (
     const manager = demoAccount('MANAGER')
     const reference1 = `MOMO-AT37-A-${run}`.toUpperCase()
     const reference2 = `MOMO-AT37-B-${run}`.toUpperCase()
+    const deviceCode = `AT37-${run}`.toUpperCase()
     const profile = newProfileDirectory()
+    let releasedOnServer = false
     let server = await startLaravelServer(INVOICE_OFFLINE_PORT, SERVER_ENVIRONMENT)
     let context = await openProfile(profile, server.url)
 
@@ -103,7 +107,6 @@ test.describe('AT37 à la lettre : facture, acompte, solde et PDF SANS réseau (
       // --- 1. Serveur en marche : poste préparé (catalogue figé compris), puis verrouillé ---------------------------
       let page = await context.newPage()
       await signIn(page, 'MANAGER')
-      const deviceCode = `AT37-${run}`.toUpperCase()
       await prepareThisDevice(page, {
         secret: VAULT_SECRET,
         code: deviceCode,
@@ -221,6 +224,7 @@ test.describe('AT37 à la lettre : facture, acompte, solde et PDF SANS réseau (
       // --- 4. Nouvelle fermeture COMPLÈTE, serveur toujours arrêté : tout est retrouvé dans le coffre -----------------
       await context.close()
       context = await openProfile(profile, ORIGIN)
+      const journal = trackJournalHead(context)
       page = await context.newPage()
       await page.goto('/')
       await expect(page).toHaveURL(/\/deverrouiller(\?.*)?$/)
@@ -239,20 +243,6 @@ test.describe('AT37 à la lettre : facture, acompte, solde et PDF SANS réseau (
 
       // --- 5. Le serveur revient : connexion depuis l'en-tête, envoi, preuve côté serveur --------------------------
       server = await startLaravelServer(INVOICE_OFFLINE_PORT, SERVER_ENVIRONMENT)
-      // La tête du journal du poste est lue dans le lot envoyé : elle sert à rendre les ressources en fin de parcours.
-      const journal: { head: { sequence: string; hash: string } | null } = { head: null }
-      page.on('request', (request) => {
-        if (!request.url().endsWith('/api/v1/sync/push')) return
-        const body = request.postDataJSON() as {
-          commands?: { core: { device_sequence: string | number }; event_hash: string }[]
-        } | null
-        for (const command of body?.commands ?? []) {
-          const sequence = String(command.core.device_sequence)
-          if (journal.head === null || Number(sequence) > Number(journal.head.sequence)) {
-            journal.head = { sequence, hash: command.event_hash }
-          }
-        }
-      })
       await page.getByRole('link', { name: 'Se connecter au serveur' }).click()
       await page.getByLabel('Identifiant').fill(manager.login)
       await page.getByLabel('Mot de passe').fill(manager.password)
@@ -304,10 +294,12 @@ test.describe('AT37 à la lettre : facture, acompte, solde et PDF SANS réseau (
         },
       })
       expect(released.status(), await released.text()).toBe(200)
+      releasedOnServer = true
     } finally {
       await context.close().catch(() => undefined)
       await server.stop().catch(() => undefined)
       removeProfileDirectory(profile)
+      if (!releasedOnServer) retireDevice(deviceCode)
     }
   })
 })

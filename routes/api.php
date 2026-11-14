@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\V1\AccountingExportController;
 use App\Http\Controllers\Api\V1\AgendaController;
 use App\Http\Controllers\Api\V1\AppointmentController;
 use App\Http\Controllers\Api\V1\ApprovalController;
@@ -25,9 +26,11 @@ use App\Http\Controllers\Api\V1\FollowUpController;
 use App\Http\Controllers\Api\V1\InventoryCountController;
 use App\Http\Controllers\Api\V1\InvoiceController;
 use App\Http\Controllers\Api\V1\LegacyBalanceController;
+use App\Http\Controllers\Api\V1\ManagementReportController;
 use App\Http\Controllers\Api\V1\PatientActivityController;
 use App\Http\Controllers\Api\V1\PatientController;
 use App\Http\Controllers\Api\V1\PatientMergeController;
+use App\Http\Controllers\Api\V1\PaymentReconciliationController;
 use App\Http\Controllers\Api\V1\PrescriptionController;
 use App\Http\Controllers\Api\V1\PurchasingController;
 use App\Http\Controllers\Api\V1\QuoteController;
@@ -40,6 +43,7 @@ use App\Http\Controllers\Api\V1\SyncController;
 use App\Http\Controllers\Api\V1\TaxRuleController;
 use App\Http\Controllers\Api\V1\VisitController;
 use App\Http\Controllers\Api\V1\VisualAcuityScaleController;
+use App\Http\Controllers\Api\V1\WorkshopController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -80,7 +84,7 @@ Route::prefix('v1')->group(function (): void {
         // Identité du cabinet imprimée sur les documents (en-tête, pied) : tout profil qui produit un document
         // (l'un des droits d'un document financier ou clinique suffit). Ne dépend d'aucun module.
         Route::get('clinic/document-identity', [ClinicSettingsController::class, 'documentIdentity'])
-            ->middleware('any-permission:invoice.read,invoice.create,invoice.issue,payment.collect,cash.own_session,cash.manage,credit_note.issue,refund.execute,finance.global.read,clinical.read,clinical.export')
+            ->middleware('any-permission:invoice.read,invoice.create,invoice.issue,payment.collect,cash.own_session,cash.manage,credit_note.issue,refund.execute,finance.global.read,clinical.read,clinical.export,workshop.manage')
             ->name('api.clinic.document-identity');
 
         // Journal d'audit append-only : lecture seule, permission audit.read (gérante), limitée au cabinet.
@@ -355,6 +359,41 @@ Route::prefix('v1')->group(function (): void {
             Route::post('expense-categories', [CashMovementController::class, 'saveCategory'])
                 ->middleware('can:cash.manage')
                 ->name('api.expense-categories.save');
+            // Rapprochement par canal de paiement et format comptable Q13 (L1D06).
+            Route::get('payment-reconciliations', [PaymentReconciliationController::class, 'index'])
+                ->middleware('can:finance.reconcile')
+                ->name('api.payment-reconciliations.index');
+            Route::get('payment-reconciliations/candidates', [PaymentReconciliationController::class, 'candidates'])
+                ->middleware('can:finance.reconcile')
+                ->name('api.payment-reconciliations.candidates');
+            Route::post('payment-reconciliations/statement-file', [PaymentReconciliationController::class, 'storeStatementFile'])
+                ->middleware(['can:finance.reconcile', 'reauthenticated'])
+                ->name('api.payment-reconciliations.statement-file.store');
+            Route::get('payment-reconciliations/statement-file/{id}', [PaymentReconciliationController::class, 'downloadStatementFile'])
+                ->middleware('can:finance.reconcile')
+                ->whereUlid('id')
+                ->name('api.payment-reconciliations.statement-file.show');
+            Route::post('payment-reconciliations', [PaymentReconciliationController::class, 'store'])
+                ->middleware('can:finance.reconcile')
+                ->name('api.payment-reconciliations.store');
+            Route::get('payment-reconciliations/{id}', [PaymentReconciliationController::class, 'show'])
+                ->middleware('can:finance.reconcile')
+                ->whereUlid('id')
+                ->name('api.payment-reconciliations.show');
+            Route::patch('payment-reconciliations/{id}', [PaymentReconciliationController::class, 'update'])
+                ->middleware('can:finance.reconcile')
+                ->whereUlid('id')
+                ->name('api.payment-reconciliations.update');
+            Route::post('payment-reconciliations/{id}/validate', [PaymentReconciliationController::class, 'validateReconciliation'])
+                ->middleware(['can:finance.reconcile', 'reauthenticated'])
+                ->whereUlid('id')
+                ->name('api.payment-reconciliations.validate');
+            Route::get('reports/accounting-export', [AccountingExportController::class, 'show'])
+                ->middleware('can:finance.global.read')
+                ->name('api.reports.accounting-export.show');
+            Route::get('reports/accounting-export/download', [AccountingExportController::class, 'download'])
+                ->middleware('can:finance.global.read')
+                ->name('api.reports.accounting-export.download');
         });
 
         // Approbations exactes (B06) : module « settings » (gestion gérante, fichier 04). Une demande porte le contenu exact
@@ -377,6 +416,10 @@ Route::prefix('v1')->group(function (): void {
                 ->middleware('any-permission:export.global,clinical.export')
                 ->whereUlid('id')
                 ->name('api.exports.download');
+            Route::get('exports/{id}/manifest', [ExportController::class, 'manifest'])
+                ->middleware('any-permission:export.global,clinical.export')
+                ->whereUlid('id')
+                ->name('api.exports.manifest');
             Route::get('approvals', [ApprovalController::class, 'index'])
                 ->middleware('any-permission:approval.request,approval.decide')
                 ->name('api.approvals.index');
@@ -480,6 +523,45 @@ Route::prefix('v1')->group(function (): void {
                 ->middleware(['can:stock.inventory', 'reauthenticated'])
                 ->whereUlid('id')
                 ->name('api.inventory-counts.validate');
+
+            // Alertes de seuil bas et de péremption (L1D03) : lecture avec stock.read, actions avec un droit de gestion du stock.
+            Route::get('stock/alerts', [StockController::class, 'alerts'])
+                ->middleware('can:stock.read')
+                ->name('api.stock.alerts.index');
+            Route::post('stock/alerts/evaluate', [StockController::class, 'evaluateAlerts'])
+                ->middleware('any-permission:stock.adjust,stock.receive,stock.inventory')
+                ->name('api.stock.alerts.evaluate');
+            Route::post('stock/alerts/{id}/acknowledge', [StockController::class, 'acknowledgeAlert'])
+                ->middleware('any-permission:stock.adjust,stock.receive,stock.inventory')
+                ->whereUlid('id')
+                ->name('api.stock.alerts.acknowledge');
+            Route::post('stock/alerts/{id}/resolve', [StockController::class, 'resolveAlert'])
+                ->middleware('any-permission:stock.adjust,stock.receive,stock.inventory')
+                ->whereUlid('id')
+                ->name('api.stock.alerts.resolve');
+        });
+
+        // Atelier optique (L1D04) : module « workshop », droit workshop.manage, en ligne seulement. Commandes labo
+        // liées à une ligne de facture émise et une prescription optique validée du même patient ; bon laboratoire
+        // anonymisé sans prix ni antécédents médicaux.
+        Route::middleware('module:workshop')->group(function (): void {
+            Route::get('workshop-orders', [WorkshopController::class, 'index'])
+                ->middleware('can:workshop.manage')
+                ->name('api.workshop-orders.index');
+            Route::get('workshop-orders/eligible-lines', [WorkshopController::class, 'eligibleLines'])
+                ->middleware('can:workshop.manage')
+                ->name('api.workshop-orders.eligible-lines');
+            Route::post('workshop-orders', [WorkshopController::class, 'store'])
+                ->middleware('can:workshop.manage')
+                ->name('api.workshop-orders.store');
+            Route::get('workshop-orders/{id}', [WorkshopController::class, 'show'])
+                ->middleware('can:workshop.manage')
+                ->whereUlid('id')
+                ->name('api.workshop-orders.show');
+            Route::post('workshop-orders/{id}/advance', [WorkshopController::class, 'advance'])
+                ->middleware('can:workshop.manage')
+                ->whereUlid('id')
+                ->name('api.workshop-orders.advance');
         });
 
         // Agenda interne (S01) et suivis (S02) : module « agenda ». Lecture de l'agenda (agenda.read : gérante, accueil,
@@ -556,14 +638,14 @@ Route::prefix('v1')->group(function (): void {
                 ->name('api.contact-tasks.attempts');
         });
 
-        // Originaux PDF des documents générés (D01) : stockage privé, Policy par famille de document (financière ou
-        // clinique) vérifiée par le contrôleur, module de la famille ouvert (404 sinon).
+        // Originaux PDF des documents générés (D01) : stockage privé, Policy par famille de document (financière,
+        // clinique ou atelier) vérifiée par le contrôleur, module de la famille ouvert (404 sinon).
         Route::post('documents/{id}/content', [DocumentController::class, 'content'])
-            ->middleware('any-permission:invoice.issue,payment.collect,clinical.complete')
+            ->middleware('any-permission:invoice.issue,payment.collect,clinical.complete,workshop.manage')
             ->whereUlid('id')
             ->name('api.documents.content');
         Route::get('documents/{id}/download', [DocumentController::class, 'download'])
-            ->middleware('any-permission:invoice.read,clinical.export')
+            ->middleware('any-permission:invoice.read,clinical.export,workshop.manage')
             ->whereUlid('id')
             ->name('api.documents.download');
 
@@ -577,6 +659,12 @@ Route::prefix('v1')->group(function (): void {
             Route::get('reports/clinical', [StatisticsController::class, 'clinical'])
                 ->middleware('can:statistics.clinical')
                 ->name('api.reports.clinical');
+            Route::get('reports/management', [ManagementReportController::class, 'show'])
+                ->middleware('any-permission:statistics.activity,statistics.clinical,finance.global.read,stock.read,workshop.manage')
+                ->name('api.reports.management.show');
+            Route::get('reports/management/download', [ManagementReportController::class, 'download'])
+                ->middleware('any-permission:statistics.activity,statistics.clinical,finance.global.read,stock.read,workshop.manage')
+                ->name('api.reports.management.download');
         });
 
         // Consultation clinique (C01 à C04) : module « consultations ». Données cliniques : accueil et caisse n'ont

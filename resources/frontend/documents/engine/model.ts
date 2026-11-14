@@ -21,6 +21,7 @@ export type DocumentKind =
   | 'QUOTE'
   | 'OPTICAL_PRESCRIPTION'
   | 'CLINICAL_RECORD'
+  | 'WORKSHOP'
   // Types propres au poste : pas (encore) de valeur dans l'énumération du serveur.
   | 'MEDICATION_ORDER'
   | 'REFERRAL_LETTER'
@@ -222,6 +223,7 @@ export const DOCUMENT_KIND_LABELS: Readonly<Record<DocumentKind, string>> = {
   QUOTE: 'Devis',
   OPTICAL_PRESCRIPTION: 'Prescription optique',
   CLINICAL_RECORD: 'Fiche de consultation',
+  WORKSHOP: 'Bon laboratoire',
   MEDICATION_ORDER: 'Ordonnance de médicaments',
   REFERRAL_LETTER: 'Lettre d’orientation',
   CASH_SESSION_REPORT: 'Relevé de caisse',

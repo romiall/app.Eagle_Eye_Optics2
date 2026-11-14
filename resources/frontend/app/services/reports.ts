@@ -4,6 +4,8 @@ import type {
   ActivityReportResponse,
   ClinicalReport,
   ClinicalReportResponse,
+  ManagementReport,
+  ManagementReportResponse,
 } from '@/domain/contracts/generated'
 
 import type { ReadOutcome } from './reads'
@@ -45,4 +47,19 @@ export async function getClinicalReport(
     `/api/v1/reports/clinical?${query(from, to)}`,
   )
   return answered(response.data)
+}
+
+export async function getManagementReport(
+  from: string,
+  to: string,
+): Promise<ReadOutcome<ManagementReport>> {
+  const response = await apiRequest<ManagementReportResponse>(
+    'GET',
+    `/api/v1/reports/management?${query(from, to)}`,
+  )
+  return answered(response.data)
+}
+
+export function managementDownloadUrl(from: string, to: string, format: 'csv' | 'json'): string {
+  return `/api/v1/reports/management/download?${query(from, to)}&format=${format}`
 }

@@ -19,6 +19,7 @@ import type {
   ReceiptDocumentData,
   RefundDocumentData,
 } from '../data/financial'
+import type { WorkshopOrderDocumentData } from '../data/workshop'
 import { TEMPLATE_VERSION } from '../templates/registry'
 
 /**
@@ -49,6 +50,7 @@ const ID = {
   letter: '01J9ZXK4M2Q8R7S6T5V4W30035',
   record: '01J9ZXK4M2Q8R7S6T5V4W30036',
   consultation: '01J9ZXK4M2Q8R7S6T5V4W30037',
+  workshopOrder: '01J9ZXK4M2Q8R7S6T5V4W30038',
 } as const
 
 export const DEMO_IDS = ID
@@ -619,5 +621,81 @@ export function demoClinicalRecord(): ClinicalRecordData {
         body: demoPrescriptionBody(),
       },
     ],
+  }
+}
+
+export function demoWorkshopOrder(): WorkshopOrderDocumentData {
+  return {
+    templateVersion: TEMPLATE_VERSION,
+    workshopOrderId: ID.workshopOrder,
+    reference: 'TEST-ATL-2026-000001',
+    labReference: 'LAB-DEMO-01',
+    orderedAt: '2026-10-14T10:15:00.000Z',
+    expectedAt: '2026-10-19T16:00:00.000Z',
+    quantity: '1.000',
+    notes: 'Montage démonstration (aucune donnée réelle).',
+    clinic: demoClinic(),
+    patientRecordNumber: 'TEST-P-000001',
+    supplier: {
+      name: 'Laboratoire Optique de Démonstration',
+      reference: 'LAB-DEMO',
+      phone: null,
+      email: null,
+    },
+    frame: {
+      reference: 'TEST-MON-001',
+      name: 'Monture Demo Cerclée',
+      brand: 'Marque Demo',
+      model: 'Modèle Demo',
+    },
+    invoiceLine: {
+      invoiceNumber: 'TEST-FAC-2026-000001',
+      description: 'Verres progressifs + montage (démonstration)',
+    },
+    prescription: {
+      versionNo: 1,
+      origin: 'INTERNAL',
+      validatedAt: '2026-10-14T09:10:00.000Z',
+      externalPrescriber: null,
+      externalPrescribedOn: null,
+      usageLabel: 'Progressifs',
+      lensTypeLabel: 'Progressif',
+      lensIndexLabel: '1.60',
+      pdTotal: '63.00',
+      pdOd: '31.50',
+      pdOg: '31.50',
+      pdInconsistencyReason: null,
+      notes: 'Note optique de démonstration.',
+      treatments: ['Anti-reflet', 'Durci / anti-rayures'],
+      eyes: [
+        {
+          eye: 'OD',
+          sphere: '-1.25',
+          cylinder: '-0.50',
+          axis: 90,
+          addition: '2.00',
+          pd: '31.50',
+          fittingHeight: '18.50',
+          lensType: 'Progressif',
+          lensIndex: '1.60',
+          treatments: ['Anti-reflet', 'Durci / anti-rayures'],
+          frameReferenceSnapshot: 'TEST-MON-001 — Marque Demo Monture Demo Cerclée',
+        },
+        {
+          eye: 'OG',
+          sphere: '0.75',
+          cylinder: '0.00',
+          axis: null,
+          addition: '2.00',
+          pd: '31.50',
+          fittingHeight: '18.50',
+          lensType: 'Progressif',
+          lensIndex: '1.60',
+          treatments: ['Anti-reflet', 'Durci / anti-rayures'],
+          frameReferenceSnapshot: 'TEST-MON-001 — Marque Demo Monture Demo Cerclée',
+        },
+      ],
+    },
+    createdByName: 'Professionnel (démonstration)',
   }
 }

@@ -3,13 +3,16 @@
 namespace App\Domain\Inventory;
 
 use App\Application\CommandDefinition;
+use App\Domain\Inventory\Handlers\AcknowledgeStockAlertHandler;
 use App\Domain\Inventory\Handlers\ConfirmDeliveryHandler;
 use App\Domain\Inventory\Handlers\DeleteGoodsReceiptDraftHandler;
+use App\Domain\Inventory\Handlers\EvaluateStockAlertsHandler;
 use App\Domain\Inventory\Handlers\OpenInventoryCountHandler;
 use App\Domain\Inventory\Handlers\RecordInventoryCountsHandler;
 use App\Domain\Inventory\Handlers\RegisterOpeningStockHandler;
 use App\Domain\Inventory\Handlers\RegisterPhysicalReturnHandler;
 use App\Domain\Inventory\Handlers\RegisterStockMovementHandler;
+use App\Domain\Inventory\Handlers\ResolveStockAlertHandler;
 use App\Domain\Inventory\Handlers\SaveGoodsReceiptDraftHandler;
 use App\Domain\Inventory\Handlers\SaveSupplierHandler;
 use App\Domain\Inventory\Handlers\TransitionInventoryCountHandler;
@@ -158,6 +161,30 @@ final class InventoryCommands
                 null,
                 true,
                 'schemas/requests/http.json#/$defs/ValidateInventoryCountRequest',
+            ),
+            new CommandDefinition(
+                EvaluateStockAlertsHandler::COMMAND,
+                EvaluateStockAlertsHandler::class,
+                [CommandSource::Direct, CommandSource::Job],
+                null,
+                true,
+                'schemas/requests/http.json#/$defs/EvaluateStockAlertsRequest',
+            ),
+            new CommandDefinition(
+                AcknowledgeStockAlertHandler::COMMAND,
+                AcknowledgeStockAlertHandler::class,
+                [CommandSource::Direct],
+                null,
+                true,
+                'schemas/requests/http.json#/$defs/StockAlertActionRequest',
+            ),
+            new CommandDefinition(
+                ResolveStockAlertHandler::COMMAND,
+                ResolveStockAlertHandler::class,
+                [CommandSource::Direct],
+                null,
+                true,
+                'schemas/requests/http.json#/$defs/StockAlertActionRequest',
             ),
         ];
     }

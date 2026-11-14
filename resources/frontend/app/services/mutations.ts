@@ -70,6 +70,28 @@ export type OnlineCommandName =
   | 'ReplaceOpeningHours'
   | 'AddResourceException'
   | 'SaveAppointmentService'
+  // Achats et inventaires (L1D01, L1D02) : fournisseurs, réceptions fournisseur et inventaires, en ligne seulement.
+  | 'SaveSupplier'
+  | 'SaveGoodsReceiptDraft'
+  | 'ValidateGoodsReceipt'
+  | 'DeleteGoodsReceiptDraft'
+  | 'OpenInventoryCount'
+  | 'RecordInventoryCounts'
+  | 'CompleteInventoryCount'
+  | 'ReopenInventoryCount'
+  | 'AbandonInventoryCount'
+  | 'ValidateInventoryCount'
+  // Alertes et seuils de stock (L1D03) : évaluation, prise en compte et résolution manuelle, en ligne seulement.
+  | 'EvaluateStockAlerts'
+  | 'AcknowledgeStockAlert'
+  | 'ResolveStockAlert'
+  // Atelier optique (L1D04) : création et avancement de commande atelier, en ligne seulement.
+  | 'CreateWorkshopOrder'
+  | 'AdvanceWorkshopOrder'
+  // Rapprochements par canal de paiement (L1D06) : en ligne seulement.
+  | 'CreatePaymentReconciliation'
+  | 'UpdatePaymentReconciliation'
+  | 'ValidatePaymentReconciliation'
 
 /**
  * Version attendue d'une route explicite : `none` (défaut : `expected_version: null` au corps), `entity`

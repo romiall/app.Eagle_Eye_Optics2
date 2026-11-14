@@ -814,7 +814,7 @@ export const TOPICS_PARCOURS_GESTION: readonly HandbookTopic[] = [
       {
         kind: 'note',
         tone: 'warning',
-        text: 'Pas encore disponible : fournisseurs, réceptions de marchandise, inventaire complet, alertes de stock bas ou de péremption, valeur du stock. Le stock évolue par le stock initial, les remises, les retours et les ajustements.',
+        text: 'Pas encore disponible : la valeur globale du stock. Les fournisseurs, réceptions de marchandise, inventaires et alertes de stock bas ou de péremption sont ouverts dans « Stock », en plus du stock initial, des remises, des retours et des ajustements.',
       },
       {
         kind: 'faq',

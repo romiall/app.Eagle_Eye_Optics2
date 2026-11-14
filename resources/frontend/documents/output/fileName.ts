@@ -17,6 +17,7 @@ const PREFIXES: Readonly<Record<DocumentKind, string>> = {
   MEDICATION_ORDER: 'ordonnance',
   REFERRAL_LETTER: 'lettre-orientation',
   CASH_SESSION_REPORT: 'releve-de-caisse',
+  WORKSHOP: 'bon-laboratoire',
 }
 
 const NAME_LIMIT = 80

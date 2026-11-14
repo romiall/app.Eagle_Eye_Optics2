@@ -222,6 +222,8 @@ return [
             // Devis (L1D07) : série distincte, ni facture ni reçu ; préfixe réel à choisir avec la gérante (Q03).
             'QUOTE' => env('EEO_NUMBER_PREFIX_QUOTE', 'TEST-DEV'),
         ],
+        // Bons laboratoire de l'atelier (L1D04) : hors séries financières (BillingNumbers).
+        'workshop_prefix' => env('EEO_NUMBER_PREFIX_WORKSHOP', 'TEST-ATL'),
     ],
 
     /*

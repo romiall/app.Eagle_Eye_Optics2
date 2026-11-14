@@ -22,6 +22,7 @@ use App\Domain\Inventory\InventoryCommands;
 use App\Domain\Operations\OperationsCommands;
 use App\Domain\Patients\PatientCommands;
 use App\Domain\Scheduling\SchedulingCommands;
+use App\Domain\Workshop\WorkshopCommands;
 use App\Offline\OfflineCommands;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Support\ServiceProvider;
@@ -104,6 +105,10 @@ final class CommandServiceProvider extends ServiceProvider
         }
         // Préparation des postes (O02) : enrôlement, grants signés et révocations, en ligne seulement.
         foreach (OfflineCommands::definitions() as $definition) {
+            $registry->register($definition);
+        }
+        // Atelier optique (L1D04) : création de commande labo, suivi montage/contrôle qualité et bon laboratoire.
+        foreach (WorkshopCommands::definitions() as $definition) {
             $registry->register($definition);
         }
     }

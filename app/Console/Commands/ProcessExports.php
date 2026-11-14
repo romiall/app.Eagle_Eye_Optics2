@@ -74,7 +74,12 @@ final class ProcessExports extends Command
                     ]);
                 });
                 $audit->record((string) $request->clinic_id, null, 'export.ready', 'export_requests', (string) $request->id,
-                    null, ['export_type' => (string) $request->export_type, 'tables' => $archive['tables'], 'sha256' => $archive['sha256']],
+                    null, [
+                        'export_type' => (string) $request->export_type,
+                        'tables' => $archive['tables'],
+                        'sha256' => $archive['sha256'],
+                        'manifest' => $archive['manifest'],
+                    ],
                     'Tâche planifiée des exports');
                 $produced++;
             } catch (Throwable $error) {

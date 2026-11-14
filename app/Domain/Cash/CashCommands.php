@@ -4,10 +4,14 @@ namespace App\Domain\Cash;
 
 use App\Application\CommandDefinition;
 use App\Domain\Cash\Handlers\CloseCashSessionHandler;
+use App\Domain\Cash\Handlers\CreatePaymentReconciliationHandler;
 use App\Domain\Cash\Handlers\OpenCashSessionHandler;
 use App\Domain\Cash\Handlers\RecordCashMovementHandler;
 use App\Domain\Cash\Handlers\ReviewCashVarianceHandler;
 use App\Domain\Cash\Handlers\SaveExpenseCategoryHandler;
+use App\Domain\Cash\Handlers\StoreStatementEvidenceHandler;
+use App\Domain\Cash\Handlers\UpdatePaymentReconciliationHandler;
+use App\Domain\Cash\Handlers\ValidatePaymentReconciliationHandler;
 use App\Domain\Shared\CommandSource;
 
 /**
@@ -67,6 +71,38 @@ final class CashCommands
                 null,
                 true,
                 'schemas/requests/http.json#/$defs/CashVarianceReviewRequest',
+            ),
+            new CommandDefinition(
+                StoreStatementEvidenceHandler::COMMAND,
+                StoreStatementEvidenceHandler::class,
+                [CommandSource::Direct],
+                null,
+                true,
+                'schemas/requests/http.json#/$defs/StoreStatementEvidenceCommand',
+            ),
+            new CommandDefinition(
+                CreatePaymentReconciliationHandler::COMMAND,
+                CreatePaymentReconciliationHandler::class,
+                [CommandSource::Direct],
+                null,
+                true,
+                'schemas/requests/http.json#/$defs/SavePaymentReconciliationRequest',
+            ),
+            new CommandDefinition(
+                UpdatePaymentReconciliationHandler::COMMAND,
+                UpdatePaymentReconciliationHandler::class,
+                [CommandSource::Direct],
+                null,
+                true,
+                'schemas/requests/http.json#/$defs/SavePaymentReconciliationRequest',
+            ),
+            new CommandDefinition(
+                ValidatePaymentReconciliationHandler::COMMAND,
+                ValidatePaymentReconciliationHandler::class,
+                [CommandSource::Direct],
+                null,
+                true,
+                'schemas/requests/http.json#/$defs/ValidatePaymentReconciliationRequest',
             ),
         ];
     }

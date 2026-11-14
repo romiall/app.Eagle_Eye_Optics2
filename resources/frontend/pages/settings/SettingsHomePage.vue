@@ -64,6 +64,23 @@ const cards = computed<Card[]>(() => {
       to: { name: 'parametres-exports' },
     })
   }
+  if (
+    moduleOpenOnScreen('reports') &&
+    (canOnScreen('statistics.activity') ||
+      canOnScreen('statistics.clinical') ||
+      canOnScreen('finance.global.read') ||
+      canOnScreen('stock.read') ||
+      canOnScreen('workshop.manage')) &&
+    router.hasRoute('rapports-gestion')
+  ) {
+    list.push({
+      id: 'rapports-gestion',
+      title: 'Rapports de gestion',
+      text: 'Tableaux consolidés Finance, Stock, Atelier, Patients et Clinique (N vs N-1) et exports CSV / JSON.',
+      icon: 'reports',
+      to: { name: 'rapports-gestion' },
+    })
+  }
   // Préparation du poste (O01, O02) : seulement si l'exploitant a ouvert le module « offline ».
   if (
     canOnScreen('offline.enroll') &&

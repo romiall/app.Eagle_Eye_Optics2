@@ -63,7 +63,9 @@
     { "document_type": "OPTICAL_PRESCRIPTION", "template_version": "TEST-1" },
     { "document_type": "OPTICAL_PRESCRIPTION", "template_version": "optical_prescription.v1" },
     { "document_type": "CLINICAL_RECORD", "template_version": "TEST-1" },
-    { "document_type": "CLINICAL_RECORD", "template_version": "clinical_record.v1" }
+    { "document_type": "CLINICAL_RECORD", "template_version": "clinical_record.v1" },
+    { "document_type": "WORKSHOP", "template_version": "TEST-1" },
+    { "document_type": "WORKSHOP", "template_version": "workshop.v1" }
   ],
   "notes": "Release initiale du développement L0 (F06). rules_versions : version initiale réservée aux règles et vecteurs de F08. vault_formats : format 1 du coffre (O01, D21 : formatVersion et minWriterVersion). local_schema_versions : versions 1 à 5 de la base IndexedDB du poste (1 coffre, 2 grants, 3 plages et journal, 4 curseurs de pull, 5 reprises d'un poste remplacé, O07), migrées en avant par ajouts seulement (O06). document_templates déclare les modèles de documents de D01/D02 (version TEST-1, mentions du cabinet non validées : documents de test ; invoice.v1, receipt.v1, credit_note.v1 et refund.v1 sont les noms provisoires écrits par le serveur, alias du même modèle ; optical_prescription.v1 est écrit par la validation d'une prescription et clinical_record.v1 nomme la fiche de consultation, selon la même convention <type>.v<n>) ; les documents propres au poste (ordonnance, lettre d'orientation, relevé de caisse) n'ont pas de document_type côté serveur. Toute nouvelle version de commande, de règles, de coffre ou de modèle s'ajoute ici sans retirer l'ancienne tant qu'un poste détient des pièces pendantes dans cette version (contrat 23, O06)."
 }

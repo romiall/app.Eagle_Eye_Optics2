@@ -445,7 +445,7 @@ export const TOPICS_NOTIONS_FINANCE: readonly HandbookTopic[] = [
       {
         kind: 'note',
         tone: 'warning',
-        text: 'Pas encore disponible : la réception des commandes fournisseur, l’inventaire, les alertes de stock bas ou de péremption proche, la valeur du stock et le travail sans Internet.',
+        text: 'Pas encore disponible : la valeur globale du stock et le travail sans Internet. Les réceptions fournisseur, l’inventaire et les alertes de stock bas ou de péremption sont ouverts dans « Stock ».',
       },
     ],
     related: [

@@ -33,6 +33,7 @@ PATIENTS = './schemas/resources/patients.json#/$defs/'
 CLINICAL = './schemas/resources/clinical.json#/$defs/'
 BILLING = './schemas/resources/billing.json#/$defs/'
 STOCK = './schemas/resources/stock.json#/$defs/'
+WORKSHOP = './schemas/resources/workshop.json#/$defs/'
 SCHEDULING = './schemas/resources/scheduling.json#/$defs/'
 OPERATIONS = './schemas/resources/operations.json#/$defs/'
 PUBLIC = './schemas/resources/public.json#/$defs/'
@@ -88,7 +89,7 @@ OPERATIONS_TABLE = [
        description='Idempotence par clé reportée au chemin central F07 ; fuseau, monnaie et production_documents_enabled refusés.'),
     op('get', '/v1/clinic/document-identity', 'GetClinicDocumentIdentity', 'Identité du cabinet imprimée sur les documents', 'Cabinet et comptes',
        permission=['invoice.read', 'invoice.create', 'invoice.issue', 'payment.collect', 'cash.own_session', 'cash.manage',
-                   'credit_note.issue', 'refund.execute', 'finance.global.read', 'clinical.read', 'clinical.export'],
+                   'credit_note.issue', 'refund.execute', 'finance.global.read', 'clinical.read', 'clinical.export', 'workshop.manage'],
        response=ACCESS + 'ClinicDocumentIdentityResponse', implemented=True, task='D02',
        description='En-tête et pied des documents (nom, coordonnées, identifiant fiscal, mentions professionnelles, réglages des documents, documents de test ou non) : lisible par tout profil qui produit un document (l\'un des droits suffit), pas seulement par la gérante. Ne dépend d\'aucun module. Les paramètres administratifs complets restent sur /clinic/settings (gérante).'),
     op('get', '/v1/staff', 'ListStaff', 'Comptes du personnel du cabinet', 'Cabinet et comptes',
@@ -381,6 +382,42 @@ OPERATIONS_TABLE = [
        permission=['cash.manage'], request=REQUESTS + 'ExpenseCategoryRequest', response=BILLING + 'ExpenseCategoryResponse',
        implemented=True, task='L1D05', errors=(422,),
        description='Module sales. Code unique dans le cabinet, figé après la création ; une catégorie se désactive, jamais ne se supprime.'),
+    op('get', '/v1/payment-reconciliations', 'ListPaymentReconciliations', 'Rapprochements par canal de paiement', 'Caisse',
+       permission=['finance.reconcile'], response=BILLING + 'PaymentReconciliationPage', implemented=True, task='L1D06',
+       params=(('query', 'method', 'Canal : CASH, MTN_MOMO, ORANGE_MONEY, BANK_TRANSFER, CHEQUE ou OTHER.'),
+               ('query', 'status', 'État : DRAFT ou VALIDATED.'), PAGE),
+       errors=(404, 422),
+       description='Module sales, droit finance.reconcile. Rapprochements du plus récent au plus ancien.'),
+    op('get', '/v1/payment-reconciliations/candidates', 'ListPaymentReconciliationCandidates', 'Mouvements éligibles au rapprochement d\'un canal', 'Caisse',
+       permission=['finance.reconcile'], response=BILLING + 'PaymentReconciliationCandidatesResponse', implemented=True, task='L1D06',
+       params=(('query', 'method', 'Canal du rapprochement.'),
+               ('query', 'period_starts_at', 'Début UTC ISO de la période (inclus).'),
+               ('query', 'period_ends_at', 'Fin UTC ISO de la période (exclusive, > period_starts_at).'),
+               ('query', 'reconciliation_id', 'Rapprochement courant facultatif dont les lignes restent éligibles.')),
+       errors=(404, 422),
+       description='Module sales, droit finance.reconcile. Encaissements confirmés nets et remboursements du canal non rapprochés ailleurs, plus montant attendu serveur et fraîcheur des postes.'),
+    op('post', '/v1/payment-reconciliations/statement-file', 'StoreStatementEvidence', 'Déposer un relevé de canal numérisé (PDF, JPEG ou PNG)', 'Caisse',
+       permission=['finance.reconcile'], reauth=True, request='binary-evidence', request_type='application/octet-stream',
+       response=BILLING + 'StatementEvidenceResponse', status=201, implemented=True, task='L1D06', errors=(404, 422, 423),
+       description='Module sales, en ligne seulement, mot de passe confirmé récemment (423 sinon). Classement FINANCIAL dans le stockage privé.'),
+    op('get', '/v1/payment-reconciliations/statement-file/{id}', 'GetReconciliationStatementFile', 'Télécharger un relevé de paiement déposé', 'Caisse',
+       permission=['finance.reconcile'], implemented=True, task='L1D06', params=(ID,), errors=(404,),
+       description='Module sales, droit finance.reconcile. Octets privés du relevé associé à un rapprochement du cabinet.'),
+    op('post', '/v1/payment-reconciliations', 'CreatePaymentReconciliation', 'Créer un brouillon de rapprochement par canal', 'Caisse',
+       permission=['finance.reconcile'], request=REQUESTS + 'SavePaymentReconciliationRequest',
+       response=BILLING + 'PaymentReconciliationResponse', status=201, implemented=True, task='L1D06', errors=(404, 409, 422),
+       description='Module sales, en ligne seulement. Enregistre un brouillon et ses lignes sans dupliquer un paiement ou remboursement déjà pointé dans un autre rapprochement.'),
+    op('get', '/v1/payment-reconciliations/{id}', 'GetPaymentReconciliation', 'Détail d\'un rapprochement et de ses lignes', 'Caisse',
+       permission=['finance.reconcile'], response=BILLING + 'PaymentReconciliationResponse', implemented=True, task='L1D06', params=(ID,), errors=(404,),
+       description='Module sales, droit finance.reconcile.'),
+    op('patch', '/v1/payment-reconciliations/{id}', 'UpdatePaymentReconciliation', 'Modifier un brouillon de rapprochement', 'Caisse',
+       permission=['finance.reconcile'], request=REQUESTS + 'SavePaymentReconciliationRequest',
+       response=BILLING + 'PaymentReconciliationResponse', implemented=True, task='L1D06', params=(ID,), errors=(404, 409, 422),
+       description='Module sales, en ligne seulement, brouillon seulement (409 si déjà VALIDATED).'),
+    op('post', '/v1/payment-reconciliations/{id}/validate', 'ValidatePaymentReconciliation', 'Valider et figer un rapprochement par canal', 'Caisse',
+       permission=['finance.reconcile'], reauth=True, request=REQUESTS + 'ValidatePaymentReconciliationRequest',
+       response=BILLING + 'PaymentReconciliationResponse', implemented=True, task='L1D06', params=(ID,), errors=(404, 409, 422, 423),
+       description='Module sales, en ligne seulement, mot de passe confirmé récemment (423 sinon). Recalcule expected_amount, exige un motif si écart non nul, passe à VALIDATED.'),
     op('get', '/v1/reports/cash-day', 'GetCashDayReport', 'Caisse du jour', 'Caisse',
        permission=['finance.global.read', 'cash.own_session'], response=BILLING + 'CashDayReportResponse', implemented=True, task='R01', errors=(404, 422),
        params=(('query', 'date', 'Jour civil AAAA-MM-JJ au fuseau du cabinet (aujourd\'hui par défaut).'),),
@@ -476,6 +513,46 @@ OPERATIONS_TABLE = [
        permission=['stock.inventory'], reauth=True, request=REQUESTS + 'ValidateInventoryCountRequest', response=STOCK + 'InventoryCountResponse',
        implemented=True, task='L1D02', params=(ID,), errors=(403, 404, 409, 422),
        description='Module stock, gérante réauthentifiée (403 sinon). Comptage terminé seulement (409). Théorique jugé au moment du comptage de chaque ligne (ouverture + mouvements jusque-là) ; chaque écart non nul exige son motif (422) et devient un mouvement ADJUSTMENT SIGNÉ approuvé, jamais un remplacement de la quantité. Un retrait ne prend jamais la marchandise réservée ni confiée à un poste (409 STOCK_UNAVAILABLE, lignes nommées) : aucun effet si une ligne est refusée. Valeur au coût connu (lot, sinon catalogue) ; coût absent = inconnu, compté à part. Un rejeu de la même clé rend la réponse d\'origine.'),
+    op('get', '/v1/stock/alerts', 'ListStockAlerts', 'Alertes de stock bas et de péremption', 'Stock',
+       permission=['stock.read'], response=STOCK + 'StockAlertPage', implemented=True, task='L1D03', errors=(404, 422),
+       params=(PAGE, ('query', 'status', 'Filtre : OPEN, ACKNOWLEDGED ou RESOLVED.'),
+               ('query', 'kind', 'Filtre : LOW_STOCK ou EXPIRY.'),
+               ('query', 'location_id', 'Filtre : emplacement (ULID).')),
+       description='Module stock, droit stock.read. Alertes actives (OPEN puis ACKNOWLEDGED) d\'abord, avec détail physique, réservé, quotas des postes et disponible central ; ne crée jamais de mouvement de stock.'),
+    op('post', '/v1/stock/alerts/evaluate', 'EvaluateStockAlerts', 'Évaluer les seuils bas et péremptions du stock', 'Stock',
+       permission=['stock.adjust', 'stock.receive', 'stock.inventory'], request=REQUESTS + 'EvaluateStockAlertsRequest',
+       response=STOCK + 'StockAlertEvaluationResponse', implemented=True, task='L1D03', errors=(404, 422),
+       description='Module stock, en ligne seulement. Calcule les seuils bas (disponible central <= seuil) et lots proches de péremption ou expirés sans jamais créer de mouvement ; déduplique par (type, article, emplacement, lot), émet StockThresholdCrossed uniquement sur nouvelle ouverture ou réouverture, et résout automatiquement les alertes redevenues conformes.'),
+    op('post', '/v1/stock/alerts/{id}/acknowledge', 'AcknowledgeStockAlert', 'Accuser réception d\'une alerte de stock', 'Stock',
+       permission=['stock.adjust', 'stock.receive', 'stock.inventory'], request=REQUESTS + 'StockAlertActionRequest',
+       response=STOCK + 'StockAlertResponse', implemented=True, task='L1D03', params=(ID,), errors=(404, 409, 422),
+       description='Module stock, en ligne seulement. Transition OPEN vers ACKNOWLEDGED : consigne le compte qui accuse réception ; le scheduler répété conserve cet état.'),
+    op('post', '/v1/stock/alerts/{id}/resolve', 'ResolveStockAlert', 'Résoudre manuellement une alerte de stock', 'Stock',
+       permission=['stock.adjust', 'stock.receive', 'stock.inventory'], request=REQUESTS + 'StockAlertActionRequest',
+       response=STOCK + 'StockAlertResponse', implemented=True, task='L1D03', params=(ID,), errors=(404, 409, 422),
+       description='Module stock, en ligne seulement. Transition OPEN ou ACKNOWLEDGED vers RESOLVED sans créer aucun mouvement de stock (le blocage des lots expirés ou en quarantaine reste effectif hors-ligne).'),
+
+    # --- Atelier optique (L1D04) ---------------------------------------------------------------------
+    op('get', '/v1/workshop-orders', 'ListWorkshopOrders', 'Commandes atelier par état ou retard', 'Atelier optique',
+       permission=['workshop.manage'], response=WORKSHOP + 'WorkshopOrderPage', implemented=True, task='L1D04', errors=(404, 422),
+       params=(PAGE, ('query', 'status', 'Filtre : ORDERED, RECEIVED, MOUNTING, QUALITY_CHECK, READY, DELIVERED ou CANCELLED.'),
+               ('query', 'overdue', 'true/1 : commandes actives dont l\'échéance (expected_at) est dépassée.'),
+               ('query', 'patient_id', 'Filtre : patient (ULID).'), ('query', 'supplier_id', 'Filtre : laboratoire (ULID).')),
+       description='Module workshop, droit workshop.manage. Commandes triées du plus récent au plus ancien sans prix de vente ni antécédents médicaux.'),
+    op('get', '/v1/workshop-orders/eligible-lines', 'ListWorkshopEligibleLines', 'Lignes facturées et prescriptions éligibles à l\'atelier', 'Atelier optique',
+       permission=['workshop.manage'], response=WORKSHOP + 'WorkshopEligibleLinesResponse', implemented=True, task='L1D04', errors=(404, 422),
+       params=(('query', 'query', 'Recherche par numéro de facture, patient ou numéro de dossier.'), ('query', 'patient_id', 'Filtre : patient (ULID).')),
+       description='Module workshop, droit workshop.manage. Lignes de factures ÉMISES ayant un reliquat à commander > 0, accompagnées des prescriptions optiques VALIDÉES de ces patients, laboratoires optiques actifs et montures actives. Aucun montant financier.'),
+    op('post', '/v1/workshop-orders', 'CreateWorkshopOrder', 'Créer une commande atelier (bon laboratoire)', 'Atelier optique',
+       permission=['workshop.manage'], request=REQUESTS + 'CreateWorkshopOrderRequest', response=WORKSHOP + 'WorkshopOrderResponse', status=201,
+       implemented=True, task='L1D04', errors=(404, 409, 422),
+       description='Module workshop, en ligne seulement. Contrôle facture émise + reliquat, prescription validée du MÊME patient et laboratoire optique actif ; attribue un numéro central WORKSHOP, fige snapshot anonymisé et prepare generated_documents PENDING.'),
+    op('get', '/v1/workshop-orders/{id}', 'GetWorkshopOrder', 'Commande atelier complète, yeux OD/OG, journal et remises liables', 'Atelier optique',
+       permission=['workshop.manage'], response=WORKSHOP + 'WorkshopOrderResponse', implemented=True, task='L1D04', params=(ID,), errors=(404,)),
+    op('post', '/v1/workshop-orders/{id}/advance', 'AdvanceWorkshopOrder', 'Faire progresser, contrôler, reprendre ou annuler une commande atelier', 'Atelier optique',
+       permission=['workshop.manage'], request=REQUESTS + 'AdvanceWorkshopOrderRequest', response=WORKSHOP + 'WorkshopOrderResponse',
+       implemented=True, task='L1D04', params=(ID,), errors=(404, 409, 422),
+       description='Module workshop, en ligne seulement, version optimiste. Transitions ordonnées, contrôle qualité (PASSED -> READY, ready_revision +1 et WorkshopReady dans outbox ; FAILED -> MOUNTING), reprise avec observations, ajustement référence/échéance, livraison liée à une delivery_line confirmée, ou annulation avant remise.'),
 
     # --- Agenda et suivi -----------------------------------------------------------------------------
     op('get', '/v1/agenda/configuration', 'GetAgendaConfiguration', 'Configuration de l\'agenda', 'Agenda et suivi',
@@ -551,6 +628,31 @@ OPERATIONS_TABLE = [
        permission=['statistics.clinical'], response=SCHEDULING + 'ClinicalReportResponse', task='R02', implemented=True, errors=(422,),
        description='Module reports. Période de jours civils du cabinet (AAAA-MM-JJ, bornes incluses, 366 jours au plus).',
        params=(('query', 'from', 'Date civile de début.'), ('query', 'to', 'Date civile de fin.'))),
+    op('get', '/v1/reports/accounting-export', 'GetAccountingExportReport', 'Restitution comptable Q13 (CA, encaissements, dépenses, rapprochements et impayés)', 'Rapports',
+       permission=['finance.global.read'], response=OPERATIONS + 'AccountingExportReportResponse', implemented=True, task='L1D06', errors=(404, 422),
+       params=(('query', 'from', 'Premier jour civil AAAA-MM-JJ (inclus).'), ('query', 'to', 'Dernier jour civil AAAA-MM-JJ (inclus).')),
+       description='Module sales, droit finance.global.read. Format comptable Q13 sans double compte : CA (hors reprises papier), encaissements nets par mode, dépenses par catégorie, rapprochements, impayés à l\'instant de la lecture et valorisation au coût connu.'),
+    op('get', '/v1/reports/accounting-export/download', 'DownloadAccountingExport', 'Télécharger l\'export comptable Q13 (CSV)', 'Rapports',
+       permission=['finance.global.read'], implemented=True, task='L1D06', errors=(404, 422),
+       params=(('query', 'from', 'Premier jour civil AAAA-MM-JJ (inclus).'), ('query', 'to', 'Dernier jour civil AAAA-MM-JJ (inclus).')),
+       description='Module sales, droit finance.global.read. Fichier CSV UTF-8 (séparateur ;) conforme à la restitution comptable Q13.'),
+    op('get', '/v1/reports/management', 'GetManagementReport', 'Tableaux de gestion consolidés multi-domaines (L1D09)', 'Rapports',
+       permission=['statistics.activity', 'statistics.clinical', 'finance.global.read', 'stock.read', 'workshop.manage'],
+       response=OPERATIONS + 'ManagementReportResponse', implemented=True, task='L1D09', errors=(404, 422),
+       params=(('query', 'from', 'Premier jour civil AAAA-MM-JJ (inclus).'), ('query', 'to', 'Dernier jour civil AAAA-MM-JJ (inclus).')),
+       read_scope={
+           'MANAGER': 'Toutes les rubriques actives du cabinet (finance, stock valorisé, atelier, patients, clinique)',
+           'CLINICIAN': 'Patients, clinique et quantités/alertes stock sans valorisation financière (stock.valuation.read absent)',
+           'CASHIER': 'Quantités/alertes stock sans valorisation financière (ni finance globale ni clinique)',
+           'RECEPTION': 'Activité patients uniquement',
+       },
+       description='Module reports. Synthèse par rôle et modules actifs, comparée à la période précédente équivalente, avec inconnus et exclusions explicites, définitions et empreinte de provenance.'),
+    op('get', '/v1/reports/management/download', 'DownloadManagementReport', 'Télécharger les tableaux de gestion (CSV ou JSON avec dictionnaire)', 'Rapports',
+       permission=['statistics.activity', 'statistics.clinical', 'finance.global.read', 'stock.read', 'workshop.manage'],
+       implemented=True, task='L1D09', errors=(404, 422),
+       params=(('query', 'from', 'Premier jour civil AAAA-MM-JJ (inclus).'), ('query', 'to', 'Dernier jour civil AAAA-MM-JJ (inclus).'),
+               ('query', 'format', 'Format du téléchargement : csv (défaut) ou json.')),
+       description='Module reports. Exporte exactement les rubriques autorisées au profil demandeur, accompagnées du dictionnaire des indicateurs et de la provenance.'),
     op('get', '/v1/reports/financial', 'FinancialDashboard', 'Finance du cabinet sur une période (gérante)', 'Rapports',
        permission=['finance.global.read'], response=OPERATIONS + 'FinancialReportResponse', implemented=True, task='R01', errors=(404, 422),
        params=(('query', 'from', 'Premier jour civil AAAA-MM-JJ de la période, au fuseau du cabinet (aujourd\'hui avec `to`, par défaut).'),
@@ -564,10 +666,10 @@ OPERATIONS_TABLE = [
 
     # --- Documents -----------------------------------------------------------------------------------
     op('get', '/v1/documents/{id}/download', 'GetDocument', 'Télécharger un document privé', 'Documents',
-       permission=['invoice.read', 'clinical.export'], response=None, implemented=True, task='D01', params=(ID,), errors=(403, 404),
-       description='Policy du document : pièce financière avec invoice.read, document clinique avec clinical.export ; stockage privé, jamais d\'URL publique. Réponse application/pdf.'),
+       permission=['invoice.read', 'clinical.export', 'workshop.manage'], response=None, implemented=True, task='D01', params=(ID,), errors=(403, 404),
+       description='Policy du document : pièce financière avec invoice.read, document clinique avec clinical.export, bon laboratoire avec workshop.manage ; stockage privé, jamais d\'URL publique. Réponse application/pdf.'),
     op('post', '/v1/documents/{id}/content', 'StoreDocumentContent', 'Déposer le PDF correspondant au snapshot', 'Documents',
-       permission=['invoice.issue', 'payment.collect', 'clinical.complete'], request='binary-pdf', request_type='application/pdf',
+       permission=['invoice.issue', 'payment.collect', 'clinical.complete', 'workshop.manage'], request='binary-pdf', request_type='application/pdf',
        response=OPERATIONS + 'GeneratedDocumentResponse', implemented=True, task='D01', params=(ID,), errors=(403, 404, 409, 422),
        description='Le serveur vérifie Policy, source, version de template, type et SHA-256 des octets, calcule le chemin privé ; un READY n\'est plus modifié, un dépôt identique retrouve le fichier.'),
 
@@ -673,6 +775,10 @@ OPERATIONS_TABLE = [
     op('get', '/v1/exports/{id}/download', 'DownloadExport', 'Télécharger un export prêt (privé, expirant)', 'Restitution',
        permission=['export.global', 'clinical.export'], response=None, implemented=True, task='X02', params=(ID,), errors=(404, 409),
        description="Archive ZIP privée (CSV par table, dictionnaire, manifeste) pendant 48 h ; expirée ou pas encore prête : 409 STATE_TRANSITION_REFUSED avec details.current_status ; téléchargement tracé."),
+    op('get', '/v1/exports/{id}/manifest', 'GetExportManifest', "Manifeste permanent d'un export (conservé après expiration 48 h)", 'Restitution',
+       permission=['export.global', 'clinical.export'], response=OPERATIONS + 'ExportManifestResponse', implemented=True, task='L1D09',
+       params=(ID,), errors=(404, 409),
+       description="Module settings. Manifeste structuré conservé dans l'audit après purge/expiration de l'archive ZIP : filtres appliqués, tables incluses, exclusions par rôle et empreintes SHA-256."),
     op('post', '/v1/imports/catalog', 'ImportCatalog', 'Importer le catalogue (aperçu puis import contrôlé)', 'Restitution',
        permission=['catalog.manage'], reauth=True, request=REQUESTS + 'CatalogImportRequest',
        response=BILLING + 'ImportReportResponse', implemented=True, task='X01', errors=(422, 423),
@@ -761,8 +867,15 @@ def build_operation(spec):
     status = str(spec['status'])
     if spec['response']:
         responses[status] = {'description': 'Succès.', 'content': {'application/json': {'schema': {'$ref': spec['response']}}}}
-    elif spec['operation_id'] in ('GetDocument', 'DownloadExport'):
+    elif spec['operation_id'] in ('GetDocument', 'DownloadExport', 'GetReconciliationStatementFile'):
         responses['200'] = {'description': 'Fichier privé.', 'content': {'application/octet-stream': {'schema': {'type': 'string', 'contentMediaType': 'application/octet-stream'}}}}
+    elif spec['operation_id'] == 'DownloadAccountingExport':
+        responses['200'] = {'description': 'Export comptable Q13 au format CSV.', 'content': {'text/csv': {'schema': {'type': 'string'}}}}
+    elif spec['operation_id'] == 'DownloadManagementReport':
+        responses['200'] = {
+            'description': 'Tableaux de gestion multi-domaines (CSV ou JSON avec dictionnaire et provenance).',
+            'content': {'text/csv': {'schema': {'type': 'string'}}, 'application/json': {'schema': {'$ref': OPERATIONS + 'ManagementReportResponse'}}},
+        }
     else:
         responses[status] = {'description': 'Succès, sans contenu.'}
     codes = set(spec['errors'])

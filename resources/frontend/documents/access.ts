@@ -19,6 +19,7 @@ export const DOCUMENT_PERMISSIONS: Readonly<Record<DocumentKind, readonly string
   MEDICATION_ORDER: ['clinical.read'],
   REFERRAL_LETTER: ['clinical.read'],
   CLINICAL_RECORD: ['clinical.export'],
+  WORKSHOP: ['workshop.manage'],
 }
 
 const CLINICAL_KINDS: ReadonlySet<DocumentKind> = new Set<DocumentKind>([

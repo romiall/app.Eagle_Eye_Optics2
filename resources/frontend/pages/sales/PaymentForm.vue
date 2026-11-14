@@ -58,7 +58,14 @@ const props = withDefaults(
 
 const emit = defineEmits<{
   /** Encaissement confirmé par le serveur (réponse ou relecture) : le reçu est à afficher. */
-  recorded: [receipt: { receiptId: string; receiptNumber: string | null }]
+  recorded: [
+    receipt: {
+      receiptId: string
+      receiptNumber: string | null
+      balance?: PaymentResult['balance']
+      ledgerVersion?: number
+    },
+  ]
   /** Encaissement enregistré sur CE poste préparé (commit local) : l'écran relit les encaissements du poste. */
   recordedLocal: [at: string]
   /** La facture a changé (reste dû, version) : l'écran la relit. */
@@ -188,7 +195,12 @@ async function afterOutcome(result: MutationOutcome): Promise<void> {
     case 'synced': {
       const payment: PaymentResult = (result.result as PaymentResultResponse).data
       sentPaymentId.value = null
-      emit('recorded', { receiptId: payment.receipt_id, receiptNumber: payment.receipt_number })
+      emit('recorded', {
+        receiptId: payment.receipt_id,
+        receiptNumber: payment.receipt_number,
+        balance: payment.balance,
+        ledgerVersion: payment.ledger_version,
+      })
       return
     }
     case 'conflict': {

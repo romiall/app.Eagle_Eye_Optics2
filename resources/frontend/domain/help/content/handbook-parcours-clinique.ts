@@ -375,7 +375,7 @@ export const TOPICS_PARCOURS_CLINIQUE: readonly HandbookTopic[] = [
       {
         kind: 'note',
         tone: 'info',
-        text: 'Pour relire un ancien examen, ouvrez l’onglet « Activité » du dossier, puis « Examen de vue ». L’écran « Comparer deux examens » existe, mais aucun bouton ne l’ouvre encore : ouvrez les deux examens l’un après l’autre.',
+        text: 'Pour relire un ancien examen, ouvrez l’onglet « Activité » du dossier, puis « Examen de vue ». Vous pouvez comparer deux consultations clôturées avec « Comparer deux examens » depuis l’onglet « Activité » ou « Comparer à un autre examen » depuis un examen terminé.',
       },
       {
         kind: 'note',
