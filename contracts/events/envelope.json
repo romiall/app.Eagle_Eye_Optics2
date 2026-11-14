@@ -379,6 +379,106 @@
           }
         }
       }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "AppointmentNoShow"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "event_version": {
+            "const": 1
+          },
+          "aggregate_type": {
+            "const": "appointments"
+          },
+          "payload": {
+            "$ref": "AppointmentNoShow.v1.json"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "PublicBookingRequested"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "event_version": {
+            "const": 1
+          },
+          "aggregate_type": {
+            "const": "public_booking_requests"
+          },
+          "payload": {
+            "$ref": "PublicBookingRequested.v1.json"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "HumanHandoffRequested"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "event_version": {
+            "const": 1
+          },
+          "aggregate_type": {
+            "const": "conversation_handoffs"
+          },
+          "payload": {
+            "$ref": "HumanHandoffRequested.v1.json"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "CampaignCompleted"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "event_version": {
+            "const": 1
+          },
+          "aggregate_type": {
+            "const": "campaign_definitions"
+          },
+          "payload": {
+            "$ref": "CampaignCompleted.v1.json"
+          }
+        }
+      }
     }
   ],
   "$defs": {
@@ -398,7 +498,11 @@
         "CreditNoteIssued",
         "DeliveryConfirmed",
         "StockThresholdCrossed",
-        "WorkshopReady"
+        "WorkshopReady",
+        "AppointmentNoShow",
+        "PublicBookingRequested",
+        "HumanHandoffRequested",
+        "CampaignCompleted"
       ]
     }
   }

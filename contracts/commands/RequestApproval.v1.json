@@ -86,6 +86,9 @@
         },
         {
           "$ref": "#/$defs/CashMovementSubject"
+        },
+        {
+          "$ref": "#/$defs/CampaignSendSubject"
         }
       ]
     },
@@ -422,6 +425,38 @@
         }
       },
       "description": "Mouvement d'espèces hors vente d'une session ouverte : nature, montant signé (entrée positive, sortie négative) et catégorie de la dépense exacts (action cash.manage, cible cash_sessions)."
+    },
+    "CampaignSendSubject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "campaign_id",
+        "segment_id",
+        "template_version_id",
+        "eligible_count"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "CAMPAIGN_SEND"
+        },
+        "campaign_id": {
+          "$ref": "../schemas/common.json#/$defs/Ulid"
+        },
+        "segment_id": {
+          "$ref": "../schemas/common.json#/$defs/Ulid"
+        },
+        "template_version_id": {
+          "$ref": "../schemas/common.json#/$defs/Ulid"
+        },
+        "eligible_count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000000
+        }
+      },
+      "description": "Gel et envoi d'une campagne de communication vers un segment avec version de modèle approuvée et effectif exact (action communication.manage, cible campaign_definitions)."
     }
   }
 }

@@ -89,20 +89,28 @@
       "additionalProperties": false,
       "required": [
         "public_reference",
-        "status"
+        "status",
+        "service_id",
+        "requested_starts_at",
+        "requested_ends_at"
       ],
       "properties": {
         "public_reference": {
           "type": "string",
           "minLength": 1,
-          "maxLength": 32
+          "maxLength": 100
         },
         "status": {
-          "type": "string",
-          "enum": [
-            "RECEIVED",
-            "PENDING_CONFIRMATION"
-          ]
+          "$ref": "../../schemas/enums.json#/$defs/public_booking_requests.status"
+        },
+        "service_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "requested_starts_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        },
+        "requested_ends_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
         }
       }
     },

@@ -2989,6 +2989,9 @@
         "service_id": {
           "$ref": "../../schemas/common.json#/$defs/Ulid"
         },
+        "resource_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
         "starts_at": {
           "$ref": "../../schemas/common.json#/$defs/Instant"
         },
@@ -3013,6 +3016,788 @@
         },
         "consent": {
           "const": true
+        }
+      }
+    },
+    "SaveIntegrationAccountRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "provider",
+        "external_account_id",
+        "display_name",
+        "status"
+      ],
+      "properties": {
+        "provider": {
+          "$ref": "../../schemas/enums.json#/$defs/integration_accounts.provider"
+        },
+        "external_account_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        },
+        "display_name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        },
+        "status": {
+          "$ref": "../../schemas/enums.json#/$defs/integration_accounts.status"
+        },
+        "credentials": {
+          "anyOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "public_configuration": {
+          "anyOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "UpdateIntegrationAccountRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_version"
+      ],
+      "properties": {
+        "expected_version": {
+          "$ref": "../../schemas/common.json#/$defs/Version"
+        },
+        "display_name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        },
+        "status": {
+          "$ref": "../../schemas/enums.json#/$defs/integration_accounts.status"
+        },
+        "credentials": {
+          "anyOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "public_configuration": {
+          "anyOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "ProcessOutboxRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [],
+      "properties": {
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 200
+        },
+        "event_types": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          }
+        }
+      }
+    },
+    "SaveCalendarSyncStateRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "integration_account_id",
+        "resource_id",
+        "external_calendar_id"
+      ],
+      "properties": {
+        "integration_account_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "resource_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "external_calendar_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "status": {
+          "$ref": "../../schemas/enums.json#/$defs/calendar_sync_states.status"
+        }
+      }
+    },
+    "CalendarSyncRunRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [],
+      "properties": {
+        "resource_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "full_resync": {
+          "type": "boolean"
+        }
+      }
+    },
+    "DecidePublicBookingRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [],
+      "properties": {
+        "resource_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 1000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "SaveProspectContactRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "origin"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        },
+        "phone": {
+          "anyOf": [
+            {
+              "$ref": "../../schemas/common.json#/$defs/Phone"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "email": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 254
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "origin": {
+          "$ref": "../../schemas/enums.json#/$defs/prospect_contacts.origin"
+        },
+        "administrative_notes": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 4000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "UpdateProspectContactRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_version"
+      ],
+      "properties": {
+        "expected_version": {
+          "$ref": "../../schemas/common.json#/$defs/Version"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        },
+        "phone": {
+          "anyOf": [
+            {
+              "$ref": "../../schemas/common.json#/$defs/Phone"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "email": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 254
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "administrative_notes": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 4000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "LinkProspectPatientRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "patient_id"
+      ],
+      "properties": {
+        "patient_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        }
+      }
+    },
+    "SyncCrmLeadsRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [],
+      "properties": {
+        "integration_account_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 200
+        }
+      }
+    },
+    "SaveKnowledgeEntryRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "title",
+        "category",
+        "content"
+      ],
+      "properties": {
+        "code": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        },
+        "category": {
+          "$ref": "../../schemas/enums.json#/$defs/knowledge_entries.category"
+        },
+        "content": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 10000
+        },
+        "language": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 10
+        }
+      }
+    },
+    "CreateKnowledgeVersionRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "content"
+      ],
+      "properties": {
+        "content": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 10000
+        },
+        "language": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 10
+        }
+      }
+    },
+    "KnowledgeActionRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [],
+      "properties": {
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 1000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "AssistantTurnRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "message"
+      ],
+      "properties": {
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "service_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "preferred_starts_at": {
+          "$ref": "../../schemas/common.json#/$defs/NullableInstant"
+        }
+      }
+    },
+    "ConversationHandoffRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reason"
+      ],
+      "properties": {
+        "reason": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 2000
+        },
+        "administrative_summary": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 4000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "assign_to_self": {
+          "type": "boolean"
+        }
+      }
+    },
+    "RecordConsentRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "channel",
+        "purpose",
+        "destination",
+        "proof"
+      ],
+      "properties": {
+        "patient_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "prospect_contact_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "channel": {
+          "$ref": "../../schemas/enums.json#/$defs/communication_consents.channel"
+        },
+        "purpose": {
+          "$ref": "../../schemas/enums.json#/$defs/communication_consents.purpose"
+        },
+        "destination": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 254
+        },
+        "proof": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 2000
+        },
+        "policy_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        }
+      }
+    },
+    "RevokeConsentRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "channel",
+        "purpose",
+        "destination",
+        "proof"
+      ],
+      "properties": {
+        "patient_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "prospect_contact_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "channel": {
+          "$ref": "../../schemas/enums.json#/$defs/communication_consents.channel"
+        },
+        "purpose": {
+          "$ref": "../../schemas/enums.json#/$defs/communication_consents.purpose"
+        },
+        "destination": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 254
+        },
+        "proof": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 2000
+        },
+        "policy_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        }
+      }
+    },
+    "SaveMessageTemplateRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "channel",
+        "purpose"
+      ],
+      "properties": {
+        "code": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "channel": {
+          "$ref": "../../schemas/enums.json#/$defs/message_templates.channel"
+        },
+        "purpose": {
+          "$ref": "../../schemas/enums.json#/$defs/message_templates.purpose"
+        }
+      }
+    },
+    "CreateMessageTemplateVersionRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "body"
+      ],
+      "properties": {
+        "integration_account_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "provider_template_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 180
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "language": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 10
+        },
+        "body": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 5000
+        },
+        "allowed_variables": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          }
+        }
+      }
+    },
+    "SaveReminderPolicyRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "label",
+        "purpose",
+        "channel",
+        "offset_unit",
+        "offset_value"
+      ],
+      "properties": {
+        "code": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        },
+        "purpose": {
+          "$ref": "../../schemas/enums.json#/$defs/reminder_policies.purpose"
+        },
+        "channel": {
+          "$ref": "../../schemas/enums.json#/$defs/reminder_policies.channel"
+        },
+        "offset_unit": {
+          "$ref": "../../schemas/enums.json#/$defs/reminder_policies.offset_unit"
+        },
+        "offset_value": {
+          "type": "integer",
+          "minimum": -3650,
+          "maximum": 3650
+        },
+        "local_send_time": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 8
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "active": {
+          "type": "boolean"
+        }
+      }
+    },
+    "UpdateReminderPolicyRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_version"
+      ],
+      "properties": {
+        "expected_version": {
+          "$ref": "../../schemas/common.json#/$defs/Version"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        },
+        "channel": {
+          "$ref": "../../schemas/enums.json#/$defs/reminder_policies.channel"
+        },
+        "offset_unit": {
+          "$ref": "../../schemas/enums.json#/$defs/reminder_policies.offset_unit"
+        },
+        "offset_value": {
+          "type": "integer",
+          "minimum": -3650,
+          "maximum": 3650
+        },
+        "local_send_time": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 8
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "active": {
+          "type": "boolean"
+        }
+      }
+    },
+    "SendTaskMessageRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [],
+      "properties": {
+        "template_version_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "channel": {
+          "anyOf": [
+            {
+              "$ref": "../../schemas/enums.json#/$defs/communication_consents.channel"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "SaveAudienceSegmentRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "criteria"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        },
+        "criteria": {
+          "type": "object"
+        }
+      }
+    },
+    "UpdateAudienceSegmentRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_version"
+      ],
+      "properties": {
+        "expected_version": {
+          "$ref": "../../schemas/common.json#/$defs/Version"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        },
+        "criteria": {
+          "type": "object"
+        }
+      }
+    },
+    "SaveCampaignRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "segment_id",
+        "template_version_id"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        },
+        "segment_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "template_version_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "scheduled_at": {
+          "$ref": "../../schemas/common.json#/$defs/NullableInstant"
+        }
+      }
+    },
+    "FreezeCampaignRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [],
+      "properties": {
+        "approval_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        }
+      }
+    },
+    "PauseCampaignRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [],
+      "properties": {
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 1000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "ReconcileIntegrationsRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [],
+      "properties": {
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 200
         }
       }
     }

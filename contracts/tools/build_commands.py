@@ -292,6 +292,9 @@ APPROVAL_SUBJECTS = {
         'signed_amount': {'type': 'integer', 'minimum': -1000000000000, 'maximum': 1000000000000, 'not': {'const': 0}},
         'expense_category_id': N_ULID},
         {'description': 'Mouvement d\'espèces hors vente d\'une session ouverte : nature, montant signé (entrée positive, sortie négative) et catégorie de la dépense exacts (action cash.manage, cible cash_sessions).'}),
+    'CampaignSendSubject': obj({'kind': kind('CAMPAIGN_SEND'), 'campaign_id': ULID, 'segment_id': ULID,
+        'template_version_id': ULID, 'eligible_count': integer(1, 1000000)},
+        {'description': 'Gel et envoi d\'une campagne de communication vers un segment avec version de modèle approuvée et effectif exact (action communication.manage, cible campaign_definitions).'}),
 }
 
 APPROVAL_SUBJECT = {'description': 'Contenu exact de l\'opération à approuver ; la nature (kind) fixe l\'action, la cible et les champs.',

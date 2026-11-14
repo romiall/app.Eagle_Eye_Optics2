@@ -60,6 +60,8 @@ class AppServiceProvider extends ServiceProvider
         // Lectures d'un dossier clinique : un compte ne parcourt pas tous les dossiers à la chaîne (valeur configurable).
         RateLimiter::for('eeo-consultation-read', static fn (Request $request): Limit => Limit::perMinute((int) config('eeo.rate_limits.consultation_read', 60))->by('consultation-read:'.($request->user()?->getAuthIdentifier() ?? $request->ip())));
         RateLimiter::for('eeo-reauthenticate', static fn (Request $request): Limit => Limit::perMinute((int) config('eeo.rate_limits.reauthenticate', 5))->by('reauth:'.($request->user()?->getAuthIdentifier() ?? $request->ip())));
+        RateLimiter::for('eeo-public-booking', static fn (Request $request): Limit => Limit::perMinute((int) config('eeo.rate_limits.public_booking', 20))->by('public-booking:'.$request->ip()));
+        RateLimiter::for('eeo-public-webhook', static fn (Request $request): Limit => Limit::perMinute((int) config('eeo.rate_limits.public_webhook', 120))->by('public-webhook:'.$request->ip()));
     }
 
     /**

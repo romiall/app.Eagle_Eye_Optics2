@@ -25,6 +25,10 @@ tags:
   - name: "Postes et synchronisation"
   - name: "Restitution"
   - name: "Réservation publique (L2)"
+  - name: "Intégrations (L2)"
+  - name: "CRM et Assistant (L2)"
+  - name: "Communication (L2)"
+  - name: "Campagnes (L2)"
 paths:
   /sanctum/csrf-cookie:
     get:
@@ -8337,6 +8341,2455 @@ paths:
       x-idempotency: "required"
       x-implementation-status: "PLANNED"
       x-backlog-task: "L2D02"
+  /v1/integrations/health:
+    get:
+      operationId: "GetIntegrationsHealth"
+      summary: "Santé des connecteurs externes, outbox et webhooks"
+      tags:
+        - "Intégrations (L2)"
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/communication.json#/$defs/IntegrationHealthResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+      x-permission:
+        - "integration.manage"
+      x-reauthentication: false
+      x-idempotency: "none"
+      x-implementation-status: "PLANNED"
+      x-backlog-task: "L2D01"
+  /v1/integrations/accounts:
+    get:
+      operationId: "ListIntegrationAccounts"
+      summary: "Lister les comptes connecteurs du cabinet"
+      tags:
+        - "Intégrations (L2)"
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/communication.json#/$defs/IntegrationAccountList"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+      x-permission:
+        - "integration.manage"
+      x-reauthentication: false
+      x-idempotency: "none"
+      x-implementation-status: "PLANNED"
+      x-backlog-task: "L2D01"
+    post:
+      operationId: "CreateIntegrationAccount"
+      summary: "Créer un compte connecteur (secrets chiffrés)"
+      tags:
+        - "Intégrations (L2)"
+      description: "Module integrations, gérante réauthentifiée. Chiffre les identifiants au repos (libsodium), ne retourne jamais le secret en lecture."
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/SaveIntegrationAccountRequest"
+      responses:
+        "201":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/communication.json#/$defs/IntegrationAccountResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+        "423":
+          $ref: "#/components/responses/ReauthenticationRequired"
+      x-permission:
+        - "integration.manage"
+      x-reauthentication: true
+      x-idempotency: "required"
+      x-implementation-status: "PLANNED"
+      x-backlog-task: "L2D01"
+  /v1/integrations/accounts/{id}:
+    patch:
+      operationId: "UpdateIntegrationAccount"
+      summary: "Modifier un compte connecteur"
+      tags:
+        - "Intégrations (L2)"
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/UpdateIntegrationAccountRequest"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/communication.json#/$defs/IntegrationAccountResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+        "423":
+          $ref: "#/components/responses/ReauthenticationRequired"
+      x-permission:
+        - "integration.manage"
+      x-reauthentication: true
+      x-idempotency: "required"
+      x-implementation-status: "PLANNED"
+      x-backlog-task: "L2D01"
+  /v1/integrations/accounts/{id}/test:
+    post:
+      operationId: "TestIntegrationAccount"
+      summary: "Tester la connectivité d'un connecteur"
+      tags:
+        - "Intégrations (L2)"
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/communication.json#/$defs/IntegrationConnectionTestResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+      x-permission:
+        - "integration.manage"
+      x-reauthentication: false
+      x-idempotency: "required"
+      x-implementation-status: "PLANNED"
+      x-backlog-task: "L2D01"
+  /v1/integrations/outbox:
+    get:
+      operationId: "ListOutboxEvents"
+      summary: "Journal des événements internes à diffuser"
+      tags:
+        - "Intégrations (L2)"
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: "page"
+          in: "query"
+          required: false
+          description: "Page (pagination, 1 par défaut)."
+          schema:
+            type: "integer"
+            minimum: 1
+        - name: "status"
+          in: "query"
+          required: false
+          description: "Filtre : PENDING, PROCESSING, PROCESSED ou FAILED."
+          schema:
+            type: "string"
+        - name: "event_type"
+          in: "query"
+          required: false
+          description: "Filtre sur le type d'événement."
+          schema:
+            type: "string"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/communication.json#/$defs/OutboxEventPage"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "integration.manage"
+      x-reauthentication: false
+      x-idempotency: "none"
+      x-implementation-status: "PLANNED"
+      x-backlog-task: "L2D01"
+  /v1/integrations/outbox/process:
+    post:
+      operationId: "ProcessOutboxEvents"
+      summary: "Traiter un lot d'événements de la boîte d'envoi"
+      tags:
+        - "Intégrations (L2)"
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/ProcessOutboxRequest"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/communication.json#/$defs/OutboxBatchResultResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "integration.manage"
+      x-reauthentication: false
+      x-idempotency: "required"
+      x-implementation-status: "PLANNED"
+      x-backlog-task: "L2D01"
+  /v1/integrations/webhooks:
+    get:
+      operationId: "ListWebhookInbox"
+      summary: "Boîte de réception des webhooks signés"
+      tags:
+        - "Intégrations (L2)"
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: "page"
+          in: "query"
+          required: false
+          description: "Page (pagination, 1 par défaut)."
+          schema:
+            type: "integer"
+            minimum: 1
+        - name: "status"
+          in: "query"
+          required: false
+          description: "Filtre : RECEIVED, VERIFIED, PROCESSED, REJECTED ou FAILED."
+          schema:
+            type: "string"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/communication.json#/$defs/WebhookInboxPage"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "integration.manage"
+      x-reauthentication: false
+      x-idempotency: "none"
+      x-implementation-status: "PLANNED"
+      x-backlog-task: "L2D09"
+  /v1/integrations/reconcile:
+    post:
+      operationId: "ReconcileIntegrations"
+      summary: "Rattraper outbox, webhooks, statuts d'envoi et agendas"
+      tags:
+        - "Intégrations (L2)"
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/ReconcileIntegrationsRequest"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/communication.json#/$defs/IntegrationReconcileResultResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "integration.manage"
+      x-reauthentication: false
+      x-idempotency: "required"
+      x-implementation-status: "PLANNED"
+      x-backlog-task: "L2D09"
+  /public/v1/webhooks/meta:
+    servers:
+      - url: "/"
+        description: "Routes publiques hors /api (fichier 08, L2)."
+    get:
+      operationId: "VerifyMetaWebhook"
+      summary: "Vérification initiale du challenge webhook Meta"
+      tags:
+        - "Intégrations (L2)"
+      security: []
+      parameters:
+        - name: "hub.mode"
+          in: "query"
+          required: false
+          description: "Mode Meta (subscribe)."
+          schema:
+            type: "string"
+        - name: "hub.verify_token"
+          in: "query"
+          required: false
+          description: "Jeton de vérification configuré."
+          schema:
+            type: "string"
+        - name: "hub.challenge"
+          in: "query"
+          required: false
+          description: "Jeton challenge à renvoyer en clair."
+          schema:
+            type: "string"
+      responses:
+        "200":
+          description: "Succès, sans contenu."
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-reauthentication: false
+      x-idempotency: "none"
+      x-implementation-status: "PLANNED"
+      x-backlog-task: "L2D09"
+  /public/v1/webhooks/{provider}:
+    servers:
+      - url: "/"
+        description: "Routes publiques hors /api (fichier 08, L2)."
+    post:
+      operationId: "IngestPublicWebhook"
+      summary: "Recevoir un webhook signé de fournisseur externe"
+      tags:
+        - "Intégrations (L2)"
+      security: []
+      parameters:
+        - name: "provider"
+          in: "path"
+          required: true
+          description: "Connecteur cible : google, kommo, meta ou sms."
+          schema:
+            type: "string"
+      responses:
+        "202":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/communication.json#/$defs/WebhookIngestResultResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+      x-reauthentication: false
+      x-idempotency: "none"
+      x-implementation-status: "PLANNED"
+      x-backlog-task: "L2D09"
+  /v1/integrations/google/states:
+    get:
+      operationId: "ListCalendarSyncStates"
+      summary: "États de synchronisation Google Calendar par ressource"
+      tags:
+        - "Réservation publique (L2)"
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/communication.json#/$defs/CalendarSyncStateList"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+      x-permission:
+        - "integration.manage"
+        - "agenda.read"
+      x-reauthentication: false
+      x-idempotency: "none"
+      x-implementation-status: "PLANNED"
+      x-backlog-task: "L2D02"
+    post:
+      operationId: "SaveCalendarSyncState"
+      summary: "Associer un agenda Google à une ressource du cabinet"
+      tags:
+        - "Réservation publique (L2)"
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/SaveCalendarSyncStateRequest"
+      responses:
+        "201":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/communication.json#/$defs/CalendarSyncStateResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "integration.manage"
+      x-reauthentication: false
+      x-idempotency: "required"
+      x-implementation-status: "PLANNED"
+      x-backlog-task: "L2D02"
+  /v1/integrations/google/sync:
+    post:
+      operationId: "SyncGoogleCalendar"
+      summary: "Synchroniser les créneaux et rendez-vous Google Calendar"
+      tags:
+        - "Réservation publique (L2)"
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/CalendarSyncRunRequest"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/communication.json#/$defs/CalendarSyncRunResultResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+      x-permission:
+        - "integration.manage"
+        - "agenda.write"
+      x-reauthentication: false
+      x-idempotency: "required"
+      x-implementation-status: "PLANNED"
+      x-backlog-task: "L2D02"
+  /v1/public-bookings:
+    get:
+      operationId: "ListPublicBookingRequests"
+      summary: "Demandes de rendez-vous issues du portail public"
+      tags:
+        - "Réservation publique (L2)"
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: "page"
+          in: "query"
+          required: false
+          description: "Page (pagination, 1 par défaut)."
+          schema:
+            type: "integer"
+            minimum: 1
+        - name: "status"
+          in: "query"
+          required: false
+          description: "Filtre : RECEIVED, PENDING, CONFIRMED, CONFLICT, CANCELLED ou REJECTED."
+          schema:
+            type: "string"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/communication.json#/$defs/PublicBookingAdminPage"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "agenda.read"
+        - "communication.manage"
+      x-reauthentication: false
+      x-idempotency: "none"
+      x-implementation-status: "PLANNED"
+      x-backlog-task: "L2D02"
+  /v1/public-bookings/{id}/confirm:
+    post:
+      operationId: "ConfirmPublicBooking"
+      summary: "Confirmer une demande publique en rendez-vous"
+      tags:
+        - "Réservation publique (L2)"
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/DecidePublicBookingRequest"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/communication.json#/$defs/PublicBookingAdminResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "agenda.write"
+      x-reauthentication: false
+      x-idempotency: "required"
+      x-implementation-status: "PLANNED"
+      x-backlog-task: "L2D02"
+  /v1/public-bookings/{id}/reject:
+    post:
+      operationId: "RejectPublicBooking"
+      summary: "Refuser ou annuler une demande publique"
+      tags:
+        - "Réservation publique (L2)"
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/DecidePublicBookingRequest"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/communication.json#/$defs/PublicBookingAdminResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "agenda.write"
+      x-reauthentication: false
+      x-idempotency: "required"
+      x-implementation-status: "PLANNED"
+      x-backlog-task: "L2D02"
+  /v1/crm/prospects:
+    get:
+      operationId: "ListProspectContacts"
+      summary: "Lister les prospects administratifs"
+      tags:
+        - "CRM et Assistant (L2)"
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: "page"
+          in: "query"
+          required: false
+          description: "Page (pagination, 1 par défaut)."
+          schema:
+            type: "integer"
+            minimum: 1
+        - name: "query"
+          in: "query"
+          required: false
+          description: "Recherche par nom, téléphone ou courriel."
+          schema:
+            type: "string"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/communication.json#/$defs/ProspectContactPage"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "communication.manage"
+        - "agenda.read"
+      x-reauthentication: false
+      x-idempotency: "none"
+      x-implementation-status: "PLANNED"
+      x-backlog-task: "L2D03"
+    post:
+      operationId: "CreateProspectContact"
+      summary: "Créer un prospect sans ouvrir de dossier clinique"
+      tags:
+        - "CRM et Assistant (L2)"
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/SaveProspectContactRequest"
+      responses:
+        "201":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/communication.json#/$defs/ProspectContactResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "communication.manage"
+        - "agenda.write"
+      x-reauthentication: false
+      x-idempotency: "required"
+      x-implementation-status: "PLANNED"
+      x-backlog-task: "L2D03"
+  /v1/crm/prospects/{id}:
+    patch:
+      operationId: "UpdateProspectContact"
+      summary: "Mettre à jour un prospect"
+      tags:
+        - "CRM et Assistant (L2)"
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/UpdateProspectContactRequest"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/communication.json#/$defs/ProspectContactResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "communication.manage"
+        - "agenda.write"
+      x-reauthentication: false
+      x-idempotency: "required"
+      x-implementation-status: "PLANNED"
+      x-backlog-task: "L2D03"
+  /v1/crm/prospects/{id}/link-patient:
+    post:
+      operationId: "LinkProspectToPatient"
+      summary: "Rattacher un prospect à un dossier patient existant"
+      tags:
+        - "CRM et Assistant (L2)"
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/LinkProspectPatientRequest"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/communication.json#/$defs/ProspectContactResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "communication.manage"
+        - "patient.read"
+      x-reauthentication: false
+      x-idempotency: "required"
+      x-implementation-status: "PLANNED"
+      x-backlog-task: "L2D03"
+  /v1/crm/leads:
+    get:
+      operationId: "ListCrmLeads"
+      summary: "Pistes commerciales synchronisées depuis Kommo"
+      tags:
+        - "CRM et Assistant (L2)"
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: "page"
+          in: "query"
+          required: false
+          description: "Page (pagination, 1 par défaut)."
+          schema:
+            type: "integer"
+            minimum: 1
+        - name: "status"
+          in: "query"
+          required: false
+          description: "Filtre : OPEN, APPOINTMENT_BOOKED, HUMAN_TAKEOVER, WON, LOST ou CLOSED."
+          schema:
+            type: "string"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/communication.json#/$defs/CrmLeadPage"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "communication.manage"
+      x-reauthentication: false
+      x-idempotency: "none"
+      x-implementation-status: "PLANNED"
+      x-backlog-task: "L2D03"
+  /v1/crm/leads/sync:
+    post:
+      operationId: "SyncCrmLeads"
+      summary: "Synchroniser le miroir local avec Kommo CRM"
+      tags:
+        - "CRM et Assistant (L2)"
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/SyncCrmLeadsRequest"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/communication.json#/$defs/CrmLeadSyncResultResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+      x-permission:
+        - "communication.manage"
+        - "integration.manage"
+      x-reauthentication: false
+      x-idempotency: "required"
+      x-implementation-status: "PLANNED"
+      x-backlog-task: "L2D03"
+  /v1/crm/conversations:
+    get:
+      operationId: "ListCrmConversations"
+      summary: "Conversations omnicanales et statut bot / humain"
+      tags:
+        - "CRM et Assistant (L2)"
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: "page"
+          in: "query"
+          required: false
+          description: "Page (pagination, 1 par défaut)."
+          schema:
+            type: "integer"
+            minimum: 1
+        - name: "status"
+          in: "query"
+          required: false
+          description: "Filtre : BOT_ACTIVE, HUMAN_TAKEOVER ou CLOSED."
+          schema:
+            type: "string"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/communication.json#/$defs/CrmConversationPage"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "communication.manage"
+      x-reauthentication: false
+      x-idempotency: "none"
+      x-implementation-status: "PLANNED"
+      x-backlog-task: "L2D03"
+  /v1/crm/conversations/{id}:
+    get:
+      operationId: "GetCrmConversation"
+      summary: "Détail d'une conversation CRM"
+      tags:
+        - "CRM et Assistant (L2)"
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/communication.json#/$defs/CrmConversationResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+      x-permission:
+        - "communication.manage"
+      x-reauthentication: false
+      x-idempotency: "none"
+      x-implementation-status: "PLANNED"
+      x-backlog-task: "L2D03"
+  /v1/knowledge:
+    get:
+      operationId: "ListKnowledgeEntries"
+      summary: "Base de connaissances du cabinet (versions et publication)"
+      tags:
+        - "CRM et Assistant (L2)"
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: "page"
+          in: "query"
+          required: false
+          description: "Page (pagination, 1 par défaut)."
+          schema:
+            type: "integer"
+            minimum: 1
+        - name: "category"
+          in: "query"
+          required: false
+          description: "Filtre par catégorie."
+          schema:
+            type: "string"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/communication.json#/$defs/KnowledgeEntryPage"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "communication.manage"
+      x-reauthentication: false
+      x-idempotency: "none"
+      x-implementation-status: "PLANNED"
+      x-backlog-task: "L2D04"
+    post:
+      operationId: "CreateKnowledgeEntry"
+      summary: "Créer une fiche de connaissance et sa révision 1"
+      tags:
+        - "CRM et Assistant (L2)"
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/SaveKnowledgeEntryRequest"
+      responses:
+        "201":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/communication.json#/$defs/KnowledgeEntryResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "communication.manage"
+      x-reauthentication: false
+      x-idempotency: "required"
+      x-implementation-status: "PLANNED"
+      x-backlog-task: "L2D04"
+  /v1/knowledge/{id}/versions:
+    post:
+      operationId: "CreateKnowledgeVersion"
+      summary: "Ajouter une révision brouillon à une fiche"
+      tags:
+        - "CRM et Assistant (L2)"
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/CreateKnowledgeVersionRequest"
+      responses:
+        "201":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/communication.json#/$defs/KnowledgeEntryVersionResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "communication.manage"
+      x-reauthentication: false
+      x-idempotency: "required"
+      x-implementation-status: "PLANNED"
+      x-backlog-task: "L2D04"
+  /v1/knowledge/versions/{id}/approve:
+    post:
+      operationId: "ApproveKnowledgeVersion"
+      summary: "Approuver une révision de fiche (validation manager)"
+      tags:
+        - "CRM et Assistant (L2)"
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/KnowledgeActionRequest"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/communication.json#/$defs/KnowledgeEntryVersionResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+      x-permission:
+        - "communication.manage"
+      x-reauthentication: false
+      x-idempotency: "required"
+      x-implementation-status: "PLANNED"
+      x-backlog-task: "L2D04"
+  /v1/knowledge/versions/{id}/publish:
+    post:
+      operationId: "PublishKnowledgeVersion"
+      summary: "Publier une révision approuvée (une seule active)"
+      tags:
+        - "CRM et Assistant (L2)"
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/KnowledgeActionRequest"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/communication.json#/$defs/KnowledgeEntryVersionResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "communication.manage"
+      x-reauthentication: false
+      x-idempotency: "required"
+      x-implementation-status: "PLANNED"
+      x-backlog-task: "L2D04"
+  /v1/crm/conversations/{id}/assistant-turn:
+    post:
+      operationId: "RunAssistantTurn"
+      summary: "Exécuter un tour borné de l'assistant sur la base publiée"
+      tags:
+        - "CRM et Assistant (L2)"
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/AssistantTurnRequest"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/communication.json#/$defs/AssistantTurnResultResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "communication.manage"
+      x-reauthentication: false
+      x-idempotency: "required"
+      x-implementation-status: "PLANNED"
+      x-backlog-task: "L2D05"
+  /v1/crm/conversations/{id}/handoff:
+    post:
+      operationId: "RequestHumanHandoff"
+      summary: "Basculer une conversation vers un conseiller humain"
+      tags:
+        - "CRM et Assistant (L2)"
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/ConversationHandoffRequest"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/communication.json#/$defs/CrmConversationResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "communication.manage"
+      x-reauthentication: false
+      x-idempotency: "required"
+      x-implementation-status: "PLANNED"
+      x-backlog-task: "L2D05"
+  /v1/crm/conversations/{id}/resume-bot:
+    post:
+      operationId: "ResumeConversationBot"
+      summary: "Rendre la conversation à l'assistant"
+      tags:
+        - "CRM et Assistant (L2)"
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/KnowledgeActionRequest"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/communication.json#/$defs/CrmConversationResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+      x-permission:
+        - "communication.manage"
+      x-reauthentication: false
+      x-idempotency: "required"
+      x-implementation-status: "PLANNED"
+      x-backlog-task: "L2D05"
+  /v1/crm/conversations/{id}/handoffs:
+    get:
+      operationId: "ListConversationHandoffs"
+      summary: "Historique des transferts humain/bot"
+      tags:
+        - "CRM et Assistant (L2)"
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/communication.json#/$defs/ConversationHandoffList"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+      x-permission:
+        - "communication.manage"
+      x-reauthentication: false
+      x-idempotency: "none"
+      x-implementation-status: "PLANNED"
+      x-backlog-task: "L2D05"
+  /v1/crm/conversations/{id}/runs:
+    get:
+      operationId: "ListAssistantRuns"
+      summary: "Historique audité des exécutions de l'assistant"
+      tags:
+        - "CRM et Assistant (L2)"
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/communication.json#/$defs/AssistantRunList"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+      x-permission:
+        - "communication.manage"
+      x-reauthentication: false
+      x-idempotency: "none"
+      x-implementation-status: "PLANNED"
+      x-backlog-task: "L2D05"
+  /v1/communication/consents:
+    get:
+      operationId: "ListCommunicationConsents"
+      summary: "Registre immuable des consentements opt-in / opt-out"
+      tags:
+        - "Communication (L2)"
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: "page"
+          in: "query"
+          required: false
+          description: "Page (pagination, 1 par défaut)."
+          schema:
+            type: "integer"
+            minimum: 1
+        - name: "patient_id"
+          in: "query"
+          required: false
+          description: "Filtre patient."
+          schema:
+            type: "string"
+        - name: "prospect_contact_id"
+          in: "query"
+          required: false
+          description: "Filtre prospect."
+          schema:
+            type: "string"
+        - name: "channel"
+          in: "query"
+          required: false
+          description: "Canal."
+          schema:
+            type: "string"
+        - name: "purpose"
+          in: "query"
+          required: false
+          description: "Finalité."
+          schema:
+            type: "string"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/communication.json#/$defs/CommunicationConsentPage"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "communication.manage"
+      x-reauthentication: false
+      x-idempotency: "none"
+      x-implementation-status: "PLANNED"
+      x-backlog-task: "L2D06"
+    post:
+      operationId: "RecordCommunicationConsent"
+      summary: "Enregistrer un opt-in vérifiable"
+      tags:
+        - "Communication (L2)"
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/RecordConsentRequest"
+      responses:
+        "201":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/communication.json#/$defs/CommunicationConsentResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "communication.manage"
+      x-reauthentication: false
+      x-idempotency: "required"
+      x-implementation-status: "PLANNED"
+      x-backlog-task: "L2D06"
+  /v1/communication/consents/revoke:
+    post:
+      operationId: "RevokeCommunicationConsent"
+      summary: "Révoquer un consentement (opt-out immédiat)"
+      tags:
+        - "Communication (L2)"
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/RevokeConsentRequest"
+      responses:
+        "201":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/communication.json#/$defs/CommunicationConsentResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "communication.manage"
+      x-reauthentication: false
+      x-idempotency: "required"
+      x-implementation-status: "PLANNED"
+      x-backlog-task: "L2D06"
+  /v1/communication/templates:
+    get:
+      operationId: "ListMessageTemplates"
+      summary: "Modèles de messages approuvés par canal"
+      tags:
+        - "Communication (L2)"
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/communication.json#/$defs/MessageTemplateList"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+      x-permission:
+        - "communication.manage"
+      x-reauthentication: false
+      x-idempotency: "none"
+      x-implementation-status: "PLANNED"
+      x-backlog-task: "L2D06"
+    post:
+      operationId: "CreateMessageTemplate"
+      summary: "Créer un modèle de message"
+      tags:
+        - "Communication (L2)"
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/SaveMessageTemplateRequest"
+      responses:
+        "201":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/communication.json#/$defs/MessageTemplateResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "communication.manage"
+      x-reauthentication: false
+      x-idempotency: "required"
+      x-implementation-status: "PLANNED"
+      x-backlog-task: "L2D06"
+  /v1/communication/templates/{id}/versions:
+    post:
+      operationId: "CreateMessageTemplateVersion"
+      summary: "Créer une révision de modèle de message"
+      tags:
+        - "Communication (L2)"
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/CreateMessageTemplateVersionRequest"
+      responses:
+        "201":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/communication.json#/$defs/MessageTemplateVersionResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "communication.manage"
+      x-reauthentication: false
+      x-idempotency: "required"
+      x-implementation-status: "PLANNED"
+      x-backlog-task: "L2D06"
+  /v1/communication/templates/versions/{id}/approve:
+    post:
+      operationId: "ApproveMessageTemplateVersion"
+      summary: "Approuver une révision de modèle"
+      tags:
+        - "Communication (L2)"
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/KnowledgeActionRequest"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/communication.json#/$defs/MessageTemplateVersionResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+      x-permission:
+        - "communication.manage"
+      x-reauthentication: false
+      x-idempotency: "required"
+      x-implementation-status: "PLANNED"
+      x-backlog-task: "L2D06"
+  /v1/communication/reminder-policies:
+    get:
+      operationId: "ListReminderPolicies"
+      summary: "Politiques paramétrées de rappels et relances"
+      tags:
+        - "Communication (L2)"
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/communication.json#/$defs/ReminderPolicyList"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+      x-permission:
+        - "communication.manage"
+      x-reauthentication: false
+      x-idempotency: "none"
+      x-implementation-status: "PLANNED"
+      x-backlog-task: "L2D06"
+    post:
+      operationId: "CreateReminderPolicy"
+      summary: "Créer une politique de relance"
+      tags:
+        - "Communication (L2)"
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/SaveReminderPolicyRequest"
+      responses:
+        "201":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/communication.json#/$defs/ReminderPolicyResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "communication.manage"
+      x-reauthentication: false
+      x-idempotency: "required"
+      x-implementation-status: "PLANNED"
+      x-backlog-task: "L2D06"
+  /v1/communication/reminder-policies/{id}:
+    patch:
+      operationId: "UpdateReminderPolicy"
+      summary: "Modifier une politique de relance"
+      tags:
+        - "Communication (L2)"
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/UpdateReminderPolicyRequest"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/communication.json#/$defs/ReminderPolicyResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "communication.manage"
+      x-reauthentication: false
+      x-idempotency: "required"
+      x-implementation-status: "PLANNED"
+      x-backlog-task: "L2D06"
+  /v1/communication/attempts:
+    get:
+      operationId: "ListMessageAttempts"
+      summary: "Historique auditable des envois transactionnels et campagnes"
+      tags:
+        - "Communication (L2)"
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: "page"
+          in: "query"
+          required: false
+          description: "Page (pagination, 1 par défaut)."
+          schema:
+            type: "integer"
+            minimum: 1
+        - name: "status"
+          in: "query"
+          required: false
+          description: "Statut de remise."
+          schema:
+            type: "string"
+        - name: "task_id"
+          in: "query"
+          required: false
+          description: "Filtre tâche de contact."
+          schema:
+            type: "string"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/communication.json#/$defs/MessageAttemptPage"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "communication.manage"
+      x-reauthentication: false
+      x-idempotency: "none"
+      x-implementation-status: "PLANNED"
+      x-backlog-task: "L2D07"
+  /v1/communication/tasks/{id}/send:
+    post:
+      operationId: "SendTransactionalTaskMessage"
+      summary: "Déclencher l'envoi transactionnel dédupliqué d'une tâche"
+      tags:
+        - "Communication (L2)"
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/SendTaskMessageRequest"
+      responses:
+        "201":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/communication.json#/$defs/MessageAttemptResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "communication.manage"
+      x-reauthentication: false
+      x-idempotency: "required"
+      x-implementation-status: "PLANNED"
+      x-backlog-task: "L2D07"
+  /v1/communication/attempts/{id}/reconcile:
+    post:
+      operationId: "ReconcileMessageAttempt"
+      summary: "Rapprocher le statut d'envoi auprès du fournisseur"
+      tags:
+        - "Communication (L2)"
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/KnowledgeActionRequest"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/communication.json#/$defs/MessageAttemptResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+      x-permission:
+        - "communication.manage"
+      x-reauthentication: false
+      x-idempotency: "required"
+      x-implementation-status: "PLANNED"
+      x-backlog-task: "L2D07"
+  /v1/communication/segments:
+    get:
+      operationId: "ListAudienceSegments"
+      summary: "Segments d'audience marketing / rappel"
+      tags:
+        - "Campagnes (L2)"
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/communication.json#/$defs/AudienceSegmentList"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+      x-permission:
+        - "communication.manage"
+      x-reauthentication: false
+      x-idempotency: "none"
+      x-implementation-status: "PLANNED"
+      x-backlog-task: "L2D08"
+    post:
+      operationId: "CreateAudienceSegment"
+      summary: "Créer un segment d'audience sans critère clinique"
+      tags:
+        - "Campagnes (L2)"
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/SaveAudienceSegmentRequest"
+      responses:
+        "201":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/communication.json#/$defs/AudienceSegmentResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "communication.manage"
+      x-reauthentication: false
+      x-idempotency: "required"
+      x-implementation-status: "PLANNED"
+      x-backlog-task: "L2D08"
+  /v1/communication/segments/{id}:
+    patch:
+      operationId: "UpdateAudienceSegment"
+      summary: "Modifier un segment d'audience"
+      tags:
+        - "Campagnes (L2)"
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/UpdateAudienceSegmentRequest"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/communication.json#/$defs/AudienceSegmentResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "communication.manage"
+      x-reauthentication: false
+      x-idempotency: "required"
+      x-implementation-status: "PLANNED"
+      x-backlog-task: "L2D08"
+  /v1/communication/campaigns:
+    get:
+      operationId: "ListCampaigns"
+      summary: "Campagnes de communication"
+      tags:
+        - "Campagnes (L2)"
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: "page"
+          in: "query"
+          required: false
+          description: "Page (pagination, 1 par défaut)."
+          schema:
+            type: "integer"
+            minimum: 1
+        - name: "status"
+          in: "query"
+          required: false
+          description: "Statut : DRAFT, APPROVED, RUNNING, COMPLETED, CANCELLED ou FAILED."
+          schema:
+            type: "string"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/communication.json#/$defs/CampaignPage"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "communication.manage"
+      x-reauthentication: false
+      x-idempotency: "none"
+      x-implementation-status: "PLANNED"
+      x-backlog-task: "L2D08"
+    post:
+      operationId: "CreateCampaign"
+      summary: "Créer une campagne en brouillon"
+      tags:
+        - "Campagnes (L2)"
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/SaveCampaignRequest"
+      responses:
+        "201":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/communication.json#/$defs/CampaignResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "communication.manage"
+      x-reauthentication: false
+      x-idempotency: "required"
+      x-implementation-status: "PLANNED"
+      x-backlog-task: "L2D08"
+  /v1/communication/campaigns/{id}/preview:
+    post:
+      operationId: "PreviewCampaign"
+      summary: "Prévisualiser les destinataires admissibles et exclus (opt-out)"
+      tags:
+        - "Campagnes (L2)"
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/KnowledgeActionRequest"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/communication.json#/$defs/CampaignPreviewResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+      x-permission:
+        - "communication.manage"
+      x-reauthentication: false
+      x-idempotency: "required"
+      x-implementation-status: "PLANNED"
+      x-backlog-task: "L2D08"
+  /v1/communication/campaigns/{id}/freeze:
+    post:
+      operationId: "FreezeCampaign"
+      summary: "Geler la cible et approuver l'envoi de la campagne"
+      tags:
+        - "Campagnes (L2)"
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/FreezeCampaignRequest"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/communication.json#/$defs/CampaignResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "communication.manage"
+      x-reauthentication: false
+      x-idempotency: "required"
+      x-implementation-status: "PLANNED"
+      x-backlog-task: "L2D08"
+  /v1/communication/campaigns/{id}/execute:
+    post:
+      operationId: "ExecuteCampaign"
+      summary: "Exécuter par lots l'envoi d'une campagne approuvée"
+      tags:
+        - "Campagnes (L2)"
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/KnowledgeActionRequest"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/communication.json#/$defs/CampaignResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "communication.manage"
+      x-reauthentication: false
+      x-idempotency: "required"
+      x-implementation-status: "PLANNED"
+      x-backlog-task: "L2D08"
+  /v1/communication/campaigns/{id}/pause:
+    post:
+      operationId: "PauseCampaign"
+      summary: "Suspendre ou annuler une campagne active"
+      tags:
+        - "Campagnes (L2)"
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/PauseCampaignRequest"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/communication.json#/$defs/CampaignResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+      x-permission:
+        - "communication.manage"
+      x-reauthentication: false
+      x-idempotency: "required"
+      x-implementation-status: "PLANNED"
+      x-backlog-task: "L2D08"
+  /v1/communication/campaigns/{id}/recipients:
+    get:
+      operationId: "ListCampaignRecipients"
+      summary: "Destinataires gelés d'une campagne et motifs d'exclusion"
+      tags:
+        - "Campagnes (L2)"
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+        - name: "page"
+          in: "query"
+          required: false
+          description: "Page (pagination, 1 par défaut)."
+          schema:
+            type: "integer"
+            minimum: 1
+        - name: "status"
+          in: "query"
+          required: false
+          description: "Filtre par statut destinataire."
+          schema:
+            type: "string"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/communication.json#/$defs/CampaignRecipientPage"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "communication.manage"
+      x-reauthentication: false
+      x-idempotency: "none"
+      x-implementation-status: "PLANNED"
+      x-backlog-task: "L2D08"
 components:
   securitySchemes:
     sessionCookie:

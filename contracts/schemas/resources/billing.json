@@ -3317,7 +3317,8 @@
                 "REFUND",
                 "CREDIT_DELIVERY",
                 "STOCK_MOVEMENT",
-                "CASH_MOVEMENT"
+                "CASH_MOVEMENT",
+                "CAMPAIGN_SEND"
               ]
             },
             {

@@ -1,0 +1,2411 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eeo.invalid/contracts/schemas/resources/communication.json",
+  "title": "Ressources : intégrations externes, CRM, base de connaissances, assistant, consentements et campagnes (L2)",
+  "description": "Connecteurs chiffrés, outbox, agenda Google, prospects Kommo, KB publiée, handoff humain, opt-in/opt-out et campagnes approuvées sans donnée clinique. Généré par contracts/tools/build_resources.py : ne pas modifier à la main.",
+  "$defs": {
+    "IntegrationAccount": {
+      "description": "Compte connecteur externe (secrets chiffrés jamais retournés en lecture).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "provider",
+        "external_account_id",
+        "display_name",
+        "status",
+        "has_credentials",
+        "encryption_key_id",
+        "token_expires_at",
+        "public_configuration",
+        "version",
+        "updated_at"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "provider": {
+          "$ref": "../../schemas/enums.json#/$defs/integration_accounts.provider"
+        },
+        "external_account_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        },
+        "display_name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        },
+        "status": {
+          "$ref": "../../schemas/enums.json#/$defs/integration_accounts.status"
+        },
+        "has_credentials": {
+          "type": "boolean"
+        },
+        "encryption_key_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 100
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "token_expires_at": {
+          "$ref": "../../schemas/common.json#/$defs/NullableInstant"
+        },
+        "public_configuration": {
+          "anyOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "version": {
+          "$ref": "../../schemas/common.json#/$defs/Version"
+        },
+        "updated_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        }
+      }
+    },
+    "IntegrationAccountList": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/IntegrationAccount"
+          }
+        }
+      }
+    },
+    "IntegrationAccountResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/IntegrationAccount"
+        }
+      }
+    },
+    "IntegrationHealth": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode",
+        "credentials_configured",
+        "accounts_total",
+        "accounts_active",
+        "accounts_error",
+        "outbox_pending",
+        "outbox_failed",
+        "webhook_pending",
+        "webhook_failed",
+        "calendar_stale",
+        "accounts"
+      ],
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": [
+            "fake",
+            "live",
+            "disabled"
+          ]
+        },
+        "credentials_configured": {
+          "type": "boolean"
+        },
+        "accounts_total": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "accounts_active": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "accounts_error": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "outbox_pending": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "outbox_failed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "webhook_pending": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "webhook_failed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "calendar_stale": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "accounts": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/IntegrationAccount"
+          }
+        }
+      }
+    },
+    "IntegrationHealthResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/IntegrationHealth"
+        }
+      }
+    },
+    "IntegrationConnectionTest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "account_id",
+        "provider",
+        "reachable",
+        "mode",
+        "status",
+        "checked_at",
+        "detail"
+      ],
+      "properties": {
+        "account_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "provider": {
+          "$ref": "../../schemas/enums.json#/$defs/integration_accounts.provider"
+        },
+        "reachable": {
+          "type": "boolean"
+        },
+        "mode": {
+          "type": "string",
+          "enum": [
+            "fake",
+            "live"
+          ]
+        },
+        "status": {
+          "$ref": "../../schemas/enums.json#/$defs/integration_accounts.status"
+        },
+        "checked_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        },
+        "detail": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 500
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "IntegrationConnectionTestResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/IntegrationConnectionTest"
+        }
+      }
+    },
+    "OutboxEvent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "event_type",
+        "event_version",
+        "source_type",
+        "source_id",
+        "source_version",
+        "status",
+        "attempt_count",
+        "next_attempt_at",
+        "processed_at",
+        "last_error_code",
+        "correlation_id",
+        "created_at"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "event_type": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "event_version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "source_type": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "source_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "source_version": {
+          "$ref": "../../schemas/common.json#/$defs/Version"
+        },
+        "status": {
+          "$ref": "../../schemas/enums.json#/$defs/outbox_events.status"
+        },
+        "attempt_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "next_attempt_at": {
+          "$ref": "../../schemas/common.json#/$defs/NullableInstant"
+        },
+        "processed_at": {
+          "$ref": "../../schemas/common.json#/$defs/NullableInstant"
+        },
+        "last_error_code": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 100
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "correlation_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "created_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        }
+      }
+    },
+    "OutboxEventPage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data",
+        "meta"
+      ],
+      "properties": {
+        "data": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/OutboxEvent"
+          }
+        },
+        "meta": {
+          "$ref": "../../schemas/common.json#/$defs/Pagination"
+        }
+      }
+    },
+    "OutboxBatchResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "processed",
+        "failed",
+        "skipped",
+        "events"
+      ],
+      "properties": {
+        "processed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "failed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "skipped": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "events": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/OutboxEvent"
+          }
+        }
+      }
+    },
+    "OutboxBatchResultResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/OutboxBatchResult"
+        }
+      }
+    },
+    "CalendarSyncState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "integration_account_id",
+        "resource_id",
+        "external_calendar_id",
+        "status",
+        "last_full_sync_at",
+        "last_incremental_sync_at",
+        "last_error_code",
+        "push_expires_at",
+        "version",
+        "updated_at"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "integration_account_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "resource_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "external_calendar_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "status": {
+          "$ref": "../../schemas/enums.json#/$defs/calendar_sync_states.status"
+        },
+        "last_full_sync_at": {
+          "$ref": "../../schemas/common.json#/$defs/NullableInstant"
+        },
+        "last_incremental_sync_at": {
+          "$ref": "../../schemas/common.json#/$defs/NullableInstant"
+        },
+        "last_error_code": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 100
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "push_expires_at": {
+          "$ref": "../../schemas/common.json#/$defs/NullableInstant"
+        },
+        "version": {
+          "$ref": "../../schemas/common.json#/$defs/Version"
+        },
+        "updated_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        }
+      }
+    },
+    "CalendarSyncStateList": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/CalendarSyncState"
+          }
+        }
+      }
+    },
+    "CalendarSyncStateResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/CalendarSyncState"
+        }
+      }
+    },
+    "CalendarSyncRunResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "synced_states",
+        "pushed_appointments",
+        "pulled_blocks",
+        "conflicts",
+        "states"
+      ],
+      "properties": {
+        "synced_states": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "pushed_appointments": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "pulled_blocks": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "conflicts": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "states": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/CalendarSyncState"
+          }
+        }
+      }
+    },
+    "CalendarSyncRunResultResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/CalendarSyncRunResult"
+        }
+      }
+    },
+    "PublicBookingAdminItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "public_reference",
+        "status",
+        "service_id",
+        "service_name",
+        "resource_id",
+        "prospect_contact_id",
+        "prospect_name",
+        "prospect_phone",
+        "requested_starts_at",
+        "requested_ends_at",
+        "appointment_id",
+        "consent_recorded_at",
+        "created_at"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "public_reference": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "status": {
+          "$ref": "../../schemas/enums.json#/$defs/public_booking_requests.status"
+        },
+        "service_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "service_name": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 180
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "resource_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "prospect_contact_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "prospect_name": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 180
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "prospect_phone": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 32
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "requested_starts_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        },
+        "requested_ends_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        },
+        "appointment_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "consent_recorded_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        },
+        "created_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        }
+      }
+    },
+    "PublicBookingAdminPage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data",
+        "meta"
+      ],
+      "properties": {
+        "data": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/PublicBookingAdminItem"
+          }
+        },
+        "meta": {
+          "$ref": "../../schemas/common.json#/$defs/Pagination"
+        }
+      }
+    },
+    "PublicBookingAdminResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/PublicBookingAdminItem"
+        }
+      }
+    },
+    "ProspectContact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "phone",
+        "email",
+        "patient_id",
+        "origin",
+        "administrative_notes",
+        "version",
+        "created_at",
+        "updated_at"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        },
+        "phone": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 32
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "email": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 254
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "patient_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "origin": {
+          "$ref": "../../schemas/enums.json#/$defs/prospect_contacts.origin"
+        },
+        "administrative_notes": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 4000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "version": {
+          "$ref": "../../schemas/common.json#/$defs/Version"
+        },
+        "created_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        },
+        "updated_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        }
+      }
+    },
+    "ProspectContactPage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data",
+        "meta"
+      ],
+      "properties": {
+        "data": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/ProspectContact"
+          }
+        },
+        "meta": {
+          "$ref": "../../schemas/common.json#/$defs/Pagination"
+        }
+      }
+    },
+    "ProspectContactResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/ProspectContact"
+        }
+      }
+    },
+    "CrmLead": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "prospect_contact_id",
+        "prospect_name",
+        "integration_account_id",
+        "external_lead_id",
+        "pipeline_id",
+        "pipeline_stage",
+        "product_interest",
+        "budget_min",
+        "budget_max",
+        "acquisition_source",
+        "assigned_to",
+        "status",
+        "last_synced_at",
+        "updated_at"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "prospect_contact_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "prospect_name": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 180
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "integration_account_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "external_lead_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        },
+        "pipeline_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 100
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "pipeline_stage": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 100
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "product_interest": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 2000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "budget_min": {
+          "anyOf": [
+            {
+              "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "budget_max": {
+          "anyOf": [
+            {
+              "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "acquisition_source": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 100
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "assigned_to": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "status": {
+          "$ref": "../../schemas/enums.json#/$defs/crm_leads.status"
+        },
+        "last_synced_at": {
+          "$ref": "../../schemas/common.json#/$defs/NullableInstant"
+        },
+        "updated_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        }
+      }
+    },
+    "CrmLeadPage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data",
+        "meta"
+      ],
+      "properties": {
+        "data": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/CrmLead"
+          }
+        },
+        "meta": {
+          "$ref": "../../schemas/common.json#/$defs/Pagination"
+        }
+      }
+    },
+    "CrmLeadResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/CrmLead"
+        }
+      }
+    },
+    "CrmLeadSyncResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "synced",
+        "created",
+        "updated",
+        "conflicts"
+      ],
+      "properties": {
+        "synced": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "created": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "updated": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "conflicts": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "CrmLeadSyncResultResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/CrmLeadSyncResult"
+        }
+      }
+    },
+    "CrmConversation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "crm_lead_id",
+        "integration_account_id",
+        "external_conversation_id",
+        "channel",
+        "status",
+        "human_owner_id",
+        "takeover_at",
+        "takeover_reason",
+        "administrative_summary",
+        "bot_resumed_at",
+        "last_activity_at",
+        "version"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "crm_lead_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "integration_account_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "external_conversation_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        },
+        "channel": {
+          "$ref": "../../schemas/enums.json#/$defs/crm_conversations.channel"
+        },
+        "status": {
+          "$ref": "../../schemas/enums.json#/$defs/crm_conversations.status"
+        },
+        "human_owner_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "takeover_at": {
+          "$ref": "../../schemas/common.json#/$defs/NullableInstant"
+        },
+        "takeover_reason": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 2000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "administrative_summary": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 4000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "bot_resumed_at": {
+          "$ref": "../../schemas/common.json#/$defs/NullableInstant"
+        },
+        "last_activity_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        },
+        "version": {
+          "$ref": "../../schemas/common.json#/$defs/Version"
+        }
+      }
+    },
+    "CrmConversationPage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data",
+        "meta"
+      ],
+      "properties": {
+        "data": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/CrmConversation"
+          }
+        },
+        "meta": {
+          "$ref": "../../schemas/common.json#/$defs/Pagination"
+        }
+      }
+    },
+    "CrmConversationResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/CrmConversation"
+        }
+      }
+    },
+    "KnowledgeEntryVersion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "entry_id",
+        "revision_no",
+        "content",
+        "language",
+        "authored_by",
+        "approved_by",
+        "approved_at",
+        "published_at",
+        "retired_at",
+        "is_published",
+        "created_at"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "entry_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "revision_no": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "content": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 10000
+        },
+        "language": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 10
+        },
+        "authored_by": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "approved_by": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "approved_at": {
+          "$ref": "../../schemas/common.json#/$defs/NullableInstant"
+        },
+        "published_at": {
+          "$ref": "../../schemas/common.json#/$defs/NullableInstant"
+        },
+        "retired_at": {
+          "$ref": "../../schemas/common.json#/$defs/NullableInstant"
+        },
+        "is_published": {
+          "type": "boolean"
+        },
+        "created_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        }
+      }
+    },
+    "KnowledgeEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "code",
+        "title",
+        "category",
+        "active",
+        "version",
+        "published_version",
+        "versions"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "code": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        },
+        "category": {
+          "$ref": "../../schemas/enums.json#/$defs/knowledge_entries.category"
+        },
+        "active": {
+          "type": "boolean"
+        },
+        "version": {
+          "$ref": "../../schemas/common.json#/$defs/Version"
+        },
+        "published_version": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/KnowledgeEntryVersion"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "versions": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/KnowledgeEntryVersion"
+          }
+        }
+      }
+    },
+    "KnowledgeEntryPage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data",
+        "meta"
+      ],
+      "properties": {
+        "data": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/KnowledgeEntry"
+          }
+        },
+        "meta": {
+          "$ref": "../../schemas/common.json#/$defs/Pagination"
+        }
+      }
+    },
+    "KnowledgeEntryResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/KnowledgeEntry"
+        }
+      }
+    },
+    "KnowledgeEntryVersionResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/KnowledgeEntryVersion"
+        }
+      }
+    },
+    "ConversationHandoff": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "conversation_id",
+        "event_type",
+        "actor_id",
+        "reason",
+        "administrative_summary",
+        "occurred_at"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "conversation_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "event_type": {
+          "$ref": "../../schemas/enums.json#/$defs/conversation_handoffs.event_type"
+        },
+        "actor_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 2000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "administrative_summary": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 4000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "occurred_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        }
+      }
+    },
+    "ConversationHandoffList": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/ConversationHandoff"
+          }
+        }
+      }
+    },
+    "AssistantRun": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "conversation_id",
+        "engine_name",
+        "model_name",
+        "rules_version",
+        "started_at",
+        "completed_at",
+        "status",
+        "input_tokens",
+        "output_tokens",
+        "knowledge_version_ids",
+        "sanitized_tool_results",
+        "error_code"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "conversation_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "engine_name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "model_name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "rules_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "started_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        },
+        "completed_at": {
+          "$ref": "../../schemas/common.json#/$defs/NullableInstant"
+        },
+        "status": {
+          "$ref": "../../schemas/enums.json#/$defs/assistant_runs.status"
+        },
+        "input_tokens": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "output_tokens": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "knowledge_version_ids": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "../../schemas/common.json#/$defs/Ulid"
+          }
+        },
+        "sanitized_tool_results": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "type": "object"
+          }
+        },
+        "error_code": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 100
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "AssistantRunList": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/AssistantRun"
+          }
+        }
+      }
+    },
+    "AssistantTurnResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "run",
+        "reply",
+        "handoff_triggered",
+        "clinical_refusal",
+        "conversation_status",
+        "knowledge_citations",
+        "booking_reference"
+      ],
+      "properties": {
+        "run": {
+          "$ref": "#/$defs/AssistantRun"
+        },
+        "reply": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        },
+        "handoff_triggered": {
+          "type": "boolean"
+        },
+        "clinical_refusal": {
+          "type": "boolean"
+        },
+        "conversation_status": {
+          "$ref": "../../schemas/enums.json#/$defs/crm_conversations.status"
+        },
+        "knowledge_citations": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          }
+        },
+        "booking_reference": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 100
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "AssistantTurnResultResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/AssistantTurnResult"
+        }
+      }
+    },
+    "CommunicationConsent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "patient_id",
+        "prospect_contact_id",
+        "channel",
+        "purpose",
+        "status",
+        "destination_masked",
+        "recorded_at",
+        "recorded_by",
+        "proof",
+        "policy_version",
+        "event_sequence"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "patient_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "prospect_contact_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "channel": {
+          "$ref": "../../schemas/enums.json#/$defs/communication_consents.channel"
+        },
+        "purpose": {
+          "$ref": "../../schemas/enums.json#/$defs/communication_consents.purpose"
+        },
+        "status": {
+          "$ref": "../../schemas/enums.json#/$defs/communication_consents.status"
+        },
+        "destination_masked": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "recorded_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        },
+        "recorded_by": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "proof": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 2000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "policy_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "event_sequence": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "CommunicationConsentPage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data",
+        "meta"
+      ],
+      "properties": {
+        "data": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/CommunicationConsent"
+          }
+        },
+        "meta": {
+          "$ref": "../../schemas/common.json#/$defs/Pagination"
+        }
+      }
+    },
+    "CommunicationConsentResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/CommunicationConsent"
+        }
+      }
+    },
+    "MessageTemplateVersion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "template_id",
+        "integration_account_id",
+        "revision_no",
+        "provider_template_id",
+        "language",
+        "body",
+        "allowed_variables",
+        "provider_approval_status",
+        "approved_by",
+        "approved_at",
+        "created_at"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "template_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "integration_account_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "revision_no": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "provider_template_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 180
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "language": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 10
+        },
+        "body": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 5000
+        },
+        "allowed_variables": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          }
+        },
+        "provider_approval_status": {
+          "$ref": "../../schemas/enums.json#/$defs/message_template_versions.provider_approval_status"
+        },
+        "approved_by": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "approved_at": {
+          "$ref": "../../schemas/common.json#/$defs/NullableInstant"
+        },
+        "created_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        }
+      }
+    },
+    "MessageTemplate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "code",
+        "channel",
+        "purpose",
+        "active",
+        "version",
+        "versions"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "code": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "channel": {
+          "$ref": "../../schemas/enums.json#/$defs/message_templates.channel"
+        },
+        "purpose": {
+          "$ref": "../../schemas/enums.json#/$defs/message_templates.purpose"
+        },
+        "active": {
+          "type": "boolean"
+        },
+        "version": {
+          "$ref": "../../schemas/common.json#/$defs/Version"
+        },
+        "versions": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/MessageTemplateVersion"
+          }
+        }
+      }
+    },
+    "MessageTemplateList": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/MessageTemplate"
+          }
+        }
+      }
+    },
+    "MessageTemplateResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/MessageTemplate"
+        }
+      }
+    },
+    "MessageTemplateVersionResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/MessageTemplateVersion"
+        }
+      }
+    },
+    "ReminderPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "code",
+        "label",
+        "purpose",
+        "channel",
+        "offset_unit",
+        "offset_value",
+        "local_send_time",
+        "active",
+        "version"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "code": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        },
+        "purpose": {
+          "$ref": "../../schemas/enums.json#/$defs/reminder_policies.purpose"
+        },
+        "channel": {
+          "$ref": "../../schemas/enums.json#/$defs/reminder_policies.channel"
+        },
+        "offset_unit": {
+          "$ref": "../../schemas/enums.json#/$defs/reminder_policies.offset_unit"
+        },
+        "offset_value": {
+          "type": "integer",
+          "minimum": -3650,
+          "maximum": 3650
+        },
+        "local_send_time": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 8
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "active": {
+          "type": "boolean"
+        },
+        "version": {
+          "$ref": "../../schemas/common.json#/$defs/Version"
+        }
+      }
+    },
+    "ReminderPolicyList": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/ReminderPolicy"
+          }
+        }
+      }
+    },
+    "ReminderPolicyResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/ReminderPolicy"
+        }
+      }
+    },
+    "MessageAttempt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "task_id",
+        "campaign_recipient_id",
+        "integration_account_id",
+        "template_version_id",
+        "consent_event_id",
+        "dedupe_key",
+        "provider_message_id",
+        "attempt_no",
+        "status",
+        "submitted_at",
+        "delivered_at",
+        "read_at",
+        "error_code",
+        "created_at"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "task_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "campaign_recipient_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "integration_account_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "template_version_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "consent_event_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "dedupe_key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        },
+        "provider_message_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 180
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "attempt_no": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "status": {
+          "$ref": "../../schemas/enums.json#/$defs/message_attempts.status"
+        },
+        "submitted_at": {
+          "$ref": "../../schemas/common.json#/$defs/NullableInstant"
+        },
+        "delivered_at": {
+          "$ref": "../../schemas/common.json#/$defs/NullableInstant"
+        },
+        "read_at": {
+          "$ref": "../../schemas/common.json#/$defs/NullableInstant"
+        },
+        "error_code": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 100
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "created_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        }
+      }
+    },
+    "MessageAttemptPage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data",
+        "meta"
+      ],
+      "properties": {
+        "data": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/MessageAttempt"
+          }
+        },
+        "meta": {
+          "$ref": "../../schemas/common.json#/$defs/Pagination"
+        }
+      }
+    },
+    "MessageAttemptResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/MessageAttempt"
+        }
+      }
+    },
+    "AudienceSegment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "criteria",
+        "criteria_schema_version",
+        "created_by",
+        "version",
+        "updated_at"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        },
+        "criteria": {
+          "type": "object"
+        },
+        "criteria_schema_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "created_by": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "version": {
+          "$ref": "../../schemas/common.json#/$defs/Version"
+        },
+        "updated_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        }
+      }
+    },
+    "AudienceSegmentList": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/AudienceSegment"
+          }
+        }
+      }
+    },
+    "AudienceSegmentResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/AudienceSegment"
+        }
+      }
+    },
+    "CampaignRecipient": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "campaign_id",
+        "patient_id",
+        "prospect_contact_id",
+        "destination_masked",
+        "consent_event_id",
+        "status",
+        "exclusion_reason",
+        "consent_checked_at"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "campaign_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "patient_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "prospect_contact_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "destination_masked": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "consent_event_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "status": {
+          "$ref": "../../schemas/enums.json#/$defs/campaign_recipients.status"
+        },
+        "exclusion_reason": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 500
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "consent_checked_at": {
+          "$ref": "../../schemas/common.json#/$defs/NullableInstant"
+        }
+      }
+    },
+    "CampaignRecipientPage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data",
+        "meta"
+      ],
+      "properties": {
+        "data": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/CampaignRecipient"
+          }
+        },
+        "meta": {
+          "$ref": "../../schemas/common.json#/$defs/Pagination"
+        }
+      }
+    },
+    "CampaignDefinition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "segment_id",
+        "template_version_id",
+        "approval_id",
+        "scheduled_at",
+        "status",
+        "created_by",
+        "target_frozen_at",
+        "eligible_count",
+        "excluded_count",
+        "delivered_count",
+        "failed_count",
+        "created_at",
+        "updated_at"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        },
+        "segment_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "template_version_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "approval_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "scheduled_at": {
+          "$ref": "../../schemas/common.json#/$defs/NullableInstant"
+        },
+        "status": {
+          "$ref": "../../schemas/enums.json#/$defs/campaign_definitions.status"
+        },
+        "created_by": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "target_frozen_at": {
+          "$ref": "../../schemas/common.json#/$defs/NullableInstant"
+        },
+        "eligible_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "excluded_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "delivered_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "failed_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "created_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        },
+        "updated_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        }
+      }
+    },
+    "CampaignPage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data",
+        "meta"
+      ],
+      "properties": {
+        "data": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/CampaignDefinition"
+          }
+        },
+        "meta": {
+          "$ref": "../../schemas/common.json#/$defs/Pagination"
+        }
+      }
+    },
+    "CampaignResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/CampaignDefinition"
+        }
+      }
+    },
+    "CampaignPreview": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "campaign_id",
+        "total_candidates",
+        "eligible_count",
+        "excluded_count",
+        "sample"
+      ],
+      "properties": {
+        "campaign_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "total_candidates": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "eligible_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "excluded_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "sample": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/CampaignRecipient"
+          }
+        }
+      }
+    },
+    "CampaignPreviewResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/CampaignPreview"
+        }
+      }
+    },
+    "WebhookInboxItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "integration_account_id",
+        "provider_event_key",
+        "payload_hash",
+        "received_at",
+        "status",
+        "verified_at",
+        "processed_at",
+        "attempt_count",
+        "last_error_code"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "integration_account_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "provider_event_key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        },
+        "payload_hash": {
+          "$ref": "../../schemas/common.json#/$defs/Sha256Hex"
+        },
+        "received_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        },
+        "status": {
+          "$ref": "../../schemas/enums.json#/$defs/webhook_inbox.status"
+        },
+        "verified_at": {
+          "$ref": "../../schemas/common.json#/$defs/NullableInstant"
+        },
+        "processed_at": {
+          "$ref": "../../schemas/common.json#/$defs/NullableInstant"
+        },
+        "attempt_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "last_error_code": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 100
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "WebhookInboxPage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data",
+        "meta"
+      ],
+      "properties": {
+        "data": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/WebhookInboxItem"
+          }
+        },
+        "meta": {
+          "$ref": "../../schemas/common.json#/$defs/Pagination"
+        }
+      }
+    },
+    "WebhookIngestResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "accepted",
+        "duplicate",
+        "inbox_id",
+        "status"
+      ],
+      "properties": {
+        "accepted": {
+          "type": "boolean"
+        },
+        "duplicate": {
+          "type": "boolean"
+        },
+        "inbox_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "status": {
+          "$ref": "../../schemas/enums.json#/$defs/webhook_inbox.status"
+        }
+      }
+    },
+    "WebhookIngestResultResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/WebhookIngestResult"
+        }
+      }
+    },
+    "IntegrationReconcileResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "outbox_processed",
+        "webhooks_processed",
+        "attempts_reconciled",
+        "calendar_synced"
+      ],
+      "properties": {
+        "outbox_processed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "webhooks_processed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "attempts_reconciled": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "calendar_synced": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "IntegrationReconcileResultResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/IntegrationReconcileResult"
+        }
+      }
+    }
+  }
+}

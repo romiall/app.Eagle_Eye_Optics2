@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eeo.invalid/contracts/events/CampaignCompleted.v1.json",
+  "title": "CampaignCompleted (charge v1)",
+  "description": "Exécution d'une campagne terminée ou arrêtée (L2). Généré par contracts/tools/build_events.py : ne pas modifier à la main.",
+  "x-entity-type": "campaign_definitions",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "campaign_id",
+    "status",
+    "completed_at"
+  ],
+  "properties": {
+    "campaign_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    },
+    "status": {
+      "$ref": "../schemas/enums.json#/$defs/campaign_definitions.status"
+    },
+    "completed_at": {
+      "$ref": "../schemas/common.json#/$defs/Instant"
+    }
+  }
+}

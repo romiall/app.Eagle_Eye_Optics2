@@ -2,6 +2,7 @@ import type {
   Approval,
   ApprovalsStatus,
   ApprovalSubject,
+  CampaignSendSubject,
   CashMovementSubject,
   CreditDeliverySubject,
   CreditNoteSubject,
@@ -43,6 +44,7 @@ export const KIND_LABELS: Readonly<Record<ApprovalKind, string>> = {
   CREDIT_DELIVERY: 'Remise avant règlement complet',
   STOCK_MOVEMENT: 'Casse ou ajustement de stock',
   CASH_MOVEMENT: 'Mouvement de caisse hors vente',
+  CAMPAIGN_SEND: 'Envoi d’une campagne de communication',
 }
 
 export function kindLabel(kind: Approval['kind']): string {
@@ -281,6 +283,24 @@ export const CASH_MOVEMENT_LABELS: Readonly<Record<CashMovementSubject['movement
     OPENING_CORRECTION: 'Correction de l’ouverture',
   }
 
+/**
+ * Gel et envoi d'une campagne de communication (L2D08) : campagne, segment, modèle approuvé et effectif.
+ */
+export function campaignSendSubject(
+  campaignId: string,
+  segmentId: string,
+  templateVersionId: string,
+  eligibleCount: number,
+): CampaignSendSubject {
+  return {
+    kind: 'CAMPAIGN_SEND',
+    campaign_id: campaignId,
+    segment_id: segmentId,
+    template_version_id: templateVersionId,
+    eligible_count: eligibleCount,
+  }
+}
+
 // --- Demande et décision ----------------------------------------------------------------------------
 
 /** Charge `RequestApproval` (alias d'objet : transmissible au répartiteur de mutations). */
@@ -419,6 +439,11 @@ export function describeSubject(
             subject.signed_amount < 0 ? 'Montant sorti du tiroir' : 'Montant entré dans le tiroir',
           value: formatMoney(Math.abs(subject.signed_amount)),
         },
+      ]
+    case 'CAMPAIGN_SEND':
+      return [
+        { label: 'Opération', value: 'Gel et envoi d’une campagne' },
+        { label: 'Destinataires admissibles', value: String(subject.eligible_count) },
       ]
   }
 }

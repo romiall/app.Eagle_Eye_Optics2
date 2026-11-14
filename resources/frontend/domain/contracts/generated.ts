@@ -517,7 +517,7 @@ export type ErrorCode = ("AUTH_REQUIRED" | "SESSION_CONTEXT_EXPIRED" | "SESSION_
 /**
  * Contenu exact de l'opération à approuver ; la nature (kind) fixe l'action, la cible et les champs.
  */
-export type ApprovalSubject = (ExamFeeWaiverSubject | DraftLineRightsSubject | PaymentReversalSubject | CreditNoteSubject | RefundSubject | CreditDeliverySubject | StockMovementSubject | CashMovementSubject)
+export type ApprovalSubject = (ExamFeeWaiverSubject | DraftLineRightsSubject | PaymentReversalSubject | CreditNoteSubject | RefundSubject | CreditDeliverySubject | StockMovementSubject | CashMovementSubject | CampaignSendSubject)
 /**
  * Élément de l'activité, distingué par type.
  */
@@ -549,7 +549,7 @@ export type CommandName = ("CreatePatient" | "UpdatePatient" | "RegisterVisit" |
 /**
  * Événements de la version 1 (fichier 08).
  */
-export type EventType = ("PatientCreated" | "ConsultationCompleted" | "PrescriptionValidated" | "FollowUpScheduled" | "AppointmentConfirmed" | "AppointmentRescheduled" | "AppointmentCancelled" | "InvoiceIssued" | "PaymentConfirmed" | "CreditNoteIssued" | "DeliveryConfirmed" | "StockThresholdCrossed" | "WorkshopReady")
+export type EventType = ("PatientCreated" | "ConsultationCompleted" | "PrescriptionValidated" | "FollowUpScheduled" | "AppointmentConfirmed" | "AppointmentRescheduled" | "AppointmentCancelled" | "InvoiceIssued" | "PaymentConfirmed" | "CreditNoteIssued" | "DeliveryConfirmed" | "StockThresholdCrossed" | "WorkshopReady" | "AppointmentNoShow" | "PublicBookingRequested" | "HumanHandoffRequested" | "CampaignCompleted")
 
 export interface ContractTypes {
 SchemasClinicalStepsJsonAnamnesis?: Anamnesis
@@ -763,6 +763,34 @@ SchemasRequestsHttpJsonReconcileReplacementRequest?: ReconcileReplacementRequest
 SchemasRequestsHttpJsonConflictResolutionRequest?: ConflictResolutionRequest
 SchemasRequestsHttpJsonCreateExportRequest?: CreateExportRequest
 SchemasRequestsHttpJsonBookingRequest?: BookingRequest
+SchemasRequestsHttpJsonSaveIntegrationAccountRequest?: SaveIntegrationAccountRequest
+SchemasRequestsHttpJsonUpdateIntegrationAccountRequest?: UpdateIntegrationAccountRequest
+SchemasRequestsHttpJsonProcessOutboxRequest?: ProcessOutboxRequest
+SchemasRequestsHttpJsonSaveCalendarSyncStateRequest?: SaveCalendarSyncStateRequest
+SchemasRequestsHttpJsonCalendarSyncRunRequest?: CalendarSyncRunRequest
+SchemasRequestsHttpJsonDecidePublicBookingRequest?: DecidePublicBookingRequest
+SchemasRequestsHttpJsonSaveProspectContactRequest?: SaveProspectContactRequest
+SchemasRequestsHttpJsonUpdateProspectContactRequest?: UpdateProspectContactRequest
+SchemasRequestsHttpJsonLinkProspectPatientRequest?: LinkProspectPatientRequest
+SchemasRequestsHttpJsonSyncCrmLeadsRequest?: SyncCrmLeadsRequest
+SchemasRequestsHttpJsonSaveKnowledgeEntryRequest?: SaveKnowledgeEntryRequest
+SchemasRequestsHttpJsonCreateKnowledgeVersionRequest?: CreateKnowledgeVersionRequest
+SchemasRequestsHttpJsonKnowledgeActionRequest?: KnowledgeActionRequest
+SchemasRequestsHttpJsonAssistantTurnRequest?: AssistantTurnRequest
+SchemasRequestsHttpJsonConversationHandoffRequest?: ConversationHandoffRequest
+SchemasRequestsHttpJsonRecordConsentRequest?: RecordConsentRequest
+SchemasRequestsHttpJsonRevokeConsentRequest?: RevokeConsentRequest
+SchemasRequestsHttpJsonSaveMessageTemplateRequest?: SaveMessageTemplateRequest
+SchemasRequestsHttpJsonCreateMessageTemplateVersionRequest?: CreateMessageTemplateVersionRequest
+SchemasRequestsHttpJsonSaveReminderPolicyRequest?: SaveReminderPolicyRequest
+SchemasRequestsHttpJsonUpdateReminderPolicyRequest?: UpdateReminderPolicyRequest
+SchemasRequestsHttpJsonSendTaskMessageRequest?: SendTaskMessageRequest
+SchemasRequestsHttpJsonSaveAudienceSegmentRequest?: SaveAudienceSegmentRequest
+SchemasRequestsHttpJsonUpdateAudienceSegmentRequest?: UpdateAudienceSegmentRequest
+SchemasRequestsHttpJsonSaveCampaignRequest?: SaveCampaignRequest
+SchemasRequestsHttpJsonFreezeCampaignRequest?: FreezeCampaignRequest
+SchemasRequestsHttpJsonPauseCampaignRequest?: PauseCampaignRequest
+SchemasRequestsHttpJsonReconcileIntegrationsRequest?: ReconcileIntegrationsRequest
 SchemasResourcesAccessJsonStaffMemberSummary?: StaffMemberSummary
 SchemasResourcesAccessJsonStaffMember?: StaffMember
 SchemasResourcesAccessJsonClinicSummary?: ClinicSummary
@@ -875,6 +903,77 @@ SchemasResourcesClinicalJsonPrescriptionDeletion?: PrescriptionDeletion
 SchemasResourcesClinicalJsonDeletePrescriptionDraftResponse?: DeletePrescriptionDraftResponse
 SchemasResourcesClinicalJsonPrescriptionResponse?: PrescriptionResponse
 SchemasResourcesClinicalJsonPrescriptionList?: PrescriptionList
+SchemasResourcesCommunicationJsonIntegrationAccount?: IntegrationAccount
+SchemasResourcesCommunicationJsonIntegrationAccountList?: IntegrationAccountList
+SchemasResourcesCommunicationJsonIntegrationAccountResponse?: IntegrationAccountResponse
+SchemasResourcesCommunicationJsonIntegrationHealth?: IntegrationHealth
+SchemasResourcesCommunicationJsonIntegrationHealthResponse?: IntegrationHealthResponse
+SchemasResourcesCommunicationJsonIntegrationConnectionTest?: IntegrationConnectionTest
+SchemasResourcesCommunicationJsonIntegrationConnectionTestResponse?: IntegrationConnectionTestResponse
+SchemasResourcesCommunicationJsonOutboxEvent?: OutboxEvent
+SchemasResourcesCommunicationJsonOutboxEventPage?: OutboxEventPage
+SchemasResourcesCommunicationJsonOutboxBatchResult?: OutboxBatchResult
+SchemasResourcesCommunicationJsonOutboxBatchResultResponse?: OutboxBatchResultResponse
+SchemasResourcesCommunicationJsonCalendarSyncState?: CalendarSyncState
+SchemasResourcesCommunicationJsonCalendarSyncStateList?: CalendarSyncStateList
+SchemasResourcesCommunicationJsonCalendarSyncStateResponse?: CalendarSyncStateResponse
+SchemasResourcesCommunicationJsonCalendarSyncRunResult?: CalendarSyncRunResult
+SchemasResourcesCommunicationJsonCalendarSyncRunResultResponse?: CalendarSyncRunResultResponse
+SchemasResourcesCommunicationJsonPublicBookingAdminItem?: PublicBookingAdminItem
+SchemasResourcesCommunicationJsonPublicBookingAdminPage?: PublicBookingAdminPage
+SchemasResourcesCommunicationJsonPublicBookingAdminResponse?: PublicBookingAdminResponse
+SchemasResourcesCommunicationJsonProspectContact?: ProspectContact
+SchemasResourcesCommunicationJsonProspectContactPage?: ProspectContactPage
+SchemasResourcesCommunicationJsonProspectContactResponse?: ProspectContactResponse
+SchemasResourcesCommunicationJsonCrmLead?: CrmLead
+SchemasResourcesCommunicationJsonCrmLeadPage?: CrmLeadPage
+SchemasResourcesCommunicationJsonCrmLeadResponse?: CrmLeadResponse
+SchemasResourcesCommunicationJsonCrmLeadSyncResult?: CrmLeadSyncResult
+SchemasResourcesCommunicationJsonCrmLeadSyncResultResponse?: CrmLeadSyncResultResponse
+SchemasResourcesCommunicationJsonCrmConversation?: CrmConversation
+SchemasResourcesCommunicationJsonCrmConversationPage?: CrmConversationPage
+SchemasResourcesCommunicationJsonCrmConversationResponse?: CrmConversationResponse
+SchemasResourcesCommunicationJsonKnowledgeEntryVersion?: KnowledgeEntryVersion
+SchemasResourcesCommunicationJsonKnowledgeEntry?: KnowledgeEntry
+SchemasResourcesCommunicationJsonKnowledgeEntryPage?: KnowledgeEntryPage
+SchemasResourcesCommunicationJsonKnowledgeEntryResponse?: KnowledgeEntryResponse
+SchemasResourcesCommunicationJsonKnowledgeEntryVersionResponse?: KnowledgeEntryVersionResponse
+SchemasResourcesCommunicationJsonConversationHandoff?: ConversationHandoff
+SchemasResourcesCommunicationJsonConversationHandoffList?: ConversationHandoffList
+SchemasResourcesCommunicationJsonAssistantRun?: AssistantRun
+SchemasResourcesCommunicationJsonAssistantRunList?: AssistantRunList
+SchemasResourcesCommunicationJsonAssistantTurnResult?: AssistantTurnResult
+SchemasResourcesCommunicationJsonAssistantTurnResultResponse?: AssistantTurnResultResponse
+SchemasResourcesCommunicationJsonCommunicationConsent?: CommunicationConsent
+SchemasResourcesCommunicationJsonCommunicationConsentPage?: CommunicationConsentPage
+SchemasResourcesCommunicationJsonCommunicationConsentResponse?: CommunicationConsentResponse
+SchemasResourcesCommunicationJsonMessageTemplateVersion?: MessageTemplateVersion
+SchemasResourcesCommunicationJsonMessageTemplate?: MessageTemplate
+SchemasResourcesCommunicationJsonMessageTemplateList?: MessageTemplateList
+SchemasResourcesCommunicationJsonMessageTemplateResponse?: MessageTemplateResponse
+SchemasResourcesCommunicationJsonMessageTemplateVersionResponse?: MessageTemplateVersionResponse
+SchemasResourcesCommunicationJsonReminderPolicy?: ReminderPolicy
+SchemasResourcesCommunicationJsonReminderPolicyList?: ReminderPolicyList
+SchemasResourcesCommunicationJsonReminderPolicyResponse?: ReminderPolicyResponse
+SchemasResourcesCommunicationJsonMessageAttempt?: MessageAttempt
+SchemasResourcesCommunicationJsonMessageAttemptPage?: MessageAttemptPage
+SchemasResourcesCommunicationJsonMessageAttemptResponse?: MessageAttemptResponse
+SchemasResourcesCommunicationJsonAudienceSegment?: AudienceSegment
+SchemasResourcesCommunicationJsonAudienceSegmentList?: AudienceSegmentList
+SchemasResourcesCommunicationJsonAudienceSegmentResponse?: AudienceSegmentResponse
+SchemasResourcesCommunicationJsonCampaignRecipient?: CampaignRecipient
+SchemasResourcesCommunicationJsonCampaignRecipientPage?: CampaignRecipientPage
+SchemasResourcesCommunicationJsonCampaignDefinition?: CampaignDefinition
+SchemasResourcesCommunicationJsonCampaignPage?: CampaignPage
+SchemasResourcesCommunicationJsonCampaignResponse?: CampaignResponse
+SchemasResourcesCommunicationJsonCampaignPreview?: CampaignPreview
+SchemasResourcesCommunicationJsonCampaignPreviewResponse?: CampaignPreviewResponse
+SchemasResourcesCommunicationJsonWebhookInboxItem?: WebhookInboxItem
+SchemasResourcesCommunicationJsonWebhookInboxPage?: WebhookInboxPage
+SchemasResourcesCommunicationJsonWebhookIngestResult?: WebhookIngestResult
+SchemasResourcesCommunicationJsonWebhookIngestResultResponse?: WebhookIngestResultResponse
+SchemasResourcesCommunicationJsonIntegrationReconcileResult?: IntegrationReconcileResult
+SchemasResourcesCommunicationJsonIntegrationReconcileResultResponse?: IntegrationReconcileResultResponse
 SchemasResourcesOperationsJsonPublicJwk?: PublicJwk
 SchemasResourcesOperationsJsonEnrolledDevice?: EnrolledDevice
 SchemasResourcesOperationsJsonEnrolledDeviceResponse?: EnrolledDeviceResponse
@@ -1082,6 +1181,7 @@ CommandsRequestApprovalV1JsonRefundSubject?: RefundSubject
 CommandsRequestApprovalV1JsonCreditDeliverySubject?: CreditDeliverySubject
 CommandsRequestApprovalV1JsonStockMovementSubject?: StockMovementSubject
 CommandsRequestApprovalV1JsonCashMovementSubject?: CashMovementSubject
+CommandsRequestApprovalV1JsonCampaignSendSubject?: CampaignSendSubject
 ReversePaymentPayload?: ReversePaymentPayload
 CommandsReversePaymentV1JsonDirectRequest?: ReversePaymentDirectRequest
 SaveClinicalStepPayload?: SaveClinicalStepPayload
@@ -1097,15 +1197,19 @@ CommandsValidatePrescriptionV1JsonDirectRequest?: ValidatePrescriptionDirectRequ
 CommandsDispatchJsonCommandName?: CommandName
 AppointmentCancelledEventPayload?: AppointmentCancelledEventPayload
 AppointmentConfirmedEventPayload?: AppointmentConfirmedEventPayload
+AppointmentNoShowEventPayload?: AppointmentNoShowEventPayload
 AppointmentRescheduledEventPayload?: AppointmentRescheduledEventPayload
+CampaignCompletedEventPayload?: CampaignCompletedEventPayload
 ConsultationCompletedEventPayload?: ConsultationCompletedEventPayload
 CreditNoteIssuedEventPayload?: CreditNoteIssuedEventPayload
 DeliveryConfirmedEventPayload?: DeliveryConfirmedEventPayload
 FollowUpScheduledEventPayload?: FollowUpScheduledEventPayload
+HumanHandoffRequestedEventPayload?: HumanHandoffRequestedEventPayload
 InvoiceIssuedEventPayload?: InvoiceIssuedEventPayload
 PatientCreatedEventPayload?: PatientCreatedEventPayload
 PaymentConfirmedEventPayload?: PaymentConfirmedEventPayload
 PrescriptionValidatedEventPayload?: PrescriptionValidatedEventPayload
+PublicBookingRequestedEventPayload?: PublicBookingRequestedEventPayload
 StockThresholdCrossedEventPayload?: StockThresholdCrossedEventPayload
 WorkshopReadyEventPayload?: WorkshopReadyEventPayload
 EventEnvelope?: EventEnvelope
@@ -6994,11 +7098,185 @@ scope_role?: (("CASHIER" | "CLINICIAN" | "MANAGER" | "RECEPTION") | null)
  */
 export interface BookingRequest {
 service_id: Ulid
+resource_id?: NullableUlid
 starts_at: Instant
 name: string
 phone: Phone
 email?: (string | null)
 consent: true
+}
+export interface SaveIntegrationAccountRequest {
+provider: IntegrationAccountsProvider
+external_account_id: string
+display_name: string
+status: IntegrationAccountsStatus
+credentials?: ({
+
+} | null)
+public_configuration?: ({
+
+} | null)
+}
+export interface UpdateIntegrationAccountRequest {
+expected_version: Version
+display_name?: string
+status?: IntegrationAccountsStatus
+credentials?: ({
+
+} | null)
+public_configuration?: ({
+
+} | null)
+}
+export interface ProcessOutboxRequest {
+limit?: number
+/**
+ * @minItems 0
+ */
+event_types?: string[]
+}
+export interface SaveCalendarSyncStateRequest {
+integration_account_id: Ulid
+resource_id: Ulid
+external_calendar_id: string
+status?: CalendarSyncStatesStatus
+}
+export interface CalendarSyncRunRequest {
+resource_id?: NullableUlid
+full_resync?: boolean
+}
+export interface DecidePublicBookingRequest {
+resource_id?: NullableUlid
+reason?: (string | null)
+}
+export interface SaveProspectContactRequest {
+name: string
+phone?: (Phone | null)
+email?: (string | null)
+origin: ProspectContactsOrigin
+administrative_notes?: (string | null)
+}
+export interface UpdateProspectContactRequest {
+expected_version: Version
+name?: string
+phone?: (Phone | null)
+email?: (string | null)
+administrative_notes?: (string | null)
+}
+export interface LinkProspectPatientRequest {
+patient_id: Ulid
+}
+export interface SyncCrmLeadsRequest {
+integration_account_id?: NullableUlid
+limit?: number
+}
+export interface SaveKnowledgeEntryRequest {
+code: string
+title: string
+category: KnowledgeEntriesCategory
+content: string
+language?: string
+}
+export interface CreateKnowledgeVersionRequest {
+content: string
+language?: string
+}
+export interface KnowledgeActionRequest {
+reason?: (string | null)
+}
+export interface AssistantTurnRequest {
+message: string
+service_id?: NullableUlid
+preferred_starts_at?: NullableInstant
+}
+export interface ConversationHandoffRequest {
+reason: string
+administrative_summary?: (string | null)
+assign_to_self?: boolean
+}
+export interface RecordConsentRequest {
+patient_id?: NullableUlid
+prospect_contact_id?: NullableUlid
+channel: CommunicationConsentsChannel
+purpose: CommunicationConsentsPurpose
+destination: string
+proof: string
+policy_version?: string
+}
+export interface RevokeConsentRequest {
+patient_id?: NullableUlid
+prospect_contact_id?: NullableUlid
+channel: CommunicationConsentsChannel
+purpose: CommunicationConsentsPurpose
+destination: string
+proof: string
+policy_version?: string
+}
+export interface SaveMessageTemplateRequest {
+code: string
+channel: MessageTemplatesChannel
+purpose: MessageTemplatesPurpose
+}
+export interface CreateMessageTemplateVersionRequest {
+integration_account_id?: NullableUlid
+provider_template_id?: (string | null)
+language?: string
+body: string
+/**
+ * @minItems 0
+ */
+allowed_variables?: string[]
+}
+export interface SaveReminderPolicyRequest {
+code: string
+label: string
+purpose: ReminderPoliciesPurpose
+channel: ReminderPoliciesChannel
+offset_unit: ReminderPoliciesOffsetUnit
+offset_value: number
+local_send_time?: (string | null)
+active?: boolean
+}
+export interface UpdateReminderPolicyRequest {
+expected_version: Version
+label?: string
+channel?: ReminderPoliciesChannel
+offset_unit?: ReminderPoliciesOffsetUnit
+offset_value?: number
+local_send_time?: (string | null)
+active?: boolean
+}
+export interface SendTaskMessageRequest {
+template_version_id?: NullableUlid
+channel?: (CommunicationConsentsChannel | null)
+}
+export interface SaveAudienceSegmentRequest {
+name: string
+criteria: {
+
+}
+}
+export interface UpdateAudienceSegmentRequest {
+expected_version: Version
+name?: string
+criteria?: {
+
+}
+}
+export interface SaveCampaignRequest {
+name: string
+segment_id: Ulid
+template_version_id: Ulid
+scheduled_at?: NullableInstant
+}
+export interface FreezeCampaignRequest {
+approval_id?: NullableUlid
+}
+export interface PauseCampaignRequest {
+reason?: (string | null)
+}
+export interface ReconcileIntegrationsRequest {
+limit?: number
 }
 /**
  * Compte dans une liste : sans les permissions effectives.
@@ -8116,7 +8394,7 @@ data: Refund
  */
 export interface Approval {
 id: Ulid
-kind: (("EXAM_FEE_WAIVER" | "DRAFT_LINE_RIGHTS" | "PAYMENT_REVERSAL" | "CREDIT_NOTE" | "REFUND" | "CREDIT_DELIVERY" | "STOCK_MOVEMENT" | "CASH_MOVEMENT") | null)
+kind: (("EXAM_FEE_WAIVER" | "DRAFT_LINE_RIGHTS" | "PAYMENT_REVERSAL" | "CREDIT_NOTE" | "REFUND" | "CREDIT_DELIVERY" | "STOCK_MOVEMENT" | "CASH_MOVEMENT" | "CAMPAIGN_SEND") | null)
 action_code: PermissionCode
 target_type: string
 target_id: Ulid
@@ -8252,6 +8530,16 @@ cash_session_id: Ulid
 movement_kind: ("DEPOSIT" | "WITHDRAWAL" | "EXPENSE" | "OPENING_CORRECTION")
 signed_amount: number
 expense_category_id: NullableUlid
+}
+/**
+ * Gel et envoi d'une campagne de communication vers un segment avec version de modèle approuvée et effectif exact (action communication.manage, cible campaign_definitions).
+ */
+export interface CampaignSendSubject {
+kind: "CAMPAIGN_SEND"
+campaign_id: Ulid
+segment_id: Ulid
+template_version_id: Ulid
+eligible_count: number
 }
 /**
  * Résumé de la cible pour décider : identité administrative du patient, numéro de facture (null pour un brouillon), heure de la visite, paiement visé.
@@ -8958,6 +9246,569 @@ export interface PrescriptionList {
  * @minItems 0
  */
 data: Prescription[]
+}
+/**
+ * Compte connecteur externe (secrets chiffrés jamais retournés en lecture).
+ */
+export interface IntegrationAccount {
+id: Ulid
+provider: IntegrationAccountsProvider
+external_account_id: string
+display_name: string
+status: IntegrationAccountsStatus
+has_credentials: boolean
+encryption_key_id: (string | null)
+token_expires_at: NullableInstant
+public_configuration: ({
+
+} | null)
+version: Version
+updated_at: Instant
+}
+export interface IntegrationAccountList {
+/**
+ * @minItems 0
+ */
+data: IntegrationAccount[]
+}
+export interface IntegrationAccountResponse {
+data: IntegrationAccount
+}
+export interface IntegrationHealth {
+mode: ("fake" | "live" | "disabled")
+credentials_configured: boolean
+accounts_total: number
+accounts_active: number
+accounts_error: number
+outbox_pending: number
+outbox_failed: number
+webhook_pending: number
+webhook_failed: number
+calendar_stale: number
+/**
+ * @minItems 0
+ */
+accounts: IntegrationAccount[]
+}
+export interface IntegrationHealthResponse {
+data: IntegrationHealth
+}
+export interface IntegrationConnectionTest {
+account_id: Ulid
+provider: IntegrationAccountsProvider
+reachable: boolean
+mode: ("fake" | "live")
+status: IntegrationAccountsStatus
+checked_at: Instant
+detail: (string | null)
+}
+export interface IntegrationConnectionTestResponse {
+data: IntegrationConnectionTest
+}
+export interface OutboxEvent {
+id: Ulid
+event_type: string
+event_version: number
+source_type: string
+source_id: Ulid
+source_version: Version
+status: OutboxEventsStatus
+attempt_count: number
+next_attempt_at: NullableInstant
+processed_at: NullableInstant
+last_error_code: (string | null)
+correlation_id: string
+created_at: Instant
+}
+export interface OutboxEventPage {
+/**
+ * @minItems 0
+ */
+data: OutboxEvent[]
+meta: Pagination
+}
+export interface OutboxBatchResult {
+processed: number
+failed: number
+skipped: number
+/**
+ * @minItems 0
+ */
+events: OutboxEvent[]
+}
+export interface OutboxBatchResultResponse {
+data: OutboxBatchResult
+}
+export interface CalendarSyncState {
+id: Ulid
+integration_account_id: Ulid
+resource_id: Ulid
+external_calendar_id: string
+status: CalendarSyncStatesStatus
+last_full_sync_at: NullableInstant
+last_incremental_sync_at: NullableInstant
+last_error_code: (string | null)
+push_expires_at: NullableInstant
+version: Version
+updated_at: Instant
+}
+export interface CalendarSyncStateList {
+/**
+ * @minItems 0
+ */
+data: CalendarSyncState[]
+}
+export interface CalendarSyncStateResponse {
+data: CalendarSyncState
+}
+export interface CalendarSyncRunResult {
+synced_states: number
+pushed_appointments: number
+pulled_blocks: number
+conflicts: number
+/**
+ * @minItems 0
+ */
+states: CalendarSyncState[]
+}
+export interface CalendarSyncRunResultResponse {
+data: CalendarSyncRunResult
+}
+export interface PublicBookingAdminItem {
+id: Ulid
+public_reference: string
+status: PublicBookingRequestsStatus
+service_id: Ulid
+service_name: (string | null)
+resource_id: NullableUlid
+prospect_contact_id: Ulid
+prospect_name: (string | null)
+prospect_phone: (string | null)
+requested_starts_at: Instant
+requested_ends_at: Instant
+appointment_id: NullableUlid
+consent_recorded_at: Instant
+created_at: Instant
+}
+export interface PublicBookingAdminPage {
+/**
+ * @minItems 0
+ */
+data: PublicBookingAdminItem[]
+meta: Pagination
+}
+export interface PublicBookingAdminResponse {
+data: PublicBookingAdminItem
+}
+export interface ProspectContact {
+id: Ulid
+name: string
+phone: (string | null)
+email: (string | null)
+patient_id: NullableUlid
+origin: ProspectContactsOrigin
+administrative_notes: (string | null)
+version: Version
+created_at: Instant
+updated_at: Instant
+}
+export interface ProspectContactPage {
+/**
+ * @minItems 0
+ */
+data: ProspectContact[]
+meta: Pagination
+}
+export interface ProspectContactResponse {
+data: ProspectContact
+}
+export interface CrmLead {
+id: Ulid
+prospect_contact_id: Ulid
+prospect_name: (string | null)
+integration_account_id: Ulid
+external_lead_id: string
+pipeline_id: (string | null)
+pipeline_stage: (string | null)
+product_interest: (string | null)
+budget_min: (MoneyXaf | null)
+budget_max: (MoneyXaf | null)
+acquisition_source: (string | null)
+assigned_to: NullableUlid
+status: CrmLeadsStatus
+last_synced_at: NullableInstant
+updated_at: Instant
+}
+export interface CrmLeadPage {
+/**
+ * @minItems 0
+ */
+data: CrmLead[]
+meta: Pagination
+}
+export interface CrmLeadResponse {
+data: CrmLead
+}
+export interface CrmLeadSyncResult {
+synced: number
+created: number
+updated: number
+conflicts: number
+}
+export interface CrmLeadSyncResultResponse {
+data: CrmLeadSyncResult
+}
+export interface CrmConversation {
+id: Ulid
+crm_lead_id: NullableUlid
+integration_account_id: Ulid
+external_conversation_id: string
+channel: CrmConversationsChannel
+status: CrmConversationsStatus
+human_owner_id: NullableUlid
+takeover_at: NullableInstant
+takeover_reason: (string | null)
+administrative_summary: (string | null)
+bot_resumed_at: NullableInstant
+last_activity_at: Instant
+version: Version
+}
+export interface CrmConversationPage {
+/**
+ * @minItems 0
+ */
+data: CrmConversation[]
+meta: Pagination
+}
+export interface CrmConversationResponse {
+data: CrmConversation
+}
+export interface KnowledgeEntryVersion {
+id: Ulid
+entry_id: Ulid
+revision_no: number
+content: string
+language: string
+authored_by: Ulid
+approved_by: NullableUlid
+approved_at: NullableInstant
+published_at: NullableInstant
+retired_at: NullableInstant
+is_published: boolean
+created_at: Instant
+}
+export interface KnowledgeEntry {
+id: Ulid
+code: string
+title: string
+category: KnowledgeEntriesCategory
+active: boolean
+version: Version
+published_version: (KnowledgeEntryVersion | null)
+/**
+ * @minItems 0
+ */
+versions: KnowledgeEntryVersion[]
+}
+export interface KnowledgeEntryPage {
+/**
+ * @minItems 0
+ */
+data: KnowledgeEntry[]
+meta: Pagination
+}
+export interface KnowledgeEntryResponse {
+data: KnowledgeEntry
+}
+export interface KnowledgeEntryVersionResponse {
+data: KnowledgeEntryVersion
+}
+export interface ConversationHandoff {
+id: Ulid
+conversation_id: Ulid
+event_type: ConversationHandoffsEventType
+actor_id: NullableUlid
+reason: (string | null)
+administrative_summary: (string | null)
+occurred_at: Instant
+}
+export interface ConversationHandoffList {
+/**
+ * @minItems 0
+ */
+data: ConversationHandoff[]
+}
+export interface AssistantRun {
+id: Ulid
+conversation_id: Ulid
+engine_name: string
+model_name: string
+rules_version: string
+started_at: Instant
+completed_at: NullableInstant
+status: AssistantRunsStatus
+input_tokens: (number | null)
+output_tokens: (number | null)
+/**
+ * @minItems 0
+ */
+knowledge_version_ids: Ulid[]
+/**
+ * @minItems 0
+ */
+sanitized_tool_results: {
+
+}[]
+error_code: (string | null)
+}
+export interface AssistantRunList {
+/**
+ * @minItems 0
+ */
+data: AssistantRun[]
+}
+export interface AssistantTurnResult {
+run: AssistantRun
+reply: string
+handoff_triggered: boolean
+clinical_refusal: boolean
+conversation_status: CrmConversationsStatus
+/**
+ * @minItems 0
+ */
+knowledge_citations: string[]
+booking_reference: (string | null)
+}
+export interface AssistantTurnResultResponse {
+data: AssistantTurnResult
+}
+export interface CommunicationConsent {
+id: Ulid
+patient_id: NullableUlid
+prospect_contact_id: NullableUlid
+channel: CommunicationConsentsChannel
+purpose: CommunicationConsentsPurpose
+status: CommunicationConsentsStatus
+destination_masked: string
+recorded_at: Instant
+recorded_by: NullableUlid
+proof: (string | null)
+policy_version: string
+event_sequence: number
+}
+export interface CommunicationConsentPage {
+/**
+ * @minItems 0
+ */
+data: CommunicationConsent[]
+meta: Pagination
+}
+export interface CommunicationConsentResponse {
+data: CommunicationConsent
+}
+export interface MessageTemplateVersion {
+id: Ulid
+template_id: Ulid
+integration_account_id: NullableUlid
+revision_no: number
+provider_template_id: (string | null)
+language: string
+body: string
+/**
+ * @minItems 0
+ */
+allowed_variables: string[]
+provider_approval_status: MessageTemplateVersionsProviderApprovalStatus
+approved_by: NullableUlid
+approved_at: NullableInstant
+created_at: Instant
+}
+export interface MessageTemplate {
+id: Ulid
+code: string
+channel: MessageTemplatesChannel
+purpose: MessageTemplatesPurpose
+active: boolean
+version: Version
+/**
+ * @minItems 0
+ */
+versions: MessageTemplateVersion[]
+}
+export interface MessageTemplateList {
+/**
+ * @minItems 0
+ */
+data: MessageTemplate[]
+}
+export interface MessageTemplateResponse {
+data: MessageTemplate
+}
+export interface MessageTemplateVersionResponse {
+data: MessageTemplateVersion
+}
+export interface ReminderPolicy {
+id: Ulid
+code: string
+label: string
+purpose: ReminderPoliciesPurpose
+channel: ReminderPoliciesChannel
+offset_unit: ReminderPoliciesOffsetUnit
+offset_value: number
+local_send_time: (string | null)
+active: boolean
+version: Version
+}
+export interface ReminderPolicyList {
+/**
+ * @minItems 0
+ */
+data: ReminderPolicy[]
+}
+export interface ReminderPolicyResponse {
+data: ReminderPolicy
+}
+export interface MessageAttempt {
+id: Ulid
+task_id: NullableUlid
+campaign_recipient_id: NullableUlid
+integration_account_id: Ulid
+template_version_id: NullableUlid
+consent_event_id: NullableUlid
+dedupe_key: string
+provider_message_id: (string | null)
+attempt_no: number
+status: MessageAttemptsStatus
+submitted_at: NullableInstant
+delivered_at: NullableInstant
+read_at: NullableInstant
+error_code: (string | null)
+created_at: Instant
+}
+export interface MessageAttemptPage {
+/**
+ * @minItems 0
+ */
+data: MessageAttempt[]
+meta: Pagination
+}
+export interface MessageAttemptResponse {
+data: MessageAttempt
+}
+export interface AudienceSegment {
+id: Ulid
+name: string
+criteria: {
+
+}
+criteria_schema_version: string
+created_by: Ulid
+version: Version
+updated_at: Instant
+}
+export interface AudienceSegmentList {
+/**
+ * @minItems 0
+ */
+data: AudienceSegment[]
+}
+export interface AudienceSegmentResponse {
+data: AudienceSegment
+}
+export interface CampaignRecipient {
+id: Ulid
+campaign_id: Ulid
+patient_id: NullableUlid
+prospect_contact_id: NullableUlid
+destination_masked: string
+consent_event_id: NullableUlid
+status: CampaignRecipientsStatus
+exclusion_reason: (string | null)
+consent_checked_at: NullableInstant
+}
+export interface CampaignRecipientPage {
+/**
+ * @minItems 0
+ */
+data: CampaignRecipient[]
+meta: Pagination
+}
+export interface CampaignDefinition {
+id: Ulid
+name: string
+segment_id: Ulid
+template_version_id: Ulid
+approval_id: NullableUlid
+scheduled_at: NullableInstant
+status: CampaignDefinitionsStatus
+created_by: Ulid
+target_frozen_at: NullableInstant
+eligible_count: number
+excluded_count: number
+delivered_count: number
+failed_count: number
+created_at: Instant
+updated_at: Instant
+}
+export interface CampaignPage {
+/**
+ * @minItems 0
+ */
+data: CampaignDefinition[]
+meta: Pagination
+}
+export interface CampaignResponse {
+data: CampaignDefinition
+}
+export interface CampaignPreview {
+campaign_id: Ulid
+total_candidates: number
+eligible_count: number
+excluded_count: number
+/**
+ * @minItems 0
+ */
+sample: CampaignRecipient[]
+}
+export interface CampaignPreviewResponse {
+data: CampaignPreview
+}
+export interface WebhookInboxItem {
+id: Ulid
+integration_account_id: NullableUlid
+provider_event_key: string
+payload_hash: Sha256Hex
+received_at: Instant
+status: WebhookInboxStatus
+verified_at: NullableInstant
+processed_at: NullableInstant
+attempt_count: number
+last_error_code: (string | null)
+}
+export interface WebhookInboxPage {
+/**
+ * @minItems 0
+ */
+data: WebhookInboxItem[]
+meta: Pagination
+}
+export interface WebhookIngestResult {
+accepted: boolean
+duplicate: boolean
+inbox_id: NullableUlid
+status: WebhookInboxStatus
+}
+export interface WebhookIngestResultResponse {
+data: WebhookIngestResult
+}
+export interface IntegrationReconcileResult {
+outbox_processed: number
+webhooks_processed: number
+attempts_reconciled: number
+calendar_synced: number
+}
+export interface IntegrationReconcileResultResponse {
+data: IntegrationReconcileResult
 }
 /**
  * Poste enrôlé (O02) : clé PUBLIQUE ES256 seulement ; kid = empreinte RFC 7638 de cette clé.
@@ -10253,7 +11104,10 @@ data: PublicSlot[]
  */
 export interface BookingReceipt {
 public_reference: string
-status: ("RECEIVED" | "PENDING_CONFIRMATION")
+status: PublicBookingRequestsStatus
+service_id: Ulid
+requested_starts_at: Instant
+requested_ends_at: Instant
 }
 export interface BookingReceiptResponse {
 data: BookingReceipt
@@ -14345,6 +15199,13 @@ starts_at: Instant
 ends_at: Instant
 source: AppointmentsSource
 }
+export interface AppointmentNoShowEventPayload {
+appointment_id: Ulid
+patient_id: NullableUlid
+prospect_contact_id: NullableUlid
+starts_at: Instant
+marked_at: Instant
+}
 export interface AppointmentRescheduledEventPayload {
 appointment_id: Ulid
 patient_id: NullableUlid
@@ -14353,6 +15214,11 @@ resource_id: Ulid
 previous_starts_at: Instant
 starts_at: Instant
 ends_at: Instant
+}
+export interface CampaignCompletedEventPayload {
+campaign_id: Ulid
+status: CampaignDefinitionsStatus
+completed_at: Instant
 }
 export interface ConsultationCompletedEventPayload {
 consultation_id: Ulid
@@ -14383,6 +15249,13 @@ consultation_id: Ulid
 recommended_date: CivilDate
 reminder_enabled: boolean
 preferred_channel: FollowUpPlansPreferredChannel
+}
+export interface HumanHandoffRequestedEventPayload {
+handoff_id: Ulid
+conversation_id: Ulid
+lead_id: NullableUlid
+event_type: ConversationHandoffsEventType
+occurred_at: Instant
 }
 export interface InvoiceIssuedEventPayload {
 invoice_id: Ulid
@@ -14417,6 +15290,13 @@ origin: OpticalPrescriptionsOrigin
 version_no: number
 validated_at: Instant
 document_id: NullableUlid
+}
+export interface PublicBookingRequestedEventPayload {
+booking_request_id: Ulid
+public_reference: string
+service_id: Ulid
+requested_starts_at: Instant
+status: PublicBookingRequestsStatus
 }
 export interface StockThresholdCrossedEventPayload {
 stock_alert_id: Ulid

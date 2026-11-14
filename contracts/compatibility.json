@@ -44,7 +44,11 @@
     "CreditNoteIssued": [1],
     "DeliveryConfirmed": [1],
     "StockThresholdCrossed": [1],
-    "WorkshopReady": [1]
+    "WorkshopReady": [1],
+    "AppointmentNoShow": [1],
+    "PublicBookingRequested": [1],
+    "HumanHandoffRequested": [1],
+    "CampaignCompleted": [1]
   },
   "vault_formats": [1],
   "local_schema_versions": [1, 2, 3, 4, 5],

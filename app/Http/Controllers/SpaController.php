@@ -15,7 +15,7 @@ class SpaController extends Controller
      * Motif des chemins servis par la coquille (sans la barre initiale).
      * Exclut api, build, storage (y compris le segment seul) et les chemins se terminant par une extension.
      */
-    public const SHELL_PATH_PATTERN = '(?!(?:api|build|storage)(?:/|$))(?!.*\.[A-Za-z0-9]{1,10}$).*';
+    public const SHELL_PATH_PATTERN = '(?!(?:api|public|build|storage)(?:/|$))(?!.*\.[A-Za-z0-9]{1,10}$).*';
 
     public function shell(): Response
     {

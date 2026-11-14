@@ -187,6 +187,20 @@ final readonly class ApprovalSubject
     }
 
     /**
+     * Envoi d'une campagne de communication : campagne, segment, révision approuvée du modèle et volume exact de
+     * destinataires admissibles au gel de l'audience (L2D08).
+     */
+    public static function campaignSend(string $campaignId, string $segmentId, string $templateVersionId, int $eligibleCount): self
+    {
+        return new self(ApprovalKind::CampaignSend, $campaignId, [
+            'campaign_id' => $campaignId,
+            'segment_id' => $segmentId,
+            'template_version_id' => $templateVersionId,
+            'eligible_count' => $eligibleCount,
+        ]);
+    }
+
+    /**
      * Contenu d'une DEMANDE (`RequestApproval.subject`, déjà validé par le schéma du contrat). Une nature inconnue ou un
      * champ manquant est un refus de saisie, jamais une approbation « générale ».
      *
@@ -247,6 +261,7 @@ final readonly class ApprovalSubject
             ApprovalKind::CreditDelivery => self::creditDelivery($string('invoice_id'), $integer('amount_due'), $list('lines')),
             ApprovalKind::StockMovement => self::stockMovement($string('position_id'), $string('item_id'), $nullableString('lot_id'), $string('movement_kind'), $string('signed_quantity')),
             ApprovalKind::CashMovement => self::cashMovement($string('cash_session_id'), $string('movement_kind'), $signedInteger('signed_amount'), $nullableString('expense_category_id')),
+            ApprovalKind::CampaignSend => self::campaignSend($string('campaign_id'), $string('segment_id'), $string('template_version_id'), $integer('eligible_count')),
             null => throw RuleViolation::invalid('subject.kind', 'approval.kind_unknown', 'Nature d\'opération à approuver inconnue.'),
         };
     }

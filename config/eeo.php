@@ -44,6 +44,8 @@ return [
         // parcours e2e (EEO_RATE_REAUTHENTICATE) : préparer un poste en demande quatre ou cinq à la suite, et deux parcours
         // enchaînés partagent la même minute.
         'reauthenticate' => (int) env('EEO_RATE_REAUTHENTICATE', 5),
+        'public_booking' => (int) env('EEO_RATE_PUBLIC_BOOKING', 20),
+        'public_webhook' => (int) env('EEO_RATE_PUBLIC_WEBHOOK', 120),
     ],
 
     /*
@@ -238,6 +240,37 @@ return [
 
     'integrations' => [
         'mode' => env('EEO_INTEGRATIONS_MODE', 'fake'),
+        'credentials_key' => env('EEO_INTEGRATIONS_KEY', ''),
+        'destination_hash_salt' => env('EEO_DESTINATION_HASH_SALT', ''),
+        'default_clinic_id' => env('EEO_PUBLIC_CLINIC_ID', ''),
+        'webhook_max_bytes' => (int) env('EEO_WEBHOOK_MAX_BYTES', 262144),
+        'outbox_max_attempts' => (int) env('EEO_OUTBOX_MAX_ATTEMPTS', 5),
+        'timeout_seconds' => (int) env('EEO_INTEGRATIONS_TIMEOUT_SECONDS', 10),
+        'google' => [
+            'client_id' => env('EEO_GOOGLE_CLIENT_ID', ''),
+            'client_secret' => env('EEO_GOOGLE_CLIENT_SECRET', ''),
+            'webhook_token' => env('EEO_GOOGLE_WEBHOOK_TOKEN', ''),
+        ],
+        'kommo' => [
+            'client_id' => env('EEO_KOMMO_CLIENT_ID', ''),
+            'client_secret' => env('EEO_KOMMO_CLIENT_SECRET', ''),
+            'webhook_secret' => env('EEO_KOMMO_WEBHOOK_SECRET', ''),
+            'subdomain' => env('EEO_KOMMO_SUBDOMAIN', ''),
+        ],
+        'meta' => [
+            'app_secret' => env('EEO_META_APP_SECRET', ''),
+            'verify_token' => env('EEO_META_VERIFY_TOKEN', ''),
+            'phone_number_id' => env('EEO_META_PHONE_NUMBER_ID', ''),
+        ],
+        'sms' => [
+            'provider' => env('EEO_SMS_PROVIDER', ''),
+            'api_key' => env('EEO_SMS_API_KEY', ''),
+            'sender_id' => env('EEO_SMS_SENDER_ID', ''),
+        ],
+        'assistant' => [
+            'enabled' => filter_var(env('EEO_ASSISTANT_ENABLED', true), FILTER_VALIDATE_BOOL),
+            'max_tools_per_run' => (int) env('EEO_ASSISTANT_MAX_TOOLS', 5),
+        ],
     ],
 
 ];

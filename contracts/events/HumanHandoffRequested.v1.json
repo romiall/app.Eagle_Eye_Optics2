@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eeo.invalid/contracts/events/HumanHandoffRequested.v1.json",
+  "title": "HumanHandoffRequested (charge v1)",
+  "description": "Demande ou prise en charge humaine d'une conversation CRM/IA (L2). Généré par contracts/tools/build_events.py : ne pas modifier à la main.",
+  "x-entity-type": "conversation_handoffs",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "handoff_id",
+    "conversation_id",
+    "lead_id",
+    "event_type",
+    "occurred_at"
+  ],
+  "properties": {
+    "handoff_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    },
+    "conversation_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    },
+    "lead_id": {
+      "$ref": "../schemas/common.json#/$defs/NullableUlid"
+    },
+    "event_type": {
+      "$ref": "../schemas/enums.json#/$defs/conversation_handoffs.event_type"
+    },
+    "occurred_at": {
+      "$ref": "../schemas/common.json#/$defs/Instant"
+    }
+  }
+}
