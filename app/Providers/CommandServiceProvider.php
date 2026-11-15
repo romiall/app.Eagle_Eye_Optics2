@@ -23,6 +23,7 @@ use App\Domain\Documents\DocumentCommands;
 use App\Domain\Inventory\InventoryCommands;
 use App\Domain\Operations\OperationsCommands;
 use App\Domain\Patients\PatientCommands;
+use App\Domain\PublicSite\PublicSiteCommands;
 use App\Domain\Scheduling\SchedulingCommands;
 use App\Domain\Workshop\WorkshopCommands;
 use App\Offline\OfflineCommands;
@@ -114,6 +115,10 @@ final class CommandServiceProvider extends ServiceProvider
             $registry->register($definition);
         }
         foreach (CommunicationCommands::definitions() as $definition) {
+            $registry->register($definition);
+        }
+        // Site public (L3D02) : fiches du showroom, images et contenus publics, approuvés par la gérante.
+        foreach (PublicSiteCommands::definitions() as $definition) {
             $registry->register($definition);
         }
         // Atelier optique (L1D04) : création de commande labo, suivi montage/contrôle qualité et bon laboratoire.

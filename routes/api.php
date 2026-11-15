@@ -44,7 +44,9 @@ use App\Http\Controllers\Api\V1\PatientController;
 use App\Http\Controllers\Api\V1\PatientMergeController;
 use App\Http\Controllers\Api\V1\PaymentReconciliationController;
 use App\Http\Controllers\Api\V1\PrescriptionController;
+use App\Http\Controllers\Api\V1\PublicationController;
 use App\Http\Controllers\Api\V1\PublicBookingDecisionController;
+use App\Http\Controllers\Api\V1\PublicContentController;
 use App\Http\Controllers\Api\V1\PurchasingController;
 use App\Http\Controllers\Api\V1\QuoteController;
 use App\Http\Controllers\Api\V1\ReceiptController;
@@ -1037,6 +1039,40 @@ Route::prefix('v1')->group(function (): void {
                 Route::get('communication/campaigns/{id}/recipients', [CampaignController::class, 'listRecipients'])
                     ->whereUlid('id')
                     ->name('api.communication.campaigns.recipients.index');
+            });
+
+            // Site public (L3D02) : fiches du showroom, images et contenus publics, droit site.publish (gérante). Publier ou
+            // retirer exige une réauthentification récente ; l'image arrive en octets bruts (contrôlés avant écriture).
+            Route::middleware('can:site.publish')->group(function (): void {
+                Route::get('publications', [PublicationController::class, 'index'])
+                    ->name('api.publications.index');
+                Route::post('publications', [PublicationController::class, 'store'])
+                    ->name('api.publications.store');
+                Route::patch('publications/{id}', [PublicationController::class, 'update'])
+                    ->whereUlid('id')
+                    ->name('api.publications.update');
+                Route::post('publications/{id}/status', [PublicationController::class, 'status'])
+                    ->middleware('reauthenticated')
+                    ->whereUlid('id')
+                    ->name('api.publications.status');
+                Route::post('publications/{id}/media', [PublicationController::class, 'attachMedia'])
+                    ->whereUlid('id')
+                    ->name('api.publications.media.store');
+                Route::delete('publications/{id}/media/{mediaId}', [PublicationController::class, 'removeMedia'])
+                    ->whereUlid('id')
+                    ->whereUlid('mediaId')
+                    ->name('api.publications.media.destroy');
+                Route::get('publication-media/{id}', [PublicationController::class, 'mediaFile'])
+                    ->whereUlid('id')
+                    ->name('api.publication-media.show');
+                Route::get('public-contents', [PublicContentController::class, 'index'])
+                    ->name('api.public-contents.index');
+                Route::post('public-contents', [PublicContentController::class, 'store'])
+                    ->name('api.public-contents.store');
+                Route::post('public-contents/{id}/status', [PublicContentController::class, 'status'])
+                    ->middleware('reauthenticated')
+                    ->whereUlid('id')
+                    ->name('api.public-contents.status');
             });
         });
     });

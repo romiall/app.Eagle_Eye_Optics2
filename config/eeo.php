@@ -46,6 +46,8 @@ return [
         'reauthenticate' => (int) env('EEO_RATE_REAUTHENTICATE', 5),
         'public_booking' => (int) env('EEO_RATE_PUBLIC_BOOKING', 20),
         'public_webhook' => (int) env('EEO_RATE_PUBLIC_WEBHOOK', 120),
+        // Lectures publiques du showroom et des contenus (L3D02) : par adresse, sans compte.
+        'public_read' => (int) env('EEO_RATE_PUBLIC_READ', 120),
     ],
 
     /*
@@ -271,6 +273,24 @@ return [
             'enabled' => filter_var(env('EEO_ASSISTANT_ENABLED', true), FILTER_VALIDATE_BOOL),
             'max_tools_per_run' => (int) env('EEO_ASSISTANT_MAX_TOOLS', 5),
         ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Site public (L3)
+    |--------------------------------------------------------------------------
+    |
+    | Showroom, contenus publics et réservation en ligne, lus SANS compte par `/public/v1/*` : seules les références
+    | publiées et les contenus approuvés par la gérante sortent de l'application. `allowed_origins` : sites tiers
+    | autorisés à appeler cette API depuis un navigateur (vide par défaut : aucune origine tierce).
+    |
+    */
+
+    'public_site' => [
+        'allowed_origins' => array_values(array_filter(array_map('trim', explode(',', (string) env('EEO_PUBLIC_ALLOWED_ORIGINS', ''))))),
+        'max_media_bytes' => (int) env('EEO_PUBLIC_MEDIA_MAX_BYTES', 3145728),
+        'max_media_per_publication' => (int) env('EEO_PUBLIC_MEDIA_PER_PUBLICATION', 8),
+        'cache_seconds' => (int) env('EEO_PUBLIC_CACHE_SECONDS', 300),
     ],
 
 ];

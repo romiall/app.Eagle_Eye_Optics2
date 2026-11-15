@@ -1394,8 +1394,38 @@ def public_resources():
                                'service_id': ulid(), 'requested_starts_at': instant(), 'requested_ends_at': instant()},
                               description='Référence publique distincte des identifiants internes ; ne révèle jamais l\'existence d\'un dossier.'),
         'BookingReceiptResponse': data('BookingReceipt'),
+        # --- Site public (L3D02) : ce que la gérante gère, puis ce que le public lit (liste blanche de champs) ---
+        'PublicationMedia': obj({'id': ulid(), 'alt_text': text(255), 'rights_note': text(1000), 'display_order': integer(0, 9999),
+                                 'approved_at': instant()},
+                                description='Image approuvée d\'une fiche : texte alternatif et note de droits obligatoires.'),
+        'Publication': obj({'id': ulid(), 'catalog_item_id': ulid(), 'item_name': text(180), 'item_reference': text(64),
+                            'item_eligible': boolean(), 'slug': text(180), 'public_title': text(180), 'public_description': text(2000),
+                            'style': n_text(100), 'show_sale_price': boolean(), 'sale_price': money(),
+                            'status': enum('catalog_publications.status'), 'display_order': integer(0, 9999),
+                            'published_at': n_instant(), 'version': integer(1), 'media': array(local('PublicationMedia'))},
+                           description='Fiche du showroom côté gérante. Seule une fiche PUBLIÉE dont l\'article est actif et visible sort sur le site.'),
+        'PublicationPage': page('Publication'),
+        'PublicationResponse': data('Publication'),
+        'PublicContentRevision': obj({'id': ulid(), 'code': text(100), 'title': text(180), 'content': text(4000), 'revision_no': integer(1),
+                                      'status': enum('public_contents.status'), 'published_at': n_instant(), 'version': integer(1)}),
+        'PublicContentEntry': obj({'code': text(100), 'label': text(180), 'published': nullable(local('PublicContentRevision')),
+                                   'draft': nullable(local('PublicContentRevision'))},
+                                  description='Un code de contenu : la révision publiée et le brouillon en cours.'),
+        'PublicContentList': obj({'data': array(local('PublicContentEntry'))}),
+        'PublicContentResponse': data('PublicContentRevision'),
+        'ShowroomMedia': obj({'url': text(200), 'alt': text(255)}),
+        'ShowroomItem': obj({'slug': text(180), 'title': text(180), 'description': text(2000), 'style': n_text(100), 'brand': n_text(120),
+                             'price': nullable(money()), 'currency': {'type': 'string', 'enum': ['XAF']},
+                             'media': array(local('ShowroomMedia'))},
+                            description='Référence publiée : jamais de coût d\'achat, de stock, de référence interne ni de donnée de patient. Le prix n\'est rendu que si la gérante le montre.'),
+        'ShowroomFacets': obj({'styles': array(text(100)), 'brands': array(text(120))}),
+        'ShowroomPage': obj({'data': array(local('ShowroomItem')), 'meta': ref('Pagination'), 'facets': local('ShowroomFacets')}),
+        'ShowroomItemResponse': data('ShowroomItem'),
+        'PublicContent': obj({'code': text(100), 'title': text(180), 'content': text(4000), 'whatsapp_url': n_text(100)},
+                             description='Contenu publié par la gérante ; pour WHATSAPP, le lien https://wa.me/<numéro>.'),
+        'PublicContentPublicList': obj({'data': array(local('PublicContent'))}),
     }
-    return schema_file('schemas/resources/public.json', 'Ressources : réservation publique (L2)', 'Prestations réservables et créneaux administratifs, sans dossier ni nom de patient (fichier 08).', defs)
+    return schema_file('schemas/resources/public.json', 'Ressources : site public (L2, L3)', 'Prestations réservables, créneaux administratifs, showroom et contenus publics, sans dossier ni nom de patient (fichier 08).', defs)
 
 
 def communication_resources():
@@ -2189,6 +2219,18 @@ def requests():
         'FreezeCampaignRequest': obj({'approval_id': n_ulid()}, optional=('approval_id',)),
         'PauseCampaignRequest': obj({'reason': n_text(1000)}, optional=('reason',)),
         'ReconcileIntegrationsRequest': obj({'limit': integer(1, 200)}, optional=('limit',)),
+        # --- Site public (L3D02), droit site.publish : version attendue nulle à la création, entière ensuite ---
+        'SaveCatalogPublicationRequest': obj({'expected_version': {'type': ['integer', 'null'], 'minimum': 1}, 'catalog_item_id': ulid(),
+                                              'slug': text(180), 'public_title': text(180, 2), 'public_description': text(2000, 10),
+                                              'style': n_text(100), 'show_sale_price': boolean(), 'display_order': integer(0, 9999)},
+                                             optional=('catalog_item_id', 'slug', 'style', 'show_sale_price', 'display_order'),
+                                             description='Brouillon d\'une fiche du showroom (création : catalog_item_id et version nulle ; modification : version attendue, la fiche repasse en brouillon).'),
+        'ChangePublicStatusRequest': obj({'expected_version': {'type': 'integer', 'minimum': 1}, 'status': {'type': 'string', 'enum': ['DRAFT', 'PUBLISHED', 'ARCHIVED']},
+                                          'reason': n_text(500)}, optional=('reason',),
+                                         description='Publier (décision de la gérante), retirer (retour en brouillon) ou archiver une fiche ou un contenu public.'),
+        'SavePublicContentRequest': obj({'expected_version': {'type': 'null'}, 'code': {'type': 'string', 'enum': ['ACCUEIL', 'EXPERTISES', 'HORAIRES', 'LOCALISATION', 'WHATSAPP', 'RESEAUX_SOCIAUX', 'CONTACT']},
+                                         'title': text(180, 2), 'content': text(4000)},
+                                        description='Brouillon d\'un contenu public ; il remplace le brouillon existant du même code, sinon ouvre une révision.'),
     }
     # Commandes du chemin central validées par le bus : il ajoute `expected_version` (null ici) au corps direct.
     for name in ('CatalogImportRequest', 'StoreDocumentContentCommand', 'LegacyBalanceImportRequest',

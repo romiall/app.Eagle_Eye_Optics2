@@ -791,6 +791,9 @@ SchemasRequestsHttpJsonSaveCampaignRequest?: SaveCampaignRequest
 SchemasRequestsHttpJsonFreezeCampaignRequest?: FreezeCampaignRequest
 SchemasRequestsHttpJsonPauseCampaignRequest?: PauseCampaignRequest
 SchemasRequestsHttpJsonReconcileIntegrationsRequest?: ReconcileIntegrationsRequest
+SchemasRequestsHttpJsonSaveCatalogPublicationRequest?: SaveCatalogPublicationRequest
+SchemasRequestsHttpJsonChangePublicStatusRequest?: ChangePublicStatusRequest
+SchemasRequestsHttpJsonSavePublicContentRequest?: SavePublicContentRequest
 SchemasResourcesAccessJsonStaffMemberSummary?: StaffMemberSummary
 SchemasResourcesAccessJsonStaffMember?: StaffMember
 SchemasResourcesAccessJsonClinicSummary?: ClinicSummary
@@ -1048,6 +1051,21 @@ SchemasResourcesPublicJsonPublicSlot?: PublicSlot
 SchemasResourcesPublicJsonPublicSlotList?: PublicSlotList
 SchemasResourcesPublicJsonBookingReceipt?: BookingReceipt
 SchemasResourcesPublicJsonBookingReceiptResponse?: BookingReceiptResponse
+SchemasResourcesPublicJsonPublicationMedia?: PublicationMedia
+SchemasResourcesPublicJsonPublication?: Publication
+SchemasResourcesPublicJsonPublicationPage?: PublicationPage
+SchemasResourcesPublicJsonPublicationResponse?: PublicationResponse
+SchemasResourcesPublicJsonPublicContentRevision?: PublicContentRevision
+SchemasResourcesPublicJsonPublicContentEntry?: PublicContentEntry
+SchemasResourcesPublicJsonPublicContentList?: PublicContentList
+SchemasResourcesPublicJsonPublicContentResponse?: PublicContentResponse
+SchemasResourcesPublicJsonShowroomMedia?: ShowroomMedia
+SchemasResourcesPublicJsonShowroomItem?: ShowroomItem
+SchemasResourcesPublicJsonShowroomFacets?: ShowroomFacets
+SchemasResourcesPublicJsonShowroomPage?: ShowroomPage
+SchemasResourcesPublicJsonShowroomItemResponse?: ShowroomItemResponse
+SchemasResourcesPublicJsonPublicContent?: PublicContent
+SchemasResourcesPublicJsonPublicContentPublicList?: PublicContentPublicList
 SchemasResourcesSchedulingJsonSchedulingPatient?: SchedulingPatient
 SchemasResourcesSchedulingJsonOpeningHour?: OpeningHour
 SchemasResourcesSchedulingJsonSchedulingResource?: SchedulingResource
@@ -7281,6 +7299,36 @@ export interface ReconcileIntegrationsRequest {
 limit?: number
 }
 /**
+ * Brouillon d'une fiche du showroom (création : catalog_item_id et version nulle ; modification : version attendue, la fiche repasse en brouillon).
+ */
+export interface SaveCatalogPublicationRequest {
+expected_version: (number | null)
+catalog_item_id?: Ulid
+slug?: string
+public_title: string
+public_description: string
+style?: (string | null)
+show_sale_price?: boolean
+display_order?: number
+}
+/**
+ * Publier (décision de la gérante), retirer (retour en brouillon) ou archiver une fiche ou un contenu public.
+ */
+export interface ChangePublicStatusRequest {
+expected_version: number
+status: ("DRAFT" | "PUBLISHED" | "ARCHIVED")
+reason?: (string | null)
+}
+/**
+ * Brouillon d'un contenu public ; il remplace le brouillon existant du même code, sinon ouvre une révision.
+ */
+export interface SavePublicContentRequest {
+expected_version: null
+code: ("ACCUEIL" | "EXPERTISES" | "HORAIRES" | "LOCALISATION" | "WHATSAPP" | "RESEAUX_SOCIAUX" | "CONTACT")
+title: string
+content: string
+}
+/**
  * Compte dans une liste : sans les permissions effectives.
  */
 export interface StaffMemberSummary {
@@ -11113,6 +11161,134 @@ requested_ends_at: Instant
 }
 export interface BookingReceiptResponse {
 data: BookingReceipt
+}
+/**
+ * Image approuvée d'une fiche : texte alternatif et note de droits obligatoires.
+ */
+export interface PublicationMedia {
+id: Ulid
+alt_text: string
+rights_note: string
+display_order: number
+approved_at: Instant
+}
+/**
+ * Fiche du showroom côté gérante. Seule une fiche PUBLIÉE dont l'article est actif et visible sort sur le site.
+ */
+export interface Publication {
+id: Ulid
+catalog_item_id: Ulid
+item_name: string
+item_reference: string
+item_eligible: boolean
+slug: string
+public_title: string
+public_description: string
+style: (string | null)
+show_sale_price: boolean
+sale_price: MoneyXaf
+status: CatalogPublicationsStatus
+display_order: number
+published_at: NullableInstant
+version: number
+/**
+ * @minItems 0
+ */
+media: PublicationMedia[]
+}
+export interface PublicationPage {
+/**
+ * @minItems 0
+ */
+data: Publication[]
+meta: Pagination
+}
+export interface PublicationResponse {
+data: Publication
+}
+export interface PublicContentRevision {
+id: Ulid
+code: string
+title: string
+content: string
+revision_no: number
+status: PublicContentsStatus
+published_at: NullableInstant
+version: number
+}
+/**
+ * Un code de contenu : la révision publiée et le brouillon en cours.
+ */
+export interface PublicContentEntry {
+code: string
+label: string
+published: (PublicContentRevision | null)
+draft: (PublicContentRevision | null)
+}
+export interface PublicContentList {
+/**
+ * @minItems 0
+ */
+data: PublicContentEntry[]
+}
+export interface PublicContentResponse {
+data: PublicContentRevision
+}
+export interface ShowroomMedia {
+url: string
+alt: string
+}
+/**
+ * Référence publiée : jamais de coût d'achat, de stock, de référence interne ni de donnée de patient. Le prix n'est rendu que si la gérante le montre.
+ */
+export interface ShowroomItem {
+slug: string
+title: string
+description: string
+style: (string | null)
+brand: (string | null)
+price: (MoneyXaf | null)
+currency: "XAF"
+/**
+ * @minItems 0
+ */
+media: ShowroomMedia[]
+}
+export interface ShowroomFacets {
+/**
+ * @minItems 0
+ */
+styles: string[]
+/**
+ * @minItems 0
+ */
+brands: string[]
+}
+export interface ShowroomPage {
+/**
+ * @minItems 0
+ */
+data: ShowroomItem[]
+meta: Pagination
+facets: ShowroomFacets
+}
+export interface ShowroomItemResponse {
+data: ShowroomItem
+}
+/**
+ * Contenu publié par la gérante ; pour WHATSAPP, le lien https://wa.me/<numéro>.
+ */
+export interface PublicContent {
+code: string
+title: string
+content: string
+whatsapp_url: (string | null)
+}
+export interface PublicContentPublicList {
+/**
+ * @minItems 0
+ */
+data: PublicContent[]
 }
 /**
  * Identité administrative minimale du patient d'un rendez-vous, d'un suivi ou d'une tâche.

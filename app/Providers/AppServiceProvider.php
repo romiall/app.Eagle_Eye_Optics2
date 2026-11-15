@@ -132,6 +132,8 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('eeo-reauthenticate', static fn (Request $request): Limit => Limit::perMinute((int) config('eeo.rate_limits.reauthenticate', 5))->by('reauth:'.($request->user()?->getAuthIdentifier() ?? $request->ip())));
         RateLimiter::for('eeo-public-booking', static fn (Request $request): Limit => Limit::perMinute((int) config('eeo.rate_limits.public_booking', 20))->by('public-booking:'.$request->ip()));
         RateLimiter::for('eeo-public-webhook', static fn (Request $request): Limit => Limit::perMinute((int) config('eeo.rate_limits.public_webhook', 120))->by('public-webhook:'.$request->ip()));
+        // Lectures publiques du showroom (L3D02) : sans compte, donc limitées par adresse.
+        RateLimiter::for('eeo-public-read', static fn (Request $request): Limit => Limit::perMinute((int) config('eeo.rate_limits.public_read', 120))->by('public-read:'.$request->ip()));
     }
 
     /**

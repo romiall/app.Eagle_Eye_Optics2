@@ -26,6 +26,7 @@ tags:
   - name: "Restitution"
   - name: "Réservation publique (L2)"
   - name: "Intégrations (L2)"
+  - name: "Site public (L3)"
   - name: "CRM et Assistant (L2)"
   - name: "Communication (L2)"
   - name: "Campagnes (L2)"
@@ -8940,6 +8941,607 @@ paths:
       x-idempotency: "required"
       x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "L2D02"
+  /v1/publications:
+    get:
+      operationId: "ListPublications"
+      summary: "Fiches du showroom (gérante)"
+      tags:
+        - "Site public (L3)"
+      description: "Module communication. Brouillons compris, avec les notes de droits des images."
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: "status"
+          in: "query"
+          required: false
+          description: "Filtre statut : DRAFT, PUBLISHED ou ARCHIVED."
+          schema:
+            type: "string"
+        - name: "page"
+          in: "query"
+          required: false
+          description: "Page (pagination, 1 par défaut)."
+          schema:
+            type: "integer"
+            minimum: 1
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/public.json#/$defs/PublicationPage"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "site.publish"
+      x-reauthentication: false
+      x-idempotency: "none"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "L3D02"
+    post:
+      operationId: "SaveCatalogPublication"
+      summary: "Créer le brouillon d'une fiche du showroom"
+      tags:
+        - "Site public (L3)"
+      description: "L'article doit être actif et marqué visible au public dans le catalogue. Une fiche ne se publie jamais seule."
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/SaveCatalogPublicationRequest"
+      responses:
+        "201":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/public.json#/$defs/PublicationResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "site.publish"
+      x-reauthentication: false
+      x-idempotency: "required"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "L3D02"
+  /v1/publications/{id}:
+    patch:
+      operationId: "UpdateCatalogPublication"
+      summary: "Modifier une fiche du showroom"
+      tags:
+        - "Site public (L3)"
+      description: "Version attendue obligatoire. Modifier une fiche publiée la remet en brouillon : le public ne voit que du texte approuvé."
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/SaveCatalogPublicationRequest"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/public.json#/$defs/PublicationResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "site.publish"
+      x-reauthentication: false
+      x-idempotency: "required"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "L3D02"
+  /v1/publications/{id}/status:
+    post:
+      operationId: "ChangeCatalogPublicationStatus"
+      summary: "Publier, retirer ou archiver une fiche"
+      tags:
+        - "Site public (L3)"
+      description: "Publier est la décision de la gérante : son nom et l'instant sont conservés. Réauthentification récente exigée."
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/ChangePublicStatusRequest"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/public.json#/$defs/PublicationResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+        "423":
+          $ref: "#/components/responses/ReauthenticationRequired"
+      x-permission:
+        - "site.publish"
+      x-reauthentication: true
+      x-idempotency: "required"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "L3D02"
+  /v1/publications/{id}/media:
+    post:
+      operationId: "AttachCatalogMedia"
+      summary: "Ajouter une image à une fiche"
+      tags:
+        - "Site public (L3)"
+      description: "Octets bruts JPEG, PNG ou WebP (3 Mo, 200 à 8 000 px) : le vrai format est lu dans les octets, jamais le type annoncé."
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+        - name: "alt_text"
+          in: "query"
+          required: false
+          description: "Texte alternatif (3 à 255 caractères)."
+          schema:
+            type: "string"
+        - name: "rights_note"
+          in: "query"
+          required: false
+          description: "Note de droits obligatoire (3 à 1 000 caractères)."
+          schema:
+            type: "string"
+        - name: "display_order"
+          in: "query"
+          required: false
+          description: "Ordre d'affichage (0 à 9999)."
+          schema:
+            type: "string"
+      requestBody:
+        required: true
+        content:
+          image/jpeg:
+            schema:
+              type: "string"
+              contentMediaType: "image/jpeg"
+          image/png:
+            schema:
+              type: "string"
+              contentMediaType: "image/png"
+          image/webp:
+            schema:
+              type: "string"
+              contentMediaType: "image/webp"
+      responses:
+        "201":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/public.json#/$defs/PublicationResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "site.publish"
+      x-reauthentication: false
+      x-idempotency: "required"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "L3D02"
+  /v1/publications/{id}/media/{mediaId}:
+    delete:
+      operationId: "RemoveCatalogMedia"
+      summary: "Retirer une image d'une fiche"
+      tags:
+        - "Site public (L3)"
+      description: "L'image disparaît du site à l'instant ; le fichier privé est conservé."
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+        - name: "mediaId"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de l'image."
+          schema:
+            type: "string"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/public.json#/$defs/PublicationResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+      x-permission:
+        - "site.publish"
+      x-reauthentication: false
+      x-idempotency: "none"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "L3D02"
+  /v1/publication-media/{id}:
+    get:
+      operationId: "GetPublicationMediaFile"
+      summary: "Image d'une fiche pour la gérante (aperçu)"
+      tags:
+        - "Site public (L3)"
+      description: "Octets de l'image, brouillon compris ; jamais servie à un compte sans site.publish."
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      responses:
+        "200":
+          description: "Succès, sans contenu."
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+      x-permission:
+        - "site.publish"
+      x-reauthentication: false
+      x-idempotency: "none"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "L3D02"
+  /v1/public-contents:
+    get:
+      operationId: "ListPublicContents"
+      summary: "Contenus publics (gérante)"
+      tags:
+        - "Site public (L3)"
+      description: "Un enregistrement par code prévu, avec la révision publiée et le brouillon en cours."
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/public.json#/$defs/PublicContentList"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+      x-permission:
+        - "site.publish"
+      x-reauthentication: false
+      x-idempotency: "none"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "L3D02"
+    post:
+      operationId: "SavePublicContent"
+      summary: "Enregistrer le brouillon d'un contenu public"
+      tags:
+        - "Site public (L3)"
+      description: "Remplace le brouillon du même code, sinon ouvre une révision ; le numéro WhatsApp est contrôlé."
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/SavePublicContentRequest"
+      responses:
+        "201":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/public.json#/$defs/PublicContentResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "site.publish"
+      x-reauthentication: false
+      x-idempotency: "required"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "L3D02"
+  /v1/public-contents/{id}/status:
+    post:
+      operationId: "ChangePublicContentStatus"
+      summary: "Publier ou archiver un contenu public"
+      tags:
+        - "Site public (L3)"
+      description: "Une seule révision publique par code : l'ancienne est archivée dans la même transaction. Réauthentification récente exigée."
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/ChangePublicStatusRequest"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/public.json#/$defs/PublicContentResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+        "423":
+          $ref: "#/components/responses/ReauthenticationRequired"
+      x-permission:
+        - "site.publish"
+      x-reauthentication: true
+      x-idempotency: "required"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "L3D02"
+  /public/v1/showroom:
+    servers:
+      - url: "/"
+        description: "Routes publiques hors /api (fichier 08, L2)."
+    get:
+      operationId: "ListShowroom"
+      summary: "Références publiées du showroom"
+      tags:
+        - "Site public (L3)"
+      description: "Liste blanche de champs : jamais de coût d'achat, de stock ni de référence interne. Mise en cache brève."
+      security: []
+      parameters:
+        - name: "style"
+          in: "query"
+          required: false
+          description: "Filtre style."
+          schema:
+            type: "string"
+        - name: "brand"
+          in: "query"
+          required: false
+          description: "Filtre marque."
+          schema:
+            type: "string"
+        - name: "page"
+          in: "query"
+          required: false
+          description: "Page (pagination, 1 par défaut)."
+          schema:
+            type: "integer"
+            minimum: 1
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/public.json#/$defs/ShowroomPage"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+      x-reauthentication: false
+      x-idempotency: "none"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "L3D02"
+  /public/v1/showroom/{slug}:
+    servers:
+      - url: "/"
+        description: "Routes publiques hors /api (fichier 08, L2)."
+    get:
+      operationId: "GetShowroomItem"
+      summary: "Une référence publiée"
+      tags:
+        - "Site public (L3)"
+      security: []
+      parameters:
+        - name: "slug"
+          in: "path"
+          required: true
+          description: "Adresse de la fiche (minuscules, chiffres, tirets)."
+          schema:
+            type: "string"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/public.json#/$defs/ShowroomItemResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+      x-reauthentication: false
+      x-idempotency: "none"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "L3D02"
+  /public/v1/contents:
+    servers:
+      - url: "/"
+        description: "Routes publiques hors /api (fichier 08, L2)."
+    get:
+      operationId: "ListPublicSiteContents"
+      summary: "Contenus publics approuvés"
+      tags:
+        - "Site public (L3)"
+      description: "Accueil, expertises, horaires, localisation, WhatsApp, réseaux, contact : la révision publiée de chaque code."
+      security: []
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/public.json#/$defs/PublicContentPublicList"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+      x-reauthentication: false
+      x-idempotency: "none"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "L3D02"
+  /public/v1/media/{id}:
+    servers:
+      - url: "/"
+        description: "Routes publiques hors /api (fichier 08, L2)."
+    get:
+      operationId: "GetPublicMedia"
+      summary: "Image publiée d'une fiche"
+      tags:
+        - "Site public (L3)"
+      description: "Image approuvée d'une fiche publiée dont l'article est actif et visible ; sinon 404."
+      security: []
+      parameters:
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      responses:
+        "200":
+          description: "Succès, sans contenu."
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+      x-reauthentication: false
+      x-idempotency: "none"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "L3D02"
   /v1/public-bookings:
     get:
       operationId: "ListPublicBookingRequests"
