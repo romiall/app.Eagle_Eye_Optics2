@@ -4,14 +4,11 @@ namespace Tests\Feature\Integrations;
 
 use App\Domain\Operations\IntegrationAccounts;
 use App\Domain\Operations\WebhookInboxService;
-use App\Http\Controllers\Api\V1\WebhookAdminController;
-use App\Http\Controllers\PublicWebhookController;
 use App\Models\User;
 use App\Support\Integrations\Contracts\WebhookConsumerInterface;
 use App\Support\Integrations\IntegrationCrypto;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Route;
 use Illuminate\Testing\TestResponse;
 use RuntimeException;
 use Symfony\Component\HttpFoundation\Response;
@@ -42,16 +39,6 @@ final class WebhookInboxAndReconcileTest extends TestCase
         $this->clinicB = $this->makeClinic('CABINET WEBHOOK B');
         $this->managerA = $this->makeStaff($this->clinicA, 'MANAGER', 'hook.manager.a');
         $this->managerB = $this->makeStaff($this->clinicB, 'MANAGER', 'hook.manager.b');
-
-        Route::prefix('api/v1')->middleware(['api', 'auth:sanctum', 'active'])->group(function (): void {
-            Route::get('/integrations/webhooks', [WebhookAdminController::class, 'webhooks']);
-            Route::post('/integrations/reconcile', [WebhookAdminController::class, 'reconcile']);
-        });
-
-        Route::prefix('public/v1')->middleware(['api'])->group(function (): void {
-            Route::get('/webhooks/meta', [PublicWebhookController::class, 'verifyMeta']);
-            Route::post('/webhooks/{provider}', [PublicWebhookController::class, 'ingest']);
-        });
     }
 
     public function test_meta_challenge_verification_matches_account_secret(): void

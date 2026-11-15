@@ -98,7 +98,7 @@ const approvedTemplateOptions = computed(() =>
 )
 
 const TARGET_TYPE_OPTIONS: readonly { value: SegmentTargetType; label: string }[] = [
-  { value: 'ALL', label: 'Tous (patients et prospects)' },
+  { value: 'BOTH', label: 'Tous (patients et prospects)' },
   { value: 'PATIENT', label: 'Patients avec dossier' },
   { value: 'PROSPECT', label: 'Prospects administratifs uniquement' },
 ]
@@ -116,7 +116,7 @@ const segmentForm = reactive<{
   hasOpenQuote: boolean
 }>({
   name: '',
-  targetType: 'ALL',
+  targetType: 'BOTH',
   city: '',
   origin: null,
   visitedWithinDaysText: '',
@@ -132,7 +132,7 @@ function resetSegmentForm(): void {
   editingSegmentId.value = null
   editingSegmentVersion.value = 1
   segmentForm.name = ''
-  segmentForm.targetType = 'ALL'
+  segmentForm.targetType = 'BOTH'
   segmentForm.city = ''
   segmentForm.origin = null
   segmentForm.visitedWithinDaysText = ''
@@ -146,19 +146,17 @@ function editSegment(segment: AudienceSegment): void {
   editingSegmentId.value = segment.id
   editingSegmentVersion.value = segment.version
   segmentForm.name = segment.name
+  const rawSubjectType = criteria['subject_type'] ?? criteria['patient_or_prospect']
   segmentForm.targetType =
-    criteria['target_type'] === 'PATIENT' || criteria['target_type'] === 'PROSPECT'
-      ? criteria['target_type']
-      : 'ALL'
+    rawSubjectType === 'PATIENT' || rawSubjectType === 'PROSPECT' ? rawSubjectType : 'BOTH'
   segmentForm.city = typeof criteria['city'] === 'string' ? criteria['city'] : ''
   segmentForm.origin =
     typeof criteria['origin'] === 'string' ? (criteria['origin'] as ProspectContactsOrigin) : null
   segmentForm.visitedWithinDaysText =
-    typeof criteria['visited_within_days'] === 'number'
-      ? String(criteria['visited_within_days'])
-      : ''
-  segmentForm.hasUpcomingAppointment = criteria['has_upcoming_appointment'] === true
-  segmentForm.hasOpenQuote = criteria['has_open_quote'] === true
+    typeof criteria['last_visit_days'] === 'number' ? String(criteria['last_visit_days']) : ''
+  segmentForm.hasUpcomingAppointment =
+    typeof criteria['min_appointments'] === 'number' && criteria['min_appointments'] >= 1
+  segmentForm.hasOpenQuote = criteria['has_quote'] === true
   segmentError.value = null
   segmentSuccess.value = null
 }
@@ -174,20 +172,20 @@ async function submitSegment(): Promise<void> {
   }
 
   const criteria: Record<string, unknown> = {
-    target_type: segmentForm.targetType,
+    subject_type: segmentForm.targetType,
   }
   if (segmentForm.city.trim() !== '') criteria['city'] = segmentForm.city.trim()
   if (segmentForm.origin) criteria['origin'] = segmentForm.origin
   if (segmentForm.visitedWithinDaysText.trim() !== '') {
     const days = Number.parseInt(segmentForm.visitedWithinDaysText.trim(), 10)
-    if (!Number.isSafeInteger(days) || days <= 0) {
-      segmentError.value = 'Le délai de visite doit être un nombre entier positif de jours.'
+    if (!Number.isSafeInteger(days) || days < 0) {
+      segmentError.value = 'Le délai de visite doit être un nombre entier positif ou nul de jours.'
       return
     }
-    criteria['visited_within_days'] = days
+    criteria['last_visit_days'] = days
   }
-  if (segmentForm.hasUpcomingAppointment) criteria['has_upcoming_appointment'] = true
-  if (segmentForm.hasOpenQuote) criteria['has_open_quote'] = true
+  if (segmentForm.hasUpcomingAppointment) criteria['min_appointments'] = 1
+  if (segmentForm.hasOpenQuote) criteria['has_quote'] = true
 
   const forbidden = detectForbiddenSegmentTerms(criteria)
   if (forbidden.length > 0) {
@@ -615,7 +613,7 @@ function handleCampaignError(failure: unknown, title: string): void {
               :options="TARGET_TYPE_OPTIONS"
               required
               @update:model-value="
-                (val) => (segmentForm.targetType = (val as SegmentTargetType) ?? 'ALL')
+                (val) => (segmentForm.targetType = (val as SegmentTargetType) ?? 'BOTH')
               "
             />
             <TextField

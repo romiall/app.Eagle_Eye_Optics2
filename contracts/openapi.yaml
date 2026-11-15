@@ -8263,7 +8263,7 @@ paths:
                 $ref: "./schemas/resources/public.json#/$defs/PublicServiceList"
       x-reauthentication: false
       x-idempotency: "none"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "L2D02"
   /public/v1/slots:
     servers:
@@ -8303,7 +8303,7 @@ paths:
                 $ref: "./schemas/resources/public.json#/$defs/PublicSlotList"
       x-reauthentication: false
       x-idempotency: "none"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "L2D02"
   /public/v1/booking-requests:
     servers:
@@ -8339,7 +8339,7 @@ paths:
           $ref: "#/components/responses/RateLimited"
       x-reauthentication: false
       x-idempotency: "required"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "L2D02"
   /v1/integrations/health:
     get:
@@ -8366,7 +8366,7 @@ paths:
         - "integration.manage"
       x-reauthentication: false
       x-idempotency: "none"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "L2D01"
   /v1/integrations/accounts:
     get:
@@ -8393,7 +8393,7 @@ paths:
         - "integration.manage"
       x-reauthentication: false
       x-idempotency: "none"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "L2D01"
     post:
       operationId: "CreateIntegrationAccount"
@@ -8435,7 +8435,7 @@ paths:
         - "integration.manage"
       x-reauthentication: true
       x-idempotency: "required"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "L2D01"
   /v1/integrations/accounts/{id}:
     patch:
@@ -8485,7 +8485,7 @@ paths:
         - "integration.manage"
       x-reauthentication: true
       x-idempotency: "required"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "L2D01"
   /v1/integrations/accounts/{id}/test:
     post:
@@ -8525,7 +8525,7 @@ paths:
         - "integration.manage"
       x-reauthentication: false
       x-idempotency: "required"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "L2D01"
   /v1/integrations/outbox:
     get:
@@ -8574,7 +8574,7 @@ paths:
         - "integration.manage"
       x-reauthentication: false
       x-idempotency: "none"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "L2D01"
   /v1/integrations/outbox/process:
     post:
@@ -8612,7 +8612,7 @@ paths:
         - "integration.manage"
       x-reauthentication: false
       x-idempotency: "required"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "L2D01"
   /v1/integrations/webhooks:
     get:
@@ -8655,7 +8655,7 @@ paths:
         - "integration.manage"
       x-reauthentication: false
       x-idempotency: "none"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "L2D09"
   /v1/integrations/reconcile:
     post:
@@ -8693,7 +8693,7 @@ paths:
         - "integration.manage"
       x-reauthentication: false
       x-idempotency: "required"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "L2D09"
   /public/v1/webhooks/meta:
     servers:
@@ -8733,7 +8733,7 @@ paths:
           $ref: "#/components/responses/ValidationFailed"
       x-reauthentication: false
       x-idempotency: "none"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "L2D09"
   /public/v1/webhooks/{provider}:
     servers:
@@ -8771,7 +8771,7 @@ paths:
           $ref: "#/components/responses/RateLimited"
       x-reauthentication: false
       x-idempotency: "none"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "L2D09"
   /v1/integrations/google/states:
     get:
@@ -8799,7 +8799,7 @@ paths:
         - "agenda.read"
       x-reauthentication: false
       x-idempotency: "none"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "L2D02"
     post:
       operationId: "SaveCalendarSyncState"
@@ -8838,7 +8838,7 @@ paths:
         - "integration.manage"
       x-reauthentication: false
       x-idempotency: "required"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "L2D02"
   /v1/integrations/google/sync:
     post:
@@ -8881,7 +8881,7 @@ paths:
         - "agenda.write"
       x-reauthentication: false
       x-idempotency: "required"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "L2D02"
   /v1/public-bookings:
     get:
@@ -8925,7 +8925,7 @@ paths:
         - "communication.manage"
       x-reauthentication: false
       x-idempotency: "none"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "L2D02"
   /v1/public-bookings/{id}/confirm:
     post:
@@ -8973,7 +8973,7 @@ paths:
         - "agenda.write"
       x-reauthentication: false
       x-idempotency: "required"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "L2D02"
   /v1/public-bookings/{id}/reject:
     post:
@@ -9021,7 +9021,7 @@ paths:
         - "agenda.write"
       x-reauthentication: false
       x-idempotency: "required"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "L2D02"
   /v1/crm/prospects:
     get:
@@ -9065,7 +9065,7 @@ paths:
         - "agenda.read"
       x-reauthentication: false
       x-idempotency: "none"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "L2D03"
     post:
       operationId: "CreateProspectContact"
@@ -9103,7 +9103,7 @@ paths:
         - "agenda.write"
       x-reauthentication: false
       x-idempotency: "required"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "L2D03"
   /v1/crm/prospects/{id}:
     patch:
@@ -9152,7 +9152,7 @@ paths:
         - "agenda.write"
       x-reauthentication: false
       x-idempotency: "required"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "L2D03"
   /v1/crm/prospects/{id}/link-patient:
     post:
@@ -9201,7 +9201,7 @@ paths:
         - "patient.read"
       x-reauthentication: false
       x-idempotency: "required"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "L2D03"
   /v1/crm/leads:
     get:
@@ -9244,7 +9244,7 @@ paths:
         - "communication.manage"
       x-reauthentication: false
       x-idempotency: "none"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "L2D03"
   /v1/crm/leads/sync:
     post:
@@ -9285,7 +9285,7 @@ paths:
         - "integration.manage"
       x-reauthentication: false
       x-idempotency: "required"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "L2D03"
   /v1/crm/conversations:
     get:
@@ -9328,7 +9328,7 @@ paths:
         - "communication.manage"
       x-reauthentication: false
       x-idempotency: "none"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "L2D03"
   /v1/crm/conversations/{id}:
     get:
@@ -9364,7 +9364,7 @@ paths:
         - "communication.manage"
       x-reauthentication: false
       x-idempotency: "none"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "L2D03"
   /v1/knowledge:
     get:
@@ -9407,7 +9407,7 @@ paths:
         - "communication.manage"
       x-reauthentication: false
       x-idempotency: "none"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "L2D04"
     post:
       operationId: "CreateKnowledgeEntry"
@@ -9446,7 +9446,7 @@ paths:
         - "communication.manage"
       x-reauthentication: false
       x-idempotency: "required"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "L2D04"
   /v1/knowledge/{id}/versions:
     post:
@@ -9492,7 +9492,7 @@ paths:
         - "communication.manage"
       x-reauthentication: false
       x-idempotency: "required"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "L2D04"
   /v1/knowledge/versions/{id}/approve:
     post:
@@ -9538,7 +9538,7 @@ paths:
         - "communication.manage"
       x-reauthentication: false
       x-idempotency: "required"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "L2D04"
   /v1/knowledge/versions/{id}/publish:
     post:
@@ -9586,7 +9586,7 @@ paths:
         - "communication.manage"
       x-reauthentication: false
       x-idempotency: "required"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "L2D04"
   /v1/crm/conversations/{id}/assistant-turn:
     post:
@@ -9634,7 +9634,7 @@ paths:
         - "communication.manage"
       x-reauthentication: false
       x-idempotency: "required"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "L2D05"
   /v1/crm/conversations/{id}/handoff:
     post:
@@ -9682,7 +9682,7 @@ paths:
         - "communication.manage"
       x-reauthentication: false
       x-idempotency: "required"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "L2D05"
   /v1/crm/conversations/{id}/resume-bot:
     post:
@@ -9728,7 +9728,7 @@ paths:
         - "communication.manage"
       x-reauthentication: false
       x-idempotency: "required"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "L2D05"
   /v1/crm/conversations/{id}/handoffs:
     get:
@@ -9764,7 +9764,7 @@ paths:
         - "communication.manage"
       x-reauthentication: false
       x-idempotency: "none"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "L2D05"
   /v1/crm/conversations/{id}/runs:
     get:
@@ -9800,7 +9800,7 @@ paths:
         - "communication.manage"
       x-reauthentication: false
       x-idempotency: "none"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "L2D05"
   /v1/communication/consents:
     get:
@@ -9861,7 +9861,7 @@ paths:
         - "communication.manage"
       x-reauthentication: false
       x-idempotency: "none"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "L2D06"
     post:
       operationId: "RecordCommunicationConsent"
@@ -9900,7 +9900,7 @@ paths:
         - "communication.manage"
       x-reauthentication: false
       x-idempotency: "required"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "L2D06"
   /v1/communication/consents/revoke:
     post:
@@ -9940,7 +9940,7 @@ paths:
         - "communication.manage"
       x-reauthentication: false
       x-idempotency: "required"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "L2D06"
   /v1/communication/templates:
     get:
@@ -9967,7 +9967,7 @@ paths:
         - "communication.manage"
       x-reauthentication: false
       x-idempotency: "none"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "L2D06"
     post:
       operationId: "CreateMessageTemplate"
@@ -10006,7 +10006,7 @@ paths:
         - "communication.manage"
       x-reauthentication: false
       x-idempotency: "required"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "L2D06"
   /v1/communication/templates/{id}/versions:
     post:
@@ -10052,7 +10052,7 @@ paths:
         - "communication.manage"
       x-reauthentication: false
       x-idempotency: "required"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "L2D06"
   /v1/communication/templates/versions/{id}/approve:
     post:
@@ -10098,7 +10098,7 @@ paths:
         - "communication.manage"
       x-reauthentication: false
       x-idempotency: "required"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "L2D06"
   /v1/communication/reminder-policies:
     get:
@@ -10125,7 +10125,7 @@ paths:
         - "communication.manage"
       x-reauthentication: false
       x-idempotency: "none"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "L2D06"
     post:
       operationId: "CreateReminderPolicy"
@@ -10164,7 +10164,7 @@ paths:
         - "communication.manage"
       x-reauthentication: false
       x-idempotency: "required"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "L2D06"
   /v1/communication/reminder-policies/{id}:
     patch:
@@ -10212,7 +10212,7 @@ paths:
         - "communication.manage"
       x-reauthentication: false
       x-idempotency: "required"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "L2D06"
   /v1/communication/attempts:
     get:
@@ -10261,7 +10261,7 @@ paths:
         - "communication.manage"
       x-reauthentication: false
       x-idempotency: "none"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "L2D07"
   /v1/communication/tasks/{id}/send:
     post:
@@ -10309,7 +10309,7 @@ paths:
         - "communication.manage"
       x-reauthentication: false
       x-idempotency: "required"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "L2D07"
   /v1/communication/attempts/{id}/reconcile:
     post:
@@ -10355,7 +10355,7 @@ paths:
         - "communication.manage"
       x-reauthentication: false
       x-idempotency: "required"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "L2D07"
   /v1/communication/segments:
     get:
@@ -10382,7 +10382,7 @@ paths:
         - "communication.manage"
       x-reauthentication: false
       x-idempotency: "none"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "L2D08"
     post:
       operationId: "CreateAudienceSegment"
@@ -10419,7 +10419,7 @@ paths:
         - "communication.manage"
       x-reauthentication: false
       x-idempotency: "required"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "L2D08"
   /v1/communication/segments/{id}:
     patch:
@@ -10467,7 +10467,7 @@ paths:
         - "communication.manage"
       x-reauthentication: false
       x-idempotency: "required"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "L2D08"
   /v1/communication/campaigns:
     get:
@@ -10510,7 +10510,7 @@ paths:
         - "communication.manage"
       x-reauthentication: false
       x-idempotency: "none"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "L2D08"
     post:
       operationId: "CreateCampaign"
@@ -10549,7 +10549,7 @@ paths:
         - "communication.manage"
       x-reauthentication: false
       x-idempotency: "required"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "L2D08"
   /v1/communication/campaigns/{id}/preview:
     post:
@@ -10595,7 +10595,7 @@ paths:
         - "communication.manage"
       x-reauthentication: false
       x-idempotency: "required"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "L2D08"
   /v1/communication/campaigns/{id}/freeze:
     post:
@@ -10643,7 +10643,7 @@ paths:
         - "communication.manage"
       x-reauthentication: false
       x-idempotency: "required"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "L2D08"
   /v1/communication/campaigns/{id}/execute:
     post:
@@ -10691,7 +10691,7 @@ paths:
         - "communication.manage"
       x-reauthentication: false
       x-idempotency: "required"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "L2D08"
   /v1/communication/campaigns/{id}/pause:
     post:
@@ -10737,7 +10737,7 @@ paths:
         - "communication.manage"
       x-reauthentication: false
       x-idempotency: "required"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "L2D08"
   /v1/communication/campaigns/{id}/recipients:
     get:
@@ -10788,7 +10788,7 @@ paths:
         - "communication.manage"
       x-reauthentication: false
       x-idempotency: "none"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "L2D08"
 components:
   securitySchemes:

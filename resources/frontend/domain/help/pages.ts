@@ -2,6 +2,7 @@ import { PAGES_ACCES } from './content/pages-acces'
 import { PAGES_AGENDA } from './content/pages-agenda'
 import { PAGES_AUJOURDHUI } from './content/pages-aujourdhui'
 import { PAGES_CAISSE } from './content/pages-caisse'
+import { PAGES_COMMUNICATION } from './content/pages-communication'
 import { PAGES_CONSULTATIONS } from './content/pages-consultations'
 import { PAGES_DEVIS_CATALOGUE } from './content/pages-devis-catalogue'
 import { PAGES_FACTURE_DETAIL } from './content/pages-facture-detail'
@@ -29,6 +30,7 @@ export const PAGE_HELP: readonly PageHelp[] = [
   ...PAGES_WORKSHOP,
   ...PAGES_AGENDA,
   ...PAGES_PILOTAGE,
+  ...PAGES_COMMUNICATION,
 ]
 
 const BY_ROUTE: ReadonlyMap<string, PageHelp> = new Map(PAGE_HELP.map((page) => [page.route, page]))

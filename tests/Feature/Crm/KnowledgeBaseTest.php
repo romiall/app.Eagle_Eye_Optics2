@@ -3,10 +3,8 @@
 namespace Tests\Feature\Crm;
 
 use App\Domain\Shared\Ulid;
-use App\Http\Controllers\Api\V1\KnowledgeController;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Route;
 use Tests\Support\AgendaFixtures;
 use Tests\Support\MigratedDatabase;
 use Tests\TestCase;
@@ -25,7 +23,6 @@ final class KnowledgeBaseTest extends TestCase
     {
         parent::setUp();
         $this->bootAgenda(['agenda', 'today', 'patients', 'communication']);
-        $this->registerTestRoutes();
     }
 
     protected function tearDown(): void
@@ -154,23 +151,5 @@ final class KnowledgeBaseTest extends TestCase
             'category' => 'HOURS',
             'content' => 'Ouvert de 09h00 à 16h00.',
         ])->assertCreated();
-    }
-
-    private function registerTestRoutes(): void
-    {
-        Route::middleware(['api', 'auth:sanctum', 'active', 'module:communication'])
-            ->prefix('api/v1')
-            ->group(function (): void {
-                Route::get('/knowledge', [KnowledgeController::class, 'index'])
-                    ->middleware('any-permission:communication.manage');
-                Route::post('/knowledge', [KnowledgeController::class, 'store'])
-                    ->middleware('any-permission:communication.manage');
-                Route::post('/knowledge/{id}/versions', [KnowledgeController::class, 'storeVersion'])
-                    ->middleware('any-permission:communication.manage');
-                Route::post('/knowledge/versions/{id}/approve', [KnowledgeController::class, 'approveVersion'])
-                    ->middleware('any-permission:communication.manage');
-                Route::post('/knowledge/versions/{id}/publish', [KnowledgeController::class, 'publishVersion'])
-                    ->middleware('any-permission:communication.manage');
-            });
     }
 }

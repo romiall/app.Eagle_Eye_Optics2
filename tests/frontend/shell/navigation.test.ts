@@ -108,6 +108,8 @@ describe('navigation de la coquille (fichier 04)', () => {
       'stock:L1D01',
       // Atelier optique et bon laboratoire anonymisé (L1D04, en ligne).
       'workshop:L1D04',
+      // Communication, réservations publiques, CRM Kommo, assistant borné, consentements et campagnes (L2D06).
+      'communication:L2D06',
       // Paramètres : comptes du personnel et identité du cabinet (écrans F09 des routes F05).
       'settings:F09',
       'new-patient:P01',
@@ -129,6 +131,7 @@ describe('navigation de la coquille (fichier 04)', () => {
       'Ventes et caisse',
       'Stock',
       'Atelier',
+      'Communication',
       'Paramètres',
     ])
     expect(visibleHomeActions(everything, ALL_MODULES).map((action) => action.label)).toEqual([

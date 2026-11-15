@@ -5,13 +5,10 @@ namespace Tests\Feature\Scheduling;
 use App\Domain\Scheduling\CalendarOutboxConsumer;
 use App\Domain\Scheduling\CalendarWebhookConsumer;
 use App\Domain\Shared\Ulid;
-use App\Http\Controllers\Api\V1\GoogleCalendarController;
-use App\Http\Controllers\PublicBookingController;
 use App\Models\User;
 use App\Support\Integrations\GoogleCalendar\CalendarTokenCipher;
 use App\Support\Integrations\GoogleCalendar\FakeGoogleCalendarClient;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Route;
 use Illuminate\Testing\TestResponse;
 use Tests\Support\AgendaFixtures;
 use Tests\Support\MigratedDatabase;
@@ -27,22 +24,6 @@ final class GoogleCalendarAndPublicBookingTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-
-        // Routes temporaires strictement limitées aux tests (routes/* intact).
-        Route::middleware(['api', 'throttle:eeo-public-booking'])->prefix('public/v1')->group(function (): void {
-            Route::get('services', [PublicBookingController::class, 'services']);
-            Route::get('slots', [PublicBookingController::class, 'slots']);
-            Route::post('booking-requests', [PublicBookingController::class, 'store']);
-        });
-
-        Route::middleware(['api', 'auth:sanctum', 'active'])->prefix('api/v1')->group(function (): void {
-            Route::get('integrations/google/states', [GoogleCalendarController::class, 'states']);
-            Route::post('integrations/google/states', [GoogleCalendarController::class, 'saveState']);
-            Route::post('integrations/google/sync', [GoogleCalendarController::class, 'sync']);
-            Route::get('public-bookings', [PublicBookingController::class, 'index']);
-            Route::post('public-bookings/{id}/confirm', [PublicBookingController::class, 'confirm'])->whereUlid('id');
-            Route::post('public-bookings/{id}/reject', [PublicBookingController::class, 'reject'])->whereUlid('id');
-        });
     }
 
     public function test_appointment_handlers_emit_sanitized_contract_outbox_events_when_communication_enabled(): void

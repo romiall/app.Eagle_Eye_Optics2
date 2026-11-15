@@ -124,6 +124,15 @@ describe('amorçage de la coquille Vue', () => {
         'atelier-nouveau',
         'atelier-detail',
         'rapprochement',
+        'integrations',
+        'communication',
+        'communication-bookings',
+        'communication-crm',
+        'communication-knowledge',
+        'communication-handoffs',
+        'communication-consents',
+        'communication-campaigns',
+        'communication-outbox',
       ]),
     )
     // 11 routes d'origine + historique (C03) + prescription (C04) + aperçu des documents (D02)
@@ -134,11 +143,12 @@ describe('amorçage de la coquille Vue', () => {
     // + prescriptions, fusion et comparaison du patient + catégories de dépenses + devis (3)
     // + import du catalogue + casse/ajustement + achats et réceptions (4 : L1D01) + inventaires (2 : L1D02)
     // + alertes de stock (1 : L1D03) + atelier optique (3 : L1D04)
+    // + intégrations (L2D01) + communication, réservations, CRM, connaissances, assistant, consentements, campagnes, boîte d'envoi (8 : L2D02 à L2D09)
     // + exports + statistiques + rapports-gestion + agenda (3) + suivis + aide + déverrouillage du poste (D27).
-    // Total recompté sur le routeur réel : 64 routes, aucun nom en double.
+    // Total recompté sur le routeur réel : 73 routes, aucun nom en double.
     const names = router.getRoutes().map((route) => String(route.name))
     expect(new Set(names).size).toBe(names.length)
-    expect(router.getRoutes()).toHaveLength(64)
+    expect(router.getRoutes()).toHaveLength(73)
     // Chaque route métier dépend de son module (mise en service progressive) et de ses permissions.
     // Les onglets cliniques du dossier (prescriptions, comparaison des examens) dépendent du module « consultations ».
     const clinicalTabs = ['patient-prescriptions', 'patient-comparaison']

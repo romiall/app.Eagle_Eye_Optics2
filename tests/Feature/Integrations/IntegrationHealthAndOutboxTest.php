@@ -5,7 +5,6 @@ namespace Tests\Feature\Integrations;
 use App\Domain\Operations\IntegrationAccounts;
 use App\Domain\Operations\OutboxProcessor;
 use App\Domain\Shared\Ulid;
-use App\Http\Controllers\Api\V1\IntegrationController;
 use App\Models\User;
 use App\Support\Integrations\Contracts\OutboxConsumerInterface;
 use App\Support\Integrations\IntegrationCrypto;
@@ -13,7 +12,6 @@ use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Route;
 use RuntimeException;
 use stdClass;
 use Tests\Support\AccessFixtures;
@@ -46,16 +44,6 @@ final class IntegrationHealthAndOutboxTest extends TestCase
         $this->manager = $this->makeStaff($this->clinicId, 'MANAGER', 'integ.manager.a');
         $this->otherManager = $this->makeStaff($this->otherClinicId, 'MANAGER', 'integ.manager.b');
         $this->receptionist = $this->makeStaff($this->clinicId, 'RECEPTION', 'integ.reception.a');
-
-        Route::prefix('api/v1')->middleware(['api', 'auth:sanctum', 'active'])->group(function (): void {
-            Route::get('/integrations/health', [IntegrationController::class, 'health']);
-            Route::get('/integrations/accounts', [IntegrationController::class, 'accounts']);
-            Route::post('/integrations/accounts', [IntegrationController::class, 'storeAccount']);
-            Route::patch('/integrations/accounts/{id}', [IntegrationController::class, 'updateAccount']);
-            Route::post('/integrations/accounts/{id}/test', [IntegrationController::class, 'testAccount']);
-            Route::get('/integrations/outbox', [IntegrationController::class, 'outbox']);
-            Route::post('/integrations/outbox/process', [IntegrationController::class, 'processOutbox']);
-        });
     }
 
     public function test_crypto_round_trip_hash_and_mask_destination(): void
@@ -101,7 +89,17 @@ final class IntegrationHealthAndOutboxTest extends TestCase
             ->getJson('/api/v1/integrations/health')
             ->assertStatus(403);
 
-        $createResponse = $this->actingAsFresh($this->manager)->postJson('/api/v1/integrations/accounts', [
+        // Création ou modification sans réauthentification récente -> 423 REAUTHENTICATION_REQUIRED
+        $this->actingAsFresh($this->manager)
+            ->postJson('/api/v1/integrations/accounts', [
+                'provider' => 'META_WHATSAPP',
+                'external_account_id' => 'waba-reauth',
+                'display_name' => 'Sans réauth',
+            ])
+            ->assertStatus(423)
+            ->assertJsonPath('error.code', 'REAUTHENTICATION_REQUIRED');
+
+        $createResponse = $this->actingAsReauthenticated($this->manager)->postJson('/api/v1/integrations/accounts', [
             'provider' => 'META_WHATSAPP',
             'external_account_id' => 'waba-001',
             'display_name' => 'WhatsApp Principal',
@@ -157,7 +155,7 @@ final class IntegrationHealthAndOutboxTest extends TestCase
             ->assertJsonPath('data.accounts_error', 0);
 
         // Mise à jour valide puis conflit de version (409 VERSION_CONFLICT)
-        $updateResponse = $this->actingAsFresh($this->manager)->patchJson('/api/v1/integrations/accounts/'.$accountId, [
+        $updateResponse = $this->actingAsReauthenticated($this->manager)->patchJson('/api/v1/integrations/accounts/'.$accountId, [
             'expected_version' => 1,
             'display_name' => 'WhatsApp Clinique Principale',
             'status' => 'TEST',
@@ -165,7 +163,7 @@ final class IntegrationHealthAndOutboxTest extends TestCase
         $this->assertMatchesContract($updateResponse, 'schemas/resources/communication.json#/$defs/IntegrationAccountResponse');
         $updateResponse->assertJsonPath('data.version', 2);
 
-        $conflictResponse = $this->actingAsFresh($this->manager)->patchJson('/api/v1/integrations/accounts/'.$accountId, [
+        $conflictResponse = $this->actingAsReauthenticated($this->manager)->patchJson('/api/v1/integrations/accounts/'.$accountId, [
             'expected_version' => 1,
             'display_name' => 'Collision Version',
         ])->assertStatus(409);
@@ -195,7 +193,7 @@ final class IntegrationHealthAndOutboxTest extends TestCase
         config()->set('eeo.integrations.mode', 'fake');
 
         // Isolation inter-cliniques (404 + listes vides pour autre clinique)
-        $this->actingAsFresh($this->otherManager)
+        $this->actingAsReauthenticated($this->otherManager)
             ->patchJson('/api/v1/integrations/accounts/'.$accountId, [
                 'expected_version' => 2,
                 'display_name' => 'Hack Autre Clinique',

@@ -7,13 +7,10 @@ namespace Tests\Feature\Communication;
 use App\Application\Contracts\ContractValidator;
 use App\Domain\Access\Approvals\ApprovalSubject;
 use App\Domain\Shared\Ulid;
-use App\Http\Controllers\Api\V1\CampaignController;
-use App\Http\Controllers\Api\V1\CommunicationController;
 use App\Models\User;
 use App\Support\Integrations\Messaging\FakeMessagingClient;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Route;
 use Illuminate\Testing\TestResponse;
 use Tests\Support\AccessFixtures;
 use Tests\Support\ApprovalFixtures;
@@ -53,7 +50,6 @@ final class CampaignsTest extends TestCase
         CarbonImmutable::setTestNow(CarbonImmutable::parse('2026-10-22 09:30:00', 'UTC'));
         config(['eeo.enabled_modules' => ['communication', 'patients', 'settings']]);
         $this->app->singleton(FakeMessagingClient::class);
-        $this->registerCommunicationRoutes();
 
         $this->clinicId = $this->makeClinic();
         $this->manager = $this->makeStaff($this->clinicId, 'MANAGER', 'gerante.test');
@@ -331,31 +327,5 @@ final class CampaignsTest extends TestCase
             'created_at' => $nowDb,
             'updated_at' => $nowDb,
         ]);
-    }
-
-    private function registerCommunicationRoutes(): void
-    {
-        Route::prefix('api/v1')
-            ->middleware(['api', 'auth:sanctum', 'active', 'module:communication'])
-            ->group(function (): void {
-                Route::post('communication/consents', [CommunicationController::class, 'storeConsent']);
-                Route::post('communication/consents/revoke', [CommunicationController::class, 'revokeConsent']);
-                Route::post('communication/templates', [CommunicationController::class, 'storeTemplate']);
-                Route::post('communication/templates/{id}/versions', [CommunicationController::class, 'storeTemplateVersion'])->whereUlid('id');
-                Route::post('communication/templates/versions/{id}/approve', [CommunicationController::class, 'approveTemplateVersion'])->whereUlid('id');
-                Route::get('communication/segments', [CampaignController::class, 'listSegments']);
-                Route::post('communication/segments', [CampaignController::class, 'storeSegment']);
-                Route::patch('communication/segments/{id}', [CampaignController::class, 'updateSegment'])->whereUlid('id');
-                Route::get('communication/campaigns', [CampaignController::class, 'listCampaigns']);
-                Route::post('communication/campaigns', [CampaignController::class, 'storeCampaign']);
-                Route::post('communication/campaigns/{id}/preview', [CampaignController::class, 'previewCampaign'])->whereUlid('id');
-                Route::post('communication/campaigns/{id}/freeze', [CampaignController::class, 'freezeCampaign'])->whereUlid('id');
-                Route::post('communication/campaigns/{id}/execute', [CampaignController::class, 'executeCampaign'])->whereUlid('id');
-                Route::post('communication/campaigns/{id}/pause', [CampaignController::class, 'pauseCampaign'])->whereUlid('id');
-                Route::get('communication/campaigns/{id}/recipients', [CampaignController::class, 'listRecipients'])->whereUlid('id');
-            });
-
-        Route::getRoutes()->refreshNameLookups();
-        Route::getRoutes()->refreshActionLookups();
     }
 }

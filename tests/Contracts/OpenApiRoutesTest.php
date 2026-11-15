@@ -51,7 +51,7 @@ final class OpenApiRoutesTest extends TestCase
     {
         $routes = [];
         foreach (RouteFacade::getRoutes()->getRoutes() as $route) {
-            if (! str_starts_with($route->uri(), 'api/')) {
+            if (! str_starts_with($route->uri(), 'api/') && ! str_starts_with($route->uri(), 'public/')) {
                 continue;
             }
             foreach ($route->methods() as $method) {

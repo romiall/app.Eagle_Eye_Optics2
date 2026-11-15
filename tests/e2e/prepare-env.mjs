@@ -32,6 +32,8 @@ const overrides = {
   LOG_LEVEL: 'warning',
   MAIL_MAILER: 'array',
   EEO_INTEGRATIONS_MODE: 'fake',
+  EEO_INTEGRATIONS_KEY: 'base64:AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=',
+  EEO_DESTINATION_HASH_SALT: 'eeo-e2e-destination-hash-salt-2026',
   PRODUCTION_DOCUMENTS_ENABLED: 'false',
   SANCTUM_STATEFUL_DOMAINS: `127.0.0.1:${port}`,
   // Origine de test en HTTP simple : un cookie « Secure » n'y serait pas renvoyé par le navigateur.
@@ -45,7 +47,7 @@ const overrides = {
   // « offline » : préparation d'un poste et synchronisation (O01 à O05, parcours offline-sync.spec.ts) ; sans coffre de
   // poste ouvert, il ne change rien aux autres parcours (toutes les mutations suivent la route directe).
   EEO_ENABLED_MODULES:
-    'patients,today,consultations,sales,stock,workshop,settings,reports,agenda,offline',
+    'patients,today,consultations,sales,stock,workshop,settings,reports,agenda,communication,offline',
   // Les parcours e2e se connectent souvent, vite : la limite de 20 connexions par minute et par adresse IP
   // (production) les bloquerait sur une machine rapide.
   EEO_RATE_LOGIN_IP: '1000',

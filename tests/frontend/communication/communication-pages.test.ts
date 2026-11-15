@@ -535,7 +535,7 @@ function sampleSegment(overrides: Partial<AudienceSegment> = {}): AudienceSegmen
   return {
     id: ID_SEGMENT,
     name: 'Contacts Douala accueil',
-    criteria: { target_type: 'ALL', city: 'Douala' },
+    criteria: { subject_type: 'BOTH', city: 'Douala' },
     criteria_schema_version: '1.0',
     created_by: ID_ACCOUNT,
     version: 1,
@@ -633,18 +633,18 @@ describe('Communication & CRM L2 frontend', () => {
     it('détecte les critères cliniques interdits dans les segments et accepte les critères administratifs', () => {
       expect(
         detectForbiddenSegmentTerms({
-          target_type: 'PATIENT',
+          subject_type: 'PATIENT',
           city: 'Douala',
           origin: 'WEBSITE',
-          visited_within_days: 90,
-          has_upcoming_appointment: true,
-          has_open_quote: false,
+          last_visit_days: 90,
+          min_appointments: 1,
+          has_quote: false,
         }),
       ).toEqual([])
 
       expect(
         detectForbiddenSegmentTerms({
-          target_type: 'PATIENT',
+          subject_type: 'PATIENT',
           city: 'Patient avec Glaucome ou Diabète',
         }),
       ).toEqual(['diabete', 'glaucome'])

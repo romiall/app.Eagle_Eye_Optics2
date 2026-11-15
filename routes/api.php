@@ -4,27 +4,34 @@ use App\Http\Controllers\Api\V1\AccountingExportController;
 use App\Http\Controllers\Api\V1\AgendaController;
 use App\Http\Controllers\Api\V1\AppointmentController;
 use App\Http\Controllers\Api\V1\ApprovalController;
+use App\Http\Controllers\Api\V1\AssistantHandoffController;
 use App\Http\Controllers\Api\V1\AuditEventController;
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\CampaignController;
 use App\Http\Controllers\Api\V1\CashDayReportController;
 use App\Http\Controllers\Api\V1\CashMovementController;
 use App\Http\Controllers\Api\V1\CashSessionController;
 use App\Http\Controllers\Api\V1\CatalogController;
 use App\Http\Controllers\Api\V1\CatalogImportController;
 use App\Http\Controllers\Api\V1\ClinicSettingsController;
+use App\Http\Controllers\Api\V1\CommunicationController;
 use App\Http\Controllers\Api\V1\ConsultationController;
 use App\Http\Controllers\Api\V1\ConsultationListController;
 use App\Http\Controllers\Api\V1\ContactTaskController;
 use App\Http\Controllers\Api\V1\CorrectionController;
 use App\Http\Controllers\Api\V1\CorrectionDocumentController;
+use App\Http\Controllers\Api\V1\CrmController;
 use App\Http\Controllers\Api\V1\DeliveryController;
 use App\Http\Controllers\Api\V1\DeviceController;
 use App\Http\Controllers\Api\V1\DocumentController;
 use App\Http\Controllers\Api\V1\ExportController;
 use App\Http\Controllers\Api\V1\FinancialReportController;
 use App\Http\Controllers\Api\V1\FollowUpController;
+use App\Http\Controllers\Api\V1\GoogleCalendarController;
+use App\Http\Controllers\Api\V1\IntegrationController;
 use App\Http\Controllers\Api\V1\InventoryCountController;
 use App\Http\Controllers\Api\V1\InvoiceController;
+use App\Http\Controllers\Api\V1\KnowledgeController;
 use App\Http\Controllers\Api\V1\LegacyBalanceController;
 use App\Http\Controllers\Api\V1\ManagementReportController;
 use App\Http\Controllers\Api\V1\PatientActivityController;
@@ -43,7 +50,9 @@ use App\Http\Controllers\Api\V1\SyncController;
 use App\Http\Controllers\Api\V1\TaxRuleController;
 use App\Http\Controllers\Api\V1\VisitController;
 use App\Http\Controllers\Api\V1\VisualAcuityScaleController;
+use App\Http\Controllers\Api\V1\WebhookAdminController;
 use App\Http\Controllers\Api\V1\WorkshopController;
+use App\Http\Controllers\PublicBookingController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -829,6 +838,195 @@ Route::prefix('v1')->group(function (): void {
                 ->middleware(['can:approval.decide', 'reauthenticated'])
                 ->whereUlid('id')
                 ->name('api.sync.conflicts.resolve');
+        });
+
+        // Intégrations externes, santé, outbox et réconciliation (L2D01 / L2D09).
+        Route::middleware('can:integration.manage')->group(function (): void {
+            Route::get('integrations/health', [IntegrationController::class, 'health'])
+                ->name('api.integrations.health');
+            Route::get('integrations/accounts', [IntegrationController::class, 'accounts'])
+                ->name('api.integrations.accounts.index');
+            Route::post('integrations/accounts', [IntegrationController::class, 'storeAccount'])
+                ->middleware('reauthenticated')
+                ->name('api.integrations.accounts.store');
+            Route::patch('integrations/accounts/{id}', [IntegrationController::class, 'updateAccount'])
+                ->middleware('reauthenticated')
+                ->whereUlid('id')
+                ->name('api.integrations.accounts.update');
+            Route::post('integrations/accounts/{id}/test', [IntegrationController::class, 'testAccount'])
+                ->whereUlid('id')
+                ->name('api.integrations.accounts.test');
+            Route::get('integrations/outbox', [IntegrationController::class, 'outbox'])
+                ->name('api.integrations.outbox.index');
+            Route::post('integrations/outbox/process', [IntegrationController::class, 'processOutbox'])
+                ->name('api.integrations.outbox.process');
+            Route::get('integrations/webhooks', [WebhookAdminController::class, 'webhooks'])
+                ->name('api.integrations.webhooks.index');
+            Route::post('integrations/reconcile', [WebhookAdminController::class, 'reconcile'])
+                ->name('api.integrations.reconcile');
+        });
+
+        // Synchronisation Google Calendar par ressource (L2D02).
+        Route::get('integrations/google/states', [GoogleCalendarController::class, 'states'])
+            ->middleware('any-permission:integration.manage,agenda.read')
+            ->name('api.integrations.google.states.index');
+        Route::post('integrations/google/states', [GoogleCalendarController::class, 'saveState'])
+            ->middleware('can:integration.manage')
+            ->name('api.integrations.google.states.store');
+        Route::post('integrations/google/sync', [GoogleCalendarController::class, 'sync'])
+            ->middleware('any-permission:integration.manage,agenda.write')
+            ->name('api.integrations.google.sync');
+
+        // Communication, réservations publiques, CRM Kommo, base de connaissances et campagnes (L2D02-L2D08).
+        Route::middleware('module:communication')->group(function (): void {
+            Route::get('public-bookings', [PublicBookingController::class, 'index'])
+                ->middleware('any-permission:agenda.read,communication.manage')
+                ->name('api.public-bookings.index');
+            Route::post('public-bookings/{id}/confirm', [PublicBookingController::class, 'confirm'])
+                ->middleware('can:agenda.write')
+                ->whereUlid('id')
+                ->name('api.public-bookings.confirm');
+            Route::post('public-bookings/{id}/reject', [PublicBookingController::class, 'reject'])
+                ->middleware('can:agenda.write')
+                ->whereUlid('id')
+                ->name('api.public-bookings.reject');
+
+            // Prospects et miroir Kommo CRM (L2D03).
+            Route::get('crm/prospects', [CrmController::class, 'indexProspects'])
+                ->middleware('any-permission:communication.manage,agenda.read')
+                ->name('api.crm.prospects.index');
+            Route::post('crm/prospects', [CrmController::class, 'storeProspect'])
+                ->middleware('any-permission:communication.manage,agenda.write')
+                ->name('api.crm.prospects.store');
+            Route::patch('crm/prospects/{id}', [CrmController::class, 'updateProspect'])
+                ->middleware('any-permission:communication.manage,agenda.write')
+                ->whereUlid('id')
+                ->name('api.crm.prospects.update');
+            Route::post('crm/prospects/{id}/link-patient', [CrmController::class, 'linkPatient'])
+                ->middleware('any-permission:communication.manage,patient.read')
+                ->whereUlid('id')
+                ->name('api.crm.prospects.link-patient');
+            Route::get('crm/leads', [CrmController::class, 'indexLeads'])
+                ->middleware('can:communication.manage')
+                ->name('api.crm.leads.index');
+            Route::post('crm/leads/sync', [CrmController::class, 'syncLeads'])
+                ->middleware('any-permission:communication.manage,integration.manage')
+                ->name('api.crm.leads.sync');
+            Route::get('crm/conversations', [CrmController::class, 'indexConversations'])
+                ->middleware('can:communication.manage')
+                ->name('api.crm.conversations.index');
+            Route::get('crm/conversations/{id}', [CrmController::class, 'showConversation'])
+                ->middleware('can:communication.manage')
+                ->whereUlid('id')
+                ->name('api.crm.conversations.show');
+
+            // Assistant IA borné et prise en charge humaine (L2D05).
+            Route::post('crm/conversations/{id}/assistant-turn', [AssistantHandoffController::class, 'assistantTurn'])
+                ->middleware('can:communication.manage')
+                ->whereUlid('id')
+                ->name('api.crm.conversations.assistant-turn');
+            Route::post('crm/conversations/{id}/handoff', [AssistantHandoffController::class, 'handoff'])
+                ->middleware('can:communication.manage')
+                ->whereUlid('id')
+                ->name('api.crm.conversations.handoff');
+            Route::post('crm/conversations/{id}/resume-bot', [AssistantHandoffController::class, 'resumeBot'])
+                ->middleware('can:communication.manage')
+                ->whereUlid('id')
+                ->name('api.crm.conversations.resume-bot');
+            Route::get('crm/conversations/{id}/handoffs', [AssistantHandoffController::class, 'handoffs'])
+                ->middleware('can:communication.manage')
+                ->whereUlid('id')
+                ->name('api.crm.conversations.handoffs');
+            Route::get('crm/conversations/{id}/runs', [AssistantHandoffController::class, 'runs'])
+                ->middleware('can:communication.manage')
+                ->whereUlid('id')
+                ->name('api.crm.conversations.runs');
+
+            // Base de connaissances gouvernée (L2D04).
+            Route::get('knowledge', [KnowledgeController::class, 'index'])
+                ->middleware('can:communication.manage')
+                ->name('api.knowledge.index');
+            Route::post('knowledge', [KnowledgeController::class, 'store'])
+                ->middleware('can:communication.manage')
+                ->name('api.knowledge.store');
+            Route::post('knowledge/{id}/versions', [KnowledgeController::class, 'storeVersion'])
+                ->middleware('can:communication.manage')
+                ->whereUlid('id')
+                ->name('api.knowledge.versions.store');
+            Route::post('knowledge/versions/{id}/approve', [KnowledgeController::class, 'approveVersion'])
+                ->middleware('can:communication.manage')
+                ->whereUlid('id')
+                ->name('api.knowledge.versions.approve');
+            Route::post('knowledge/versions/{id}/publish', [KnowledgeController::class, 'publishVersion'])
+                ->middleware('can:communication.manage')
+                ->whereUlid('id')
+                ->name('api.knowledge.versions.publish');
+
+            // Consentements, modèles, rappels, envois transactionnels, segments et campagnes (L2D06-L2D08).
+            Route::middleware('can:communication.manage')->group(function (): void {
+                Route::get('communication/consents', [CommunicationController::class, 'listConsents'])
+                    ->name('api.communication.consents.index');
+                Route::post('communication/consents', [CommunicationController::class, 'storeConsent'])
+                    ->name('api.communication.consents.store');
+                Route::post('communication/consents/revoke', [CommunicationController::class, 'revokeConsent'])
+                    ->name('api.communication.consents.revoke');
+
+                Route::get('communication/templates', [CommunicationController::class, 'listTemplates'])
+                    ->name('api.communication.templates.index');
+                Route::post('communication/templates', [CommunicationController::class, 'storeTemplate'])
+                    ->name('api.communication.templates.store');
+                Route::post('communication/templates/{id}/versions', [CommunicationController::class, 'storeTemplateVersion'])
+                    ->whereUlid('id')
+                    ->name('api.communication.templates.versions.store');
+                Route::post('communication/templates/versions/{id}/approve', [CommunicationController::class, 'approveTemplateVersion'])
+                    ->whereUlid('id')
+                    ->name('api.communication.templates.versions.approve');
+
+                Route::get('communication/reminder-policies', [CommunicationController::class, 'listReminderPolicies'])
+                    ->name('api.communication.reminder-policies.index');
+                Route::post('communication/reminder-policies', [CommunicationController::class, 'storeReminderPolicy'])
+                    ->name('api.communication.reminder-policies.store');
+                Route::patch('communication/reminder-policies/{id}', [CommunicationController::class, 'updateReminderPolicy'])
+                    ->whereUlid('id')
+                    ->name('api.communication.reminder-policies.update');
+
+                Route::get('communication/attempts', [CommunicationController::class, 'listAttempts'])
+                    ->name('api.communication.attempts.index');
+                Route::post('communication/tasks/{id}/send', [CommunicationController::class, 'sendTaskMessage'])
+                    ->whereUlid('id')
+                    ->name('api.communication.tasks.send');
+                Route::post('communication/attempts/{id}/reconcile', [CommunicationController::class, 'reconcileAttempt'])
+                    ->whereUlid('id')
+                    ->name('api.communication.attempts.reconcile');
+
+                Route::get('communication/segments', [CampaignController::class, 'listSegments'])
+                    ->name('api.communication.segments.index');
+                Route::post('communication/segments', [CampaignController::class, 'storeSegment'])
+                    ->name('api.communication.segments.store');
+                Route::patch('communication/segments/{id}', [CampaignController::class, 'updateSegment'])
+                    ->whereUlid('id')
+                    ->name('api.communication.segments.update');
+
+                Route::get('communication/campaigns', [CampaignController::class, 'listCampaigns'])
+                    ->name('api.communication.campaigns.index');
+                Route::post('communication/campaigns', [CampaignController::class, 'storeCampaign'])
+                    ->name('api.communication.campaigns.store');
+                Route::post('communication/campaigns/{id}/preview', [CampaignController::class, 'previewCampaign'])
+                    ->whereUlid('id')
+                    ->name('api.communication.campaigns.preview');
+                Route::post('communication/campaigns/{id}/freeze', [CampaignController::class, 'freezeCampaign'])
+                    ->whereUlid('id')
+                    ->name('api.communication.campaigns.freeze');
+                Route::post('communication/campaigns/{id}/execute', [CampaignController::class, 'executeCampaign'])
+                    ->whereUlid('id')
+                    ->name('api.communication.campaigns.execute');
+                Route::post('communication/campaigns/{id}/pause', [CampaignController::class, 'pauseCampaign'])
+                    ->whereUlid('id')
+                    ->name('api.communication.campaigns.pause');
+                Route::get('communication/campaigns/{id}/recipients', [CampaignController::class, 'listRecipients'])
+                    ->whereUlid('id')
+                    ->name('api.communication.campaigns.recipients.index');
+            });
         });
     });
 });

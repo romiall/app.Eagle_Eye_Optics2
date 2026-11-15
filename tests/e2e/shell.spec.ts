@@ -78,11 +78,12 @@ test.describe('coquille de l’application (F09)', () => {
       'Ventes et caisse',
       'Stock',
       'Atelier',
+      'Communication',
       'Paramètres',
     ])
     // Modules non livrés : jamais présentés, même ouverts par l'exploitant (« offline » n'a pas d'entrée de menu).
-    // Le stock, l'agenda, l'atelier, « Rendez-vous » et « Statistiques » sont livrés.
-    for (const future of ['Communication', 'Rapports', 'Postes hors-ligne']) {
+    // Le stock, l'agenda, l'atelier, la communication, « Rendez-vous » et « Statistiques » sont livrés.
+    for (const future of ['Rapports', 'Postes hors-ligne']) {
       await expect(page.getByRole('link', { name: future, exact: true }), future).toHaveCount(0)
     }
     const banner = page.getByRole('banner')
@@ -206,8 +207,8 @@ test.describe('coquille de l’application (F09)', () => {
     page,
   }) => {
     await signInThroughForm(page, 'MANAGER')
-    // La communication n'est pas livrée (L2D06) : son adresse n'ouvre aucun écran.
-    await page.goto('/communication')
+    // Adresse inexistante : son URL n'ouvre aucun écran.
+    await page.goto('/adresse-future-inexistante')
 
     await expect(page.getByRole('heading', { level: 1, name: 'Page introuvable' })).toBeVisible()
     await page.getByRole('link', { name: 'Retour à l’accueil' }).click()

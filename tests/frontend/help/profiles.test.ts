@@ -189,7 +189,7 @@ function routeModules(): string[] {
  * n'en dépend encore (navigation.ts : `delivered: false`). `workshop` (atelier, L1D04) est livré
  * avec ses routes et sa documentation.
  */
-const MODULES_WITHOUT_SCREEN = ['communication']
+const MODULES_WITHOUT_SCREEN: readonly string[] = []
 
 describe('KNOWN_MODULES et app/Support/Modules.php', () => {
   it('lit la liste du serveur en entier, commentaires de ligne exclus', () => {

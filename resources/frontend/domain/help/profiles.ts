@@ -145,6 +145,7 @@ export const KNOWN_MODULES: readonly string[] = [
   'sales',
   'stock',
   'workshop',
+  'communication',
   'reports',
   'settings',
   'offline',

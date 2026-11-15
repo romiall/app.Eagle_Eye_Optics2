@@ -5,11 +5,9 @@ namespace Tests\Feature\Crm;
 use App\Domain\Crm\CrmOutboxConsumer;
 use App\Domain\Crm\CrmWebhookConsumer;
 use App\Domain\Shared\Ulid;
-use App\Http\Controllers\Api\V1\CrmController;
 use App\Support\Integrations\Kommo\FakeKommoClient;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Route;
 use Tests\Support\AgendaFixtures;
 use Tests\Support\MigratedDatabase;
 use Tests\TestCase;
@@ -29,7 +27,6 @@ final class KommoMirrorTest extends TestCase
         parent::setUp();
         $this->bootAgenda(['agenda', 'today', 'patients', 'communication', 'settings']);
         config(['eeo.integrations.mode' => 'fake']);
-        $this->registerTestRoutes();
     }
 
     protected function tearDown(): void
@@ -240,29 +237,5 @@ final class KommoMirrorTest extends TestCase
         ]);
 
         return $id;
-    }
-
-    private function registerTestRoutes(): void
-    {
-        Route::middleware(['api', 'auth:sanctum', 'active', 'module:communication'])
-            ->prefix('api/v1')
-            ->group(function (): void {
-                Route::get('/crm/prospects', [CrmController::class, 'indexProspects'])
-                    ->middleware('any-permission:communication.manage,agenda.read');
-                Route::post('/crm/prospects', [CrmController::class, 'storeProspect'])
-                    ->middleware('any-permission:communication.manage,agenda.write');
-                Route::patch('/crm/prospects/{id}', [CrmController::class, 'updateProspect'])
-                    ->middleware('any-permission:communication.manage,agenda.write');
-                Route::post('/crm/prospects/{id}/link-patient', [CrmController::class, 'linkPatient'])
-                    ->middleware('any-permission:communication.manage,patient.read');
-                Route::get('/crm/leads', [CrmController::class, 'indexLeads'])
-                    ->middleware('any-permission:communication.manage');
-                Route::post('/crm/leads/sync', [CrmController::class, 'syncLeads'])
-                    ->middleware('any-permission:communication.manage,integration.manage');
-                Route::get('/crm/conversations', [CrmController::class, 'indexConversations'])
-                    ->middleware('any-permission:communication.manage');
-                Route::get('/crm/conversations/{id}', [CrmController::class, 'showConversation'])
-                    ->middleware('any-permission:communication.manage');
-            });
     }
 }

@@ -434,24 +434,34 @@ export const CAMPAIGN_RECIPIENT_STATUS_OPTIONS: readonly SelectOption<CampaignRe
 
 // --- Critères administratifs autorisés pour la segmentation ---
 
-export type SegmentTargetType = 'ALL' | 'PATIENT' | 'PROSPECT'
+export type SegmentTargetType = 'BOTH' | 'PATIENT' | 'PROSPECT'
 
 export interface AdministrativeSegmentCriteria {
-  target_type?: SegmentTargetType
+  subject_type?: SegmentTargetType
+  patient_or_prospect?: SegmentTargetType
   city?: string
   origin?: ProspectContactsOrigin
-  visited_within_days?: number
-  has_upcoming_appointment?: boolean
-  has_open_quote?: boolean
+  last_visit_days?: number
+  min_appointments?: number
+  max_appointments?: number
+  appointment_count?: number
+  min_last_visit_days?: number
+  max_last_visit_days?: number
+  has_quote?: boolean
 }
 
 export const ALLOWED_SEGMENT_CRITERIA_KEYS: readonly string[] = [
-  'target_type',
   'city',
   'origin',
-  'visited_within_days',
-  'has_upcoming_appointment',
-  'has_open_quote',
+  'appointment_count',
+  'min_appointments',
+  'max_appointments',
+  'last_visit_days',
+  'min_last_visit_days',
+  'max_last_visit_days',
+  'has_quote',
+  'patient_or_prospect',
+  'subject_type',
 ]
 
 const FORBIDDEN_CLINICAL_WORDS: readonly string[] = [

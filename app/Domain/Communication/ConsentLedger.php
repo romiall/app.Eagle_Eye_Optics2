@@ -232,12 +232,15 @@ final class ConsentLedger
             ];
         }
 
-        // Recherche des destinations du dossier (téléphone patient/prospect, ou e-mail prospect).
+        // Recherche des destinations actuelles du dossier (téléphone patient/prospect, ou e-mail prospect).
         $candidates = $this->subjectDestinationsForChannel($clinicId, $patientId, $prospectContactId, $channel);
-        foreach ($candidates as $normalized) {
-            $hash = $this->cipher->hash($normalized);
-            $latest = $this->queryLatestForHash($clinicId, $patientId, $prospectContactId, $channel, $purpose, $hash);
-            if ($latest !== null) {
+        if ($candidates !== []) {
+            foreach ($candidates as $normalized) {
+                $hash = $this->cipher->hash($normalized);
+                $latest = $this->queryLatestForHash($clinicId, $patientId, $prospectContactId, $channel, $purpose, $hash);
+                if ($latest === null) {
+                    continue;
+                }
                 if ((string) $latest->status !== 'GRANTED') {
                     throw new BusinessError(
                         'STATE_TRANSITION_REFUSED',
@@ -258,11 +261,22 @@ final class ConsentLedger
                     'encryption_key_id' => (string) $latest->encryption_key_id,
                 ];
             }
+
+            // Si le contact dispose déjà d'une destination actuelle pour ce canal sans consentement actif,
+            // ne jamais retomber sur un consentement enregistré pour un ancien numéro (AT34).
+            throw new BusinessError(
+                'STATE_TRANSITION_REFUSED',
+                'Envoi refusé : aucun consentement actif enregistré pour les coordonnées actuelles sur ce canal.',
+                409,
+                [],
+                null,
+                [],
+                ['current_status' => 'MISSING'],
+            );
         }
 
-        // Si le canal est EMAIL sur un patient (pas de colonne e-mail sur patient_records) ou qu'une
-        // destination explicite a été enregistrée uniquement dans le registre de consentements,
-        // on évalue chaque destination distincte par son dernier événement.
+        // Uniquement si le dossier n'expose aucune coordonnée directe pour ce canal (ex. EMAIL sur patient_records),
+        // on évalue les destinations enregistrées dans le registre de consentements.
         $rows = $this->subjectQuery($clinicId, $patientId, $prospectContactId)
             ->where('channel', $channel)
             ->where('purpose', $purpose)

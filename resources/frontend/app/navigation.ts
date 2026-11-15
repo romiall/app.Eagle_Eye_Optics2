@@ -112,7 +112,7 @@ export const APP_MODULES: readonly AppModule[] = [
     path: '/communication',
     permissions: ['communication.manage'],
     deliveredBy: 'L2D06',
-    delivered: false,
+    delivered: true,
     mobileShortcut: false,
   },
   {

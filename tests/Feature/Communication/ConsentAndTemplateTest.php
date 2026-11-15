@@ -6,13 +6,10 @@ namespace Tests\Feature\Communication;
 
 use App\Domain\Communication\CommunicationOutboxConsumer;
 use App\Domain\Shared\Ulid;
-use App\Http\Controllers\Api\V1\CampaignController;
-use App\Http\Controllers\Api\V1\CommunicationController;
 use App\Models\User;
 use App\Support\Integrations\Messaging\FakeMessagingClient;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Route;
 use Illuminate\Testing\TestResponse;
 use Tests\Support\AccessFixtures;
 use Tests\Support\ApprovalFixtures;
@@ -46,7 +43,6 @@ final class ConsentAndTemplateTest extends TestCase
         CarbonImmutable::setTestNow(CarbonImmutable::parse('2026-10-22 09:30:00', 'UTC'));
         config(['eeo.enabled_modules' => ['communication', 'agenda', 'patients']]);
         $this->app->singleton(FakeMessagingClient::class);
-        $this->registerCommunicationRoutes();
 
         $this->clinicId = $this->makeClinic();
         $this->manager = $this->makeStaff($this->clinicId, 'MANAGER', 'gerante.test');
@@ -330,32 +326,5 @@ final class ConsentAndTemplateTest extends TestCase
         ]);
 
         return $id;
-    }
-
-    private function registerCommunicationRoutes(): void
-    {
-        Route::prefix('api/v1')
-            ->middleware(['api', 'auth:sanctum', 'active', 'module:communication'])
-            ->group(function (): void {
-                Route::get('communication/consents', [CommunicationController::class, 'listConsents']);
-                Route::post('communication/consents', [CommunicationController::class, 'storeConsent']);
-                Route::post('communication/consents/revoke', [CommunicationController::class, 'revokeConsent']);
-                Route::get('communication/templates', [CommunicationController::class, 'listTemplates']);
-                Route::post('communication/templates', [CommunicationController::class, 'storeTemplate']);
-                Route::post('communication/templates/{id}/versions', [CommunicationController::class, 'storeTemplateVersion'])->whereUlid('id');
-                Route::post('communication/templates/versions/{id}/approve', [CommunicationController::class, 'approveTemplateVersion'])->whereUlid('id');
-                Route::get('communication/reminder-policies', [CommunicationController::class, 'listReminderPolicies']);
-                Route::post('communication/reminder-policies', [CommunicationController::class, 'storeReminderPolicy']);
-                Route::patch('communication/reminder-policies/{id}', [CommunicationController::class, 'updateReminderPolicy'])->whereUlid('id');
-                Route::get('communication/attempts', [CommunicationController::class, 'listAttempts']);
-                Route::post('communication/tasks/{id}/send', [CommunicationController::class, 'sendTaskMessage'])->whereUlid('id');
-                Route::post('communication/attempts/{id}/reconcile', [CommunicationController::class, 'reconcileAttempt'])->whereUlid('id');
-                Route::get('communication/segments', [CampaignController::class, 'listSegments']);
-                Route::post('communication/segments', [CampaignController::class, 'storeSegment']);
-                Route::patch('communication/segments/{id}', [CampaignController::class, 'updateSegment'])->whereUlid('id');
-            });
-
-        Route::getRoutes()->refreshNameLookups();
-        Route::getRoutes()->refreshActionLookups();
     }
 }

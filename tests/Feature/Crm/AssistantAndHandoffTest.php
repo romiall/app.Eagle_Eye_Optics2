@@ -3,10 +3,8 @@
 namespace Tests\Feature\Crm;
 
 use App\Domain\Shared\Ulid;
-use App\Http\Controllers\Api\V1\AssistantHandoffController;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Route;
 use Tests\Support\AgendaFixtures;
 use Tests\Support\MigratedDatabase;
 use Tests\TestCase;
@@ -28,7 +26,6 @@ final class AssistantAndHandoffTest extends TestCase
     {
         parent::setUp();
         $this->bootAgenda(['agenda', 'today', 'patients', 'communication']);
-        $this->registerTestRoutes();
     }
 
     protected function tearDown(): void
@@ -295,23 +292,5 @@ final class AssistantAndHandoffTest extends TestCase
         $this->actingAsFresh($managerB)->postJson('/api/v1/crm/conversations/'.$conversationId.'/handoff', [
             'reason' => 'Tentative hors cabinet',
         ])->assertNotFound();
-    }
-
-    private function registerTestRoutes(): void
-    {
-        Route::middleware(['api', 'auth:sanctum', 'active', 'module:communication'])
-            ->prefix('api/v1')
-            ->group(function (): void {
-                Route::post('/crm/conversations/{id}/assistant-turn', [AssistantHandoffController::class, 'assistantTurn'])
-                    ->middleware('any-permission:communication.manage');
-                Route::post('/crm/conversations/{id}/handoff', [AssistantHandoffController::class, 'handoff'])
-                    ->middleware('any-permission:communication.manage');
-                Route::post('/crm/conversations/{id}/resume-bot', [AssistantHandoffController::class, 'resumeBot'])
-                    ->middleware('any-permission:communication.manage');
-                Route::get('/crm/conversations/{id}/handoffs', [AssistantHandoffController::class, 'handoffs'])
-                    ->middleware('any-permission:communication.manage');
-                Route::get('/crm/conversations/{id}/runs', [AssistantHandoffController::class, 'runs'])
-                    ->middleware('any-permission:communication.manage');
-            });
     }
 }

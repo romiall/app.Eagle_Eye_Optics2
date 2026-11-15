@@ -656,6 +656,107 @@ export function createEeoRouter(history: RouterHistory = createWebHistory()): Ro
         meta: { title: 'Patients à rappeler', permissions: ['agenda.read'], module: 'agenda' },
       },
       {
+        path: '/parametres/integrations',
+        name: 'integrations',
+        component: () => import('@/pages/manager/Integrations.vue'),
+        meta: {
+          title: 'Intégrations et connecteurs',
+          module: 'settings',
+          permissions: ['integration.manage'],
+        },
+      },
+      {
+        path: '/communication',
+        name: 'communication',
+        component: () => import('@/pages/communication/CommunicationHomePage.vue'),
+        meta: {
+          title: 'Communication et CRM',
+          module: 'communication',
+          permissions: [
+            'communication.manage',
+            'knowledge.manage',
+            'conversation.takeover',
+            'integration.manage',
+            'agenda.read',
+          ],
+        },
+      },
+      {
+        path: '/communication/reservations',
+        name: 'communication-bookings',
+        component: () => import('@/pages/communication/PublicBookingsAdminPage.vue'),
+        meta: {
+          title: 'Réservations publiques & Google Agenda',
+          module: 'communication',
+          permissions: [
+            'agenda.read',
+            'agenda.write',
+            'communication.manage',
+            'integration.manage',
+          ],
+        },
+      },
+      {
+        path: '/communication/crm',
+        name: 'communication-crm',
+        component: () => import('@/pages/communication/CrmLinks.vue'),
+        meta: {
+          title: 'Prospects, CRM Kommo et liens patients',
+          module: 'communication',
+          permissions: ['communication.manage', 'integration.manage', 'patient.read'],
+        },
+      },
+      {
+        path: '/communication/connaissances',
+        name: 'communication-knowledge',
+        component: () => import('@/pages/communication/Knowledge.vue'),
+        meta: {
+          title: 'Base de connaissances gouvernée',
+          module: 'communication',
+          permissions: ['communication.manage', 'knowledge.manage'],
+        },
+      },
+      {
+        path: '/communication/assistant',
+        name: 'communication-handoffs',
+        component: () => import('@/pages/communication/Handoffs.vue'),
+        meta: {
+          title: 'Assistant borné et reprises humaines',
+          module: 'communication',
+          permissions: ['communication.manage', 'conversation.takeover'],
+        },
+      },
+      {
+        path: '/communication/consentements',
+        name: 'communication-consents',
+        component: () => import('@/pages/communication/Consents.vue'),
+        meta: {
+          title: 'Consentements, modèles et relances',
+          module: 'communication',
+          permissions: ['communication.manage'],
+        },
+      },
+      {
+        path: '/communication/campagnes',
+        name: 'communication-campaigns',
+        component: () => import('@/pages/communication/Campaigns.vue'),
+        meta: {
+          title: 'Segments d’audience et campagnes',
+          module: 'communication',
+          permissions: ['communication.manage'],
+        },
+      },
+      {
+        path: '/communication/boite-envoi',
+        name: 'communication-outbox',
+        component: () => import('@/pages/communication/OutboxAndWebhooks.vue'),
+        meta: {
+          title: 'Boîte d’envoi et webhooks',
+          module: 'communication',
+          permissions: ['integration.manage'],
+        },
+      },
+      {
         // Aide intégrée : tout compte connecté ; elle ne montre que les écrans de ses droits et modules ouverts.
         path: '/aide',
         name: 'aide',

@@ -147,7 +147,7 @@ final class WebhookSignatureVerifier
     /**
      * @param  array<string, string>  $headers
      */
-    private function verifyMetaHmac(string $rawBody, array $headers, string $secret): bool
+    private function verifyMetaHmac(string $rawBody, array $headers, #[\SensitiveParameter] string $secret): bool
     {
         $provided = $headers['x-hub-signature-256'] ?? '';
         if ($provided === '' || ! str_starts_with(strtolower($provided), 'sha256=')) {
@@ -162,7 +162,7 @@ final class WebhookSignatureVerifier
     /**
      * @param  array<string, string>  $headers
      */
-    private function verifyGoogleToken(array $headers, string $secret): bool
+    private function verifyGoogleToken(array $headers, #[\SensitiveParameter] string $secret): bool
     {
         $provided = $headers['x-goog-channel-token'] ?? '';
         if ($provided === '') {
@@ -175,7 +175,7 @@ final class WebhookSignatureVerifier
     /**
      * @param  array<string, string>  $headers
      */
-    private function verifyKommo(string $rawBody, array $headers, string $secret): bool
+    private function verifyKommo(string $rawBody, array $headers, #[\SensitiveParameter] string $secret): bool
     {
         $signature = $headers['x-kommo-signature'] ?? null;
         if ($signature !== null && $signature !== '') {
@@ -190,7 +190,7 @@ final class WebhookSignatureVerifier
         return false;
     }
 
-    private function verifyHmacHeader(string $rawBody, ?string $providedHeader, string $secret): bool
+    private function verifyHmacHeader(string $rawBody, ?string $providedHeader, #[\SensitiveParameter] string $secret): bool
     {
         if ($providedHeader === null || $providedHeader === '') {
             return false;
@@ -212,7 +212,7 @@ final class WebhookSignatureVerifier
      *
      * @param  array<string, string>  $headers
      */
-    private function verifyFakeTestSignature(array $headers, string $secret): bool
+    private function verifyFakeTestSignature(array $headers, #[\SensitiveParameter] string $secret): bool
     {
         $testHeader = $headers['x-test-signature'] ?? '';
         if ($testHeader === '') {
