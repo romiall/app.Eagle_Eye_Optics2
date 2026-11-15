@@ -781,6 +781,26 @@ export function createEeoRouter(history: RouterHistory = createWebHistory()): Ro
         },
       },
       {
+        // Pages publiques du site (L3D02, L3D03) : SANS compte, en ligne seulement, aucune donnée clinique. Le showroom
+        // dépend du module « communication » côté serveur (404 si fermé) ; la prise de rendez-vous n'envoie qu'une demande.
+        path: '/rendez-vous',
+        name: 'public-booking',
+        component: () => import('@/pages/public/PublicBookingPage.vue'),
+        meta: { public: true, title: 'Prendre rendez-vous' },
+      },
+      {
+        path: '/showroom',
+        name: 'public-showroom',
+        component: () => import('@/pages/public/ShowroomPage.vue'),
+        meta: { public: true, title: 'Showroom' },
+      },
+      {
+        path: '/showroom/:slug([a-z0-9-]+)',
+        name: 'public-showroom-item',
+        component: () => import('@/pages/public/ShowroomItemPage.vue'),
+        meta: { public: true, title: 'Référence du showroom' },
+      },
+      {
         // Aide intégrée : tout compte connecté ; elle ne montre que les écrans de ses droits et modules ouverts.
         path: '/aide',
         name: 'aide',

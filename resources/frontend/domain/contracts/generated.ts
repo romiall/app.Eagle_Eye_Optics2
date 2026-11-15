@@ -6200,6 +6200,7 @@ service_id: Ulid
 name: string
 duration_minutes: number
 active: boolean
+public_booking?: boolean
 }
 /**
  * Création (expected_version null) ou modification d'un article par la gérante (catalog.manage). Les prix réels sont fournis par le cabinet : seules des données fictives sont utilisées en développement.
@@ -11336,6 +11337,7 @@ id: Ulid
 name: string
 duration_minutes: number
 active: boolean
+public_booking: boolean
 version: Version
 }
 export interface AppointmentServiceResponse {

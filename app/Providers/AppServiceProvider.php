@@ -15,6 +15,8 @@ use App\Domain\Operations\WebhookInboxService;
 use App\Domain\Scheduling\CalendarOutboxConsumer;
 use App\Domain\Scheduling\CalendarWebhookConsumer;
 use App\Models\User;
+use App\Support\Domain\DomainProbe;
+use App\Support\Domain\NetworkDomainProbe;
 use App\Support\Integrations\Assistant\AssistantEngineInterface;
 use App\Support\Integrations\Assistant\DeterministicAssistantEngine;
 use App\Support\Integrations\Contracts\OutboxConsumerInterface;
@@ -53,6 +55,9 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(FakeGoogleCalendarClient::class);
         $this->app->singleton(FakeKommoClient::class);
         $this->app->singleton(FakeMessagingClient::class);
+
+        // Contrôle du domaine (eeo:domain:check, L3D04) : sondes réseau réelles, remplacées par des doublons dans les tests.
+        $this->app->bindIf(DomainProbe::class, NetworkDomainProbe::class);
 
         // Moteur d'assistant IA borné par défaut (déterministe, remplaçable via le conteneur).
         $this->app->bindIf(AssistantEngineInterface::class, DeterministicAssistantEngine::class);

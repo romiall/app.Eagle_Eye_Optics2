@@ -552,6 +552,9 @@
         },
         "active": {
           "type": "boolean"
+        },
+        "public_booking": {
+          "type": "boolean"
         }
       }
     },

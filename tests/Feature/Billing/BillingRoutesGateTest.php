@@ -110,6 +110,8 @@ final class BillingRoutesGateTest extends TestCase
             'POST stock/alerts/{id}/acknowledge' => ['POST', 'stock/alerts/{id}/acknowledge', ['manager']],
             'POST stock/alerts/{id}/resolve' => ['POST', 'stock/alerts/{id}/resolve', ['manager']],
             'POST stock/opening' => ['POST', 'stock/opening', ['manager']],
+            // Historique des mouvements d'un article (lecture seule, stock.read) : mêmes comptes que les disponibilités.
+            'GET stock/movements' => ['GET', 'stock/movements', ['manager', 'clinician', 'cashier']],
             'POST stock/movements' => ['POST', 'stock/movements', ['manager']],
         ];
     }

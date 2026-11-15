@@ -57,6 +57,7 @@ final class SchedulingPresenter
             'name' => (string) $row->name,
             'duration_minutes' => (int) $row->duration_minutes,
             'active' => (bool) $row->active,
+            'public_booking' => (bool) $row->public_booking,
             'version' => (int) $row->version,
         ];
     }

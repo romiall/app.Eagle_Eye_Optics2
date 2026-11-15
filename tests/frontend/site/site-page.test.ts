@@ -29,6 +29,9 @@ import { ALL_TEST_MODULES } from '../shell/server'
 // Écran de la gérante pour le site public (L3D02, EE039), EN LIGNE, droit `site.publish` : fiches du showroom, images
 // (texte alternatif et note de droits), contenus ; brouillon d'abord, publication confirmée par le mot de passe.
 // Données FICTIVES. Identifiants au format ULID (alphabet de Crockford : ni I, L, O ni U).
+// Le premier test d'un fichier charge l'application entière : sur un poste chargé, 5 s ne suffisent pas.
+vi.setConfig({ testTimeout: 30_000 })
+
 afterEach(() => {
   resetSales()
 })

@@ -155,6 +155,7 @@
         "name",
         "duration_minutes",
         "active",
+        "public_booking",
         "version"
       ],
       "properties": {
@@ -172,6 +173,9 @@
           "maximum": 1440
         },
         "active": {
+          "type": "boolean"
+        },
+        "public_booking": {
           "type": "boolean"
         },
         "version": {

@@ -9,6 +9,7 @@ import {
   callsTo,
   choose,
   click,
+  field,
   json,
   openApp,
   resetEverything,
@@ -57,7 +58,14 @@ function configuration(): AgendaConfiguration {
       },
     ],
     services: [
-      { id: SERVICE, name: 'Prestation fictive', duration_minutes: 30, active: true, version: 1 },
+      {
+        id: SERVICE,
+        name: 'Prestation fictive',
+        duration_minutes: 30,
+        active: true,
+        public_booking: false,
+        version: 1,
+      },
     ],
     exceptions: [],
   }
@@ -340,6 +348,53 @@ describe('patients à rappeler', () => {
       expected_version: 1,
     })
     expect(textOf(root)).toContain('enregistrée sur le serveur')
+    unmount()
+  })
+})
+
+describe('configuration de l’agenda', () => {
+  it('une prestation s’ouvre à la réservation en ligne par une case, fermée tant qu’on ne la coche pas', async () => {
+    const api = stubSettingsApi({
+      permissions: ['users.manage', 'agenda.read'],
+      handlers: {
+        'GET /api/v1/agenda/configuration': () => json(200, { data: configuration() }),
+        'POST /api/v1/agenda/services': () =>
+          json(201, {
+            data: {
+              id: '01J9ZXK4M2Q8R7S6T5V4W30S02',
+              name: 'Examen en ligne',
+              duration_minutes: 20,
+              active: true,
+              public_booking: true,
+              version: 1,
+            },
+          }),
+      },
+    })
+    const { root, unmount } = await openApp('/agenda/configuration')
+    await settle()
+    expect(textOf(root)).not.toContain('(réservable en ligne)')
+
+    await click(buttonByName(root, 'Nouvelle prestation'))
+    const box = field(root, 'Ouverte à la réservation en ligne') as HTMLInputElement
+    expect(box.checked).toBe(false)
+    await type(root, 'Nom de la prestation', 'Examen en ligne')
+    await type(root, 'Durée (minutes)', '20')
+    await click(buttonByName(root, 'Enregistrer la prestation'))
+    expect(callsTo(api, 'POST', /\/agenda\/services$/)[0]?.body).toMatchObject({
+      name: 'Examen en ligne',
+      public_booking: false,
+    })
+
+    await click(buttonByName(root, 'Nouvelle prestation'))
+    ;(field(root, 'Ouverte à la réservation en ligne') as HTMLInputElement).click()
+    await type(root, 'Nom de la prestation', 'Examen en ligne')
+    await type(root, 'Durée (minutes)', '20')
+    await click(buttonByName(root, 'Enregistrer la prestation'))
+    expect(callsTo(api, 'POST', /\/agenda\/services$/).at(-1)?.body).toMatchObject({
+      name: 'Examen en ligne',
+      public_booking: true,
+    })
     unmount()
   })
 })

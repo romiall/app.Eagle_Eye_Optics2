@@ -23,6 +23,7 @@ const serviceId = props.service?.id ?? newUlid()
 const name = ref(props.service?.name ?? '')
 const duration = ref(props.service === null ? '' : String(props.service.duration_minutes))
 const active = ref(props.service?.active ?? true)
+const publicBooking = ref(props.service?.public_booking ?? false)
 const localError = ref<string | null>(null)
 
 async function save(): Promise<void> {
@@ -43,6 +44,7 @@ async function save(): Promise<void> {
       name: name.value.trim(),
       duration_minutes: minutes,
       active: active.value,
+      public_booking: publicBooking.value,
     },
     expectedVersion: editing ? props.service!.version : null,
   })
@@ -83,6 +85,13 @@ async function save(): Promise<void> {
         class="col-span-full"
         label="Prestation proposée à la prise de rendez-vous"
         :control-id="`${ids}-active`"
+      />
+      <CheckboxField
+        v-model="publicBooking"
+        class="col-span-full"
+        label="Ouverte à la réservation en ligne"
+        hint="Le public la voit sur la page de prise de rendez-vous. Fermée, elle reste réservable par l’équipe seulement."
+        :control-id="`${ids}-public`"
       />
     </div>
     <p v-if="write.error.value" role="alert" class="text-sm font-medium text-danger">

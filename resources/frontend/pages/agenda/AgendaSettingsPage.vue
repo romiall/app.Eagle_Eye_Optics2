@@ -253,6 +253,9 @@ function hoursText(resource: AgendaConfiguration['resources'][number]): string[]
                   <span v-if="!service.active" class="text-sm font-normal text-muted"
                     >(désactivée)</span
                   >
+                  <span v-else-if="service.public_booking" class="text-sm font-normal text-muted"
+                    >(réservable en ligne)</span
+                  >
                 </h3>
                 <AppButton variant="ghost" @click="toggle(`service:${service.id}`)">
                   <AppIcon name="edit" />

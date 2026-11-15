@@ -40,6 +40,9 @@
   - `npx playwright test tests/e2e/l2-integrations.spec.ts` → **`2 passed`** (parcours gérante complet sur `/parametres/integrations`, `/communication`, `/communication/reservations`, `/communication/connaissances`, `/communication/crm`, `/communication/assistant`, `/communication/consentements`, `/communication/campagnes`, `/communication/boite-envoi` + contrôle mobile 360 px + absence des termes financiers interdits + isolation RBAC accueil/caissière).
   - `help.spec.ts` (`15 passed`), `shell.spec.ts` (`9 passed`), `smoke.spec.ts` (`9 passed`).
 
-## 4. Point d’attention restant à solder à la reprise
+## 4. Point d’attention : soldé le 2026-11-15
 
 - **`tests/Feature/Application/MutationRoutesTest.php`** : les 35 routes de mutation L2 (`api/v1/integrations/*`, `api/v1/crm/*`, `api/v1/communication/*`, `api/v1/public-bookings/*`) utilisent des services applicatifs transactionnels (`TransactionRunner` + `AuditRecorder` + `IdempotencyStore` + `OutboxWriter`) depuis des contrôleurs qui héritent de `Controller` au lieu d’être enregistrées dans `MutationRoutesTest` ou de passer par `CommandController`. À arbitrer et aligner lors de la revue de conformité.
+
+**Suite (2026-11-15).** Les routes d'écriture de L2 ont été alignées sur le chemin central de commandes : 26 passent par le bus, 9 opérations à appel fournisseur et 1 lecture portée par un POST sont classées et prouvées une à une. Détail et preuves : `docs/evidence/G6.md`, section 5, et `docs/implementation/command-bus.md`.
+

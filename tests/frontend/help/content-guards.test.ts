@@ -56,7 +56,14 @@ const LABEL_EXCEPTIONS: Readonly<Record<string, string>> = {}
 const STRICT = process.env['EEO_HELP_STRICT'] === '1'
 
 /** Écrans publics (sans session) : leur fiche est facultative, celle de tout autre écran est obligatoire. */
-const PUBLIC_ROUTES = ['connexion', 'deverrouiller']
+const PUBLIC_ROUTES = [
+  'connexion',
+  'deverrouiller',
+  // Pages du public (L3D02, L3D03) : le visiteur n'a pas de compte, donc pas d'aide intégrée du personnel.
+  'public-booking',
+  'public-showroom',
+  'public-showroom-item',
+]
 
 const PART_IDS = [
   'demarrer',

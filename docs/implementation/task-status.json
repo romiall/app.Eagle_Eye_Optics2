@@ -856,34 +856,63 @@
    "notes": "Recette L2 : AT32 à AT35 prouvés EN MODE FAKE. IN_REVIEW et non DONE : aucun canal réel n'est actif ni annoncé (comptes Google, Kommo, Meta WhatsApp, SMS et SMTP non fournis). Le point MutationRoutesTest relevé par le bilan d'origine est clos le 2026-11-15 (36 routes : 26 sur le bus, 9 opérations à appel fournisseur classées une à une, 1 lecture portée par un POST)."
   },
   "L3D01": {
-   "status": "NOT_STARTED",
-   "evidence": [],
-   "notes": ""
+   "status": "IN_REVIEW",
+   "evidence": [
+    "docs/implementation/existing-site.md",
+    "docs/implementation/public-contract.md",
+    "tests/Feature/PublicSite/PublicSiteTest.php"
+   ],
+   "notes": "Raccordement minimal retenu : liens sortants du site existant vers /showroom et /rendez-vous (option A, aucun accès ni modification du site existant) ; lecture de l'API publique depuis son origine prête mais FERMÉE par défaut (EEO_PUBLIC_ALLOWED_ORIGINS vide) ; iframe, session et base partagées écartées. Q12 résolue par la définition de l'API publique et de la séparation du domaine privé (sessions, cookies, secrets, CORS, mise en cache, limites) ; AUCUN audit du site existant (technologie et accès inconnus, rien d'inventé). Écarts : nom de production (app-eagleseye.com ou app.eagleeyeoptic.com) et indexation du showroom à décider par la cliente."
   },
   "L3D02": {
-   "status": "NOT_STARTED",
-   "evidence": [],
-   "notes": ""
+   "status": "IN_REVIEW",
+   "evidence": [
+    "tests/Feature/PublicSite/PublicSiteTest.php",
+    "tests/frontend/site/site-page.test.ts",
+    "tests/frontend/site/site-rules.test.ts",
+    "tests/e2e/public-booking.spec.ts",
+    "docs/implementation/public-contract.md"
+   ],
+   "notes": "Fiches du showroom (article actif et visible au public, brouillon, images JPEG, PNG ou WebP avec texte alternatif et note de droits, publication, retrait et archivage par la gérante avec mot de passe confirmé), contenus du site (accueil, expertises, horaires, localisation, WhatsApp en lien, réseaux, contact : brouillon puis publication, une seule révision publique), API publique à liste blanche (jamais coût, stock ni référence interne) et écran « Site public : showroom et contenus » (aide intégrée comprise). Écarts : le bouton WhatsApp est un lien, pas un widget ; l'assistant ne lit pas le catalogue public (get_public_catalog non réalisé)."
   },
   "L3D03": {
-   "status": "NOT_STARTED",
-   "evidence": [],
-   "notes": ""
+   "status": "IN_REVIEW",
+   "evidence": [
+    "tests/Feature/PublicSite/PublicBookingShowroomTest.php",
+    "tests/Feature/Scheduling/GoogleCalendarAndPublicBookingTest.php",
+    "tests/Feature/Scheduling/AgendaConfigurationTest.php",
+    "tests/frontend/site/public-pages.test.ts",
+    "tests/frontend/site/booking-rules.test.ts",
+    "tests/e2e/public-booking.spec.ts"
+   ],
+   "notes": "Pages publiques de prise de rendez-vous et de showroom sans compte ; demande idempotente avec consentement, limite de débit et champ piège à robots, référence du showroom gardée (« Essayer ce modèle »), deux demandes sur le même créneau refusées (AT33), téléphone connu du cabinet indiscernable d'un inconnu (AT35). Défaut corrigé : aucune commande n'ouvrait une prestation à la réservation en ligne (public_booking restait faux) ; la case « Ouverte à la réservation en ligne » existe maintenant. La demande est une DEMANDE (statut PENDING), jamais un rendez-vous confirmé par l'écran. Le contrôleur et le service restent sous app/Http/Controllers/PublicBookingController.php et app/Domain/Scheduling/PublicBooking.php (L2D02), non déplacés. Google simulé."
   },
   "L3D04": {
-   "status": "NOT_STARTED",
-   "evidence": [],
-   "notes": ""
+   "status": "IN_REVIEW",
+   "evidence": [
+    "docs/runbooks/domain-email.md",
+    "docs/evidence/domain-checks.md",
+    "tests/Feature/Deployment/DomainCheckTest.php"
+   ],
+   "notes": "Contrôle EN LECTURE SEULE `php artisan eeo:domain:check` (DNS, certificat HTTPS, redirection HTTP, sonde /up, HSTS, MX, SPF, DKIM, DMARC, bannière SMTP), exécuté sur la production le 2026-11-15 : aucun point bloquant, HSTS absent (alerte à décider avec la cliente). Runbook : propriétaire de chaque accès, incidents, registre des accès, secrets distincts de l'accès développeur. NON fait : boîtes direction et contact (aucun compte fourni) et délivrabilité vers une boîte contrôlée. Aucun achat, aucun changement de DNS."
   },
   "L3D05": {
-   "status": "NOT_STARTED",
-   "evidence": [],
-   "notes": ""
+   "status": "IN_REVIEW",
+   "evidence": [
+    "docs/user-guide/README.md",
+    "docs/runbooks/handover.md",
+    "docs/evidence/delivery-final.md"
+   ],
+   "notes": "Index des guides (qui vivent dans l'aide intégrée, jamais en Markdown), procédure de remise et d'exercice de sortie du prestataire, liste des livrables et modèle de procès-verbal NON SIGNÉ. NON réalisés (personnes) : formation par profil, formation d'exploitation, vidéo smartphone et ordinateur, exercice de sortie rejoué par le responsable de la cliente, signature du procès-verbal. Garantie, support et jalons commerciaux CITÉS sans modification (Q14 et Q15 ouvertes) ; propriété du code source non décrite par les sources : accord écrit à obtenir."
   },
   "G7": {
-   "status": "NOT_STARTED",
-   "evidence": [],
-   "notes": ""
+   "status": "IN_REVIEW",
+   "evidence": [
+    "docs/evidence/G7.md",
+    "docs/evidence/requirements-final.json",
+    "tests/frontend/evidence/requirements-register.test.ts"
+   ],
+   "notes": "Recette globale : EE001 à EE046 évaluées une à une (23 DONE, 16 DONE_WITH_RESERVES, 7 PARTIAL), AT30 à AT35 PASS (AT32 à AT35 sur doubles de test), AT01 à AT29 et AT36 à AT45 au registre G3. IN_REVIEW et non DONE : aucune intégration simulée n'est annoncée active (Google, messages, Kommo, assistant), et la formation, la vidéo, l'exercice de sortie, les retours des opératrices, l'impression réelle et le procès-verbal signé exigent la cliente."
   }
  }
 }
