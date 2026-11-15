@@ -371,6 +371,23 @@ final class ConsentLedger
         ];
     }
 
+    /**
+     * Événement de consentement par son identifiant, destination masquée : ce que la route rend après une écriture (le
+     * résultat rejoué par le chemin central ne porte que la référence, jamais la destination chiffrée).
+     */
+    public function getEvent(string $clinicId, string $eventId): stdClass
+    {
+        $row = DB::table('communication_consents')
+            ->where('clinic_id', $clinicId)
+            ->where('id', $eventId)
+            ->first();
+        if (! $row instanceof stdClass) {
+            throw BusinessError::notFound();
+        }
+
+        return $this->maskConsentRow($row);
+    }
+
     public function maskConsentRow(stdClass $row): stdClass
     {
         if (! isset($row->destination_masked)) {
@@ -427,7 +444,7 @@ final class ConsentLedger
 
         $cleanIdempotencyKey = $idempotencyKey !== null ? strtoupper(trim($idempotencyKey)) : null;
 
-        return $this->transactions->run(function () use (
+        return $this->transactions->joinOrRun(function () use (
             $context,
             $status,
             $commandName,

@@ -166,7 +166,7 @@ final class IntegrationAccounts
         $actorId = $this->resolveActorIdForClinic($clinicId, $actor);
 
         /** @var stdClass */
-        return $this->transactions->run(function () use (
+        return $this->transactions->joinOrRun(function () use (
             $clinicId,
             $actor,
             $actorId,
@@ -273,7 +273,7 @@ final class IntegrationAccounts
         $actorId = $this->resolveActorIdForClinic($clinicId, $actor);
 
         /** @var stdClass */
-        return $this->transactions->run(function () use (
+        return $this->transactions->joinOrRun(function () use (
             $clinicId,
             $actor,
             $actorId,

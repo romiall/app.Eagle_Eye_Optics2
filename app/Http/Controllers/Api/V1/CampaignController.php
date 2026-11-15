@@ -19,7 +19,8 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 /**
- * Endpoints API v1 pour les segments d'audience administratifs et les campagnes ciblées (L2D08).
+ * Lectures des segments d'audience et des campagnes (L2D08), aperçu de la cible et exécution d'une campagne. Les écritures
+ * (segments, brouillon, gel, pause) sont des commandes (CampaignCommandController).
  */
 final class CampaignController
 {
@@ -44,22 +45,6 @@ final class CampaignController
         ]);
     }
 
-    public function storeSegment(Request $request): JsonResponse
-    {
-        [$context, $key, $body] = $this->readCommand($request, 'SaveAudienceSegmentRequest');
-        $row = $this->segments->create($context, $body, $key);
-
-        return new JsonResponse(['data' => CommunicationPresenter::audienceSegment($row)], 201);
-    }
-
-    public function updateSegment(Request $request, string $id): JsonResponse
-    {
-        [$context, $key, $body] = $this->readCommand($request, 'UpdateAudienceSegmentRequest');
-        $row = $this->segments->update($context, $id, $body, $key);
-
-        return new JsonResponse(['data' => CommunicationPresenter::audienceSegment($row)]);
-    }
-
     public function listCampaigns(Request $request): JsonResponse
     {
         $actor = $this->authorizeCommunication($request);
@@ -76,14 +61,10 @@ final class CampaignController
         ]);
     }
 
-    public function storeCampaign(Request $request): JsonResponse
-    {
-        [$context, $key, $body] = $this->readCommand($request, 'SaveCampaignRequest');
-        $row = $this->campaigns->create($context, $body, $key);
-
-        return new JsonResponse(['data' => CommunicationPresenter::campaign($row)], 201);
-    }
-
+    /**
+     * Aperçu de la cible : une LECTURE portée par un POST (le corps est facultatif), qui n'écrit rien. Classée comme telle
+     * dans MutationRoutesTest ; CampaignsTest prouve à l'exécution qu'aucune instruction d'écriture n'est émise.
+     */
     public function previewCampaign(Request $request, string $id): JsonResponse
     {
         [$context] = $this->readCommand($request, 'KnowledgeActionRequest', true);
@@ -92,28 +73,16 @@ final class CampaignController
         return new JsonResponse(['data' => CommunicationPresenter::campaignPreview($preview)]);
     }
 
-    public function freezeCampaign(Request $request, string $id): JsonResponse
-    {
-        [$context, $key, $body] = $this->readCommand($request, 'FreezeCampaignRequest', true);
-        $row = $this->campaigns->freeze($context, $id, $body, $key);
-
-        return new JsonResponse(['data' => CommunicationPresenter::campaign($row)]);
-    }
-
+    /**
+     * Exécution : appelle le fournisseur de messagerie ENTRE deux transactions, jamais dedans. Opération à appel
+     * fournisseur, classée comme telle dans MutationRoutesTest (clé d'idempotence obligatoire, jugée par le service : une
+     * reprise n'envoie jamais deux fois).
+     */
     public function executeCampaign(Request $request, string $id): JsonResponse
     {
         [$context, $key, $body] = $this->readCommand($request, 'KnowledgeActionRequest', true);
         $reason = is_string($body['reason'] ?? null) ? $body['reason'] : null;
         $row = $this->campaigns->execute($context, $id, $reason, $key);
-
-        return new JsonResponse(['data' => CommunicationPresenter::campaign($row)]);
-    }
-
-    public function pauseCampaign(Request $request, string $id): JsonResponse
-    {
-        [$context, $key, $body] = $this->readCommand($request, 'PauseCampaignRequest', true);
-        $reason = is_string($body['reason'] ?? null) ? $body['reason'] : null;
-        $row = $this->campaigns->pause($context, $id, $reason, $key);
 
         return new JsonResponse(['data' => CommunicationPresenter::campaign($row)]);
     }

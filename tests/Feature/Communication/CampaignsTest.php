@@ -179,8 +179,18 @@ final class CampaignsTest extends TestCase
         $this->assertMatchesContract($camp, 'schemas/resources/communication.json#/$defs/CampaignResponse');
         $campaignId = (string) $camp->json('data.id');
 
+        // L'aperçu est une LECTURE portée par un POST (classée comme telle dans MutationRoutesTest) : aucune écriture.
+        $watching = true;
+        $writes = [];
+        DB::listen(static function ($query) use (&$watching, &$writes): void {
+            if ($watching && preg_match('/^\s*(?:insert|update|delete|replace|truncate|alter|create|drop)\b/i', $query->sql) === 1) {
+                $writes[] = $query->sql;
+            }
+        });
         $preview = $this->write('POST', '/api/v1/communication/campaigns/'.$campaignId.'/preview', [], $this->operator);
+        $watching = false;
         $preview->assertOk();
+        self::assertSame([], $writes, 'L\'aperçu d\'une campagne n\'écrit rien : une lecture, pas une commande.');
         $this->assertMatchesContract($preview, 'schemas/resources/communication.json#/$defs/CampaignPreviewResponse');
         self::assertSame(3, $preview->json('data.total_candidates'));
         self::assertSame(2, $preview->json('data.eligible_count'));

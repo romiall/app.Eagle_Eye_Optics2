@@ -768,59 +768,92 @@
    "notes": "Recette transversale L1 complète (L1D01..L1D09, AT30, AT31, EE009, EE015, EE026..EE030) sur branche claude/l1-stock-complet en mode intégrations fake (EEO_INTEGRATIONS_MODE=fake). L2 et L3 à suivre avant bascule."
   },
   "L2D01": {
-   "status": "NOT_STARTED",
-   "evidence": [],
-   "notes": ""
+   "status": "IN_REVIEW",
+   "evidence": [
+    "tests/Feature/Integrations/IntegrationHealthAndOutboxTest.php",
+    "tests/Feature/Integrations/IntegrationSecurityAndReplayTest.php",
+    "tests/Feature/Application/L2CommandsOnBusTest.php",
+    "docs/evidence/integrations.md"
+   ],
+   "notes": "Comptes d'intégration chiffrés (secretbox, jamais rendus), modes disabled/fake/live (défaut fake), outbox traitée par lots, santé et coupe-circuit, verrou optimiste. Écritures de données par le chemin central de commandes depuis le 2026-11-15 (docs/implementation/command-bus.md, section « La couche L2 sur le chemin central ») ; la sonde de connexion et le traitement de l'outbox sont des opérations à appel fournisseur, hors du bus (MutationRoutesTest::PROVIDER_OPERATION_ROUTES, OperationRoutesGuardTest). Mode EEO_INTEGRATIONS_MODE=fake : aucun compte ni message réel (Q10 et Q11 restent à fournir par la cliente)."
   },
   "L2D02": {
-   "status": "NOT_STARTED",
-   "evidence": [],
-   "notes": ""
+   "status": "IN_REVIEW",
+   "evidence": [
+    "tests/Feature/Scheduling/GoogleCalendarAndPublicBookingTest.php",
+    "tests/Feature/Integrations/IntegrationSecurityAndReplayTest.php"
+   ],
+   "notes": "Google Agenda par ressource : états de synchronisation (jeton chiffré), synchronisation incrémentale ou complète, reprise sur 410 et push expiré, charge assainie (prestation et référence, aucune identité ni donnée clinique) ; demande de réservation publique et confirmation ou refus par la gérante sous le verrou du cabinet. Écritures de données par le chemin central de commandes depuis le 2026-11-15 (docs/implementation/command-bus.md, section « La couche L2 sur le chemin central »). La synchronisation (appel Google) est une opération à appel fournisseur. Mode EEO_INTEGRATIONS_MODE=fake : aucun compte ni message réel (Q10 et Q11 restent à fournir par la cliente)."
   },
   "L2D03": {
-   "status": "NOT_STARTED",
-   "evidence": [],
-   "notes": ""
+   "status": "IN_REVIEW",
+   "evidence": [
+    "tests/Feature/Crm/KommoMirrorTest.php"
+   ],
+   "notes": "Prospects administratifs distincts des patients, miroir Kommo (leads et conversations par références, Kommo reste maître), rattachement manuel à un dossier du même cabinet, jamais de fusion automatique. Écritures de données par le chemin central de commandes depuis le 2026-11-15 (docs/implementation/command-bus.md, section « La couche L2 sur le chemin central »). La synchronisation des leads (appel Kommo) est une opération à appel fournisseur. Mode EEO_INTEGRATIONS_MODE=fake : aucun compte ni message réel (Q10 et Q11 restent à fournir par la cliente)."
   },
   "L2D04": {
-   "status": "NOT_STARTED",
-   "evidence": [],
-   "notes": ""
+   "status": "IN_REVIEW",
+   "evidence": [
+    "tests/Feature/Crm/KnowledgeBaseTest.php"
+   ],
+   "notes": "Base de connaissances versionnée : fiches, révisions brouillons, approbation (knowledge.manage) puis publication unique par fiche ; l'assistant ne lit que des faits publics publiés. Écritures de données par le chemin central de commandes depuis le 2026-11-15 (docs/implementation/command-bus.md, section « La couche L2 sur le chemin central »)."
   },
   "L2D05": {
-   "status": "NOT_STARTED",
-   "evidence": [],
-   "notes": ""
+   "status": "IN_REVIEW",
+   "evidence": [
+    "tests/Feature/Crm/AssistantAndHandoffTest.php",
+    "tests/e2e/l2-integrations.spec.ts"
+   ],
+   "notes": "Assistant borné (outils limités, refus de toute demande clinique, prix non validé jamais inventé), prise en charge humaine avec résumé administratif, assistant suspendu puis repris. Écritures de données par le chemin central de commandes depuis le 2026-11-15 (docs/implementation/command-bus.md, section « La couche L2 sur le chemin central ») pour la prise en charge et la reprise ; le tour de l'assistant est une opération (moteur hors transaction ; non idempotent, limite documentée). L'outil `get_public_catalog` du fichier 08 attend les références publiées (L3D02). Mode EEO_INTEGRATIONS_MODE=fake : aucun compte ni message réel (Q10 et Q11 restent à fournir par la cliente)."
   },
   "L2D06": {
-   "status": "NOT_STARTED",
-   "evidence": [],
-   "notes": ""
+   "status": "IN_REVIEW",
+   "evidence": [
+    "tests/Feature/Communication/ConsentAndTemplateTest.php",
+    "tests/Feature/Integrations/IntegrationSecurityAndReplayTest.php"
+   ],
+   "notes": "Registre de consentements append-only par destination exacte chiffrée (une révocation est un nouvel événement), modèles de messages versionnés et approuvés (variables administratives seulement), politiques de rappel. Écritures de données par le chemin central de commandes depuis le 2026-11-15 (docs/implementation/command-bus.md, section « La couche L2 sur le chemin central »)."
   },
   "L2D07": {
-   "status": "NOT_STARTED",
-   "evidence": [],
-   "notes": ""
+   "status": "IN_REVIEW",
+   "evidence": [
+    "tests/Feature/Communication/TransactionalMessagingTest.php",
+    "tests/Feature/Integrations/IntegrationSecurityAndReplayTest.php"
+   ],
+   "notes": "Envois transactionnels : consentement revalidé juste avant l'envoi, une tentative par envoi, résultat inconnu rattrapé sans renvoi à l'aveugle, message minimal sans donnée clinique. L'envoi et le rattrapage appellent le fournisseur ENTRE deux transactions (opérations à appel fournisseur). Mode EEO_INTEGRATIONS_MODE=fake : aucun compte ni message réel (Q10 et Q11 restent à fournir par la cliente)."
   },
   "L2D08": {
-   "status": "NOT_STARTED",
-   "evidence": [],
-   "notes": ""
+   "status": "IN_REVIEW",
+   "evidence": [
+    "tests/Feature/Communication/CampaignsTest.php"
+   ],
+   "notes": "Segments administratifs (jamais un critère clinique), campagnes : aperçu en lecture seule, gel de l'audience sous approbation exacte CAMPAIGN_SEND, exclusion des opt-out revérifiée, pause ; l'exécution reprise n'envoie jamais deux fois. Écritures de données par le chemin central de commandes depuis le 2026-11-15 (docs/implementation/command-bus.md, section « La couche L2 sur le chemin central ») pour les segments, le brouillon, le gel et la pause ; l'exécution est une opération à appel fournisseur. Mode EEO_INTEGRATIONS_MODE=fake : aucun compte ni message réel (Q10 et Q11 restent à fournir par la cliente)."
   },
   "L2D09": {
-   "status": "NOT_STARTED",
-   "evidence": [],
-   "notes": ""
+   "status": "IN_REVIEW",
+   "evidence": [
+    "tests/Feature/Integrations/WebhookInboxAndReconcileTest.php"
+   ],
+   "notes": "Webhooks entrants : origine et signature vérifiées, taille bornée, inbox durable, déduplication, traitement hors réponse rapide, réconciliation des événements non vérifiables par l'API autorisée. Entrées publiques sans compte : hors bus par nature (documenté dans command-bus.md). Mode EEO_INTEGRATIONS_MODE=fake : aucun compte ni message réel (Q10 et Q11 restent à fournir par la cliente)."
   },
   "L2D10": {
-   "status": "NOT_STARTED",
-   "evidence": [],
-   "notes": ""
+   "status": "IN_REVIEW",
+   "evidence": [
+    "docs/evidence/integrations.md",
+    "docs/runbooks/integration-incidents.md",
+    "tests/e2e/l2-integrations.spec.ts",
+    "tests/Feature/Integrations/IntegrationSecurityAndReplayTest.php"
+   ],
+   "notes": "Validation sous doubles de fournisseur (AT32 à AT35) et sécurité : secrets jamais journalisés, aucun message réel de test, isolation clinique des sorties, coupe-circuit d'urgence, reprise manuelle (runbook). Tests réels sur comptes autorisés NON faits : aucun compte fourni. Mode EEO_INTEGRATIONS_MODE=fake : aucun compte ni message réel (Q10 et Q11 restent à fournir par la cliente)."
   },
   "G6": {
-   "status": "NOT_STARTED",
-   "evidence": [],
-   "notes": ""
+   "status": "IN_REVIEW",
+   "evidence": [
+    "docs/evidence/G6.md",
+    "docs/evidence/integrations.md"
+   ],
+   "notes": "Recette L2 : AT32 à AT35 prouvés EN MODE FAKE. IN_REVIEW et non DONE : aucun canal réel n'est actif ni annoncé (comptes Google, Kommo, Meta WhatsApp, SMS et SMTP non fournis). Le point MutationRoutesTest relevé par le bilan d'origine est clos le 2026-11-15 (36 routes : 26 sur le bus, 9 opérations à appel fournisseur classées une à une, 1 lecture portée par un POST)."
   },
   "L3D01": {
    "status": "NOT_STARTED",

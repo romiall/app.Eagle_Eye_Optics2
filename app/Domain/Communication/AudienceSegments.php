@@ -74,7 +74,7 @@ final class AudienceSegments
         $cleanKey = $idempotencyKey !== null ? strtoupper(trim($idempotencyKey)) : null;
         $fingerprint = hash('sha256', (string) json_encode(['name' => $name, 'criteria' => $criteria], JSON_THROW_ON_ERROR));
 
-        return $this->transactions->run(function () use ($context, $name, $criteria, $cleanKey, $fingerprint): stdClass {
+        return $this->transactions->joinOrRun(function () use ($context, $name, $criteria, $cleanKey, $fingerprint): stdClass {
             $locks = new TransactionLocks($context->clinicId);
             $locks->clinic();
 
@@ -154,7 +154,7 @@ final class AudienceSegments
         $cleanKey = $idempotencyKey !== null ? strtoupper(trim($idempotencyKey)) : null;
         $fingerprint = hash('sha256', (string) json_encode(['id' => $segmentId] + $payload, JSON_THROW_ON_ERROR));
 
-        return $this->transactions->run(function () use ($context, $segmentId, $payload, $expectedVersion, $cleanKey, $fingerprint): stdClass {
+        return $this->transactions->joinOrRun(function () use ($context, $segmentId, $payload, $expectedVersion, $cleanKey, $fingerprint): stdClass {
             $locks = new TransactionLocks($context->clinicId);
             $locks->clinic();
 

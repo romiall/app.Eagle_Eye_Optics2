@@ -68,6 +68,37 @@ final class KnowledgeBase
     }
 
     /**
+     * Une fiche par son identifiant, avec ses révisions : ce que la route rend après une écriture.
+     *
+     * @return array{entry: stdClass, published_version: ?stdClass, versions: list<stdClass>}
+     */
+    public function getEntry(string $clinicId, string $entryId): array
+    {
+        $entry = DB::table('knowledge_entries')
+            ->where('clinic_id', $clinicId)
+            ->where('id', $entryId)
+            ->first();
+        if (! $entry instanceof stdClass) {
+            throw BusinessError::notFound();
+        }
+
+        return $this->hydrateEntries($clinicId, [$entry])[0];
+    }
+
+    public function getVersion(string $clinicId, string $versionId): stdClass
+    {
+        $version = DB::table('knowledge_entry_versions')
+            ->where('clinic_id', $clinicId)
+            ->where('id', $versionId)
+            ->first();
+        if (! $version instanceof stdClass) {
+            throw BusinessError::notFound();
+        }
+
+        return $version;
+    }
+
+    /**
      * @param  array<string, mixed>  $payload
      * @return array{entry: stdClass, published_version: ?stdClass, versions: list<stdClass>}
      */
@@ -92,7 +123,7 @@ final class KnowledgeBase
         $versionId = Ulid::generate();
         $nowSql = CarbonImmutable::now('UTC')->format('Y-m-d H:i:s.u');
 
-        return $this->transactions->run(function () use (
+        return $this->transactions->joinOrRun(function () use (
             $clinicId,
             $actor,
             $entryId,
@@ -182,7 +213,7 @@ final class KnowledgeBase
         $versionId = Ulid::generate();
         $nowSql = CarbonImmutable::now('UTC')->format('Y-m-d H:i:s.u');
 
-        return $this->transactions->run(function () use ($clinicId, $actor, $entryId, $versionId, $content, $language, $nowSql): stdClass {
+        return $this->transactions->joinOrRun(function () use ($clinicId, $actor, $entryId, $versionId, $content, $language, $nowSql): stdClass {
             $locks = new TransactionLocks($clinicId);
             $locks->clinic();
             $entry = $locks->knowledgeEntry($entryId);
@@ -244,7 +275,7 @@ final class KnowledgeBase
         $cleanReason = self::cleanReason($reason);
         $nowSql = CarbonImmutable::now('UTC')->format('Y-m-d H:i:s.u');
 
-        return $this->transactions->run(function () use ($clinicId, $actor, $versionId, $cleanReason, $nowSql): stdClass {
+        return $this->transactions->joinOrRun(function () use ($clinicId, $actor, $versionId, $cleanReason, $nowSql): stdClass {
             $locks = new TransactionLocks($clinicId);
             $locks->clinic();
 
@@ -311,7 +342,7 @@ final class KnowledgeBase
         $cleanReason = self::cleanReason($reason);
         $nowSql = CarbonImmutable::now('UTC')->format('Y-m-d H:i:s.u');
 
-        return $this->transactions->run(function () use ($clinicId, $actor, $versionId, $cleanReason, $nowSql): stdClass {
+        return $this->transactions->joinOrRun(function () use ($clinicId, $actor, $versionId, $cleanReason, $nowSql): stdClass {
             $locks = new TransactionLocks($clinicId);
             $locks->clinic();
 

@@ -80,7 +80,7 @@ final class CalendarReconciliation
         $context = CommandContext::direct($actor, $correlationId, $now);
         $hash = CanonicalJson::hash($payload);
 
-        return $this->transactions->run(function () use ($context, $clinicId, $accountId, $resourceId, $calendarId, $requestedStatus, $idempotencyKey, $hash): array {
+        return $this->transactions->joinOrRun(function () use ($context, $clinicId, $accountId, $resourceId, $calendarId, $requestedStatus, $idempotencyKey, $hash): array {
             $locks = new TransactionLocks($clinicId);
             $locks->clinic();
 

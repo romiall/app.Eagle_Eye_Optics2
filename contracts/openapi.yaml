@@ -4312,6 +4312,109 @@ paths:
       x-idempotency: "none"
       x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "I00"
+  /v1/stock/movements:
+    get:
+      operationId: "ListStockMovements"
+      summary: "Historique des mouvements de stock d'un article"
+      tags:
+        - "Stock"
+      description: "Module stock. Mouvements physiques append-only de l'article, du plus récent au plus ancien (cahier des charges §6) ; le coût unitaire n'est rendu qu'avec stock.valuation.read."
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: "item_id"
+          in: "query"
+          required: false
+          description: "Article (obligatoire)."
+          schema:
+            type: "string"
+        - name: "location_id"
+          in: "query"
+          required: false
+          description: "Filtre emplacement."
+          schema:
+            type: "string"
+        - name: "kind"
+          in: "query"
+          required: false
+          description: "Filtre type de mouvement."
+          schema:
+            type: "string"
+        - name: "page"
+          in: "query"
+          required: false
+          description: "Page (pagination, 1 par défaut)."
+          schema:
+            type: "integer"
+            minimum: 1
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/stock.json#/$defs/StockMovementHistoryPage"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "stock.read"
+      x-reauthentication: false
+      x-idempotency: "none"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "L1D03"
+    post:
+      operationId: "RegisterStockMovement"
+      summary: "Mouvement hors vente motivé et approuvé"
+      tags:
+        - "Stock"
+      description: "Module stock, réauthentification récente. Casse (BREAKAGE, quantité négative) ou ajustement (ADJUSTMENT, quantité signée non nulle) d'un article géré en stock ; lot obligatoire dès que la position a des lots ; quantité entière pour un article vendu à l'unité. Un retrait ne dépasse jamais le disponible central (physique − réserves − quotas des postes : 409 STOCK_UNAVAILABLE, details.available). Approbation exacte (position, article, lot, nature, quantité signée) consommée une fois, ou exécution directe de la gérante sous cet approval_id ; sinon 422 APPROVAL_REQUIRED_OR_EXPIRED. Motif obligatoire, coût unitaire connu ou null. Corps avec expected_version null."
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./commands/RegisterStockMovement.v1.json#/$defs/DirectRequest"
+      responses:
+        "201":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/stock.json#/$defs/StockMovementResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+        "423":
+          $ref: "#/components/responses/ReauthenticationRequired"
+      x-permission:
+        - "stock.adjust"
+      x-reauthentication: true
+      x-idempotency: "required"
+      x-offline-command: "RegisterStockMovement"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "I02"
   /v1/stock/locations:
     get:
       operationId: "ListStockLocations"
@@ -4387,52 +4490,6 @@ paths:
       x-idempotency: "required"
       x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "I00"
-  /v1/stock/movements:
-    post:
-      operationId: "RegisterStockMovement"
-      summary: "Mouvement hors vente motivé et approuvé"
-      tags:
-        - "Stock"
-      description: "Module stock, réauthentification récente. Casse (BREAKAGE, quantité négative) ou ajustement (ADJUSTMENT, quantité signée non nulle) d'un article géré en stock ; lot obligatoire dès que la position a des lots ; quantité entière pour un article vendu à l'unité. Un retrait ne dépasse jamais le disponible central (physique − réserves − quotas des postes : 409 STOCK_UNAVAILABLE, details.available). Approbation exacte (position, article, lot, nature, quantité signée) consommée une fois, ou exécution directe de la gérante sous cet approval_id ; sinon 422 APPROVAL_REQUIRED_OR_EXPIRED. Motif obligatoire, coût unitaire connu ou null. Corps avec expected_version null."
-      security:
-        - sessionCookie: []
-          xsrfToken: []
-      parameters:
-        - $ref: "#/components/parameters/IdempotencyKey"
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "./commands/RegisterStockMovement.v1.json#/$defs/DirectRequest"
-      responses:
-        "201":
-          description: "Succès."
-          content:
-            application/json:
-              schema:
-                $ref: "./schemas/resources/stock.json#/$defs/StockMovementResponse"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "409":
-          $ref: "#/components/responses/Conflict"
-        "419":
-          $ref: "#/components/responses/SessionExpired"
-        "422":
-          $ref: "#/components/responses/ValidationFailed"
-        "423":
-          $ref: "#/components/responses/ReauthenticationRequired"
-      x-permission:
-        - "stock.adjust"
-      x-reauthentication: true
-      x-idempotency: "required"
-      x-offline-command: "RegisterStockMovement"
-      x-implementation-status: "IMPLEMENTED"
-      x-backlog-task: "I02"
   /v1/invoices/{id}/deliveries:
     get:
       operationId: "ListInvoiceDeliveries"

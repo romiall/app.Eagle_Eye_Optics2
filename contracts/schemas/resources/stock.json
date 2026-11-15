@@ -118,6 +118,119 @@
         }
       }
     },
+    "StockMovementHistoryEntry": {
+      "description": "Mouvement physique append-only d'un article (cahier des charges §6) : quantité signée, motif, lot, auteur. Le coût unitaire n'est rendu qu'avec stock.valuation.read.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "kind",
+        "signed_quantity",
+        "occurred_at",
+        "reason",
+        "location_name",
+        "lot",
+        "actor_name",
+        "unit_cost"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "kind": {
+          "$ref": "../../schemas/enums.json#/$defs/stock_movements.kind"
+        },
+        "signed_quantity": {
+          "type": "string",
+          "pattern": "^-?(0|[1-9][0-9]{0,8})(\\.[0-9]{1,3})?$",
+          "description": "DECIMAL(12,3) en chaîne exacte, zéro admis."
+        },
+        "occurred_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "location_name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        },
+        "lot": {
+          "anyOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "lot_id",
+                "batch_number",
+                "expires_on"
+              ],
+              "properties": {
+                "lot_id": {
+                  "$ref": "../../schemas/common.json#/$defs/Ulid"
+                },
+                "batch_number": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 80
+                },
+                "expires_on": {
+                  "$ref": "../../schemas/common.json#/$defs/NullableCivilDate"
+                }
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "actor_name": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 180
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "unit_cost": {
+          "anyOf": [
+            {
+              "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "StockMovementHistoryPage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data",
+        "meta"
+      ],
+      "properties": {
+        "data": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/StockMovementHistoryEntry"
+          }
+        },
+        "meta": {
+          "$ref": "../../schemas/common.json#/$defs/Pagination"
+        }
+      }
+    },
     "StockLocation": {
       "description": "Emplacement de stock (rayon, atelier, réserve) ; PRINCIPAL créé par eeo:sales:bootstrap.",
       "type": "object",

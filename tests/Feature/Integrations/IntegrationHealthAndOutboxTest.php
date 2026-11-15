@@ -16,6 +16,7 @@ use RuntimeException;
 use stdClass;
 use Tests\Support\AccessFixtures;
 use Tests\Support\MigratedDatabase;
+use Tests\Support\SendsIdempotencyKeys;
 use Tests\Support\ValidatesContracts;
 use Tests\TestCase;
 
@@ -23,6 +24,7 @@ final class IntegrationHealthAndOutboxTest extends TestCase
 {
     use AccessFixtures;
     use MigratedDatabase;
+    use SendsIdempotencyKeys;
     use ValidatesContracts;
 
     private string $clinicId;

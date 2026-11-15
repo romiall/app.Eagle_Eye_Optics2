@@ -7,6 +7,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Tests\Support\AgendaFixtures;
 use Tests\Support\MigratedDatabase;
+use Tests\Support\SendsIdempotencyKeys;
 use Tests\TestCase;
 
 /**
@@ -18,6 +19,7 @@ final class KnowledgeBaseTest extends TestCase
 {
     use AgendaFixtures;
     use MigratedDatabase;
+    use SendsIdempotencyKeys;
 
     protected function setUp(): void
     {

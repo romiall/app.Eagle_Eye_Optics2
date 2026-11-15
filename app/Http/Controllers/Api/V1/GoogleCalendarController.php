@@ -30,23 +30,10 @@ final class GoogleCalendarController extends Controller
         ]);
     }
 
-    public function saveState(Request $request, CalendarReconciliation $reconciliation): JsonResponse
-    {
-        $actor = $this->actor($request, ['integration.manage']);
-        $idempotencyKey = $this->requireIdempotencyKey($request);
-        /** @var array<string, mixed> $payload */
-        $payload = $request->json()->all();
-
-        $state = $reconciliation->saveState(
-            actor: $actor,
-            correlationId: AssignCorrelationId::current($request),
-            idempotencyKey: $idempotencyKey,
-            payload: $payload,
-        );
-
-        return new JsonResponse(['data' => $state], 201);
-    }
-
+    /**
+     * Synchronisation avec Google : appelle le fournisseur (hors de toute transaction). Opération à appel fournisseur,
+     * classée comme telle dans MutationRoutesTest ; la liaison d'un agenda est une commande (CalendarSyncStateController).
+     */
     public function sync(Request $request, CalendarReconciliation $reconciliation): JsonResponse
     {
         $actor = $this->actor($request, ['integration.manage', 'agenda.write']);

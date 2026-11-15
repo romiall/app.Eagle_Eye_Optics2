@@ -6,6 +6,7 @@ use App\Application\Command;
 use App\Domain\Inventory\StockAlerts;
 use App\Domain\Inventory\StockAvailabilityReader;
 use App\Domain\Inventory\StockLocations;
+use App\Domain\Inventory\StockMovementHistory;
 use App\Domain\Shared\BusinessError;
 use App\Http\Controllers\CommandController;
 use App\Http\Resources\StockPresenter;
@@ -81,6 +82,28 @@ final class StockController extends CommandController
         $result = $this->dispatchCommand($request, new Command('RegisterStockMovement', $payload, $movementId, null));
 
         return new JsonResponse(['data' => $result->result], 201);
+    }
+
+    /**
+     * Historique des mouvements d'un article (cahier des charges §6), du plus récent au plus ancien. Le coût unitaire
+     * n'est rendu qu'avec `stock.valuation.read`.
+     */
+    public function movements(Request $request, StockMovementHistory $history): JsonResponse
+    {
+        $actor = $this->actor($request);
+        $page = $history->page(
+            (string) $actor->clinic_id,
+            $request->query('item_id'),
+            $request->query('location_id'),
+            $request->query('kind'),
+            $request->query('page'),
+        );
+        $withCost = $actor->can('stock.valuation.read');
+
+        return new JsonResponse([
+            'data' => array_map(static fn (\stdClass $row): array => StockMovementHistory::present($row, $withCost), array_values($page->items())),
+            'meta' => ['current_page' => $page->currentPage(), 'last_page' => $page->lastPage(), 'per_page' => $page->perPage(), 'total' => $page->total()],
+        ]);
     }
 
     public function alerts(Request $request): JsonResponse

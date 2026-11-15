@@ -21,9 +21,11 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 /**
- * Endpoints API v1 pour les consentements, modèles de messages, politiques de rappels
- * et envois transactionnels (L2D06 & L2D07). Toutes les mutations passent par les services
- * du domaine transactionnel.
+ * Lectures des consentements, modèles de messages et politiques de rappel, et envois transactionnels (L2D06 et L2D07).
+ * L'envoi d'un message et le rattrapage d'une tentative appellent le fournisseur de messagerie ENTRE deux transactions,
+ * jamais dedans : opérations à appel fournisseur, classées comme telles dans MutationRoutesTest (clé d'idempotence
+ * obligatoire, jugée par le service). Les écritures de consentements, modèles et politiques sont des commandes
+ * (CommunicationCommandController).
  */
 final class CommunicationController
 {
@@ -57,22 +59,6 @@ final class CommunicationController
         ]);
     }
 
-    public function storeConsent(Request $request): JsonResponse
-    {
-        [$context, $key, $body] = $this->readCommand($request, 'RecordConsentRequest');
-        $row = $this->consents->recordGrant($context, $body, $key);
-
-        return new JsonResponse(['data' => CommunicationPresenter::consent($row)], 201);
-    }
-
-    public function revokeConsent(Request $request): JsonResponse
-    {
-        [$context, $key, $body] = $this->readCommand($request, 'RevokeConsentRequest');
-        $row = $this->consents->recordRevoke($context, $body, $key);
-
-        return new JsonResponse(['data' => CommunicationPresenter::consent($row)], 201);
-    }
-
     public function listTemplates(Request $request): JsonResponse
     {
         $actor = $this->authorizeCommunication($request);
@@ -83,31 +69,6 @@ final class CommunicationController
         ]);
     }
 
-    public function storeTemplate(Request $request): JsonResponse
-    {
-        [$context, $key, $body] = $this->readCommand($request, 'SaveMessageTemplateRequest');
-        $row = $this->templates->createTemplate($context, $body, $key);
-
-        return new JsonResponse(['data' => CommunicationPresenter::template($row)], 201);
-    }
-
-    public function storeTemplateVersion(Request $request, string $id): JsonResponse
-    {
-        [$context, $key, $body] = $this->readCommand($request, 'CreateMessageTemplateVersionRequest');
-        $row = $this->templates->createVersion($context, $id, $body, $key);
-
-        return new JsonResponse(['data' => CommunicationPresenter::templateVersion($row)], 201);
-    }
-
-    public function approveTemplateVersion(Request $request, string $id): JsonResponse
-    {
-        [$context, $key, $body] = $this->readCommand($request, 'KnowledgeActionRequest', true);
-        $reason = is_string($body['reason'] ?? null) ? $body['reason'] : null;
-        $row = $this->templates->approveVersion($context, $id, $reason, $key);
-
-        return new JsonResponse(['data' => CommunicationPresenter::templateVersion($row)]);
-    }
-
     public function listReminderPolicies(Request $request): JsonResponse
     {
         $actor = $this->authorizeCommunication($request);
@@ -116,22 +77,6 @@ final class CommunicationController
         return new JsonResponse([
             'data' => array_map(CommunicationPresenter::reminderPolicy(...), $result['items']),
         ]);
-    }
-
-    public function storeReminderPolicy(Request $request): JsonResponse
-    {
-        [$context, $key, $body] = $this->readCommand($request, 'SaveReminderPolicyRequest');
-        $row = $this->policies->create($context, $body, $key);
-
-        return new JsonResponse(['data' => CommunicationPresenter::reminderPolicy($row)], 201);
-    }
-
-    public function updateReminderPolicy(Request $request, string $id): JsonResponse
-    {
-        [$context, $key, $body] = $this->readCommand($request, 'UpdateReminderPolicyRequest');
-        $row = $this->policies->update($context, $id, $body, $key);
-
-        return new JsonResponse(['data' => CommunicationPresenter::reminderPolicy($row)]);
     }
 
     public function listAttempts(Request $request): JsonResponse

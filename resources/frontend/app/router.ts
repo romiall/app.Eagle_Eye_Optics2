@@ -57,6 +57,7 @@ import ReceiptPage from '@/pages/purchasing/ReceiptPage.vue'
 import ReceiptsPage from '@/pages/purchasing/ReceiptsPage.vue'
 import SuppliersPage from '@/pages/purchasing/SuppliersPage.vue'
 import StockAlertsPage from '@/pages/stock/Alerts.vue'
+import StockMovementHistoryPage from '@/pages/stock/MovementHistoryPage.vue'
 import WorkshopCreatePage from '@/pages/workshop/WorkshopCreatePage.vue'
 import WorkshopOrderDetailPage from '@/pages/workshop/WorkshopOrderDetailPage.vue'
 import WorkshopOrdersPage from '@/pages/workshop/WorkshopOrdersPage.vue'
@@ -481,6 +482,17 @@ export function createEeoRouter(history: RouterHistory = createWebHistory()): Ro
         name: 'stock-alerts',
         component: StockAlertsPage,
         meta: { title: 'Alertes et seuils', permissions: ['stock.read'], module: 'stock' },
+      },
+      // Historique des mouvements d'un article (cahier des charges §6), lecture seule, en ligne.
+      {
+        path: '/stock/historique',
+        name: 'stock-history',
+        component: StockMovementHistoryPage,
+        meta: {
+          title: 'Historique des mouvements',
+          permissions: ['stock.read'],
+          module: 'stock',
+        },
       },
       // Atelier optique et bon laboratoire anonymisé (L1D04), module « workshop », droit workshop.manage.
       {

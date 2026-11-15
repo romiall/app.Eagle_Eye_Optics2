@@ -12,8 +12,13 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 /**
- * Portail public de prise de rendez-vous (`/public/v1/*`, sans authentification) et traitement
- * back-office des demandes (`/api/v1/public-bookings*`).
+ * Portail public de prise de rendez-vous (`/public/v1/*`, sans authentification) et liste back-office des demandes
+ * (`/api/v1/public-bookings`). La décision de la gérante (confirmer, refuser) est une commande
+ * (PublicBookingDecisionController).
+ *
+ * Le dépôt d'une demande par un visiteur (`store`) est hors du chemin central PAR NATURE : aucun compte, donc aucun
+ * acteur, aucun droit à relire sous le verrou ; il se protège par sa limite de débit, sa clé d'idempotence propre et le
+ * verrou du cabinet que le service prend lui-même (voir `docs/implementation/command-bus.md`).
  */
 final class PublicBookingController extends Controller
 {
@@ -81,42 +86,6 @@ final class PublicBookingController extends Controller
                 'total' => $page->total(),
             ],
         ]);
-    }
-
-    public function confirm(Request $request, PublicBooking $booking, string $id): JsonResponse
-    {
-        $actor = $this->actor($request, ['agenda.write']);
-        $idempotencyKey = $this->requireIdempotencyKey($request);
-        /** @var array<string, mixed> $payload */
-        $payload = $request->json()->all();
-
-        $item = $booking->confirmRequest(
-            actor: $actor,
-            bookingId: $id,
-            correlationId: AssignCorrelationId::current($request),
-            idempotencyKey: $idempotencyKey,
-            payload: $payload,
-        );
-
-        return new JsonResponse(['data' => $item]);
-    }
-
-    public function reject(Request $request, PublicBooking $booking, string $id): JsonResponse
-    {
-        $actor = $this->actor($request, ['agenda.write']);
-        $idempotencyKey = $this->requireIdempotencyKey($request);
-        /** @var array<string, mixed> $payload */
-        $payload = $request->json()->all();
-
-        $item = $booking->rejectRequest(
-            actor: $actor,
-            bookingId: $id,
-            correlationId: AssignCorrelationId::current($request),
-            idempotencyKey: $idempotencyKey,
-            payload: $payload,
-        );
-
-        return new JsonResponse(['data' => $item]);
     }
 
     private function explicitClinicId(Request $request): ?string

@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers\Api\V1;
 
-use App\Application\Contracts\ContractValidator;
+use App\Domain\Crm\Handlers\ManageKnowledgeHandler;
 use App\Domain\Crm\KnowledgeBase;
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\CommandController;
 use App\Http\Resources\CrmPresenter;
 use App\Models\User;
 use Illuminate\Auth\AuthenticationException;
@@ -12,15 +12,13 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 /**
- * Base de connaissances gouvernée du cabinet (L2D04) : fiches, révisions brouillons,
- * approbation gérante et publication unique par fiche.
+ * Base de connaissances gouvernée du cabinet (L2D04) : fiches, révisions brouillons, approbation gérante et publication
+ * unique par fiche. Toute écriture passe par le chemin central de commandes (clé d'idempotence obligatoire, droit
+ * `communication.manage`) ; le corps est validé par l'action contre la requête HTTP de la route.
  */
-final class KnowledgeController extends Controller
+final class KnowledgeController extends CommandController
 {
-    public function __construct(
-        private readonly KnowledgeBase $knowledge,
-        private readonly ContractValidator $contracts,
-    ) {}
+    public function __construct(private readonly KnowledgeBase $knowledge) {}
 
     public function index(Request $request): JsonResponse
     {
@@ -42,52 +40,31 @@ final class KnowledgeController extends Controller
 
     public function store(Request $request): JsonResponse
     {
-        $actor = $this->actor($request);
-        /** @var array<string, mixed> $payload */
-        $payload = $request->json()->all();
-        $this->contracts->assertCommandPayload('schemas/requests/http.json#/$defs/SaveKnowledgeEntryRequest', $payload);
+        $result = $this->dispatchBody($request, ManageKnowledgeHandler::SAVE_ENTRY);
+        $entry = $this->knowledge->getEntry($this->clinicId($request), (string) $result->resultId);
 
-        $created = $this->knowledge->createEntry((string) $actor->clinic_id, $actor, $payload);
-
-        return new JsonResponse(['data' => CrmPresenter::knowledgeEntry($created)], 201);
+        return new JsonResponse(['data' => CrmPresenter::knowledgeEntry($entry)], 201);
     }
 
     public function storeVersion(Request $request, string $id): JsonResponse
     {
-        $actor = $this->actor($request);
-        /** @var array<string, mixed> $payload */
-        $payload = $request->json()->all();
-        $this->contracts->assertCommandPayload('schemas/requests/http.json#/$defs/CreateKnowledgeVersionRequest', $payload);
+        $result = $this->dispatchBody($request, ManageKnowledgeHandler::CREATE_VERSION, $id);
 
-        $version = $this->knowledge->addVersion((string) $actor->clinic_id, $actor, $id, $payload);
-
-        return new JsonResponse(['data' => CrmPresenter::knowledgeVersion($version)], 201);
+        return new JsonResponse(['data' => CrmPresenter::knowledgeVersion($this->knowledge->getVersion($this->clinicId($request), (string) $result->resultId))], 201);
     }
 
     public function approveVersion(Request $request, string $id): JsonResponse
     {
-        $actor = $this->actor($request);
-        /** @var array<string, mixed> $payload */
-        $payload = $request->json()->all();
-        $this->contracts->assertCommandPayload('schemas/requests/http.json#/$defs/KnowledgeActionRequest', $payload);
+        $result = $this->dispatchBody($request, ManageKnowledgeHandler::APPROVE_VERSION, $id);
 
-        $reason = isset($payload['reason']) && is_string($payload['reason']) ? $payload['reason'] : null;
-        $version = $this->knowledge->approveVersion((string) $actor->clinic_id, $actor, $id, $reason);
-
-        return new JsonResponse(['data' => CrmPresenter::knowledgeVersion($version)]);
+        return new JsonResponse(['data' => CrmPresenter::knowledgeVersion($this->knowledge->getVersion($this->clinicId($request), (string) $result->resultId))]);
     }
 
     public function publishVersion(Request $request, string $id): JsonResponse
     {
-        $actor = $this->actor($request);
-        /** @var array<string, mixed> $payload */
-        $payload = $request->json()->all();
-        $this->contracts->assertCommandPayload('schemas/requests/http.json#/$defs/KnowledgeActionRequest', $payload);
+        $result = $this->dispatchBody($request, ManageKnowledgeHandler::PUBLISH_VERSION, $id);
 
-        $reason = isset($payload['reason']) && is_string($payload['reason']) ? $payload['reason'] : null;
-        $version = $this->knowledge->publishVersion((string) $actor->clinic_id, $actor, $id, $reason);
-
-        return new JsonResponse(['data' => CrmPresenter::knowledgeVersion($version)]);
+        return new JsonResponse(['data' => CrmPresenter::knowledgeVersion($this->knowledge->getVersion($this->clinicId($request), (string) $result->resultId))]);
     }
 
     private function actor(Request $request): User
@@ -98,5 +75,10 @@ final class KnowledgeController extends Controller
         }
 
         return $user;
+    }
+
+    private function clinicId(Request $request): string
+    {
+        return (string) $this->actor($request)->clinic_id;
     }
 }

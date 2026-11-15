@@ -7,6 +7,8 @@ use App\Http\Controllers\Api\V1\ApprovalController;
 use App\Http\Controllers\Api\V1\AssistantHandoffController;
 use App\Http\Controllers\Api\V1\AuditEventController;
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\CalendarSyncStateController;
+use App\Http\Controllers\Api\V1\CampaignCommandController;
 use App\Http\Controllers\Api\V1\CampaignController;
 use App\Http\Controllers\Api\V1\CashDayReportController;
 use App\Http\Controllers\Api\V1\CashMovementController;
@@ -14,12 +16,14 @@ use App\Http\Controllers\Api\V1\CashSessionController;
 use App\Http\Controllers\Api\V1\CatalogController;
 use App\Http\Controllers\Api\V1\CatalogImportController;
 use App\Http\Controllers\Api\V1\ClinicSettingsController;
+use App\Http\Controllers\Api\V1\CommunicationCommandController;
 use App\Http\Controllers\Api\V1\CommunicationController;
 use App\Http\Controllers\Api\V1\ConsultationController;
 use App\Http\Controllers\Api\V1\ConsultationListController;
 use App\Http\Controllers\Api\V1\ContactTaskController;
 use App\Http\Controllers\Api\V1\CorrectionController;
 use App\Http\Controllers\Api\V1\CorrectionDocumentController;
+use App\Http\Controllers\Api\V1\CrmCommandController;
 use App\Http\Controllers\Api\V1\CrmController;
 use App\Http\Controllers\Api\V1\DeliveryController;
 use App\Http\Controllers\Api\V1\DeviceController;
@@ -28,6 +32,7 @@ use App\Http\Controllers\Api\V1\ExportController;
 use App\Http\Controllers\Api\V1\FinancialReportController;
 use App\Http\Controllers\Api\V1\FollowUpController;
 use App\Http\Controllers\Api\V1\GoogleCalendarController;
+use App\Http\Controllers\Api\V1\IntegrationAccountController;
 use App\Http\Controllers\Api\V1\IntegrationController;
 use App\Http\Controllers\Api\V1\InventoryCountController;
 use App\Http\Controllers\Api\V1\InvoiceController;
@@ -39,6 +44,7 @@ use App\Http\Controllers\Api\V1\PatientController;
 use App\Http\Controllers\Api\V1\PatientMergeController;
 use App\Http\Controllers\Api\V1\PaymentReconciliationController;
 use App\Http\Controllers\Api\V1\PrescriptionController;
+use App\Http\Controllers\Api\V1\PublicBookingDecisionController;
 use App\Http\Controllers\Api\V1\PurchasingController;
 use App\Http\Controllers\Api\V1\QuoteController;
 use App\Http\Controllers\Api\V1\ReceiptController;
@@ -458,6 +464,11 @@ Route::prefix('v1')->group(function (): void {
             Route::get('stock/availability', [StockController::class, 'availability'])
                 ->middleware('can:stock.read')
                 ->name('api.stock.availability');
+            // Historique des mouvements d'un article (cahier des charges §6), lecture seule ; le coût unitaire exige
+            // en plus stock.valuation.read (décidé par le contrôleur).
+            Route::get('stock/movements', [StockController::class, 'movements'])
+                ->middleware('can:stock.read')
+                ->name('api.stock.movements.index');
             Route::get('stock/locations', [StockController::class, 'locations'])
                 ->middleware('can:stock.read')
                 ->name('api.stock.locations');
@@ -846,10 +857,10 @@ Route::prefix('v1')->group(function (): void {
                 ->name('api.integrations.health');
             Route::get('integrations/accounts', [IntegrationController::class, 'accounts'])
                 ->name('api.integrations.accounts.index');
-            Route::post('integrations/accounts', [IntegrationController::class, 'storeAccount'])
+            Route::post('integrations/accounts', [IntegrationAccountController::class, 'store'])
                 ->middleware('reauthenticated')
                 ->name('api.integrations.accounts.store');
-            Route::patch('integrations/accounts/{id}', [IntegrationController::class, 'updateAccount'])
+            Route::patch('integrations/accounts/{id}', [IntegrationAccountController::class, 'update'])
                 ->middleware('reauthenticated')
                 ->whereUlid('id')
                 ->name('api.integrations.accounts.update');
@@ -870,7 +881,7 @@ Route::prefix('v1')->group(function (): void {
         Route::get('integrations/google/states', [GoogleCalendarController::class, 'states'])
             ->middleware('any-permission:integration.manage,agenda.read')
             ->name('api.integrations.google.states.index');
-        Route::post('integrations/google/states', [GoogleCalendarController::class, 'saveState'])
+        Route::post('integrations/google/states', [CalendarSyncStateController::class, 'store'])
             ->middleware('can:integration.manage')
             ->name('api.integrations.google.states.store');
         Route::post('integrations/google/sync', [GoogleCalendarController::class, 'sync'])
@@ -882,11 +893,11 @@ Route::prefix('v1')->group(function (): void {
             Route::get('public-bookings', [PublicBookingController::class, 'index'])
                 ->middleware('any-permission:agenda.read,communication.manage')
                 ->name('api.public-bookings.index');
-            Route::post('public-bookings/{id}/confirm', [PublicBookingController::class, 'confirm'])
+            Route::post('public-bookings/{id}/confirm', [PublicBookingDecisionController::class, 'confirm'])
                 ->middleware('can:agenda.write')
                 ->whereUlid('id')
                 ->name('api.public-bookings.confirm');
-            Route::post('public-bookings/{id}/reject', [PublicBookingController::class, 'reject'])
+            Route::post('public-bookings/{id}/reject', [PublicBookingDecisionController::class, 'reject'])
                 ->middleware('can:agenda.write')
                 ->whereUlid('id')
                 ->name('api.public-bookings.reject');
@@ -895,14 +906,14 @@ Route::prefix('v1')->group(function (): void {
             Route::get('crm/prospects', [CrmController::class, 'indexProspects'])
                 ->middleware('any-permission:communication.manage,agenda.read')
                 ->name('api.crm.prospects.index');
-            Route::post('crm/prospects', [CrmController::class, 'storeProspect'])
+            Route::post('crm/prospects', [CrmCommandController::class, 'storeProspect'])
                 ->middleware('any-permission:communication.manage,agenda.write')
                 ->name('api.crm.prospects.store');
-            Route::patch('crm/prospects/{id}', [CrmController::class, 'updateProspect'])
+            Route::patch('crm/prospects/{id}', [CrmCommandController::class, 'updateProspect'])
                 ->middleware('any-permission:communication.manage,agenda.write')
                 ->whereUlid('id')
                 ->name('api.crm.prospects.update');
-            Route::post('crm/prospects/{id}/link-patient', [CrmController::class, 'linkPatient'])
+            Route::post('crm/prospects/{id}/link-patient', [CrmCommandController::class, 'linkPatient'])
                 ->middleware('any-permission:communication.manage,patient.read')
                 ->whereUlid('id')
                 ->name('api.crm.prospects.link-patient');
@@ -925,11 +936,11 @@ Route::prefix('v1')->group(function (): void {
                 ->middleware('can:communication.manage')
                 ->whereUlid('id')
                 ->name('api.crm.conversations.assistant-turn');
-            Route::post('crm/conversations/{id}/handoff', [AssistantHandoffController::class, 'handoff'])
+            Route::post('crm/conversations/{id}/handoff', [CrmCommandController::class, 'handoff'])
                 ->middleware('can:communication.manage')
                 ->whereUlid('id')
                 ->name('api.crm.conversations.handoff');
-            Route::post('crm/conversations/{id}/resume-bot', [AssistantHandoffController::class, 'resumeBot'])
+            Route::post('crm/conversations/{id}/resume-bot', [CrmCommandController::class, 'resumeBot'])
                 ->middleware('can:communication.manage')
                 ->whereUlid('id')
                 ->name('api.crm.conversations.resume-bot');
@@ -966,27 +977,27 @@ Route::prefix('v1')->group(function (): void {
             Route::middleware('can:communication.manage')->group(function (): void {
                 Route::get('communication/consents', [CommunicationController::class, 'listConsents'])
                     ->name('api.communication.consents.index');
-                Route::post('communication/consents', [CommunicationController::class, 'storeConsent'])
+                Route::post('communication/consents', [CommunicationCommandController::class, 'storeConsent'])
                     ->name('api.communication.consents.store');
-                Route::post('communication/consents/revoke', [CommunicationController::class, 'revokeConsent'])
+                Route::post('communication/consents/revoke', [CommunicationCommandController::class, 'revokeConsent'])
                     ->name('api.communication.consents.revoke');
 
                 Route::get('communication/templates', [CommunicationController::class, 'listTemplates'])
                     ->name('api.communication.templates.index');
-                Route::post('communication/templates', [CommunicationController::class, 'storeTemplate'])
+                Route::post('communication/templates', [CommunicationCommandController::class, 'storeTemplate'])
                     ->name('api.communication.templates.store');
-                Route::post('communication/templates/{id}/versions', [CommunicationController::class, 'storeTemplateVersion'])
+                Route::post('communication/templates/{id}/versions', [CommunicationCommandController::class, 'storeTemplateVersion'])
                     ->whereUlid('id')
                     ->name('api.communication.templates.versions.store');
-                Route::post('communication/templates/versions/{id}/approve', [CommunicationController::class, 'approveTemplateVersion'])
+                Route::post('communication/templates/versions/{id}/approve', [CommunicationCommandController::class, 'approveTemplateVersion'])
                     ->whereUlid('id')
                     ->name('api.communication.templates.versions.approve');
 
                 Route::get('communication/reminder-policies', [CommunicationController::class, 'listReminderPolicies'])
                     ->name('api.communication.reminder-policies.index');
-                Route::post('communication/reminder-policies', [CommunicationController::class, 'storeReminderPolicy'])
+                Route::post('communication/reminder-policies', [CommunicationCommandController::class, 'storeReminderPolicy'])
                     ->name('api.communication.reminder-policies.store');
-                Route::patch('communication/reminder-policies/{id}', [CommunicationController::class, 'updateReminderPolicy'])
+                Route::patch('communication/reminder-policies/{id}', [CommunicationCommandController::class, 'updateReminderPolicy'])
                     ->whereUlid('id')
                     ->name('api.communication.reminder-policies.update');
 
@@ -1001,26 +1012,26 @@ Route::prefix('v1')->group(function (): void {
 
                 Route::get('communication/segments', [CampaignController::class, 'listSegments'])
                     ->name('api.communication.segments.index');
-                Route::post('communication/segments', [CampaignController::class, 'storeSegment'])
+                Route::post('communication/segments', [CampaignCommandController::class, 'storeSegment'])
                     ->name('api.communication.segments.store');
-                Route::patch('communication/segments/{id}', [CampaignController::class, 'updateSegment'])
+                Route::patch('communication/segments/{id}', [CampaignCommandController::class, 'updateSegment'])
                     ->whereUlid('id')
                     ->name('api.communication.segments.update');
 
                 Route::get('communication/campaigns', [CampaignController::class, 'listCampaigns'])
                     ->name('api.communication.campaigns.index');
-                Route::post('communication/campaigns', [CampaignController::class, 'storeCampaign'])
+                Route::post('communication/campaigns', [CampaignCommandController::class, 'storeCampaign'])
                     ->name('api.communication.campaigns.store');
                 Route::post('communication/campaigns/{id}/preview', [CampaignController::class, 'previewCampaign'])
                     ->whereUlid('id')
                     ->name('api.communication.campaigns.preview');
-                Route::post('communication/campaigns/{id}/freeze', [CampaignController::class, 'freezeCampaign'])
+                Route::post('communication/campaigns/{id}/freeze', [CampaignCommandController::class, 'freezeCampaign'])
                     ->whereUlid('id')
                     ->name('api.communication.campaigns.freeze');
                 Route::post('communication/campaigns/{id}/execute', [CampaignController::class, 'executeCampaign'])
                     ->whereUlid('id')
                     ->name('api.communication.campaigns.execute');
-                Route::post('communication/campaigns/{id}/pause', [CampaignController::class, 'pauseCampaign'])
+                Route::post('communication/campaigns/{id}/pause', [CampaignCommandController::class, 'pauseCampaign'])
                     ->whereUlid('id')
                     ->name('api.communication.campaigns.pause');
                 Route::get('communication/campaigns/{id}/recipients', [CampaignController::class, 'listRecipients'])

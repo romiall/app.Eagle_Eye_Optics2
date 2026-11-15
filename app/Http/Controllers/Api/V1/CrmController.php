@@ -15,7 +15,9 @@ use Illuminate\Http\Request;
 use stdClass;
 
 /**
- * Prospects administratifs, miroir Kommo CRM et conversations omnicanales (L2D03).
+ * Lectures des prospects, du miroir Kommo CRM et des conversations omnicanales (L2D03), et synchronisation des leads, qui
+ * appelle Kommo hors de toute transaction : opération à appel fournisseur, classée comme telle dans MutationRoutesTest.
+ * Les écritures (prospects, prise en charge humaine) sont des commandes (CrmCommandController).
  */
 final class CrmController extends Controller
 {
@@ -38,47 +40,6 @@ final class CrmController extends Controller
             'data' => array_map(static fn (stdClass $row): array => CrmPresenter::prospect($row), $result['rows']),
             'meta' => CrmPresenter::pagination($result['page']),
         ]);
-    }
-
-    public function storeProspect(Request $request): JsonResponse
-    {
-        $actor = $this->actor($request);
-        /** @var array<string, mixed> $payload */
-        $payload = $request->json()->all();
-        $this->contracts->assertCommandPayload('schemas/requests/http.json#/$defs/SaveProspectContactRequest', $payload);
-
-        $row = $this->prospects->create((string) $actor->clinic_id, $actor, $payload);
-
-        return new JsonResponse(['data' => CrmPresenter::prospect($row)], 201);
-    }
-
-    public function updateProspect(Request $request, string $id): JsonResponse
-    {
-        $actor = $this->actor($request);
-        /** @var array<string, mixed> $payload */
-        $payload = $request->json()->all();
-        $this->contracts->assertCommandPayload('schemas/requests/http.json#/$defs/UpdateProspectContactRequest', $payload);
-
-        $row = $this->prospects->update((string) $actor->clinic_id, $actor, $id, $payload);
-
-        return new JsonResponse(['data' => CrmPresenter::prospect($row)]);
-    }
-
-    public function linkPatient(Request $request, string $id): JsonResponse
-    {
-        $actor = $this->actor($request);
-        /** @var array<string, mixed> $payload */
-        $payload = $request->json()->all();
-        $this->contracts->assertCommandPayload('schemas/requests/http.json#/$defs/LinkProspectPatientRequest', $payload);
-
-        $row = $this->prospects->linkToPatient(
-            (string) $actor->clinic_id,
-            $actor,
-            $id,
-            (string) $payload['patient_id'],
-        );
-
-        return new JsonResponse(['data' => CrmPresenter::prospect($row)]);
     }
 
     public function indexLeads(Request $request): JsonResponse

@@ -12,6 +12,7 @@
  * dit (jamais un emplacement deviné).
  */
 import { computed, ref } from 'vue'
+import { RouterLink } from 'vue-router'
 
 import { clinicTimeZone } from '@/app/clinicTime'
 import { getStockAvailability, listStockLocations, searchCatalog } from '@/app/services/billing'
@@ -444,6 +445,13 @@ async function onPasswordConfirmed(): Promise<void> {
                 >
               </li>
             </ul>
+            <p>
+              <RouterLink
+                :to="{ name: 'stock-history', query: { article: row.item_id } }"
+                class="text-link inline-flex min-h-11 items-center"
+                >Historique des mouvements</RouterLink
+              >
+            </p>
           </li>
         </ul>
         <PaginationControls

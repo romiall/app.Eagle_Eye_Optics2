@@ -106,7 +106,7 @@ final class ProspectContacts
         $id = Ulid::generate();
         $now = CarbonImmutable::now('UTC')->format('Y-m-d H:i:s.u');
 
-        return $this->transactions->run(function () use (
+        return $this->transactions->joinOrRun(function () use (
             $clinicId,
             $actor,
             $id,
@@ -182,7 +182,7 @@ final class ProspectContacts
 
         $now = CarbonImmutable::now('UTC')->format('Y-m-d H:i:s.u');
 
-        return $this->transactions->run(function () use (
+        return $this->transactions->joinOrRun(function () use (
             $clinicId,
             $actor,
             $prospectId,
@@ -257,7 +257,7 @@ final class ProspectContacts
 
         $now = CarbonImmutable::now('UTC')->format('Y-m-d H:i:s.u');
 
-        return $this->transactions->run(function () use ($clinicId, $actor, $prospectId, $patientId, $now): stdClass {
+        return $this->transactions->joinOrRun(function () use ($clinicId, $actor, $prospectId, $patientId, $now): stdClass {
             $locks = new TransactionLocks($clinicId);
             $locks->clinic();
             $prospect = $locks->prospectContact($prospectId);

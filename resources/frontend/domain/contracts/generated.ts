@@ -1078,6 +1078,8 @@ SchemasResourcesSchedulingJsonClinicalReport?: ClinicalReport
 SchemasResourcesSchedulingJsonClinicalReportResponse?: ClinicalReportResponse
 SchemasResourcesStockJsonStockAvailability?: StockAvailability
 SchemasResourcesStockJsonStockAvailabilityPage?: StockAvailabilityPage
+SchemasResourcesStockJsonStockMovementHistoryEntry?: StockMovementHistoryEntry
+SchemasResourcesStockJsonStockMovementHistoryPage?: StockMovementHistoryPage
 SchemasResourcesStockJsonStockLocation?: StockLocation
 SchemasResourcesStockJsonStockLocationList?: StockLocationList
 SchemasResourcesStockJsonStockMovement?: StockMovement
@@ -11468,6 +11470,34 @@ export interface StockAvailabilityPage {
  * @minItems 0
  */
 data: StockAvailability[]
+meta: Pagination
+}
+/**
+ * Mouvement physique append-only d'un article (cahier des charges §6) : quantité signée, motif, lot, auteur. Le coût unitaire n'est rendu qu'avec stock.valuation.read.
+ */
+export interface StockMovementHistoryEntry {
+id: Ulid
+kind: StockMovementsKind
+/**
+ * DECIMAL(12,3) en chaîne exacte, zéro admis.
+ */
+signed_quantity: string
+occurred_at: Instant
+reason: string
+location_name: string
+lot: ({
+lot_id: Ulid
+batch_number: string
+expires_on: NullableCivilDate
+} | null)
+actor_name: (string | null)
+unit_cost: (MoneyXaf | null)
+}
+export interface StockMovementHistoryPage {
+/**
+ * @minItems 0
+ */
+data: StockMovementHistoryEntry[]
 meta: Pagination
 }
 /**

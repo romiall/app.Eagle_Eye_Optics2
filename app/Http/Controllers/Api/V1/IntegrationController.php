@@ -49,28 +49,11 @@ final class IntegrationController extends Controller
         ], 200);
     }
 
-    public function storeAccount(Request $request): JsonResponse
-    {
-        ['user' => $user, 'clinicId' => $clinicId] = $this->authorizeManage($request);
-        $payload = $this->extractJsonObjectBody($request);
-        $created = $this->accountsService->create($clinicId, $user, $payload);
-
-        return response()->json([
-            'data' => $this->presenter->account($created),
-        ], 201);
-    }
-
-    public function updateAccount(Request $request, string $id): JsonResponse
-    {
-        ['user' => $user, 'clinicId' => $clinicId] = $this->authorizeManage($request);
-        $payload = $this->extractJsonObjectBody($request);
-        $updated = $this->accountsService->update($clinicId, $user, $id, $payload);
-
-        return response()->json([
-            'data' => $this->presenter->account($updated),
-        ], 200);
-    }
-
+    /**
+     * Sonde de connexion : appelle le fournisseur (hors de toute transaction) puis consigne le résultat. Opération à
+     * appel fournisseur, classée comme telle dans MutationRoutesTest ; la création et la modification des comptes sont
+     * des commandes (IntegrationAccountController).
+     */
     public function testAccount(Request $request, string $id): JsonResponse
     {
         ['user' => $user, 'clinicId' => $clinicId] = $this->authorizeManage($request);

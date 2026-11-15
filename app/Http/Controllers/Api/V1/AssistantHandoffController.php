@@ -15,7 +15,9 @@ use Illuminate\Http\Request;
 use stdClass;
 
 /**
- * Assistant IA borné, escalade humaine et historique des exécutions / transferts (L2D05).
+ * Assistant IA borné et historique des exécutions et des transferts (L2D05). Le tour de l'assistant appelle un moteur
+ * hors de toute transaction : opération à appel fournisseur, classée comme telle dans MutationRoutesTest. La prise en
+ * charge humaine et la reprise par l'assistant sont des commandes (CrmCommandController).
  */
 final class AssistantHandoffController extends Controller
 {
@@ -41,45 +43,6 @@ final class AssistantHandoffController extends Controller
         );
 
         return new JsonResponse(['data' => CrmPresenter::assistantTurnResult($result)]);
-    }
-
-    public function handoff(Request $request, string $id): JsonResponse
-    {
-        $actor = $this->actor($request);
-        /** @var array<string, mixed> $payload */
-        $payload = $request->json()->all();
-        $this->contracts->assertCommandPayload('schemas/requests/http.json#/$defs/ConversationHandoffRequest', $payload);
-
-        $conv = $this->handoffs->handoffToHuman(
-            (string) $actor->clinic_id,
-            $actor,
-            $id,
-            $payload['reason'] ?? null,
-            $payload['administrative_summary'] ?? null,
-            (bool) ($payload['assign_to_self'] ?? false),
-            'TAKEOVER',
-            AssignCorrelationId::current($request),
-        );
-
-        return new JsonResponse(['data' => CrmPresenter::conversation($conv)]);
-    }
-
-    public function resumeBot(Request $request, string $id): JsonResponse
-    {
-        $actor = $this->actor($request);
-        /** @var array<string, mixed> $payload */
-        $payload = $request->json()->all();
-        $this->contracts->assertCommandPayload('schemas/requests/http.json#/$defs/KnowledgeActionRequest', $payload);
-
-        $conv = $this->handoffs->resumeBot(
-            (string) $actor->clinic_id,
-            $actor,
-            $id,
-            $payload['reason'] ?? null,
-            AssignCorrelationId::current($request),
-        );
-
-        return new JsonResponse(['data' => CrmPresenter::conversation($conv)]);
     }
 
     public function handoffs(Request $request, string $id): JsonResponse

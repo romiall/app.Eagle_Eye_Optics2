@@ -67,7 +67,7 @@ final class HumanHandoff
             ->where('id', $conversationId)
             ->value('crm_lead_id');
 
-        return $this->transactions->run(function () use (
+        return $this->transactions->joinOrRun(function () use (
             $clinicId,
             $conversationId,
             $leadIdHint,
@@ -257,7 +257,7 @@ final class HumanHandoff
             ->where('id', $conversationId)
             ->value('crm_lead_id');
 
-        return $this->transactions->run(function () use ($clinicId, $actor, $conversationId, $leadIdHint, $context, $effectiveReason, $now): stdClass {
+        return $this->transactions->joinOrRun(function () use ($clinicId, $actor, $conversationId, $leadIdHint, $context, $effectiveReason, $now): stdClass {
             $locks = new TransactionLocks($clinicId);
             $locks->clinic();
             if (is_string($leadIdHint) && $leadIdHint !== '') {

@@ -125,7 +125,7 @@ final class ReminderPolicies
             'active' => $active,
         ], JSON_THROW_ON_ERROR));
 
-        return $this->transactions->run(function () use (
+        return $this->transactions->joinOrRun(function () use (
             $context,
             $code,
             $label,
@@ -228,7 +228,7 @@ final class ReminderPolicies
         $cleanKey = $idempotencyKey !== null ? strtoupper(trim($idempotencyKey)) : null;
         $fingerprint = hash('sha256', (string) json_encode(['id' => $policyId] + $payload, JSON_THROW_ON_ERROR));
 
-        return $this->transactions->run(function () use ($context, $policyId, $payload, $expectedVersion, $cleanKey, $fingerprint): stdClass {
+        return $this->transactions->joinOrRun(function () use ($context, $policyId, $payload, $expectedVersion, $cleanKey, $fingerprint): stdClass {
             $locks = new TransactionLocks($context->clinicId);
             $locks->clinic();
 

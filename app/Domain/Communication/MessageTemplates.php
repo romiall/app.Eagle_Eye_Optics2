@@ -85,6 +85,19 @@ final class MessageTemplates
         ];
     }
 
+    public function getVersion(string $clinicId, string $versionId): stdClass
+    {
+        $version = DB::table('message_template_versions')
+            ->where('clinic_id', $clinicId)
+            ->where('id', $versionId)
+            ->first();
+        if (! $version instanceof stdClass) {
+            throw BusinessError::notFound();
+        }
+
+        return $version;
+    }
+
     public function getTemplate(string $clinicId, string $templateId): stdClass
     {
         $template = DB::table('message_templates')
@@ -131,7 +144,7 @@ final class MessageTemplates
             'purpose' => $purpose,
         ], JSON_THROW_ON_ERROR));
 
-        return $this->transactions->run(function () use ($context, $code, $channel, $purpose, $cleanKey, $fingerprint): stdClass {
+        return $this->transactions->joinOrRun(function () use ($context, $code, $channel, $purpose, $cleanKey, $fingerprint): stdClass {
             $locks = new TransactionLocks($context->clinicId);
             $locks->clinic();
 
@@ -237,7 +250,7 @@ final class MessageTemplates
             'allowed_variables' => $allowedVariables,
         ], JSON_THROW_ON_ERROR));
 
-        return $this->transactions->run(function () use (
+        return $this->transactions->joinOrRun(function () use (
             $context,
             $templateId,
             $requestedAccountId,
@@ -354,7 +367,7 @@ final class MessageTemplates
             'reason' => $reason,
         ], JSON_THROW_ON_ERROR));
 
-        return $this->transactions->run(function () use ($context, $versionId, $reason, $cleanKey, $fingerprint): stdClass {
+        return $this->transactions->joinOrRun(function () use ($context, $versionId, $reason, $cleanKey, $fingerprint): stdClass {
             $locks = new TransactionLocks($context->clinicId);
             $locks->clinic();
 

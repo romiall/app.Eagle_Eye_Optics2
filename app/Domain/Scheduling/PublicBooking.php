@@ -542,7 +542,7 @@ final class PublicBooking
         $context = CommandContext::direct($actor, $correlationId, $now);
         $hash = CanonicalJson::hash(['action' => 'confirm', 'id' => $bookingId] + $payload);
 
-        return $this->transactions->run(function () use ($context, $clinicId, $bookingId, $payload, $idempotencyKey, $hash): array {
+        return $this->transactions->joinOrRun(function () use ($context, $clinicId, $bookingId, $payload, $idempotencyKey, $hash): array {
             $locks = new TransactionLocks($clinicId);
             $clinic = $locks->clinic();
             $timezone = (string) $clinic->timezone;
@@ -714,7 +714,7 @@ final class PublicBooking
         $context = CommandContext::direct($actor, $correlationId, $now);
         $hash = CanonicalJson::hash(['action' => 'reject', 'id' => $bookingId] + $payload);
 
-        return $this->transactions->run(function () use ($context, $clinicId, $bookingId, $payload, $idempotencyKey, $hash): array {
+        return $this->transactions->joinOrRun(function () use ($context, $clinicId, $bookingId, $payload, $idempotencyKey, $hash): array {
             $locks = new TransactionLocks($clinicId);
             $locks->clinic();
 

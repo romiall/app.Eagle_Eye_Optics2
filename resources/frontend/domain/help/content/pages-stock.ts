@@ -18,6 +18,11 @@ export const PAGES_STOCK: readonly PageHelp[] = [
         effect: 'Ouvre les alertes de stock bas et de lots proches de la péremption ou expirés.',
       },
       {
+        label: 'Historique des mouvements',
+        effect:
+          'Ouvre, pour l’article de la carte, la liste de tout ce qui l’a fait entrer ou sortir du stock.',
+      },
+      {
         label: 'Casse ou ajustement',
         effect:
           'Ouvre l’écran où la gérante enregistre un article cassé ou perdu, ou un écart constaté au comptage.',
@@ -759,5 +764,65 @@ export const PAGES_STOCK: readonly PageHelp[] = [
       'Les seuils de stock bas et les délais d’alerte de péremption se règlent sur chaque fiche article du catalogue.',
     ],
     terms: ['Stock physique', 'Stock réservé', 'Stock disponible', 'Lot'],
+  },
+  {
+    route: 'stock-history',
+    title: 'Historique des mouvements',
+    module: 'stock',
+    anyPermission: ['stock.read'],
+    purpose:
+      'Lisez tout ce qui a fait entrer ou sortir un article du stock : réceptions, remises aux patients, retours, casse, ajustements d’inventaire.',
+    actions: [
+      {
+        label: 'Article',
+        effect: 'Choisit l’article dont vous voulez lire l’historique.',
+      },
+      {
+        label: 'Type de mouvement',
+        effect:
+          'Ne garde que les réceptions, les remises, les retours, la casse ou les ajustements.',
+      },
+      {
+        label: 'Emplacement',
+        effect: 'Ne garde que les mouvements d’un emplacement (rayon, atelier, réserve).',
+      },
+      {
+        label: 'Retour au stock',
+        effect: 'Revient à l’écran « Stock » pour consulter les positions et les lots.',
+      },
+    ],
+    tasks: [
+      {
+        id: 'retrouver-un-mouvement',
+        title: 'Retrouver ce qui est arrivé à un article',
+        steps: [
+          'Choisissez l’article dans la liste « Article ».',
+          'Filtrez par « Type de mouvement » ou par « Emplacement » si la liste est longue.',
+          'Lisez, pour chaque ligne, la quantité (+ entrée, − sortie), le lot, le motif et la personne qui l’a enregistré.',
+        ],
+        result: 'Vous savez d’où vient chaque écart entre le stock attendu et le stock compté.',
+      },
+    ],
+    rules: [
+      'Un mouvement ne se modifie jamais et ne se supprime jamais : une erreur se corrige par un mouvement contraire, avec son motif.',
+      'Le coût unitaire n’apparaît que pour la gérante.',
+      'Le stock d’un article n’augmente que par une réception validée ou un stock d’ouverture, et ne baisse que par une remise liée à une vente ou par un mouvement motivé et approuvé.',
+    ],
+    next: [
+      {
+        route: 'stock',
+        label: 'Stock',
+        why: 'Pour voir les quantités disponibles par emplacement.',
+      },
+      {
+        route: 'stock-alerts',
+        label: 'Alertes et seuils',
+        why: 'Pour suivre les articles à réapprovisionner et les lots proches de la péremption.',
+      },
+    ],
+    tips: [
+      'Depuis l’écran « Stock », « Historique des mouvements » ouvre directement l’article de la carte.',
+    ],
+    terms: ['Stock physique', 'Lot'],
   },
 ]

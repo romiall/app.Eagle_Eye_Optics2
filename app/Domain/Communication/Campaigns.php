@@ -176,7 +176,7 @@ final class Campaigns
             'scheduled_at' => $scheduledAtRaw,
         ], JSON_THROW_ON_ERROR));
 
-        return $this->transactions->run(function () use (
+        return $this->transactions->joinOrRun(function () use (
             $context,
             $name,
             $segmentId,
@@ -366,7 +366,7 @@ final class Campaigns
             'approval_id' => $requestedApprovalId,
         ], JSON_THROW_ON_ERROR));
 
-        return $this->transactions->run(function () use (
+        return $this->transactions->joinOrRun(function () use (
             $context,
             $campaignId,
             $requestedApprovalId,
@@ -864,7 +864,7 @@ final class Campaigns
         $cleanKey = $idempotencyKey !== null ? strtoupper(trim($idempotencyKey)) : null;
         $fingerprint = hash('sha256', (string) json_encode(['campaign_id' => $campaignId, 'reason' => $reason], JSON_THROW_ON_ERROR));
 
-        return $this->transactions->run(function () use ($context, $campaignId, $reason, $cleanKey, $fingerprint): stdClass {
+        return $this->transactions->joinOrRun(function () use ($context, $campaignId, $reason, $cleanKey, $fingerprint): stdClass {
             $locks = new TransactionLocks($context->clinicId);
             $locks->clinic();
 

@@ -38,6 +38,13 @@ final class TransactionRunner
     private Closure $sleeper;
 
     /**
+     * Unités de travail en cours dans CET exécuteur (une transaction ouverte par `run()` et rejouée en entier sur
+     * interblocage). Un service du domaine appelé depuis une action du chemin central s'y joint (`joinOrRun()`) au lieu
+     * d'ouvrir une seconde transaction.
+     */
+    private int $units = 0;
+
+    /**
      * @param  (Closure(int): void)|null  $sleeper  attente en microsecondes ; injectable pour les tests
      */
     public function __construct(
@@ -68,14 +75,14 @@ final class TransactionRunner
             }
 
             // Tests enveloppés par RefreshDatabase : point de sauvegarde, sans relance possible.
-            return $connection->transaction(static fn (): mixed => $work(1));
+            return $connection->transaction(fn (): mixed => $this->inUnit($work, 1));
         }
 
         $this->boundLockWait($connection);
 
         for ($attempt = 1; ; $attempt++) {
             try {
-                return $connection->transaction(static fn (): mixed => $work($attempt), 1);
+                return $connection->transaction(fn (): mixed => $this->inUnit($work, $attempt), 1);
             } catch (Throwable $error) {
                 $code = $this->mysqlErrorCode($error);
 
@@ -92,6 +99,41 @@ final class TransactionRunner
                 // Attente croissante et décalée : deux victimes d'un même interblocage ne repartent pas ensemble.
                 ($this->sleeper)(random_int(10_000, 40_000) * (2 ** ($attempt - 1)));
             }
+        }
+    }
+
+    /**
+     * Pour un service du domaine appelé À LA FOIS par une action du chemin central (dans la transaction du bus) et par
+     * une tâche ou un consommateur d'outbox (sans transaction) : dans une unité de travail déjà ouverte par cet
+     * exécuteur, le travail s'exécute dans cette transaction — un interblocage remonte alors à l'unité extérieure, qui
+     * rejoue TOUT, verrou du cabinet compris, ce qu'un point de sauvegarde ne ferait pas ; hors unité, c'est `run()`.
+     * `run()` reste strict : un chemin central ne s'imbrique jamais dans une autre transaction.
+     *
+     * @template TResult
+     *
+     * @param  Closure(int): TResult  $work
+     * @return TResult
+     */
+    public function joinOrRun(Closure $work): mixed
+    {
+        if ($this->units > 0) {
+            return $work(1);
+        }
+
+        return $this->run($work);
+    }
+
+    /**
+     * @param  Closure(int): mixed  $work
+     */
+    private function inUnit(Closure $work, int $attempt): mixed
+    {
+        $this->units++;
+
+        try {
+            return $work($attempt);
+        } finally {
+            $this->units--;
         }
     }
 
