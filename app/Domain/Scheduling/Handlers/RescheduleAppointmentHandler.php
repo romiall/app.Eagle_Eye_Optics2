@@ -9,11 +9,13 @@ use App\Application\Effects\AuditEntry;
 use App\Application\Effects\ChangeKind;
 use App\Application\Effects\ChangeRecord;
 use App\Application\Effects\ChangeVisibility;
+use App\Application\Effects\OutboxEvent;
 use App\Application\Locking\TransactionLocks;
 use App\Domain\Communication\ContactTasks;
 use App\Domain\Scheduling\AvailabilityService;
 use App\Domain\Scheduling\SchedulingInput;
 use App\Domain\Shared\CommandContext;
+use App\Support\Modules;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -70,6 +72,23 @@ final class RescheduleAppointmentHandler implements CommandHandler
         $row = DB::table('appointments')->where('clinic_id', $context->clinicId)->where('id', $appointment->id)->first();
         assert($row !== null);
 
+        $events = Modules::isEnabled('communication') ? [new OutboxEvent(
+            'AppointmentRescheduled',
+            1,
+            'appointments',
+            (string) $appointment->id,
+            $version,
+            [
+                'appointment_id' => (string) $appointment->id,
+                'patient_id' => $row->patient_id !== null ? (string) $row->patient_id : null,
+                'prospect_contact_id' => $row->prospect_contact_id !== null ? (string) $row->prospect_contact_id : null,
+                'resource_id' => (string) $row->resource_id,
+                'previous_starts_at' => SchedulingInput::iso((string) $appointment->starts_at),
+                'starts_at' => SchedulingInput::iso((string) $row->starts_at),
+                'ends_at' => SchedulingInput::iso((string) $row->ends_at),
+            ],
+        )] : [];
+
         return new CommandOutcome(
             result: ['appointment_id' => (string) $appointment->id, 'version' => $version],
             resultType: 'appointments',
@@ -87,6 +106,7 @@ final class RescheduleAppointmentHandler implements CommandHandler
                 ],
                 'version' => $version,
             ])],
+            events: $events,
             changes: [
                 new ChangeRecord('appointments', (string) $appointment->id, $version, ChangeVisibility::Administrative, ChangeKind::Updated),
                 ...$this->tasks->forAppointment($context->clinicId, $timezone, $row, $now),
