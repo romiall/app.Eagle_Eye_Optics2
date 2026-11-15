@@ -9,11 +9,13 @@ use App\Application\Effects\AuditEntry;
 use App\Application\Effects\ChangeKind;
 use App\Application\Effects\ChangeRecord;
 use App\Application\Effects\ChangeVisibility;
+use App\Application\Effects\OutboxEvent;
 use App\Application\Locking\TransactionLocks;
 use App\Domain\Communication\ContactTasks;
 use App\Domain\Scheduling\SchedulingInput;
 use App\Domain\Shared\BusinessError;
 use App\Domain\Shared\CommandContext;
+use App\Support\Modules;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 
@@ -49,6 +51,21 @@ final class MarkAppointmentNoShowHandler implements CommandHandler
             'updated_at' => $stamp,
         ]);
 
+        $events = Modules::isEnabled('communication') ? [new OutboxEvent(
+            'AppointmentNoShow',
+            1,
+            'appointments',
+            (string) $appointment->id,
+            $version,
+            [
+                'appointment_id' => (string) $appointment->id,
+                'patient_id' => $appointment->patient_id !== null ? (string) $appointment->patient_id : null,
+                'prospect_contact_id' => $appointment->prospect_contact_id !== null ? (string) $appointment->prospect_contact_id : null,
+                'starts_at' => SchedulingInput::iso((string) $appointment->starts_at),
+                'marked_at' => $now->format('Y-m-d\TH:i:s.v\Z'),
+            ],
+        )] : [];
+
         return new CommandOutcome(
             result: ['appointment_id' => (string) $appointment->id, 'version' => $version, 'status' => 'NO_SHOW'],
             resultType: 'appointments',
@@ -57,6 +74,7 @@ final class MarkAppointmentNoShowHandler implements CommandHandler
                 'starts_at' => SchedulingInput::iso((string) $appointment->starts_at),
                 'version' => $version,
             ])],
+            events: $events,
             changes: [
                 new ChangeRecord('appointments', (string) $appointment->id, $version, ChangeVisibility::Administrative, ChangeKind::Updated),
                 ...$this->tasks->closeOpen($context->clinicId, 'appointment_id', (string) $appointment->id, 'CANCELLED', $now),

@@ -9,6 +9,7 @@ use App\Application\Effects\AuditEntry;
 use App\Application\Effects\ChangeKind;
 use App\Application\Effects\ChangeRecord;
 use App\Application\Effects\ChangeVisibility;
+use App\Application\Effects\OutboxEvent;
 use App\Application\Locking\TransactionLocks;
 use App\Domain\Communication\ContactTasks;
 use App\Domain\Scheduling\AvailabilityService;
@@ -16,6 +17,7 @@ use App\Domain\Scheduling\SchedulingInput;
 use App\Domain\Shared\BusinessError;
 use App\Domain\Shared\CommandContext;
 use App\Domain\Shared\CommandSource;
+use App\Support\Modules;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -141,6 +143,24 @@ final class CreateAppointmentHandler implements CommandHandler
         assert($row !== null);
         $changes = [...$changes, ...$this->tasks->forAppointment($context->clinicId, $timezone, $row, $now)];
 
+        $events = Modules::isEnabled('communication') ? [new OutboxEvent(
+            'AppointmentConfirmed',
+            1,
+            'appointments',
+            $appointmentId,
+            1,
+            [
+                'appointment_id' => $appointmentId,
+                'patient_id' => $row->patient_id !== null ? (string) $row->patient_id : null,
+                'prospect_contact_id' => $row->prospect_contact_id !== null ? (string) $row->prospect_contact_id : null,
+                'resource_id' => (string) $row->resource_id,
+                'service_id' => (string) $row->service_id,
+                'starts_at' => SchedulingInput::iso((string) $row->starts_at),
+                'ends_at' => SchedulingInput::iso((string) $row->ends_at),
+                'source' => (string) $row->source,
+            ],
+        )] : [];
+
         return new CommandOutcome(
             result: ['appointment_id' => $appointmentId, 'version' => 1, 'status' => 'CONFIRMED'],
             resultType: 'appointments',
@@ -153,6 +173,7 @@ final class CreateAppointmentHandler implements CommandHandler
                 'ends_at' => $end->format('Y-m-d\TH:i:s.v\Z'),
                 'follow_up_id' => is_string($followUpId) ? $followUpId : null,
             ])],
+            events: $events,
             changes: $changes,
         );
     }
