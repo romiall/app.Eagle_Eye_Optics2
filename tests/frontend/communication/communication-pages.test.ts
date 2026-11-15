@@ -792,7 +792,7 @@ describe('Communication & CRM L2 frontend', () => {
   })
 
   describe('PAGES_COMMUNICATION (fiches d’aide)', () => {
-    it('couvre les 9 routes nommées L2 sans mots interdits ni promesses fausses', () => {
+    it('couvre les 10 routes nommées L2 et L3 sans mots interdits ni promesses fausses', () => {
       const routes = PAGES_COMMUNICATION.map((p) => p.route)
       expect(routes).toEqual([
         'integrations',
@@ -804,6 +804,7 @@ describe('Communication & CRM L2 frontend', () => {
         'communication-consents',
         'communication-campaigns',
         'communication-outbox',
+        'communication-site',
       ])
 
       for (const page of PAGES_COMMUNICATION) {

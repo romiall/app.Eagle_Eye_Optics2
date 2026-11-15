@@ -7114,7 +7114,7 @@ scope_role?: (("CASHIER" | "CLINICIAN" | "MANAGER" | "RECEPTION") | null)
 } | null)
 }
 /**
- * Réservation publique (L2) : consentement explicite exigé, anti-abus et idempotence.
+ * Réservation publique (L2, L3) : consentement explicite exigé, anti-abus et idempotence. `publication_slug` relie la demande à la référence du showroom qui a donné envie de venir (ignoré si la référence n'est pas publiée) ; `website` est un piège à robots : un visiteur humain ne le voit pas et ne le remplit jamais, une demande qui le remplit est refusée.
  */
 export interface BookingRequest {
 service_id: Ulid
@@ -7124,6 +7124,8 @@ name: string
 phone: Phone
 email?: (string | null)
 consent: true
+publication_slug?: (string | null)
+website?: (string | null)
 }
 export interface SaveIntegrationAccountRequest {
 provider: IntegrationAccountsProvider

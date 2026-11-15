@@ -97,6 +97,7 @@ export const PAGES_COMMUNICATION: readonly PageHelp[] = [
       'conversation.takeover',
       'integration.manage',
       'agenda.read',
+      'site.publish',
     ],
     purpose:
       'Regrouper les accès aux réservations en ligne, prospects CRM, fiches de connaissances, reprises humaines de l’assistant, consentements, campagnes et supervision technique. Chaque tuile n’apparaît qu’avec les droits requis et une connexion serveur active.',
@@ -136,6 +137,11 @@ export const PAGES_COMMUNICATION: readonly PageHelp[] = [
         effect:
           'Ouvre la segmentation administrative, les prévisualisations et le gel de campagne.',
         anyPermission: ['communication.manage'],
+      },
+      {
+        label: 'Site public : showroom & contenus',
+        effect: 'Ouvre la préparation des fiches de montures et des textes du site, à publier.',
+        anyPermission: ['site.publish'],
       },
       {
         label: 'Boîte d’envoi & webhooks',
@@ -591,6 +597,122 @@ export const PAGES_COMMUNICATION: readonly PageHelp[] = [
         route: 'communication',
         label: 'Communication et CRM',
         why: 'Revenir au hub Communication.',
+      },
+    ],
+  },
+  {
+    route: 'communication-site',
+    title: 'Site public : showroom et contenus',
+    module: 'communication',
+    anyPermission: ['site.publish'],
+    purpose:
+      'Décrire les montures que le public peut voir et rédiger les textes du site (accueil, horaires, contact…). Écrire enregistre un brouillon : rien ne sort sur le site tant que vous ne l’avez pas publié, avec votre mot de passe.',
+    actions: [
+      {
+        label: 'Enregistrer la fiche en brouillon',
+        effect: 'Crée la fiche d’une monture du catalogue ; elle reste invisible du public.',
+      },
+      {
+        label: 'Enregistrer les modifications',
+        effect: 'Modifie la fiche choisie et la remet en brouillon.',
+      },
+      {
+        label: 'Modifier la fiche',
+        effect: 'Charge la fiche dans le formulaire pour la corriger.',
+      },
+      {
+        label: 'Déposer l’image',
+        effect: 'Ajoute une photo à la fiche, avec son texte alternatif et sa note de droits.',
+      },
+      {
+        label: 'Retirer l’image',
+        effect: 'Détache la photo de la fiche.',
+      },
+      {
+        label: 'Appliquer',
+        effect:
+          'Publie, retire du site ou archive la fiche selon la décision choisie, après confirmation de votre mot de passe.',
+      },
+      {
+        label: 'Enregistrer le brouillon',
+        effect: 'Garde le texte d’un contenu en brouillon, sans le montrer au public.',
+      },
+      {
+        label: 'Publier le brouillon',
+        effect: 'Rend le texte visible du public et archive la version précédente.',
+      },
+      {
+        label: 'Retirer du site',
+        effect: 'Archive le contenu publié : le public ne le voit plus.',
+      },
+    ],
+    tasks: [
+      {
+        id: 'site-publier-fiche',
+        title: 'Publier une monture sur le site',
+        steps: [
+          'Dans « Nouvelle fiche », choisissez l’article du catalogue, puis saisissez le titre et la description publics.',
+          'Cliquez sur « Enregistrer la fiche en brouillon ».',
+          'Sur la fiche créée, ajoutez une photo avec « Déposer l’image » : le texte alternatif et la note de droits sont obligatoires.',
+          'Choisissez « Publier sur le site » dans la liste « Décision », puis cliquez sur « Appliquer ».',
+          'Confirmez votre mot de passe.',
+        ],
+        result: 'La fiche est publiée : le public la voit sur le site.',
+      },
+      {
+        id: 'site-publier-contenu',
+        title: 'Publier un texte du site',
+        steps: [
+          'Repérez le contenu voulu dans « Contenus du site » (accueil, horaires, contact…).',
+          'Modifiez le titre et le texte, puis cliquez sur « Enregistrer le brouillon ».',
+          'Relisez, cliquez sur « Publier le brouillon » et confirmez votre mot de passe.',
+        ],
+        result: 'Le nouveau texte est public ; l’ancienne version est archivée.',
+      },
+    ],
+    rules: [
+      'Seul ce qui est publié sort de l’application : jamais de coût d’achat, de quantité en stock ni de donnée de patient.',
+      'Une fiche ne peut être publiée que si son article est actif et coché « Visible sur le site public » dans le catalogue.',
+      'Modifier une fiche publiée la remet en brouillon : publiez-la de nouveau après relecture.',
+      'Chaque photo porte un texte alternatif et une note de droits : sans eux, elle n’est pas acceptée.',
+      'Publier, retirer ou archiver demande votre mot de passe à chaque décision.',
+    ],
+    terms: [],
+    next: [
+      {
+        route: 'catalogue',
+        label: 'Catalogue',
+        why: 'Cocher la visibilité publique d’un article avant d’écrire sa fiche.',
+      },
+      {
+        route: 'communication-bookings',
+        label: 'Réservations publiques & Google Agenda',
+        why: 'Traiter les demandes de rendez-vous reçues depuis le site.',
+      },
+      {
+        route: 'communication',
+        label: 'Communication et CRM',
+        why: 'Revenir au hub Communication.',
+      },
+    ],
+    tips: [
+      'Le numéro WhatsApp du site n’est qu’un lien : l’application n’envoie aucun message à ce numéro. Écrivez-le en chiffres, avec l’indicatif.',
+    ],
+    problems: [
+      {
+        symptom: 'La fiche ne se publie pas : son article n’est plus actif ou plus visible.',
+        remedy:
+          'Dans le catalogue, réactivez l’article et cochez « Visible sur le site public », puis publiez de nouveau.',
+      },
+      {
+        symptom: 'Une photo est refusée.',
+        remedy:
+          'Utilisez une image JPEG, PNG ou WebP de 3 Mo au plus, avec son texte alternatif et sa note de droits.',
+      },
+      {
+        symptom: 'Un message dit que la fiche a changé.',
+        remedy:
+          'Quelqu’un l’a modifiée entre-temps : l’écran se relit. Vérifiez la fiche, puis recommencez.',
       },
     ],
   },

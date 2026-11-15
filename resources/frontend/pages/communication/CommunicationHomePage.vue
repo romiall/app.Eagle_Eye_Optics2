@@ -78,6 +78,15 @@ const ALL_CARDS: readonly CommunicationCard[] = [
     permissions: ['communication.manage'],
   },
   {
+    id: 'site',
+    routeName: 'communication-site',
+    fallbackPath: '/communication/site',
+    title: 'Site public : showroom & contenus',
+    text: 'Décrire les montures pour le public, déposer leurs images et publier les contenus du site, sur votre décision.',
+    icon: 'glasses',
+    permissions: ['site.publish'],
+  },
+  {
     id: 'outbox',
     routeName: 'communication-outbox',
     fallbackPath: '/communication/boite-envoi',

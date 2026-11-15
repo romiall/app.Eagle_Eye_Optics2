@@ -92,6 +92,11 @@ export type OnlineCommandName =
   | 'CreatePaymentReconciliation'
   | 'UpdatePaymentReconciliation'
   | 'ValidatePaymentReconciliation'
+  // Site public (L3D02) : fiches du showroom et contenus publics, approuvés par la gérante, en ligne seulement.
+  | 'SaveCatalogPublication'
+  | 'ChangeCatalogPublicationStatus'
+  | 'SavePublicContent'
+  | 'ChangePublicContentStatus'
 
 /**
  * Version attendue d'une route explicite : `none` (défaut : `expected_version: null` au corps), `entity`

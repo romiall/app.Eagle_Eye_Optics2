@@ -2093,8 +2093,11 @@ def requests():
         'CreateExportRequest': obj({'export_type': enum('export_requests.export_type'), 'patient_id': n_ulid(), 'filters': nullable(export_filters())},
                                    optional=('patient_id', 'filters')),
         'BookingRequest': obj({'service_id': ulid(), 'resource_id': n_ulid(), 'starts_at': instant(), 'name': text(180), 'phone': ref('Phone'),
-                               'email': nullable({'type': 'string', 'maxLength': 254}), 'consent': {'const': True}},
-                              optional=('email', 'resource_id'), description='Réservation publique (L2) : consentement explicite exigé, anti-abus et idempotence.'),
+                               'email': nullable({'type': 'string', 'maxLength': 254}), 'consent': {'const': True},
+                               'publication_slug': nullable({'type': 'string', 'maxLength': 180}),
+                               'website': nullable({'type': 'string', 'maxLength': 200})},
+                              optional=('email', 'resource_id', 'publication_slug', 'website'),
+                              description='Réservation publique (L2, L3) : consentement explicite exigé, anti-abus et idempotence. `publication_slug` relie la demande à la référence du showroom qui a donné envie de venir (ignoré si la référence n\'est pas publiée) ; `website` est un piège à robots : un visiteur humain ne le voit pas et ne le remplit jamais, une demande qui le remplit est refusée.'),
         'SaveIntegrationAccountRequest': obj({
             'provider': enum('integration_accounts.provider'),
             'external_account_id': text(180),

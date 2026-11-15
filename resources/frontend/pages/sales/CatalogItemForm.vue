@@ -426,7 +426,8 @@ async function retry(): Promise<void> {
       />
       <CheckboxField
         :model-value="form.publicVisibility"
-        label="Visible sur le site public (lot suivant)"
+        label="Visible sur le site public"
+        hint="Autorise une fiche du showroom pour cet article ; la fiche se prépare dans Communication."
         :control-id="fieldId('publicVisibility')"
         :error="errors.publicVisibility ?? null"
         @update:model-value="set('publicVisibility', $event)"

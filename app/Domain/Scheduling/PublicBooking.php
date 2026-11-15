@@ -240,6 +240,12 @@ final class PublicBooking
     ): array {
         $this->contracts->assertCommandPayload('schemas/requests/http.json#/$defs/BookingRequest', $payload);
 
+        // Piège à robots : ce champ est caché au visiteur, qui ne le remplit jamais. Refus générique, sans rien enregistrer
+        // et sans dire quel champ a trahi la demande ; jamais une fausse confirmation (une confirmation est toujours réelle).
+        if (isset($payload['website']) && is_string($payload['website']) && trim($payload['website']) !== '') {
+            throw BusinessError::validation(['request' => ['Votre demande n\'a pas pu être enregistrée.']]);
+        }
+
         $key = $requestKey !== null ? trim($requestKey) : '';
         if ($key === '' || mb_strlen($key) > 100) {
             throw BusinessError::validation(['Idempotency-Key' => ['En-tête Idempotency-Key obligatoire (1 à 100 caractères).']]);
@@ -299,6 +305,7 @@ final class PublicBooking
         $serviceId = (string) $payload['service_id'];
         $requestedResourceId = is_string($payload['resource_id'] ?? null) ? $payload['resource_id'] : null;
         $payloadHash = CanonicalJson::hash($payload);
+        $publicationSlug = is_string($payload['publication_slug'] ?? null) ? trim($payload['publication_slug']) : '';
         $context = CommandContext::job($clinicId, 'PublicBookingRequest', $correlationId, $nowUtc);
 
         return $this->transactions->run(function () use (
@@ -315,6 +322,7 @@ final class PublicBooking
             $phoneNormalized,
             $email,
             $correlationId,
+            $publicationSlug,
         ): array {
             $locks = new TransactionLocks($clinicId);
             $clinic = $locks->clinic();
@@ -410,6 +418,20 @@ final class PublicBooking
                 ]);
             }
 
+            // Référence du showroom d'où vient la demande : seulement si elle est PUBLIÉE et son article visible. Une
+            // référence inconnue, retirée ou périmée est ignorée : la demande de rendez-vous reste valable sans elle.
+            $publicationId = null;
+            if ($publicationSlug !== '') {
+                $found = DB::table('catalog_publications as p')
+                    ->join('catalog_items as i', static function ($join): void {
+                        $join->on('i.clinic_id', '=', 'p.clinic_id')->on('i.id', '=', 'p.catalog_item_id');
+                    })
+                    ->where('p.clinic_id', $clinicId)->where('p.slug', $publicationSlug)->where('p.status', 'PUBLISHED')
+                    ->where('i.active', true)->where('i.public_visibility', true)
+                    ->value('p.id');
+                $publicationId = is_string($found) ? $found : null;
+            }
+
             $bookingId = Ulid::generate();
             $publicReference = $this->generateUniqueReference($clinicId);
             $managementToken = bin2hex(random_bytes(32));
@@ -420,7 +442,7 @@ final class PublicBooking
             DB::table('public_booking_requests')->insert([
                 'id' => $bookingId,
                 'clinic_id' => $clinicId,
-                'catalog_publication_id' => null,
+                'catalog_publication_id' => $publicationId,
                 'public_reference' => $publicReference,
                 'prospect_contact_id' => $prospectId,
                 'service_id' => $serviceId,

@@ -690,7 +690,19 @@ export function createEeoRouter(history: RouterHistory = createWebHistory()): Ro
             'conversation.takeover',
             'integration.manage',
             'agenda.read',
+            'site.publish',
           ],
+        },
+      },
+      {
+        // Site public (L3D02) : fiches du showroom et contenus du site ; brouillon puis publication par la gérante.
+        path: '/communication/site',
+        name: 'communication-site',
+        component: () => import('@/pages/communication/SitePage.vue'),
+        meta: {
+          title: 'Site public : showroom et contenus',
+          module: 'communication',
+          permissions: ['site.publish'],
         },
       },
       {
