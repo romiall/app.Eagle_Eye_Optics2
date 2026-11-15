@@ -123,7 +123,7 @@ async function toggle(category: ExpenseCategory): Promise<void> {
         Catégories de dépenses
       </h1>
       <p class="max-w-prose text-muted">
-        Les catégories servent à classer les dépenses payées en espèces depuis la caisse. Elles ne
+        Les catégories servent à classer les sorties d’espèces de la caisse (dépenses). Elles ne
         remplacent pas le plan comptable du comptable.
       </p>
     </header>
