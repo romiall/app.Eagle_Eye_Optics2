@@ -1,4 +1,5 @@
 import { spawn, spawnSync, type ChildProcess } from 'node:child_process'
+import { createServer } from 'node:net'
 import { join } from 'node:path'
 
 import { phpServerOptions } from './php'
@@ -12,6 +13,21 @@ export interface RunningServer {
 
 const ROOT = join(import.meta.dirname, '..', '..', '..')
 
+/** Rend `preferred` s'il est libre sur 127.0.0.1, sinon un port libre attribué par le système. */
+export async function findFreePort(preferred: number): Promise<number> {
+  const tryListen = (port: number): Promise<number | null> =>
+    new Promise((resolve) => {
+      const probe = createServer()
+      probe.once('error', () => resolve(null))
+      probe.listen(port, '127.0.0.1', () => {
+        const address = probe.address()
+        const free = typeof address === 'object' && address !== null ? address.port : null
+        probe.close(() => resolve(free))
+      })
+    })
+  return (await tryListen(preferred)) ?? (await tryListen(0)) ?? preferred
+}
+
 async function waitUntilReady(url: string, process: ChildProcess): Promise<void> {
   const deadline = Date.now() + 30_000
   while (Date.now() < deadline) {
@@ -19,7 +35,7 @@ async function waitUntilReady(url: string, process: ChildProcess): Promise<void>
       throw new Error('Le serveur PHP de test s’est arrêté au démarrage.')
     try {
       const response = await fetch(`${url}/up`)
-      if (response.ok) return
+      if (response.ok && process.exitCode === null) return
     } catch {
       // Pas encore prêt.
     }
@@ -49,8 +65,8 @@ export async function startLaravelServer(
     cwd: join(ROOT, 'public'),
     env: { ...process.env, ...environment, APP_ENV: 'e2e' },
     stdio: 'ignore',
-    // Groupe de processus dédié : l'arrêt supprime aussi d'éventuels processus enfants.
-    detached: true,
+    // POSIX : groupe de processus dédié ; sous Windows, ne pas détacher évite des orphelins après un plantage.
+    detached: process.platform !== 'win32',
     windowsHide: true,
   })
 
