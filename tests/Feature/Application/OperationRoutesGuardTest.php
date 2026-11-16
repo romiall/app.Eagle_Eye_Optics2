@@ -25,6 +25,7 @@ final class OperationRoutesGuardTest extends TestCase
         'app/Domain/Communication/SendTransactionalMessage.php',
         'app/Domain/Communication/Campaigns.php',
         'app/Domain/Crm/CrmMirror.php',
+        'app/Domain/Crm/LimitedAssistant.php',
         'app/Domain/Operations/IntegrationAccounts.php',
         'app/Domain/Operations/OutboxProcessor.php',
         'app/Domain/Operations/IntegrationReconciler.php',
@@ -32,9 +33,9 @@ final class OperationRoutesGuardTest extends TestCase
     ];
 
     /**
-     * Appels qui sortent de l'application : le client d'un fournisseur obtenu de sa fabrique, ou une sonde réseau.
+     * Appels qui sortent de l'application : le client d'un fournisseur obtenu de sa fabrique, une sonde réseau ou le moteur d'assistant.
      */
-    private const PROVIDER_CALL = '/->(?:forAccount|probeProvider)\(|\$client->|\$this->clients->|\$this->httpClient->/';
+    private const PROVIDER_CALL = '/->(?:forAccount|probeProvider)\(|\$client->|\$this->clients->|\$this->httpClient->|\$engine->respond\(/';
 
     public function test_chaque_operation_a_appel_fournisseur_exige_un_compte_connecte_et_un_droit(): void
     {

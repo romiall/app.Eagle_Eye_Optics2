@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Application\Contracts\ContractValidator;
+use App\Domain\Communication\Rules\CommunicationRules;
 use App\Domain\Crm\HumanHandoff;
 use App\Domain\Crm\LimitedAssistant;
 use App\Http\Controllers\Controller;
@@ -30,6 +31,7 @@ final class AssistantHandoffController extends Controller
     public function assistantTurn(Request $request, string $id): JsonResponse
     {
         $actor = $this->actor($request);
+        $idempotencyKey = CommunicationRules::assertIdempotencyKey($request->header('Idempotency-Key'));
         /** @var array<string, mixed> $payload */
         $payload = $request->json()->all();
         $this->contracts->assertCommandPayload('schemas/requests/http.json#/$defs/AssistantTurnRequest', $payload);
@@ -40,6 +42,7 @@ final class AssistantHandoffController extends Controller
             $id,
             $payload,
             AssignCorrelationId::current($request),
+            $idempotencyKey,
         );
 
         return new JsonResponse(['data' => CrmPresenter::assistantTurnResult($result)]);

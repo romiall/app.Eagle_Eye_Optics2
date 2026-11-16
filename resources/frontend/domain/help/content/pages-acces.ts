@@ -199,8 +199,14 @@ export const PAGES_ACCES: readonly PageHelp[] = [
       {
         label: 'Actualiser les chiffres',
         effect:
-          'Relit sur le serveur les chiffres du jour : file du jour, rendez-vous et encaissé net. L’heure de la lecture s’affiche sous le titre.',
-        anyPermission: ['visit.register', 'agenda.read', 'finance.global.read', 'cash.own_session'],
+          'Relit les chiffres du jour sur le serveur (file, rendez-vous, encaissé net et alertes de stock) et affiche l’heure.',
+        anyPermission: [
+          'visit.register',
+          'agenda.read',
+          'finance.global.read',
+          'cash.own_session',
+          'stock.read',
+        ],
       },
       {
         label: 'Nouveau patient',
@@ -260,18 +266,25 @@ export const PAGES_ACCES: readonly PageHelp[] = [
       {
         id: 'lire-les-chiffres',
         title: 'Lire les chiffres du jour',
-        anyPermission: ['visit.register', 'agenda.read', 'finance.global.read', 'cash.own_session'],
+        anyPermission: [
+          'visit.register',
+          'agenda.read',
+          'finance.global.read',
+          'cash.own_session',
+          'stock.read',
+        ],
         steps: [
-          'Repérez le bandeau « Aujourd’hui », sous la salutation. Il n’apparaît que si votre compte lit la file du jour, l’agenda ou la caisse.',
+          'Repérez le bandeau « Aujourd’hui », sous la salutation. Il n’apparaît que si votre compte lit la file du jour, l’agenda, la caisse ou le stock.',
           'Lisez « Patients en attente » (arrivés, pas encore pris en charge), « En consultation » et « Visites terminées » : visites du jour, annulées exclues.',
           'Lisez « Rendez-vous » : les rendez-vous du jour, sans les annulés (« Hors rendez-vous annulés »).',
           'Lisez « Encaissé net » : les encaissements du jour, diminués des contre-écritures et des remboursements.',
+          'Lisez « Alertes stock bas » et « Alertes péremption » pour connaître le nombre d’alertes ouvertes nécessitant un contrôle en stock.',
           'Sous ce chiffre, « Tout le cabinet » ou « Vos encaissements seulement » dit sur quoi il porte : le serveur en décide selon vos droits.',
           'Cliquez sur « Actualiser les chiffres » pour les relire : ils ne se mettent pas à jour seuls. L’heure de lecture est écrite sous le titre.',
-          'Pour le détail, utilisez le lien de la tuile : « Voir la file du jour », « Voir l’agenda » ou « Voir la caisse du jour ».',
+          'Ouvrez le détail via « Voir la file du jour », « Voir l’agenda », « Voir la caisse du jour » ou « Voir les alertes ».',
         ],
         result:
-          'Vous savez où en est la journée et vous ouvrez en un clic l’écran qui détaille un chiffre.',
+          'Vous savez où en est la journée et vous ouvrez en un clic l’écran qui détaille un chiffre ou les alertes de stock.',
       },
       {
         id: 'ouvrir-son-travail',

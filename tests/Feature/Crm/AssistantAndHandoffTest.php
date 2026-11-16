@@ -295,4 +295,238 @@ final class AssistantAndHandoffTest extends TestCase
             'reason' => 'Tentative hors cabinet',
         ])->assertNotFound();
     }
+
+    private function seedAssistantConversation(string $suffix): string
+    {
+        $nowSql = '2026-10-22 09:30:00.000000';
+        $accountId = Ulid::generate();
+        DB::table('integration_accounts')->insert([
+            'id' => $accountId,
+            'clinic_id' => $this->clinicId,
+            'provider' => 'KOMMO',
+            'external_account_id' => 'kommo-'.$suffix,
+            'display_name' => 'Kommo '.$suffix,
+            'status' => 'ACTIVE',
+            'public_configuration' => null,
+            'configured_by' => $this->manager->id,
+            'version' => 1,
+            'created_at' => $nowSql,
+            'updated_at' => $nowSql,
+        ]);
+
+        $prospectId = Ulid::generate();
+        DB::table('prospect_contacts')->insert([
+            'id' => $prospectId,
+            'clinic_id' => $this->clinicId,
+            'name' => 'Prospect '.$suffix,
+            'phone' => '+237690001122',
+            'phone_normalized' => '+237690001122',
+            'origin' => 'WHATSAPP',
+            'created_by' => $this->manager->id,
+            'version' => 1,
+            'created_at' => $nowSql,
+            'updated_at' => $nowSql,
+        ]);
+
+        $leadId = Ulid::generate();
+        DB::table('crm_leads')->insert([
+            'id' => $leadId,
+            'clinic_id' => $this->clinicId,
+            'prospect_contact_id' => $prospectId,
+            'integration_account_id' => $accountId,
+            'external_lead_id' => 'lead-'.$suffix,
+            'pipeline_stage' => 'NEW',
+            'status' => 'OPEN',
+            'last_synced_at' => $nowSql,
+            'created_at' => $nowSql,
+            'updated_at' => $nowSql,
+        ]);
+
+        $conversationId = Ulid::generate();
+        DB::table('crm_conversations')->insert([
+            'id' => $conversationId,
+            'clinic_id' => $this->clinicId,
+            'crm_lead_id' => $leadId,
+            'integration_account_id' => $accountId,
+            'external_conversation_id' => 'conv-'.$suffix,
+            'channel' => 'WHATSAPP',
+            'status' => 'BOT_ACTIVE',
+            'last_activity_at' => $nowSql,
+            'version' => 1,
+            'created_at' => $nowSql,
+            'updated_at' => $nowSql,
+        ]);
+
+        return $conversationId;
+    }
+
+    public function test_assistant_reads_published_showroom_catalog_and_hides_unpublished_or_unapproved_prices(): void
+    {
+        $nowSql = '2026-10-22 09:30:00.000000';
+        $conversationId = $this->seedAssistantConversation('cat-1');
+
+        $visiblePricedId = Ulid::generate();
+        $visibleHiddenPriceId = Ulid::generate();
+        $draftHiddenId = Ulid::generate();
+
+        foreach ([
+            [$visiblePricedId, 'REF-SHOW-01', 'Monture Lumière', 'MarqueA', 45000, 18000, true],
+            [$visibleHiddenPriceId, 'REF-SHOW-02', 'Monture Discrète', 'MarqueB', 72500, 29000, true],
+            [$draftHiddenId, 'REF-DRAFT-99', 'Monture Brouillon Secrète', 'MarqueC', 99000, 33333, true],
+        ] as [$itemId, $ref, $name, $brand, $salePrice, $costPrice, $pubVis]) {
+            DB::table('catalog_items')->insert([
+                'id' => $itemId,
+                'clinic_id' => $this->clinicId,
+                'reference' => $ref,
+                'category_code' => 'FRAME',
+                'name' => $name,
+                'brand' => $brand,
+                'model' => 'M-1',
+                'unit_code' => 'UNIT',
+                'quantity_integer_only' => true,
+                'sale_price' => $salePrice,
+                'purchase_cost' => $costPrice,
+                'tax_rule_id' => null,
+                'stock_mode' => 'STOCKED',
+                'requires_expiry' => false,
+                'low_stock_threshold' => null,
+                'expiry_alert_days' => null,
+                'active' => true,
+                'public_visibility' => $pubVis,
+                'version' => 1,
+                'created_at' => $nowSql,
+                'updated_at' => $nowSql,
+            ]);
+        }
+
+        DB::table('catalog_publications')->insert([
+            [
+                'id' => Ulid::generate(),
+                'clinic_id' => $this->clinicId,
+                'catalog_item_id' => $visiblePricedId,
+                'slug' => 'monture-lumiere',
+                'public_title' => 'Monture Lumière Ronde',
+                'public_description' => 'Acétate léger conçu pour le quotidien.',
+                'style' => 'Rond',
+                'show_sale_price' => true,
+                'status' => 'PUBLISHED',
+                'display_order' => 1,
+                'approved_by' => $this->manager->id,
+                'published_at' => $nowSql,
+                'version' => 1,
+                'created_at' => $nowSql,
+                'updated_at' => $nowSql,
+            ],
+            [
+                'id' => Ulid::generate(),
+                'clinic_id' => $this->clinicId,
+                'catalog_item_id' => $visibleHiddenPriceId,
+                'slug' => 'monture-discrete',
+                'public_title' => 'Monture Discrète Titane',
+                'public_description' => 'Modèle titane haute résistance.',
+                'style' => 'Rectangulaire',
+                'show_sale_price' => false,
+                'status' => 'PUBLISHED',
+                'display_order' => 2,
+                'approved_by' => $this->manager->id,
+                'published_at' => $nowSql,
+                'version' => 1,
+                'created_at' => $nowSql,
+                'updated_at' => $nowSql,
+            ],
+            [
+                'id' => Ulid::generate(),
+                'clinic_id' => $this->clinicId,
+                'catalog_item_id' => $draftHiddenId,
+                'slug' => 'monture-brouillon',
+                'public_title' => 'BROUILLON INVISIBLE SHOWROOM',
+                'public_description' => 'Ne doit jamais fuiter vers l\'assistant.',
+                'style' => 'Aviateur',
+                'show_sale_price' => true,
+                'status' => 'DRAFT',
+                'display_order' => 3,
+                'approved_by' => null,
+                'published_at' => null,
+                'version' => 1,
+                'created_at' => $nowSql,
+                'updated_at' => $nowSql,
+            ],
+        ]);
+
+        $response = $this->actingAsFresh($this->manager)->postJson('/api/v1/crm/conversations/'.$conversationId.'/assistant-turn', [
+            'message' => 'Quelles montures et tarifs avez-vous au showroom ?',
+        ]);
+
+        $response->assertOk();
+        $this->assertMatchesContract($response, 'schemas/resources/communication.json#/$defs/AssistantTurnResultResponse');
+        $reply = (string) $response->json('data.reply');
+        $this->assertStringContainsString('Monture Lumière Ronde', $reply);
+        $this->assertStringContainsString('45 000 XAF', $reply);
+        $this->assertStringContainsString('Monture Discrète Titane', $reply);
+        $this->assertStringContainsString('tarif sur demande au cabinet', $reply);
+        $this->assertStringNotContainsString('72 500', $reply);
+        $this->assertStringNotContainsString('BROUILLON INVISIBLE SHOWROOM', $reply);
+        $this->assertStringNotContainsString('18000', $reply);
+        $this->assertStringNotContainsString('REF-SHOW-01', $reply);
+
+        $tools = $response->json('data.run.sanitized_tool_results');
+        $this->assertIsArray($tools);
+        $catalogTool = array_values(array_filter($tools, static fn (array $entry): bool => ($entry['tool'] ?? null) === 'get_public_catalog'));
+        $this->assertCount(1, $catalogTool);
+        $this->assertSame(2, $catalogTool[0]['count']);
+    }
+
+    public function test_assistant_turn_requires_and_enforces_idempotency_across_normal_and_handoff_turns(): void
+    {
+        $conversationId = $this->seedAssistantConversation('idem-1');
+
+        // En-tête explicitement absent : 422 VALIDATION_FAILED (Idempotency-Key).
+        $missingKey = $this->actingAsFresh($this->manager)
+            ->withHeader('Idempotency-Key', '')
+            ->postJson('/api/v1/crm/conversations/'.$conversationId.'/assistant-turn', [
+                'message' => 'Bonjour',
+            ]);
+        $missingKey->assertStatus(422);
+        $this->assertSame(0, DB::table('assistant_runs')->where('conversation_id', $conversationId)->count());
+
+        // 1. Tour normal rejoué avec la même clé et le même contenu : un seul run créé.
+        $normalKey = Ulid::generate();
+        $normalBody = ['message' => 'Bonjour, quels sont vos services ?'];
+        $first = $this->actingAsFresh($this->manager)
+            ->withHeader('Idempotency-Key', $normalKey)
+            ->postJson('/api/v1/crm/conversations/'.$conversationId.'/assistant-turn', $normalBody);
+        $replay = $this->actingAsFresh($this->manager)
+            ->withHeader('Idempotency-Key', $normalKey)
+            ->postJson('/api/v1/crm/conversations/'.$conversationId.'/assistant-turn', $normalBody);
+
+        $first->assertOk();
+        $replay->assertOk();
+        $this->assertSame($first->json('data.run.id'), $replay->json('data.run.id'));
+        $this->assertSame($first->json('data.reply'), $replay->json('data.reply'));
+        $this->assertSame(1, DB::table('assistant_runs')->where('conversation_id', $conversationId)->count());
+
+        // 2. Même clé avec une autre charge -> 409 IDEMPOTENCY_PAYLOAD_MISMATCH.
+        $mismatch = $this->actingAsFresh($this->manager)
+            ->withHeader('Idempotency-Key', $normalKey)
+            ->postJson('/api/v1/crm/conversations/'.$conversationId.'/assistant-turn', ['message' => 'Autre question']);
+        $mismatch->assertStatus(409);
+        $this->assertSame('IDEMPOTENCY_PAYLOAD_MISMATCH', $mismatch->json('error.code'));
+
+        // 3. Rejeu d'un refus clinique : même après passage en HUMAN_TAKEOVER, la même clé rejoue le résultat d'origine sans doublon.
+        $clinicalKey = Ulid::generate();
+        $clinicalBody = ['message' => 'Quel médicament prendre pour un glaucome ?'];
+        $clinicalFirst = $this->actingAsFresh($this->manager)
+            ->withHeader('Idempotency-Key', $clinicalKey)
+            ->postJson('/api/v1/crm/conversations/'.$conversationId.'/assistant-turn', $clinicalBody);
+        $clinicalReplay = $this->actingAsFresh($this->manager)
+            ->withHeader('Idempotency-Key', $clinicalKey)
+            ->postJson('/api/v1/crm/conversations/'.$conversationId.'/assistant-turn', $clinicalBody);
+
+        $clinicalFirst->assertOk();
+        $clinicalReplay->assertOk();
+        $this->assertTrue($clinicalReplay->json('data.clinical_refusal'));
+        $this->assertSame($clinicalFirst->json('data.run.id'), $clinicalReplay->json('data.run.id'));
+        $this->assertSame(2, DB::table('assistant_runs')->where('conversation_id', $conversationId)->count());
+        $this->assertSame(1, DB::table('conversation_handoffs')->where('conversation_id', $conversationId)->count());
+    }
 }

@@ -120,7 +120,7 @@ test.describe('intégrations et communication (L2D01–L2D10)', () => {
       .fill('Le cabinet accueille le public du lundi au samedi de 08h00 à 17h00 à Douala.')
     await createKbCard.getByRole('button', { name: 'Créer la fiche et sa révision 1' }).click()
 
-    await expect(main.getByText(kbTitle)).toBeVisible()
+    await expect(main.getByRole('heading', { name: kbTitle, exact: true })).toBeVisible()
     await main.getByRole('button', { name: `Approuver la révision 1 de ${kbTitle}` }).click()
     await main.getByRole('button', { name: `Publier la révision 1 de ${kbTitle}` }).click()
     await expect(main).toContainText('Publiée')

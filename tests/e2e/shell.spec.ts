@@ -46,6 +46,8 @@ test.describe('coquille de l’application (F09)', () => {
       'Voir la file du jour',
       'Voir l’agenda',
       'Voir la caisse du jour',
+      'Voir les alertes',
+      'Voir les alertes',
       'Nouveau patient',
       'Nouvelle consultation',
       'Rechercher',

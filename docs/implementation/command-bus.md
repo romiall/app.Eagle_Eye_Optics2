@@ -161,15 +161,7 @@ et rejouait la clé d'idempotence et écrivait son audit, derrière des contrôl
 Neuf routes ne sont PAS des commandes, parce qu'aucune action du bus ne peut appeler Google, Kommo ou la messagerie (« aucun
 effet externe dans la transaction ») : sonde de connexion d'un compte, traitement de l'outbox, rattrapage des événements,
 synchronisation Google, synchronisation des leads Kommo, tour de l'assistant, envoi d'un message, rattrapage d'une
-tentative, exécution d'une campagne. Chacune s'exécute en DEUX transactions (`TransactionRunner`) autour de l'appel. Celles
-qui envoient ou que l'on rejoue (envoi d'un message, rattrapage d'une tentative, exécution d'une campagne, synchronisation
-Google) tiennent leur PROPRE idempotence (clé obligatoire, même table `idempotency_requests`) et ne renvoient jamais à l'aveugle
-un message dont le résultat est inconnu ; la synchronisation des leads, le traitement de l'outbox et le rattrapage sont sûrs à
-répéter (clé externe ou événement déjà traité). **Limite connue** : le tour de l'assistant n'est pas idempotent (chaque appel
-est un nouveau tour) ; l'écran désactive le bouton pendant l'appel. Elles sont nommées une à une dans `MutationRoutesTest::PROVIDER_OPERATION_ROUTES` (jamais une
-famille de routes) ; `OperationRoutesGuardTest` prouve qu'elles exigent un compte et un droit, qu'aucun appel au fournisseur
-n'est écrit dans la fonction d'une transaction, et que le garde reconnaît un appel mal placé. L'aperçu d'une campagne
-(`campaigns/{id}/preview`) est une LECTURE portée par un POST : `CampaignsTest` prouve qu'il n'émet aucune instruction d'écriture.
+tentative, exécution d'une campagne. Chacune s'exécute en DEUX transactions (`TransactionRunner`) autour de l'appel. Celles qui envoient ou que l'on rejoue (envoi d'un message, rattrapage d'une tentative, exécution d'une campagne, synchronisation Google, tour de l'assistant) tiennent leur PROPRE idempotence (clé obligatoire, même table `idempotency_requests`) et ne renvoient jamais à l'aveugle un message dont le résultat est inconnu ni ne dupliquent un tour ou un handoff ; l'écran conserve la même clé d'idempotence sur reprise réseau. La synchronisation des leads, le traitement de l'outbox et le rattrapage sont sûrs à répéter (clé externe ou événement déjà traité). Elles sont nommées une à une dans `MutationRoutesTest::PROVIDER_OPERATION_ROUTES` (jamais une famille de routes) ; `OperationRoutesGuardTest` prouve qu'elles exigent un compte et un droit, qu'aucun appel au fournisseur ou au moteur externe (`LimitedAssistant`) n'est écrit dans la fonction d'une transaction, et que le garde reconnaît un appel mal placé. L'aperçu d'une campagne (`campaigns/{id}/preview`) est une LECTURE portée par un POST : `CampaignsTest` prouve qu'il n'émet aucune instruction d'écriture.
 
 ### Entrées publiques sans compte
 

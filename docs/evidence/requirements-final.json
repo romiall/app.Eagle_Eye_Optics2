@@ -750,13 +750,18 @@
           "kind": "Document",
           "path": "docs/evidence/G5.md",
           "tests": []
+        },
+        {
+          "kind": "Vitest",
+          "path": "tests/frontend/shell/today-summary.test.ts",
+          "tests": []
         }
       ],
       "gaps": [
         {
           "kind": "open_count",
           "owner": "développement",
-          "detail": "Les tuiles d'alerte et la valeur du stock ne figurent pas sur la page d'accueil : elles sont sur les écrans « Alertes de stock » et « Pilotage » (cahier des charges §6 : la lecture existe, son emplacement diffère).",
+          "detail": "Les tuiles d'alerte de stock bas et de péremption s'affichent sur la page d'accueil ; seule la valeur du stock figure uniquement sur « Rapports de gestion » (`/pilotage/rapports`) au lieu de l'accueil (cahier des charges §6 : la lecture existe, son emplacement diffère).",
           "blocks_delivery": false
         }
       ],
@@ -1169,7 +1174,10 @@
         {
           "kind": "PHPUnit",
           "path": "tests/Feature/Crm/AssistantAndHandoffTest.php",
-          "tests": []
+          "tests": [
+            "test_assistant_reads_published_showroom_catalog_and_hides_unpublished_or_unapproved_prices",
+            "test_assistant_turn_requires_and_enforces_idempotency_across_normal_and_handoff_turns"
+          ]
         },
         {
           "kind": "PHPUnit",
@@ -1183,14 +1191,8 @@
         {
           "kind": "simulated",
           "owner": "développement",
-          "detail": "Assistant déterministe borné (refus clinique, reprise humaine) : aucun modèle de langage branché, aucun canal réel ; la qualification et la prise de rendez-vous par l'assistant ne sont pas actives.",
+          "detail": "Assistant déterministe borné (lecture des connaissances publiées et du catalogue public `get_public_catalog`, refus clinique, reprise humaine, tour idempotent) : aucun modèle de langage branché, aucun canal réel.",
           "blocks_delivery": true
-        },
-        {
-          "kind": "not_built",
-          "owner": "développement",
-          "detail": "L'outil `get_public_catalog` (lecture des références publiées par l'assistant) n'est pas réalisé.",
-          "blocks_delivery": false
         }
       ],
       "note": null
@@ -1212,13 +1214,20 @@
           "kind": "PHPUnit",
           "path": "tests/Feature/Crm/KnowledgeBaseTest.php",
           "tests": []
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Crm/AssistantAndHandoffTest.php",
+          "tests": [
+            "test_assistant_reads_published_showroom_catalog_and_hides_unpublished_or_unapproved_prices"
+          ]
         }
       ],
       "gaps": [
         {
           "kind": "simulated",
           "owner": "cliente",
-          "detail": "Fiches de connaissances modifiables, approuvées par la gérante, une seule version publiée : réel. Les « tarifs publics validés » ne sont pas relus par l'assistant (pas de lecture du catalogue public) et aucun modèle réel ne les exploite.",
+          "detail": "Fiches de connaissances modifiables, approuvées par la gérante, une seule version publiée, et relecture des tarifs publics validés du showroom via l'outil `get_public_catalog` : réels ; aucun modèle de langage réel branché (mode `fake`).",
           "blocks_delivery": true
         }
       ],
@@ -1887,6 +1896,14 @@
         },
         {
           "kind": "PHPUnit",
+          "path": "tests/Feature/Crm/AssistantAndHandoffTest.php",
+          "tests": [
+            "test_assistant_reads_published_showroom_catalog_and_hides_unpublished_or_unapproved_prices",
+            "test_assistant_turn_requires_and_enforces_idempotency_across_normal_and_handoff_turns"
+          ]
+        },
+        {
+          "kind": "PHPUnit",
           "path": "tests/Feature/PublicSite/PublicBookingShowroomTest.php",
           "tests": [
             "test_une_demande_venue_d_une_reference_publiee_la_garde_et_ignore_une_reference_inconnue_ou_en_brouillon"
@@ -1899,9 +1916,7 @@
         }
       ],
       "limits": [
-        "Moteur d'assistant déterministe (aucun modèle de langage branché) : le comportement borné est prouvé, la qualité des réponses d'un modèle réel ne l'est pas.",
-        "L'assistant ne lit pas le catalogue public (outil `get_public_catalog` non réalisé) : il ne cite aucun prix ni référence du showroom.",
-        "Le tour de l'assistant n'est pas rejouable par clé d'idempotence (limite documentée dans `docs/implementation/command-bus.md`)."
+        "Moteur d'assistant déterministe (aucun modèle de langage branché) : le comportement borné (y compris `get_public_catalog` et l'idempotence du tour) est prouvé, la qualité des réponses d'un modèle réel ne l'est pas."
       ],
       "lot": "L2/L3",
       "expected": "Assistant demande humain, prix non validé, diagnostic sollicité, booking site : transfert avec résumé, bot suspendu, aucune écriture financière ou ordonnance IA"

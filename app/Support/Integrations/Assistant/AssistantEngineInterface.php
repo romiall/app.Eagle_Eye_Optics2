@@ -27,6 +27,16 @@ interface AssistantEngineInterface
      * @param  array{
      *     services: list<array{service_id: string, name: string, duration_minutes: int}>,
      *     slots: list<array{resource_id: string, resource_name: string, starts_at: string, ends_at: string}>,
+     *     catalog_items?: list<array{
+     *         publication_id: string,
+     *         slug: string,
+     *         title: string,
+     *         description: string,
+     *         style: ?string,
+     *         brand: ?string,
+     *         sale_price: ?int,
+     *         currency: string,
+     *     }>,
      *     booking_reference: ?string,
      * }  $toolData
      * @return array{

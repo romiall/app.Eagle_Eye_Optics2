@@ -805,7 +805,7 @@
     "tests/Feature/Crm/AssistantAndHandoffTest.php",
     "tests/e2e/l2-integrations.spec.ts"
    ],
-   "notes": "Assistant borné (outils limités, refus de toute demande clinique, prix non validé jamais inventé), prise en charge humaine avec résumé administratif, assistant suspendu puis repris. Écritures de données par le chemin central de commandes depuis le 2026-11-15 (docs/implementation/command-bus.md, section « La couche L2 sur le chemin central ») pour la prise en charge et la reprise ; le tour de l'assistant est une opération (moteur hors transaction ; non idempotent, limite documentée). L'outil `get_public_catalog` du fichier 08 attend les références publiées (L3D02). Mode EEO_INTEGRATIONS_MODE=fake : aucun compte ni message réel (Q10 et Q11 restent à fournir par la cliente)."
+   "notes": "Assistant borné (outils limités y compris `get_public_catalog`, refus de toute demande clinique, prix non validé jamais inventé), prise en charge humaine avec résumé administratif, assistant suspendu puis repris. Écritures de données par le chemin central de commandes depuis le 2026-11-15 (docs/implementation/command-bus.md, section « La couche L2 sur le chemin central ») pour la prise en charge et la reprise ; le tour de l'assistant est une opération à appel moteur hors transaction, désormais idempotente (`Idempotency-Key` obligatoire et rejeu exact via `idempotency_requests`). Mode EEO_INTEGRATIONS_MODE=fake : aucun compte ni message réel (Q10 et Q11 restent à fournir par la cliente)."
   },
   "L2D06": {
    "status": "IN_REVIEW",
@@ -873,7 +873,7 @@
     "tests/e2e/public-booking.spec.ts",
     "docs/implementation/public-contract.md"
    ],
-   "notes": "Fiches du showroom (article actif et visible au public, brouillon, images JPEG, PNG ou WebP avec texte alternatif et note de droits, publication, retrait et archivage par la gérante avec mot de passe confirmé), contenus du site (accueil, expertises, horaires, localisation, WhatsApp en lien, réseaux, contact : brouillon puis publication, une seule révision publique), API publique à liste blanche (jamais coût, stock ni référence interne) et écran « Site public : showroom et contenus » (aide intégrée comprise). Écarts : le bouton WhatsApp est un lien, pas un widget ; l'assistant ne lit pas le catalogue public (get_public_catalog non réalisé)."
+   "notes": "Fiches du showroom (article actif et visible au public, brouillon, images JPEG, PNG ou WebP avec texte alternatif et note de droits, publication, retrait et archivage par la gérante avec mot de passe confirmé), contenus du site (accueil, expertises, horaires, localisation, WhatsApp en lien, réseaux, contact : brouillon puis publication, une seule révision publique), API publique à liste blanche (jamais coût, stock ni référence interne), outil `get_public_catalog` de l'assistant borné et écran « Site public : showroom et contenus » (aide intégrée comprise). Écart : le bouton WhatsApp est un lien, pas un widget."
   },
   "L3D03": {
    "status": "IN_REVIEW",

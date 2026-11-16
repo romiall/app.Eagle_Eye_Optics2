@@ -59,6 +59,25 @@ final class DeterministicAssistantEngine implements AssistantEngineInterface
             $parts[] = 'Prestations réservables : '.implode(', ', $names).'. Précisez le créneau souhaité pour enregistrer une demande.';
         }
 
+        $catalogItems = $toolData['catalog_items'] ?? [];
+        if ($catalogItems !== [] && $this->asksAboutCatalog($message, $catalogItems)) {
+            $matchedCatalog = $this->matchCatalogItems($message, $catalogItems);
+            if ($matchedCatalog !== []) {
+                $formattedCatalog = array_map(static function (array $item): string {
+                    $label = $item['title'];
+                    if ($item['brand'] !== null && $item['brand'] !== '') {
+                        $label .= ' ('.$item['brand'].')';
+                    }
+                    $price = $item['sale_price'] !== null
+                        ? number_format($item['sale_price'], 0, '', ' ').' '.$item['currency']
+                        : 'tarif sur demande au cabinet';
+
+                    return $label.' — '.$price;
+                }, $matchedCatalog);
+                $parts[] = 'Références du showroom : '.implode(' ; ', $formattedCatalog).'.';
+            }
+        }
+
         if ($parts === []) {
             $parts[] = 'Je dispose uniquement des informations officielles publiées par le cabinet. '
                 .'Aucune fiche publiée ne répond précisément à votre question : un conseiller peut prendre le relais pour vous renseigner.';
@@ -153,5 +172,101 @@ final class DeterministicAssistantEngine implements AssistantEngineInterface
         }
 
         return false;
+    }
+
+    /**
+     * @param  list<array{
+     *     publication_id: string,
+     *     slug: string,
+     *     title: string,
+     *     description: string,
+     *     style: ?string,
+     *     brand: ?string,
+     *     sale_price: ?int,
+     *     currency: string,
+     * }>  $catalogItems
+     */
+    private function asksAboutCatalog(string $message, array $catalogItems): bool
+    {
+        $key = Text::searchKey($message);
+        foreach ([
+            'monture', 'montures', 'lunette', 'lunettes', 'verre', 'verres', 'catalogue',
+            'showroom', 'modele', 'modeles', 'marque', 'marques', 'prix', 'tarif', 'tarifs',
+            'collection', 'solaire', 'solaires',
+        ] as $keyword) {
+            if (str_contains($key, $keyword)) {
+                return true;
+            }
+        }
+
+        foreach ($catalogItems as $item) {
+            $haystack = Text::searchKey($item['title'].' '.($item['brand'] ?? '').' '.($item['style'] ?? ''));
+            foreach (explode(' ', $haystack) as $word) {
+                if (mb_strlen($word, 'UTF-8') >= 3 && str_contains($key, $word)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param  list<array{
+     *     publication_id: string,
+     *     slug: string,
+     *     title: string,
+     *     description: string,
+     *     style: ?string,
+     *     brand: ?string,
+     *     sale_price: ?int,
+     *     currency: string,
+     * }>  $catalogItems
+     * @return list<array{
+     *     publication_id: string,
+     *     slug: string,
+     *     title: string,
+     *     description: string,
+     *     style: ?string,
+     *     brand: ?string,
+     *     sale_price: ?int,
+     *     currency: string,
+     * }>
+     */
+    private function matchCatalogItems(string $message, array $catalogItems): array
+    {
+        $queryKey = Text::searchKey($message);
+        $tokens = array_values(array_filter(
+            explode(' ', $queryKey),
+            static fn (string $token): bool => mb_strlen($token, 'UTF-8') >= 3,
+        ));
+
+        $scored = [];
+        foreach ($catalogItems as $index => $item) {
+            $haystack = Text::searchKey($item['title'].' '.($item['brand'] ?? '').' '.($item['style'] ?? '').' '.$item['description']);
+            $score = 0;
+            foreach ($tokens as $token) {
+                if (str_contains($haystack, $token)) {
+                    $score++;
+                }
+            }
+            if ($score > 0) {
+                $scored[] = ['score' => $score, 'index' => $index, 'item' => $item];
+            }
+        }
+
+        if ($scored === []) {
+            return array_slice($catalogItems, 0, 3);
+        }
+
+        usort($scored, static function (array $left, array $right): int {
+            if ($left['score'] !== $right['score']) {
+                return $right['score'] <=> $left['score'];
+            }
+
+            return $left['index'] <=> $right['index'];
+        });
+
+        return array_map(static fn (array $row): array => $row['item'], array_slice($scored, 0, 3));
     }
 }

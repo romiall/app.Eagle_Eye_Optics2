@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
 import { ApiError, NetworkUnavailable } from '@/app/api'
@@ -128,6 +128,19 @@ const turnForm = reactive({
 const turnRunning = ref(false)
 const turnError = ref<string | null>(null)
 const turnResult = ref<AssistantTurnResult | null>(null)
+const turnIdempotencyKey = ref<string | null>(null)
+
+watch(
+  () => [
+    selectedConversation.value?.id,
+    turnForm.message,
+    turnForm.serviceId,
+    turnForm.preferredStartsAt,
+  ],
+  () => {
+    turnIdempotencyKey.value = null
+  },
+)
 
 async function submitAssistantTurn(): Promise<void> {
   if (!selectedConversation.value || turnRunning.value) return
@@ -138,6 +151,7 @@ async function submitAssistantTurn(): Promise<void> {
     return
   }
 
+  turnIdempotencyKey.value ??= newIdempotencyKey()
   turnRunning.value = true
   try {
     const result = await runAssistantTurn(
@@ -148,8 +162,9 @@ async function submitAssistantTurn(): Promise<void> {
         preferred_starts_at:
           turnForm.preferredStartsAt.trim() !== '' ? turnForm.preferredStartsAt.trim() : null,
       },
-      newIdempotencyKey(),
+      turnIdempotencyKey.value,
     )
+    turnIdempotencyKey.value = null
     turnResult.value = result
     turnForm.message = ''
     await refreshSelectedConversation()
@@ -157,6 +172,7 @@ async function submitAssistantTurn(): Promise<void> {
     if (failure instanceof NetworkUnavailable) {
       turnError.value = 'Serveur injoignable : tour d’assistant non exécuté.'
     } else if (failure instanceof ApiError) {
+      turnIdempotencyKey.value = null
       turnError.value = failure.message
     } else {
       throw failure

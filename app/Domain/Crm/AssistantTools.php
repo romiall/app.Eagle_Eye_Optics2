@@ -82,6 +82,64 @@ final class AssistantTools
     }
 
     /**
+     * Liste blanche des références du showroom publiées (`catalog_publications.status = PUBLISHED`
+     * dont l'article `catalog_items` est actif et visible), sans coût d'achat ni stock.
+     *
+     * @return list<array{
+     *     publication_id: string,
+     *     slug: string,
+     *     title: string,
+     *     description: string,
+     *     style: ?string,
+     *     brand: ?string,
+     *     sale_price: ?int,
+     *     currency: string,
+     * }>
+     */
+    public function getPublicCatalog(string $clinicId): array
+    {
+        $rows = DB::table('catalog_publications as p')
+            ->join('catalog_items as i', static function ($join): void {
+                $join->on('i.clinic_id', '=', 'p.clinic_id')
+                    ->on('i.id', '=', 'p.catalog_item_id');
+            })
+            ->where('p.clinic_id', $clinicId)
+            ->where('p.status', 'PUBLISHED')
+            ->where('i.active', true)
+            ->where('i.public_visibility', true)
+            ->orderBy('p.display_order')
+            ->orderBy('p.public_title')
+            ->orderBy('p.id')
+            ->limit(50)
+            ->get([
+                'p.id as publication_id',
+                'p.slug',
+                'p.public_title',
+                'p.public_description',
+                'p.style',
+                'p.show_sale_price',
+                'i.brand',
+                'i.sale_price',
+            ]);
+
+        $out = [];
+        foreach ($rows as $row) {
+            $out[] = [
+                'publication_id' => (string) $row->publication_id,
+                'slug' => (string) $row->slug,
+                'title' => (string) $row->public_title,
+                'description' => (string) $row->public_description,
+                'style' => $row->style !== null && $row->style !== '' ? (string) $row->style : null,
+                'brand' => $row->brand !== null && $row->brand !== '' ? (string) $row->brand : null,
+                'sale_price' => (bool) $row->show_sale_price ? (int) $row->sale_price : null,
+                'currency' => 'XAF',
+            ];
+        }
+
+        return $out;
+    }
+
+    /**
      * Liste des prestations ouvertes à la réservation publique / assistée.
      *
      * @return list<array{service_id: string, name: string, duration_minutes: int}>
