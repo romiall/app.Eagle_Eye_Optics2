@@ -47,6 +47,20 @@ abstract class CommandController extends Controller
         return [$payload, $expected, $present];
     }
 
+    /**
+     * Route de mutation dont le corps JSON est la charge de la commande, sans version attendue (création ou transition
+     * d'état) : un `expected_version` du corps reste dans la charge, que l'action lit elle-même.
+     *
+     * @param  string|null  $entityId  agrégat visé (identifiant de la route), nul pour une création
+     */
+    protected function dispatchBody(Request $request, string $name, ?string $entityId = null): CommandResult
+    {
+        /** @var array<string, mixed> $payload */
+        $payload = $request->json()->all();
+
+        return $this->dispatchCommand($request, new Command($name, $payload, $entityId));
+    }
+
     protected function dispatchCommand(Request $request, Command $command): CommandResult
     {
         $user = $request->user();

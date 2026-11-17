@@ -1,5 +1,7 @@
 import { apiRequest } from '@/app/api'
 import type {
+  ExportManifest,
+  ExportManifestResponse,
   ExportRequest,
   ExportRequestList,
   ExportRequestsExportType,
@@ -30,12 +32,29 @@ export const EXPORT_STATUS_LABELS: Readonly<Record<ExportRequest['status'], stri
   EXPIRED: 'Expiré',
 }
 
+export type ExportScopeRole = 'MANAGER' | 'CLINICIAN' | 'CASHIER' | 'RECEPTION'
+
+export const EXPORT_SCOPE_ROLE_LABELS: Readonly<Record<ExportScopeRole, string>> = {
+  MANAGER: 'Gérante (portée maximale autorisée)',
+  CLINICIAN: 'Clinicien (clinique, patients et quantités stock)',
+  CASHIER: 'Caisse (données opérationnelles sans finance globale ni clinique)',
+  RECEPTION: 'Accueil (patients et visites uniquement)',
+}
+
 function answered<T>(data: T): ReadOutcome<T> {
   return { data, freshness: { serverAsOf: new Date().toISOString(), complete: true }, live: true }
 }
 
 export async function listExports(): Promise<ReadOutcome<ExportRequest[]>> {
   const response = await apiRequest<ExportRequestList>('GET', '/api/v1/exports')
+  return answered(response.data)
+}
+
+export async function getExportManifest(id: string): Promise<ReadOutcome<ExportManifest>> {
+  const response = await apiRequest<ExportManifestResponse>(
+    'GET',
+    `/api/v1/exports/${encodeURIComponent(id)}/manifest`,
+  )
   return answered(response.data)
 }
 

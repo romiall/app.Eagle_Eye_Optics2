@@ -170,6 +170,80 @@ final class TransactionRunnerTest extends TestCase
         $this->assertSame('ok', $runner->run(fn (int $attempt): string => 'ok'));
     }
 
+    public function test_hors_unite_de_travail_la_jonction_ouvre_sa_propre_transaction_comme_run(): void
+    {
+        $opened = 0;
+        $runner = $this->runner($this->trackedConnection($opened), environment: 'production');
+
+        $this->assertSame('seul', $runner->joinOrRun(fn (int $attempt): string => 'seul'));
+        $this->assertSame(1, $opened);
+    }
+
+    public function test_dans_une_unite_de_travail_la_jonction_se_joint_a_la_transaction_sans_en_ouvrir_une_seconde(): void
+    {
+        $opened = 0;
+        $runner = $this->runner($this->trackedConnection($opened), environment: 'production');
+
+        // Le chemin central (run) appelle une action qui appelle un service du domaine : une seule transaction, même en
+        // production où `run()` refuse de s'imbriquer.
+        $result = $runner->run(fn (): string => $runner->joinOrRun(fn (int $attempt): string => 'joint'));
+
+        $this->assertSame('joint', $result);
+        $this->assertSame(1, $opened);
+    }
+
+    public function test_un_run_imbrique_reste_refuse_meme_dans_une_unite_de_travail(): void
+    {
+        $opened = 0;
+        $runner = $this->runner($this->trackedConnection($opened), environment: 'production');
+
+        $this->expectException(LogicException::class);
+        $runner->run(fn (): mixed => $runner->run(fn (): string => 'jamais'));
+    }
+
+    public function test_un_interblocage_dans_un_travail_joint_rejoue_toute_l_unite_exterieure(): void
+    {
+        $opened = 0;
+        $runner = $this->runner($this->trackedConnection($opened), environment: 'production');
+        $outer = 0;
+        $inner = 0;
+
+        $result = $runner->run(function () use ($runner, &$outer, &$inner): string {
+            $outer++;
+
+            return $runner->joinOrRun(function () use (&$inner): string {
+                $inner++;
+                if ($inner === 1) {
+                    throw $this->mysqlError(1213, 'Deadlock found when trying to get lock');
+                }
+
+                return 'rejoue';
+            });
+        });
+
+        $this->assertSame('rejoue', $result);
+        $this->assertSame(2, $outer, 'L\'unité extérieure repart du début : verrou du cabinet compris.');
+        $this->assertSame(2, $inner);
+        $this->assertSame(2, $opened, 'Une transaction par tentative de l\'unité extérieure, jamais deux en même temps.');
+    }
+
+    public function test_une_unite_terminee_ne_laisse_aucune_jonction_ouverte(): void
+    {
+        $opened = 0;
+        $runner = $this->runner($this->trackedConnection($opened), environment: 'production');
+
+        try {
+            $runner->run(function (): never {
+                throw new DomainException('échec');
+            });
+        } catch (DomainException) {
+        }
+
+        // Après un échec, un travail sans unité ouvre de nouveau sa propre transaction.
+        $this->assertSame('apres', $runner->joinOrRun(fn (int $attempt): string => 'apres'));
+        $this->assertSame(2, $opened);
+    }
+
     private function runner(Connection $connection, string $environment = 'testing'): TransactionRunner
     {
         $database = Mockery::mock(DatabaseManager::class);
@@ -196,6 +270,34 @@ final class TransactionRunnerTest extends TestCase
             // Une fois par appel de run() : le délai de la session est (ré)appliqué avant chaque transaction.
             $connection->shouldReceive('statement')->atLeast()->once()->with('SET SESSION innodb_lock_wait_timeout = '.$timeout);
         }
+
+        return $connection;
+    }
+
+    /**
+     * Connexion simulée qui TIENT le niveau de transaction : 1 dans une transaction ouverte, comme MySQL. `$opened`
+     * compte les transactions réellement ouvertes.
+     */
+    private function trackedConnection(int &$opened): Connection
+    {
+        $level = 0;
+        $connection = Mockery::mock(Connection::class);
+        $connection->shouldReceive('transactionLevel')->andReturnUsing(static function () use (&$level): int {
+            return $level;
+        });
+        $connection->shouldReceive('getDriverName')->andReturn('mysql');
+        $connection->shouldReceive('statement')->andReturn(true);
+        $connection->shouldReceive('transaction')->andReturnUsing(
+            static function (Closure $callback, int $attempts = 1) use (&$level, &$opened): mixed {
+                $level++;
+                $opened++;
+                try {
+                    return $callback();
+                } finally {
+                    $level--;
+                }
+            },
+        );
 
         return $connection;
     }

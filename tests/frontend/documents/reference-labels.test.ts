@@ -103,6 +103,6 @@ describe('types de documents', () => {
     const covered = new Set(DOCUMENT_KINDS.map((kind) => serverDocumentType(kind)))
     const missing = server.filter((type) => !covered.has(type as never))
 
-    expect(missing.sort()).toEqual(['LEGACY_BALANCE', 'WORKSHOP'])
+    expect(missing.sort()).toEqual(['LEGACY_BALANCE'])
   })
 })

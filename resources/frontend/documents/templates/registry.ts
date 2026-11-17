@@ -15,6 +15,7 @@ import type {
   ReceiptDocumentData,
   RefundDocumentData,
 } from '../data/financial'
+import type { WorkshopOrderDocumentData } from '../data/workshop'
 import { invalid } from '../engine/errors'
 import type { DocumentKind, DocumentModel } from '../engine/model'
 import type { BuildOptions } from './common'
@@ -29,6 +30,7 @@ import { buildCashSessionReport } from './financial/cashSession'
 import { buildInvoice } from './financial/invoice'
 import { buildQuote } from './financial/quote'
 import { buildReceipt } from './financial/receipt'
+import { buildWorkshopOrder } from './workshop/workOrder'
 
 /**
  * Registre des modèles versionnés (D01, D02 ; contrat 23 : « l'ancien template et ses fontes restent
@@ -57,6 +59,8 @@ const SERVER_VERSIONS = {
   REFUND: 'refund.v1',
   /** Révision de devis (L1D07) : `PendingDocuments::QUOTE_TEMPLATE` et `snapshot.template_version`. */
   QUOTE: 'quote.v1',
+  /** Bon laboratoire atelier optique (L1D04) : `PendingDocuments::WORKSHOP_TEMPLATE`. */
+  WORKSHOP: 'workshop.v1',
 } as const
 
 /**
@@ -86,6 +90,7 @@ export interface DocumentDataByKind {
   QUOTE: QuoteDocumentData
   OPTICAL_PRESCRIPTION: OpticalPrescriptionData
   CLINICAL_RECORD: ClinicalRecordData
+  WORKSHOP: WorkshopOrderDocumentData
   MEDICATION_ORDER: MedicationOrderData
   REFERRAL_LETTER: ReferralLetterData
   CASH_SESSION_REPORT: CashSessionReportData
@@ -113,6 +118,10 @@ const REGISTRY: { readonly [K in DocumentKind]: Readonly<Record<string, Builder<
   CLINICAL_RECORD: {
     [TEMPLATE_VERSION]: buildClinicalRecord,
     [CLINICAL_TEMPLATE_VERSIONS.CLINICAL_RECORD]: buildClinicalRecord,
+  },
+  WORKSHOP: {
+    [TEMPLATE_VERSION]: buildWorkshopOrder,
+    [SERVER_VERSIONS.WORKSHOP]: buildWorkshopOrder,
   },
   MEDICATION_ORDER: {
     [TEMPLATE_VERSION]: buildMedicationOrder,
@@ -169,6 +178,7 @@ const SERVER_TYPES: ReadonlySet<string> = new Set<GeneratedDocumentsDocumentType
   'CLINICAL_RECORD',
   'ACCOUNT_STATEMENT',
   'QUOTE',
+  'WORKSHOP',
 ])
 
 /** Type enregistré côté serveur (`generated_documents.document_type`), ou null si le type reste local au poste. */

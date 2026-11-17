@@ -16,6 +16,7 @@ import { getCashDayReport } from '@/app/services/billing'
 import FreshnessNote from '@/components/feedback/FreshnessNote.vue'
 import StateMessage from '@/components/feedback/StateMessage.vue'
 import DateField from '@/components/form/DateField.vue'
+import { canOnScreen } from '@/app/session'
 import AppButton from '@/components/ui/AppButton.vue'
 import LinkButton from '@/components/ui/LinkButton.vue'
 import { accountLabel, dayCashNet, dayMethodRows, dayOtherNet } from '@/domain/billing/cashReport'
@@ -189,6 +190,12 @@ function signedVariance(amount: number): string {
           <LinkButton :to="{ name: 'factures' }" variant="secondary">Voir les factures</LinkButton>
           <LinkButton :to="{ name: 'finance' }" variant="secondary"
             >Voir la finance d’une période</LinkButton
+          >
+          <LinkButton
+            v-if="canOnScreen('finance.reconcile')"
+            :to="{ name: 'rapprochement' }"
+            variant="secondary"
+            >Rapprochements par canal</LinkButton
           >
         </div>
       </section>

@@ -27,9 +27,12 @@ return Application::configure(basePath: dirname(__DIR__))
             // le repli SPA, qui accepterait sinon « /up » comme URL du routeur Vue.
             Route::get('/up', HealthController::class)->name('health');
 
+            // Routes publiques (/public/v1) : JSON uniquement, sans session ni cookie du cabinet.
+            Route::prefix('public')->group(base_path('routes/public.php'));
+
             // Coquille SPA : volontairement hors du groupe `web` (ni session, ni cookie) afin que
             // la réponse soit identique pour tous et précachable par le service worker.
-            // Déclarée en dernier : c'est la route de repli, jamais appliquée à /api.
+            // Déclarée en dernier : c'est la route de repli, jamais appliquée à /api ni /public.
             Route::group([], base_path('routes/spa.php'));
         },
     )
@@ -66,10 +69,10 @@ return Application::configure(basePath: dirname(__DIR__))
         // Toute erreur sous /api est du JSON, quel que soit l'en-tête Accept (jamais la coquille SPA),
         // dans l'enveloppe du fichier 08 : error.code, error.message, error.fields, correlation_id.
         $exceptions->shouldRenderJsonWhen(
-            fn (Request $request) => $request->is('api', 'api/*') || $request->expectsJson(),
+            fn (Request $request) => $request->is('api', 'api/*', 'public', 'public/*') || $request->expectsJson(),
         );
         $exceptions->render(
-            fn (Throwable $exception, Request $request) => $request->is('api', 'api/*')
+            fn (Throwable $exception, Request $request) => $request->is('api', 'api/*', 'public', 'public/*')
                 ? ApiErrorRenderer::render($exception, $request)
                 : null,
         );

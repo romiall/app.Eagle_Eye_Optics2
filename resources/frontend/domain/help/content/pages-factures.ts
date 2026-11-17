@@ -482,6 +482,7 @@ export const PAGES_FACTURES: readonly PageHelp[] = [
       'cash.manage',
       'clinical.read',
       'clinical.export',
+      'workshop.manage',
     ],
     purpose:
       'Contrôlez ici l’aspect des documents PDF (factures, reçus, ordonnances…) sur des données fictives. Rien n’est enregistré ni envoyé. Tant que les mentions officielles du cabinet ne sont pas validées, chaque document porte « DOCUMENT DE TEST ».',

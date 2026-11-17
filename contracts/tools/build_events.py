@@ -87,6 +87,16 @@ EVENTS = {
     'WorkshopReady': ('workshop_orders', 'Équipement prêt à remettre (atelier L1 ; contrat fixé dès la version 1).',
         {'workshop_order_id': ULID, 'patient_id': ULID, 'invoice_line_id': ULID, 'ready_revision': {'type': 'integer', 'minimum': 1},
          'ready_at': INSTANT}),
+    'AppointmentNoShow': ('appointments', 'Rendez-vous marqué absent (L2) : aucune donnée clinique, relance administrative éventuelle.',
+        {'appointment_id': ULID, 'patient_id': N_ULID, 'prospect_contact_id': N_ULID, 'starts_at': INSTANT, 'marked_at': INSTANT}),
+    'PublicBookingRequested': ('public_booking_requests', 'Demande publique de rendez-vous enregistrée (L2) : référence publique uniquement.',
+        {'booking_request_id': ULID, 'public_reference': {'type': 'string', 'minLength': 1, 'maxLength': 32}, 'service_id': ULID,
+         'requested_starts_at': INSTANT, 'status': enum('public_booking_requests.status')}),
+    'HumanHandoffRequested': ('conversation_handoffs', 'Demande ou prise en charge humaine d\'une conversation CRM/IA (L2).',
+        {'handoff_id': ULID, 'conversation_id': ULID, 'lead_id': N_ULID, 'event_type': enum('conversation_handoffs.event_type'),
+         'occurred_at': INSTANT}),
+    'CampaignCompleted': ('campaign_definitions', 'Exécution d\'une campagne terminée ou arrêtée (L2).',
+        {'campaign_id': ULID, 'status': enum('campaign_definitions.status'), 'completed_at': INSTANT}),
 }
 
 

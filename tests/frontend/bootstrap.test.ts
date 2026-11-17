@@ -105,26 +105,57 @@ describe('amorçage de la coquille Vue', () => {
         'devis-detail',
         'import-catalogue',
         'stock-movement',
+        'suppliers',
+        'goods-receipts',
+        'goods-receipt-new',
+        'goods-receipt',
+        'inventories',
+        'inventory',
+        'stock-alerts',
         'parametres-exports',
         'statistiques',
+        'rapports-gestion',
         'agenda',
         'rendez-vous-nouveau',
         'agenda-configuration',
         'suivis',
         'aide',
+        'workshop',
+        'atelier-nouveau',
+        'atelier-detail',
+        'rapprochement',
+        'integrations',
+        'communication',
+        'communication-bookings',
+        'communication-crm',
+        'communication-knowledge',
+        'communication-handoffs',
+        'communication-consents',
+        'communication-campaigns',
+        'communication-outbox',
+        'communication-site',
+        'stock-history',
+        'public-booking',
+        'public-showroom',
+        'public-showroom-item',
       ]),
     )
     // 11 routes d'origine + historique (C03) + prescription (C04) + aperçu des documents (D02)
     // + activité du patient (onglet du dossier) + ventes et caisse (8 : B01 à B05, I00)
-    // + caisse du jour (R01 minimal) + finance du cabinet (R01) + liste des examens + paramètres (5 : F09)
+    // + caisse du jour (R01 minimal) + finance du cabinet (R01) + rapprochements (L1D06)
+    // + liste des examens + paramètres (5 : F09)
     // + changement de son mot de passe + approbations (B06) + préparation du poste (O01, O02)
     // + prescriptions, fusion et comparaison du patient + catégories de dépenses + devis (3)
-    // + import du catalogue + casse/ajustement + exports + statistiques + agenda (3) + suivis + aide
-    // + déverrouillage du poste (D27).
-    // Total recompté sur le routeur réel : 52 routes, aucun nom en double.
+    // + import du catalogue + casse/ajustement + achats et réceptions (4 : L1D01) + inventaires (2 : L1D02)
+    // + alertes de stock (1 : L1D03) + atelier optique (3 : L1D04)
+    // + intégrations (L2D01) + communication, réservations, CRM, connaissances, assistant, consentements, campagnes, boîte d'envoi (8 : L2D02 à L2D09)
+    // + historique des mouvements d'un article (stock-history) + site public de la gérante (communication-site, L3D02)
+    // + trois pages publiques (prise de rendez-vous, showroom, fiche du showroom : L3D03)
+    // + exports + statistiques + rapports-gestion + agenda (3) + suivis + aide + déverrouillage du poste (D27).
+    // Total recompté sur le routeur réel : 78 routes, aucun nom en double.
     const names = router.getRoutes().map((route) => String(route.name))
     expect(new Set(names).size).toBe(names.length)
-    expect(router.getRoutes()).toHaveLength(52)
+    expect(router.getRoutes()).toHaveLength(78)
     // Chaque route métier dépend de son module (mise en service progressive) et de ses permissions.
     // Les onglets cliniques du dossier (prescriptions, comparaison des examens) dépendent du module « consultations ».
     const clinicalTabs = ['patient-prescriptions', 'patient-comparaison']

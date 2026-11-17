@@ -1,0 +1,1925 @@
+{
+  "schema_version": 1,
+  "title": "Registre final des exigences EE001 à EE046 et des scénarios AT30 à AT35 — gate G7",
+  "note": "Un enregistrement par exigence de la matrice de traçabilité (fichier 17), avec son statut, ses preuves et ses écarts explicites. DONE : la fonction entière est livrée et prouvée. DONE_WITH_RESERVES : livrée et prouvée, avec des réserves nommées qui dépendent de la cliente, de personnes, de matériel ou d'une décision (champ `gaps`). PARTIAL : une partie de la fonction n'est pas livrée ou n'est pas ACTIVE (par exemple un canal simulé). Un scénario BLOCKED du registre L0 (AT29) interdit le statut DONE. Une intégration en mode `fake` n'est jamais annoncée active : son exigence est PARTIAL ou DONE_WITH_RESERVES avec un écart `simulated`. Les scénarios AT01 à AT29 et AT36 à AT45 sont jugés dans `docs/evidence/acceptance-L0.json` (gate G3) ; AT30 à AT35 le sont ici.",
+  "branch": "claude/l1-stock-complet",
+  "verification": {
+    "script": "tools/dev/tester-projet.sh",
+    "report": "docs/evidence/verification-projet.md",
+    "note": "Le commit candidat est celui qui porte ce fichier (git rev-parse HEAD). La dernière ligne du script doit dire STABLE ; le rapport consigne le commit vérifié."
+  },
+  "summary": {
+    "DONE": 23,
+    "DONE_WITH_RESERVES": 16,
+    "PARTIAL": 7,
+    "total": 46
+  },
+  "scenarios_after_l0_summary": {
+    "PASS": 6,
+    "total": 6
+  },
+  "requirements": [
+    {
+      "id": "EE001",
+      "title": "Identité complète, âge et dossier unique",
+      "matrix_lot": "L0",
+      "status": "DONE",
+      "integration_mode": "real",
+      "scenarios": [
+        {
+          "id": "AT03",
+          "result": "PASS"
+        },
+        {
+          "id": "AT04",
+          "result": "PASS"
+        },
+        {
+          "id": "AT36",
+          "result": "PASS"
+        }
+      ],
+      "evidence": [],
+      "gaps": [],
+      "note": null
+    },
+    {
+      "id": "EE002",
+      "title": "Visite nouvelle rattachée au même patient",
+      "matrix_lot": "L0",
+      "status": "DONE",
+      "integration_mode": "real",
+      "scenarios": [
+        {
+          "id": "AT06",
+          "result": "PASS"
+        },
+        {
+          "id": "AT21",
+          "result": "PASS"
+        }
+      ],
+      "evidence": [],
+      "gaps": [],
+      "note": null
+    },
+    {
+      "id": "EE003",
+      "title": "Historique préservé et comparaison",
+      "matrix_lot": "L0/L1 comparaison avancée",
+      "status": "DONE",
+      "integration_mode": "real",
+      "scenarios": [
+        {
+          "id": "AT19",
+          "result": "PASS"
+        },
+        {
+          "id": "AT21",
+          "result": "PASS"
+        }
+      ],
+      "evidence": [
+        {
+          "kind": "Playwright",
+          "path": "tests/e2e/patient-merge-compare.spec.ts",
+          "tests": []
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Patients/PatientMergeTest.php",
+          "tests": []
+        }
+      ],
+      "gaps": [],
+      "note": "Comparaison avancée de deux examens (L1D08) et fusion manuelle des fiches : livrées."
+    },
+    {
+      "id": "EE004",
+      "title": "Motifs multiples, symptômes et lunettes actuelles",
+      "matrix_lot": "L0",
+      "status": "DONE",
+      "integration_mode": "real",
+      "scenarios": [
+        {
+          "id": "AT18",
+          "result": "PASS"
+        }
+      ],
+      "evidence": [],
+      "gaps": [],
+      "note": null
+    },
+    {
+      "id": "EE005",
+      "title": "Antécédents oculaires/médicaux/familiaux",
+      "matrix_lot": "L0",
+      "status": "DONE",
+      "integration_mode": "real",
+      "scenarios": [
+        {
+          "id": "AT18",
+          "result": "PASS"
+        }
+      ],
+      "evidence": [],
+      "gaps": [],
+      "note": null
+    },
+    {
+      "id": "EE006",
+      "title": "Acuités loin/près OD/OG/OU avec/sans correction",
+      "matrix_lot": "L0",
+      "status": "DONE_WITH_RESERVES",
+      "integration_mode": "real",
+      "scenarios": [
+        {
+          "id": "AT18",
+          "result": "PASS"
+        },
+        {
+          "id": "AT21",
+          "result": "PASS"
+        }
+      ],
+      "evidence": [
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Clinical/VisualAcuityScalesTest.php",
+          "tests": []
+        }
+      ],
+      "gaps": [
+        {
+          "kind": "client",
+          "owner": "cliente",
+          "detail": "Les échelles d'acuité livrées sont des échelles de DÉMONSTRATION non validées cliniquement ; l'échelle réelle du cabinet (et la convention de cylindre) se saisit par `eeo:clinical:scales`. Information facultative, ne bloque rien.",
+          "blocks_delivery": false
+        }
+      ],
+      "note": null
+    },
+    {
+      "id": "EE007",
+      "title": "Autorefractomètre et DP totale/monoculaire",
+      "matrix_lot": "L0",
+      "status": "DONE",
+      "integration_mode": "real",
+      "scenarios": [
+        {
+          "id": "AT18",
+          "result": "PASS"
+        }
+      ],
+      "evidence": [],
+      "gaps": [],
+      "note": null
+    },
+    {
+      "id": "EE008",
+      "title": "Réfraction objective/subjective, addition, amétropie, observations",
+      "matrix_lot": "L0",
+      "status": "DONE_WITH_RESERVES",
+      "integration_mode": "real",
+      "scenarios": [
+        {
+          "id": "AT18",
+          "result": "PASS"
+        }
+      ],
+      "evidence": [
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Clinical/SaveRefractionStepTest.php",
+          "tests": []
+        }
+      ],
+      "gaps": [
+        {
+          "kind": "client",
+          "owner": "cliente",
+          "detail": "Convention de cylindre et tolérances réelles à confirmer avec le professionnel (hypothèses du fichier 15 en attendant). Facultatif.",
+          "blocks_delivery": false
+        }
+      ],
+      "note": null
+    },
+    {
+      "id": "EE009",
+      "title": "Prescription OD/OG, DP/EP, hauteur, usage/indice/traitements",
+      "matrix_lot": "L0",
+      "status": "DONE",
+      "integration_mode": "real",
+      "scenarios": [
+        {
+          "id": "AT20",
+          "result": "PASS"
+        },
+        {
+          "id": "AT21",
+          "result": "PASS"
+        }
+      ],
+      "evidence": [
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Clinical/CreatePrescriptionTest.php",
+          "tests": []
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Clinical/ValidatePrescriptionTest.php",
+          "tests": []
+        }
+      ],
+      "gaps": [],
+      "note": null
+    },
+    {
+      "id": "EE010",
+      "title": "Médicaments, forme, dosage, posologie, fréquence, durée",
+      "matrix_lot": "L0",
+      "status": "DONE",
+      "integration_mode": "real",
+      "scenarios": [
+        {
+          "id": "AT20",
+          "result": "PASS"
+        }
+      ],
+      "evidence": [
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Clinical/SaveMedicationsStepTest.php",
+          "tests": []
+        }
+      ],
+      "gaps": [],
+      "note": null
+    },
+    {
+      "id": "EE011",
+      "title": "Conclusion et orientation avec motif/niveau",
+      "matrix_lot": "L0",
+      "status": "DONE",
+      "integration_mode": "real",
+      "scenarios": [
+        {
+          "id": "AT20",
+          "result": "PASS"
+        }
+      ],
+      "evidence": [
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Clinical/SaveConclusionStepTest.php",
+          "tests": []
+        }
+      ],
+      "gaps": [],
+      "note": null
+    },
+    {
+      "id": "EE012",
+      "title": "Contrôle, date calculée, canaux et anticipation",
+      "matrix_lot": "L0 interne/L2 envoi",
+      "status": "DONE_WITH_RESERVES",
+      "integration_mode": "fake",
+      "scenarios": [
+        {
+          "id": "AT22",
+          "result": "PASS"
+        },
+        {
+          "id": "AT23",
+          "result": "PASS"
+        },
+        {
+          "id": "AT34",
+          "result": "PASS"
+        }
+      ],
+      "evidence": [
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Scheduling/FollowUpsTest.php",
+          "tests": []
+        }
+      ],
+      "gaps": [
+        {
+          "kind": "simulated",
+          "owner": "cliente",
+          "detail": "La date du contrôle et la tâche de contact sont réelles ; l'ENVOI du rappel (SMS, WhatsApp) est simulé : aucun compte fournisseur n'est fourni.",
+          "blocks_delivery": false
+        }
+      ],
+      "note": null
+    },
+    {
+      "id": "EE013",
+      "title": "États de consultation, étapes et sauvegarde",
+      "matrix_lot": "L0",
+      "status": "DONE",
+      "integration_mode": "real",
+      "scenarios": [
+        {
+          "id": "AT18",
+          "result": "PASS"
+        },
+        {
+          "id": "AT19",
+          "result": "PASS"
+        }
+      ],
+      "evidence": [
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Clinical/StartConsultationTest.php",
+          "tests": []
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Clinical/CompleteConsultationTest.php",
+          "tests": []
+        }
+      ],
+      "gaps": [],
+      "note": null
+    },
+    {
+      "id": "EE014",
+      "title": "Impression/export PDF et boutons du dossier",
+      "matrix_lot": "L0",
+      "status": "DONE_WITH_RESERVES",
+      "integration_mode": "real",
+      "scenarios": [
+        {
+          "id": "AT20",
+          "result": "PASS"
+        },
+        {
+          "id": "AT28",
+          "result": "PASS"
+        },
+        {
+          "id": "AT37",
+          "result": "PASS"
+        }
+      ],
+      "evidence": [
+        {
+          "kind": "Document",
+          "path": "docs/evidence/usability.md",
+          "tests": []
+        }
+      ],
+      "gaps": [
+        {
+          "kind": "hardware",
+          "owner": "cliente",
+          "detail": "PDF et impression constatés dans le navigateur de test ; l'IMPRESSION RÉELLE sur l'imprimante du cabinet reste à constater avec la cliente (protocole dans `docs/evidence/usability.md`).",
+          "blocks_delivery": false
+        }
+      ],
+      "note": null
+    },
+    {
+      "id": "EE015",
+      "title": "Dashboard patient et statistiques filtrées",
+      "matrix_lot": "L0 tableaux/L1 approfondissement",
+      "status": "DONE_WITH_RESERVES",
+      "integration_mode": "real",
+      "scenarios": [
+        {
+          "id": "AT25",
+          "result": "PASS"
+        },
+        {
+          "id": "AT29",
+          "result": "BLOCKED"
+        }
+      ],
+      "evidence": [
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Reports/StatisticsTest.php",
+          "tests": []
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Operations/ManagementExportsTest.php",
+          "tests": []
+        },
+        {
+          "kind": "Playwright",
+          "path": "tests/e2e/management-reports.spec.ts",
+          "tests": []
+        }
+      ],
+      "gaps": [
+        {
+          "kind": "people",
+          "owner": "cliente",
+          "detail": "AT29 : la gérante retrouve le reste à encaisser sur téléphone (prouvé sur navigateur de test) ; les retours des opératrices ne sont pas recueillis.",
+          "blocks_delivery": false
+        }
+      ],
+      "note": "Tableaux filtrés (L0) et tableaux de gestion consolidés par rôle (L1D09)."
+    },
+    {
+      "id": "EE016",
+      "title": "Rôles séparés et accès médicaux restreints",
+      "matrix_lot": "L0",
+      "status": "DONE",
+      "integration_mode": "real",
+      "scenarios": [
+        {
+          "id": "AT01",
+          "result": "PASS"
+        },
+        {
+          "id": "AT02",
+          "result": "PASS"
+        },
+        {
+          "id": "AT43",
+          "result": "PASS"
+        }
+      ],
+      "evidence": [],
+      "gaps": [],
+      "note": null
+    },
+    {
+      "id": "EE017",
+      "title": "Journal utilisateur/date non supprimable",
+      "matrix_lot": "L0",
+      "status": "DONE",
+      "integration_mode": "real",
+      "scenarios": [
+        {
+          "id": "AT13",
+          "result": "PASS"
+        },
+        {
+          "id": "AT19",
+          "result": "PASS"
+        },
+        {
+          "id": "AT45",
+          "result": "PASS"
+        }
+      ],
+      "evidence": [],
+      "gaps": [],
+      "note": null
+    },
+    {
+      "id": "EE018",
+      "title": "Examen payé ou dérogation gérante",
+      "matrix_lot": "L0",
+      "status": "DONE",
+      "integration_mode": "real",
+      "scenarios": [
+        {
+          "id": "AT05",
+          "result": "PASS"
+        },
+        {
+          "id": "AT06",
+          "result": "PASS"
+        }
+      ],
+      "evidence": [
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Billing/BilledExamFeeControlTest.php",
+          "tests": []
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Billing/ExamFeeQueueTest.php",
+          "tests": []
+        }
+      ],
+      "gaps": [],
+      "note": null
+    },
+    {
+      "id": "EE019",
+      "title": "Achat direct, retrait, contrôle et agenda accueil",
+      "matrix_lot": "L0",
+      "status": "DONE",
+      "integration_mode": "real",
+      "scenarios": [
+        {
+          "id": "AT06",
+          "result": "PASS"
+        },
+        {
+          "id": "AT23",
+          "result": "PASS"
+        }
+      ],
+      "evidence": [],
+      "gaps": [],
+      "note": null
+    },
+    {
+      "id": "EE020",
+      "title": "Catalogue référence/prix, autocomplétion",
+      "matrix_lot": "L0",
+      "status": "DONE_WITH_RESERVES",
+      "integration_mode": "real",
+      "scenarios": [
+        {
+          "id": "AT07",
+          "result": "PASS"
+        },
+        {
+          "id": "AT15",
+          "result": "PASS"
+        }
+      ],
+      "evidence": [
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Billing/CatalogTest.php",
+          "tests": []
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Billing/CatalogImportTest.php",
+          "tests": []
+        }
+      ],
+      "gaps": [
+        {
+          "kind": "client",
+          "owner": "cliente",
+          "detail": "Le catalogue et les prix réels sont ceux du cabinet : l'application ne propose AUCUN prix (articles de démonstration fictifs) ; import CSV contrôlé prêt. À saisir ou importer par la cliente.",
+          "blocks_delivery": false
+        }
+      ],
+      "note": null
+    },
+    {
+      "id": "EE021",
+      "title": "Facture numérotée, calculée, conservée en PDF",
+      "matrix_lot": "L0",
+      "status": "DONE_WITH_RESERVES",
+      "integration_mode": "real",
+      "scenarios": [
+        {
+          "id": "AT08",
+          "result": "PASS"
+        },
+        {
+          "id": "AT09",
+          "result": "PASS"
+        },
+        {
+          "id": "AT37",
+          "result": "PASS"
+        }
+      ],
+      "evidence": [
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Billing/IssueInvoiceTest.php",
+          "tests": []
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Billing/TaxRulesTest.php",
+          "tests": []
+        }
+      ],
+      "gaps": [
+        {
+          "kind": "client",
+          "owner": "cliente",
+          "detail": "Préfixes des séries de numéros, régime fiscal et taxes à valider avec le comptable : jamais inventés par l'application (règle fiscale de démonstration non contractuelle). Facultatif pour avancer.",
+          "blocks_delivery": false
+        }
+      ],
+      "note": null
+    },
+    {
+      "id": "EE022",
+      "title": "Acomptes/soldes/modes et reçu immuable à chaque paiement",
+      "matrix_lot": "L0",
+      "status": "DONE",
+      "integration_mode": "real",
+      "scenarios": [
+        {
+          "id": "AT10",
+          "result": "PASS"
+        },
+        {
+          "id": "AT11",
+          "result": "PASS"
+        },
+        {
+          "id": "AT12",
+          "result": "PASS"
+        }
+      ],
+      "evidence": [],
+      "gaps": [],
+      "note": null
+    },
+    {
+      "id": "EE023",
+      "title": "Paiement en attente et impayés visibles",
+      "matrix_lot": "L0",
+      "status": "DONE",
+      "integration_mode": "real",
+      "scenarios": [
+        {
+          "id": "AT10",
+          "result": "PASS"
+        },
+        {
+          "id": "AT24",
+          "result": "PASS"
+        },
+        {
+          "id": "AT45",
+          "result": "PASS"
+        }
+      ],
+      "evidence": [],
+      "gaps": [],
+      "note": null
+    },
+    {
+      "id": "EE024",
+      "title": "Annulations/modifications autorisées et historisées",
+      "matrix_lot": "L0",
+      "status": "DONE",
+      "integration_mode": "real",
+      "scenarios": [
+        {
+          "id": "AT13",
+          "result": "PASS"
+        },
+        {
+          "id": "AT14",
+          "result": "PASS"
+        }
+      ],
+      "evidence": [
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Billing/ReversePaymentTest.php",
+          "tests": []
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Billing/CreditNoteTest.php",
+          "tests": []
+        }
+      ],
+      "gaps": [],
+      "note": null
+    },
+    {
+      "id": "EE025",
+      "title": "Aucune sortie applicative sans vente/motif validé",
+      "matrix_lot": "L0",
+      "status": "DONE",
+      "integration_mode": "real",
+      "scenarios": [
+        {
+          "id": "AT15",
+          "result": "PASS"
+        },
+        {
+          "id": "AT16",
+          "result": "PASS"
+        },
+        {
+          "id": "AT40",
+          "result": "PASS"
+        }
+      ],
+      "evidence": [],
+      "gaps": [],
+      "note": null
+    },
+    {
+      "id": "EE026",
+      "title": "Inventaire, écarts, valeur, seuil et mouvements",
+      "matrix_lot": "L0 sorties/L1 complet",
+      "status": "DONE_WITH_RESERVES",
+      "integration_mode": "real",
+      "scenarios": [
+        {
+          "id": "AT17",
+          "result": "PASS"
+        },
+        {
+          "id": "AT30",
+          "result": "PASS"
+        }
+      ],
+      "evidence": [
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Inventory/InventoryCountsTest.php",
+          "tests": []
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Inventory/GoodsReceiptsTest.php",
+          "tests": []
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Inventory/StockMovementHistoryTest.php",
+          "tests": []
+        },
+        {
+          "kind": "Playwright",
+          "path": "tests/e2e/stock-purchasing-inventory.spec.ts",
+          "tests": []
+        },
+        {
+          "kind": "Document",
+          "path": "docs/evidence/G5.md",
+          "tests": []
+        },
+        {
+          "kind": "Vitest",
+          "path": "tests/frontend/shell/today-summary.test.ts",
+          "tests": []
+        }
+      ],
+      "gaps": [
+        {
+          "kind": "open_count",
+          "owner": "développement",
+          "detail": "Les tuiles d'alerte de stock bas et de péremption s'affichent sur la page d'accueil ; seule la valeur du stock figure uniquement sur « Rapports de gestion » (`/pilotage/rapports`) au lieu de l'accueil (cahier des charges §6 : la lecture existe, son emplacement diffère).",
+          "blocks_delivery": false
+        }
+      ],
+      "note": "Inventaire, écarts justifiés, valeur au coût connu, seuil et historique des mouvements d'un article."
+    },
+    {
+      "id": "EE027",
+      "title": "Péremption et alerte collyres",
+      "matrix_lot": "L0 blocage/L1 alertes",
+      "status": "DONE",
+      "integration_mode": "real",
+      "scenarios": [
+        {
+          "id": "AT17",
+          "result": "PASS"
+        },
+        {
+          "id": "AT30",
+          "result": "PASS"
+        }
+      ],
+      "evidence": [
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Inventory/StockAlertsTest.php",
+          "tests": []
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Billing/StockMovementTest.php",
+          "tests": []
+        }
+      ],
+      "gaps": [],
+      "note": null
+    },
+    {
+      "id": "EE028",
+      "title": "Bon verrier, atelier, prêt/retrait/livraison",
+      "matrix_lot": "L1/L2 notification",
+      "status": "DONE_WITH_RESERVES",
+      "integration_mode": "fake",
+      "scenarios": [
+        {
+          "id": "AT31",
+          "result": "PASS"
+        },
+        {
+          "id": "AT34",
+          "result": "PASS"
+        }
+      ],
+      "evidence": [
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Workshop/WorkshopOrdersTest.php",
+          "tests": []
+        },
+        {
+          "kind": "Playwright",
+          "path": "tests/e2e/workshop.spec.ts",
+          "tests": []
+        },
+        {
+          "kind": "Document",
+          "path": "docs/evidence/G5.md",
+          "tests": []
+        }
+      ],
+      "gaps": [
+        {
+          "kind": "simulated",
+          "owner": "cliente",
+          "detail": "Atelier, bon laboratoire et remise sont réels ; la notification « prêt » au patient est un événement consommé par la messagerie simulée.",
+          "blocks_delivery": false
+        }
+      ],
+      "note": null
+    },
+    {
+      "id": "EE029",
+      "title": "CA jour/semaine/mois, impayés, ventes par caisse",
+      "matrix_lot": "L0",
+      "status": "DONE",
+      "integration_mode": "real",
+      "scenarios": [
+        {
+          "id": "AT24",
+          "result": "PASS"
+        },
+        {
+          "id": "AT25",
+          "result": "PASS"
+        }
+      ],
+      "evidence": [
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Billing/CashDayReportTest.php",
+          "tests": []
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Billing/FinancialReportTest.php",
+          "tests": []
+        },
+        {
+          "kind": "Playwright",
+          "path": "tests/e2e/finance.spec.ts",
+          "tests": []
+        }
+      ],
+      "gaps": [],
+      "note": null
+    },
+    {
+      "id": "EE030",
+      "title": "Caisse, rapprochements et contrôle argent",
+      "matrix_lot": "L0 simple/L1 complet",
+      "status": "DONE",
+      "integration_mode": "real",
+      "scenarios": [
+        {
+          "id": "AT14",
+          "result": "PASS"
+        },
+        {
+          "id": "AT25",
+          "result": "PASS"
+        },
+        {
+          "id": "AT30",
+          "result": "PASS"
+        }
+      ],
+      "evidence": [
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Billing/PaymentReconciliationsTest.php",
+          "tests": []
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Billing/CashSessionTest.php",
+          "tests": []
+        },
+        {
+          "kind": "Playwright",
+          "path": "tests/e2e/reconciliation.spec.ts",
+          "tests": []
+        },
+        {
+          "kind": "Document",
+          "path": "docs/evidence/G5.md",
+          "tests": []
+        }
+      ],
+      "gaps": [],
+      "note": null
+    },
+    {
+      "id": "EE031",
+      "title": "Google Calendar bidirectionnel et disponibilité",
+      "matrix_lot": "L2 ; agenda interne L0",
+      "status": "PARTIAL",
+      "integration_mode": "fake",
+      "scenarios": [
+        {
+          "id": "AT32",
+          "result": "PASS"
+        },
+        {
+          "id": "AT33",
+          "result": "PASS"
+        }
+      ],
+      "evidence": [
+        {
+          "kind": "Document",
+          "path": "docs/evidence/G6.md",
+          "tests": []
+        },
+        {
+          "kind": "Document",
+          "path": "docs/evidence/integrations.md",
+          "tests": []
+        }
+      ],
+      "gaps": [
+        {
+          "kind": "simulated",
+          "owner": "cliente",
+          "detail": "Synchronisation Google Agenda prouvée sur un double de test (`EEO_INTEGRATIONS_MODE=fake`). Aucun compte Google réel : la synchronisation bidirectionnelle n'est PAS active. Il faut le compte OAuth du cabinet (Q10 et Q11).",
+          "blocks_delivery": true
+        }
+      ],
+      "note": null
+    },
+    {
+      "id": "EE032",
+      "title": "Anti-no-show J-1 18h et H-2",
+      "matrix_lot": "L2 ; tâches internes L0",
+      "status": "PARTIAL",
+      "integration_mode": "fake",
+      "scenarios": [
+        {
+          "id": "AT23",
+          "result": "PASS"
+        },
+        {
+          "id": "AT34",
+          "result": "PASS"
+        }
+      ],
+      "evidence": [
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Communication/ConsentAndTemplateTest.php",
+          "tests": [
+            "test_reminder_policies_version_conflict_and_outbox_task_materialization_idempotency"
+          ]
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Communication/TransactionalMessagingTest.php",
+          "tests": []
+        }
+      ],
+      "gaps": [
+        {
+          "kind": "simulated",
+          "owner": "cliente",
+          "detail": "Politiques de rappel (veille à 18 h, deux heures avant) et tâches internes réelles ; envoi des rappels simulé : aucun fournisseur de messages réel.",
+          "blocks_delivery": true
+        }
+      ],
+      "note": null
+    },
+    {
+      "id": "EE033",
+      "title": "Contrôles collyres 10–14j et routine 1–2ans",
+      "matrix_lot": "L0 interne/L2 canaux",
+      "status": "DONE_WITH_RESERVES",
+      "integration_mode": "fake",
+      "scenarios": [
+        {
+          "id": "AT22",
+          "result": "PASS"
+        },
+        {
+          "id": "AT23",
+          "result": "PASS"
+        }
+      ],
+      "evidence": [
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Scheduling/FollowUpsTest.php",
+          "tests": []
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Scheduling/ContactTasksTest.php",
+          "tests": []
+        }
+      ],
+      "gaps": [
+        {
+          "kind": "simulated",
+          "owner": "cliente",
+          "detail": "Contrôles recommandés et tâches de contact réels ; canaux d'envoi simulés.",
+          "blocks_delivery": false
+        }
+      ],
+      "note": null
+    },
+    {
+      "id": "EE034",
+      "title": "Liste du jour et suivi contacté/RDV/sans réponse",
+      "matrix_lot": "L0 suivi/L2 segmentation",
+      "status": "DONE_WITH_RESERVES",
+      "integration_mode": "fake",
+      "scenarios": [
+        {
+          "id": "AT23",
+          "result": "PASS"
+        },
+        {
+          "id": "AT34",
+          "result": "PASS"
+        }
+      ],
+      "evidence": [
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Scheduling/ContactTasksTest.php",
+          "tests": []
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Communication/CampaignsTest.php",
+          "tests": []
+        },
+        {
+          "kind": "Playwright",
+          "path": "tests/e2e/agenda.spec.ts",
+          "tests": []
+        }
+      ],
+      "gaps": [
+        {
+          "kind": "simulated",
+          "owner": "cliente",
+          "detail": "Liste du jour, suivi et segments administratifs réels ; envoi des campagnes simulé.",
+          "blocks_delivery": false
+        }
+      ],
+      "note": null
+    },
+    {
+      "id": "EE035",
+      "title": "WhatsApp officiel et promotions ciblées",
+      "matrix_lot": "L2",
+      "status": "PARTIAL",
+      "integration_mode": "fake",
+      "scenarios": [
+        {
+          "id": "AT34",
+          "result": "PASS"
+        }
+      ],
+      "evidence": [
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Communication/CampaignsTest.php",
+          "tests": []
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Communication/TransactionalMessagingTest.php",
+          "tests": []
+        },
+        {
+          "kind": "Document",
+          "path": "docs/evidence/G6.md",
+          "tests": []
+        }
+      ],
+      "gaps": [
+        {
+          "kind": "simulated",
+          "owner": "cliente",
+          "detail": "Consentement, modèles approuvés, segments, approbation exacte et gel de campagne réels ; AUCUN compte WhatsApp Business ni Meta fourni : aucune promotion n'est envoyée.",
+          "blocks_delivery": true
+        }
+      ],
+      "note": null
+    },
+    {
+      "id": "EE036",
+      "title": "Kommo et réception omnicanale",
+      "matrix_lot": "L2",
+      "status": "PARTIAL",
+      "integration_mode": "fake",
+      "scenarios": [
+        {
+          "id": "AT34",
+          "result": "PASS"
+        },
+        {
+          "id": "AT35",
+          "result": "PASS"
+        }
+      ],
+      "evidence": [
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Crm/KommoMirrorTest.php",
+          "tests": []
+        },
+        {
+          "kind": "Document",
+          "path": "docs/evidence/G6.md",
+          "tests": []
+        }
+      ],
+      "gaps": [
+        {
+          "kind": "simulated",
+          "owner": "cliente",
+          "detail": "Prospects et miroir Kommo prouvés sur le double de test ; aucun compte Kommo réel : la réception omnicanale n'est PAS active.",
+          "blocks_delivery": true
+        }
+      ],
+      "note": null
+    },
+    {
+      "id": "EE037",
+      "title": "IA FAQ/qualification/booking et reprise humaine",
+      "matrix_lot": "L2",
+      "status": "PARTIAL",
+      "integration_mode": "fake",
+      "scenarios": [
+        {
+          "id": "AT35",
+          "result": "PASS"
+        }
+      ],
+      "evidence": [
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Crm/AssistantAndHandoffTest.php",
+          "tests": [
+            "test_assistant_reads_published_showroom_catalog_and_hides_unpublished_or_unapproved_prices",
+            "test_assistant_turn_requires_and_enforces_idempotency_across_normal_and_handoff_turns"
+          ]
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Integrations/IntegrationSecurityAndReplayTest.php",
+          "tests": [
+            "test_at34_at35_phone_change_consent_isolation_unknown_reconcile_and_prompt_injection_handoff"
+          ]
+        }
+      ],
+      "gaps": [
+        {
+          "kind": "simulated",
+          "owner": "développement",
+          "detail": "Assistant déterministe borné (lecture des connaissances publiées et du catalogue public `get_public_catalog`, refus clinique, reprise humaine, tour idempotent) : aucun modèle de langage branché, aucun canal réel.",
+          "blocks_delivery": true
+        }
+      ],
+      "note": null
+    },
+    {
+      "id": "EE038",
+      "title": "Réponses IA modifiables et tarifs publics validés",
+      "matrix_lot": "L2",
+      "status": "PARTIAL",
+      "integration_mode": "fake",
+      "scenarios": [
+        {
+          "id": "AT35",
+          "result": "PASS"
+        }
+      ],
+      "evidence": [
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Crm/KnowledgeBaseTest.php",
+          "tests": []
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Crm/AssistantAndHandoffTest.php",
+          "tests": [
+            "test_assistant_reads_published_showroom_catalog_and_hides_unpublished_or_unapproved_prices"
+          ]
+        }
+      ],
+      "gaps": [
+        {
+          "kind": "simulated",
+          "owner": "cliente",
+          "detail": "Fiches de connaissances modifiables, approuvées par la gérante, une seule version publiée, et relecture des tarifs publics validés du showroom via l'outil `get_public_catalog` : réels ; aucun modèle de langage réel branché (mode `fake`).",
+          "blocks_delivery": true
+        }
+      ],
+      "note": null
+    },
+    {
+      "id": "EE039",
+      "title": "Vitrine/showroom, réservation, WhatsApp, contenu",
+      "matrix_lot": "L3",
+      "status": "DONE_WITH_RESERVES",
+      "integration_mode": "real",
+      "scenarios": [
+        {
+          "id": "AT33",
+          "result": "PASS"
+        },
+        {
+          "id": "AT35",
+          "result": "PASS"
+        }
+      ],
+      "evidence": [
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/PublicSite/PublicSiteTest.php",
+          "tests": []
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/PublicSite/PublicBookingShowroomTest.php",
+          "tests": []
+        },
+        {
+          "kind": "Playwright",
+          "path": "tests/e2e/public-booking.spec.ts",
+          "tests": []
+        },
+        {
+          "kind": "Document",
+          "path": "docs/implementation/public-contract.md",
+          "tests": []
+        },
+        {
+          "kind": "Document",
+          "path": "docs/implementation/existing-site.md",
+          "tests": []
+        }
+      ],
+      "gaps": [
+        {
+          "kind": "client",
+          "owner": "cliente",
+          "detail": "Le raccordement au SITE EXISTANT n'a pas été audité (technologie et accès inconnus, Q12) : l'option retenue (liens sortants vers `/showroom` et `/rendez-vous`) n'exige aucun accès ; elle reste à poser par la cliente.",
+          "blocks_delivery": false
+        },
+        {
+          "kind": "decision",
+          "owner": "cliente",
+          "detail": "Les pages publiques de l'application ne sont pas indexées par les moteurs de recherche (noindex et robots.txt) : le référencement reste porté par le site existant ; décision à prendre si la cliente veut l'inverse.",
+          "blocks_delivery": false
+        },
+        {
+          "kind": "not_built",
+          "owner": "développement",
+          "detail": "Le bouton WhatsApp est un LIEN (https://wa.me/<numéro>), pas un widget flottant ; la demande de rendez-vous ne passe pas par WhatsApp.",
+          "blocks_delivery": false
+        }
+      ],
+      "note": null
+    },
+    {
+      "id": "EE040",
+      "title": "Domaine/hébergement/HTTPS/emails/sauvegarde/restauration",
+      "matrix_lot": "L0 socle/L3 emails",
+      "status": "DONE_WITH_RESERVES",
+      "integration_mode": "real",
+      "scenarios": [
+        {
+          "id": "AT27",
+          "result": "PASS"
+        },
+        {
+          "id": "AT44",
+          "result": "PASS"
+        }
+      ],
+      "evidence": [
+        {
+          "kind": "Document",
+          "path": "docs/evidence/domain-checks.md",
+          "tests": []
+        },
+        {
+          "kind": "Document",
+          "path": "docs/evidence/restore-rehearsal.md",
+          "tests": []
+        },
+        {
+          "kind": "Document",
+          "path": "docs/implementation/hosting-audit.md",
+          "tests": []
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Deployment/DomainCheckTest.php",
+          "tests": []
+        },
+        {
+          "kind": "Playwright",
+          "path": "tests/e2e/https-origin.spec.ts",
+          "tests": []
+        }
+      ],
+      "gaps": [
+        {
+          "kind": "client",
+          "owner": "cliente",
+          "detail": "Boîtes `direction@` et `contact@` non configurées (aucun compte fourni) ; délivrabilité non testée (voir `docs/evidence/domain-checks.md`).",
+          "blocks_delivery": false
+        },
+        {
+          "kind": "decision",
+          "owner": "cliente",
+          "detail": "Sauvegardes planifiées et copie hors serveur MISES DE CÔTÉ (décision du 2026-11-10) : une sauvegarde chiffrée est faite à chaque mise en ligne et à la demande.",
+          "blocks_delivery": false
+        },
+        {
+          "kind": "decision",
+          "owner": "cliente",
+          "detail": "En-tête HSTS absent : à poser après confirmation du nom de production.",
+          "blocks_delivery": false
+        }
+      ],
+      "note": null
+    },
+    {
+      "id": "EE041",
+      "title": "Propriété/restauration/export et changement prestataire",
+      "matrix_lot": "L0 export puis complet",
+      "status": "DONE_WITH_RESERVES",
+      "integration_mode": "real",
+      "scenarios": [
+        {
+          "id": "AT26",
+          "result": "PASS"
+        },
+        {
+          "id": "AT27",
+          "result": "PASS"
+        }
+      ],
+      "evidence": [
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Operations/ExportsTest.php",
+          "tests": []
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Operations/RestoreVerifierTest.php",
+          "tests": []
+        },
+        {
+          "kind": "Document",
+          "path": "docs/runbooks/handover.md",
+          "tests": []
+        },
+        {
+          "kind": "Document",
+          "path": "docs/evidence/restore-rehearsal.md",
+          "tests": []
+        }
+      ],
+      "gaps": [
+        {
+          "kind": "people",
+          "owner": "cliente",
+          "detail": "L'exercice de sortie du prestataire n'a pas été rejoué par un responsable désigné par la cliente (`docs/runbooks/handover.md`, section 3).",
+          "blocks_delivery": true
+        },
+        {
+          "kind": "decision",
+          "owner": "cliente et prestataire",
+          "detail": "Propriété du code source non décrite par les sources : accord écrit à obtenir avant la remise du dépôt.",
+          "blocks_delivery": false
+        }
+      ],
+      "note": null
+    },
+    {
+      "id": "EE042",
+      "title": "Hors-ligne avec reprise automatique dès livraison urgente",
+      "matrix_lot": "L0 obligatoire",
+      "status": "DONE_WITH_RESERVES",
+      "integration_mode": "real",
+      "scenarios": [
+        {
+          "id": "AT36",
+          "result": "PASS"
+        },
+        {
+          "id": "AT37",
+          "result": "PASS"
+        },
+        {
+          "id": "AT38",
+          "result": "PASS"
+        },
+        {
+          "id": "AT39",
+          "result": "PASS"
+        },
+        {
+          "id": "AT40",
+          "result": "PASS"
+        },
+        {
+          "id": "AT41",
+          "result": "PASS"
+        },
+        {
+          "id": "AT42",
+          "result": "PASS"
+        },
+        {
+          "id": "AT43",
+          "result": "PASS"
+        },
+        {
+          "id": "AT44",
+          "result": "PASS"
+        },
+        {
+          "id": "AT45",
+          "result": "PASS"
+        }
+      ],
+      "evidence": [
+        {
+          "kind": "Document",
+          "path": "docs/evidence/G1.md",
+          "tests": []
+        },
+        {
+          "kind": "Document",
+          "path": "docs/evidence/G2.md",
+          "tests": []
+        },
+        {
+          "kind": "Playwright",
+          "path": "tests/e2e/offline-sync.spec.ts",
+          "tests": []
+        },
+        {
+          "kind": "Playwright",
+          "path": "tests/e2e/offline-invoice.spec.ts",
+          "tests": []
+        }
+      ],
+      "gaps": [
+        {
+          "kind": "decision",
+          "owner": "cliente",
+          "detail": "Module hors ligne FERMÉ en production : son ouverture est une décision du cabinet après essai sur ses appareils. La consultation et la remise de stock restent EN LIGNE (décision D10).",
+          "blocks_delivery": false
+        },
+        {
+          "kind": "hardware",
+          "owner": "cliente",
+          "detail": "Parcours hors ligne prouvés sur navigateur de test, pas sur les appareils du cabinet.",
+          "blocks_delivery": false
+        }
+      ],
+      "note": null
+    },
+    {
+      "id": "EE043",
+      "title": "Formation vidéo, garantie, coût/jalons/support",
+      "matrix_lot": "L0 prise en main/L3 final",
+      "status": "PARTIAL",
+      "integration_mode": "real",
+      "scenarios": [
+        {
+          "id": "AT29",
+          "result": "BLOCKED"
+        }
+      ],
+      "evidence": [
+        {
+          "kind": "Document",
+          "path": "docs/user-guide/README.md",
+          "tests": []
+        },
+        {
+          "kind": "Document",
+          "path": "docs/runbooks/handover.md",
+          "tests": []
+        },
+        {
+          "kind": "Vitest",
+          "path": "tests/frontend/help/content-guards.test.ts",
+          "tests": []
+        }
+      ],
+      "gaps": [
+        {
+          "kind": "people",
+          "owner": "cliente",
+          "detail": "Formation par profil, formation d'exploitation et vidéo smartphone et ordinateur : SUPPORT livré (aide intégrée, runbooks) ; séances et vidéo NON réalisées, elles exigent la cliente et son équipe.",
+          "blocks_delivery": true
+        },
+        {
+          "kind": "decision",
+          "owner": "cliente",
+          "detail": "Garantie (3 mois après recette finale), jalons commerciaux et support CITÉS sans modification ; délais de support (Q14) et rapprochement des jalons techniques et contractuels (Q15) à confirmer.",
+          "blocks_delivery": false
+        },
+        {
+          "kind": "people",
+          "owner": "cliente",
+          "detail": "AT29 : les retours des opératrices ne sont pas recueillis ; procès-verbal final non signé.",
+          "blocks_delivery": false
+        }
+      ],
+      "note": null
+    },
+    {
+      "id": "EE044",
+      "title": "Ergonomie française responsive, intuitivité et parcours",
+      "matrix_lot": "L0 tous écrans",
+      "status": "DONE_WITH_RESERVES",
+      "integration_mode": "real",
+      "scenarios": [
+        {
+          "id": "AT28",
+          "result": "PASS"
+        },
+        {
+          "id": "AT29",
+          "result": "BLOCKED"
+        }
+      ],
+      "evidence": [
+        {
+          "kind": "Document",
+          "path": "docs/evidence/usability.md",
+          "tests": []
+        },
+        {
+          "kind": "Playwright",
+          "path": "tests/e2e/usability.spec.ts",
+          "tests": []
+        }
+      ],
+      "gaps": [
+        {
+          "kind": "hardware",
+          "owner": "cliente",
+          "detail": "Ergonomie constatée sur navigateur de test à quatre tailles ; appareils du cabinet et retours des opératrices (AT29) à constater.",
+          "blocks_delivery": false
+        }
+      ],
+      "note": null
+    },
+    {
+      "id": "EE045",
+      "title": "Intégrité et cohérence patients/ventes/stock sans ressaisie",
+      "matrix_lot": "L0 tous flux",
+      "status": "DONE",
+      "integration_mode": "real",
+      "scenarios": [
+        {
+          "id": "AT10",
+          "result": "PASS"
+        },
+        {
+          "id": "AT11",
+          "result": "PASS"
+        },
+        {
+          "id": "AT12",
+          "result": "PASS"
+        },
+        {
+          "id": "AT13",
+          "result": "PASS"
+        },
+        {
+          "id": "AT14",
+          "result": "PASS"
+        },
+        {
+          "id": "AT15",
+          "result": "PASS"
+        },
+        {
+          "id": "AT16",
+          "result": "PASS"
+        },
+        {
+          "id": "AT17",
+          "result": "PASS"
+        },
+        {
+          "id": "AT38",
+          "result": "PASS"
+        },
+        {
+          "id": "AT39",
+          "result": "PASS"
+        },
+        {
+          "id": "AT40",
+          "result": "PASS"
+        },
+        {
+          "id": "AT41",
+          "result": "PASS"
+        },
+        {
+          "id": "AT42",
+          "result": "PASS"
+        }
+      ],
+      "evidence": [
+        {
+          "kind": "Document",
+          "path": "docs/evidence/G2.md",
+          "tests": []
+        },
+        {
+          "kind": "Playwright",
+          "path": "tests/e2e/zz-diagnostics-sql.spec.ts",
+          "tests": []
+        }
+      ],
+      "gaps": [],
+      "note": null
+    },
+    {
+      "id": "EE046",
+      "title": "Socle de toute l’application défini maintenant, MCD/MLD/SQL complets",
+      "matrix_lot": "Conception intégrale immédiate ; réalisation selon planning",
+      "status": "DONE",
+      "integration_mode": "real",
+      "scenarios": [],
+      "evidence": [
+        {
+          "kind": "Document",
+          "path": "database/VALIDATION.md",
+          "tests": []
+        },
+        {
+          "kind": "Document",
+          "path": "database/eagle_eye_optics_complet.sql",
+          "tests": []
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Schema/BaselineMigrationsTest.php",
+          "tests": []
+        }
+      ],
+      "gaps": [],
+      "note": "117 tables, MCD, MLD, dictionnaire, SQL complet et migrations équivalentes (étape `schema` de la vérification)."
+    }
+  ],
+  "scenarios_after_l0": [
+    {
+      "id": "AT30",
+      "result": "PASS",
+      "mode": "real",
+      "observed": "Réception de marchandise (brouillon sans effet, validation), inventaire physique (écarts justifiés, mouvements d'ajustement), seuil bas et péremption (alerte unique, résolue ou prise en compte) et coût manquant dit explicitement (valeur inconnue jamais ramenée à zéro) ; historique des mouvements d'un article lisible.",
+      "evidence": [
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Inventory/GoodsReceiptsTest.php",
+          "tests": []
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Inventory/InventoryCountsTest.php",
+          "tests": []
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Inventory/StockAlertsTest.php",
+          "tests": []
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Inventory/StockMovementHistoryTest.php",
+          "tests": []
+        },
+        {
+          "kind": "Playwright",
+          "path": "tests/e2e/stock-purchasing-inventory.spec.ts",
+          "tests": []
+        },
+        {
+          "kind": "Document",
+          "path": "docs/evidence/G5.md",
+          "tests": []
+        }
+      ],
+      "limits": [
+        "L'alerte de stock bas et de péremption n'est pas affichée sur l'accueil (elle l'est sur l'écran des alertes et le pilotage)."
+      ],
+      "lot": "L1",
+      "expected": "Réception/inventaire/écart/seuil/coût manquant : mouvements justifiés, alertes uniques, valeur inconnue explicite"
+    },
+    {
+      "id": "AT31",
+      "result": "PASS",
+      "mode": "real",
+      "observed": "Commande atelier, bon laboratoire PDF anonymisé (sans nom de patient ni prix), réception, montage, contrôle qualité et reprise, prêt, remise liée à la livraison, événements horodatés et prescription versionnée reprise sans dérive.",
+      "evidence": [
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Workshop/WorkshopOrdersTest.php",
+          "tests": []
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Workshop/WorkshopRoutesGateTest.php",
+          "tests": []
+        },
+        {
+          "kind": "Playwright",
+          "path": "tests/e2e/workshop.spec.ts",
+          "tests": []
+        },
+        {
+          "kind": "Document",
+          "path": "docs/evidence/G5.md",
+          "tests": []
+        }
+      ],
+      "limits": [
+        "La notification « montures prêtes » au patient est un événement consommé par la messagerie simulée : aucun message réel n'est envoyé."
+      ],
+      "lot": "L1",
+      "expected": "Atelier commande→reçu→montage→contrôle→prêt→livré : événements/bon labo/prescription versionnée corrects"
+    },
+    {
+      "id": "AT32",
+      "result": "PASS",
+      "mode": "fake",
+      "observed": "Synchronisation avec le double de test de Google Agenda : événements créés, modifiés et supprimés, jeton de synchronisation chiffré, jeton expiré (410) repris par une resynchronisation complète, aucun rendez-vous ni dossier interne effacé.",
+      "evidence": [
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Scheduling/GoogleCalendarAndPublicBookingTest.php",
+          "tests": [
+            "test_google_calendar_sync_pushes_sanitized_events_encrypts_sync_token_pulls_blocks_and_detects_conflicts",
+            "test_outbox_and_webhook_consumers_trigger_incremental_calendar_sync"
+          ]
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Integrations/WebhookInboxAndReconcileTest.php",
+          "tests": []
+        },
+        {
+          "kind": "Document",
+          "path": "docs/evidence/G6.md",
+          "tests": []
+        }
+      ],
+      "limits": [
+        "Joué sur le double de test (mode `fake`) : aucun compte Google réel n'a été fourni (questions Q10 et Q11). La synchronisation réelle n'est pas annoncée active."
+      ],
+      "lot": "L2",
+      "expected": "Google créé/modifié/supprimé/token 410/push expiré : reprise complète externe et aucun dossier interne effacé"
+    },
+    {
+      "id": "AT33",
+      "result": "PASS",
+      "mode": "fake",
+      "observed": "Deux demandes de rendez-vous pour le même créneau (site public et agenda interne) ne passent pas toutes les deux : exclusion interne sous verrou, conflit avec un blocage Google détecté et signalé à la gérante pour décision humaine ; la seconde demande est refusée en clair, sans fausse confirmation.",
+      "evidence": [
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/PublicSite/PublicBookingShowroomTest.php",
+          "tests": [
+            "test_deux_demandes_pour_le_meme_creneau_ne_passent_pas_toutes_les_deux"
+          ]
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Scheduling/GoogleCalendarAndPublicBookingTest.php",
+          "tests": [
+            "test_public_booking_portal_prevents_enumeration_double_book_and_confirms_safely"
+          ]
+        },
+        {
+          "kind": "Playwright",
+          "path": "tests/e2e/public-booking.spec.ts",
+          "tests": []
+        }
+      ],
+      "limits": [
+        "Les canaux omnicanaux (WhatsApp, Kommo) et Google sont des doubles de test : seuls le formulaire du site et l'agenda interne sont réels."
+      ],
+      "lot": "L2",
+      "expected": "Deux demandes omnicanales même créneau et blocage Google simultané : exclusion interne, conflit externe détecté et humain alerté"
+    },
+    {
+      "id": "AT34",
+      "result": "PASS",
+      "mode": "fake",
+      "observed": "Consentement et retrait par destination exacte (journal immuable, numéro masqué), modèles approuvés seulement, fenêtre de service, envoi dédupliqué, tentative en échec reprise sans double envoi, mot « STOP » traité tout de suite, aucune donnée clinique dans les variables.",
+      "evidence": [
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Communication/ConsentAndTemplateTest.php",
+          "tests": []
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Communication/TransactionalMessagingTest.php",
+          "tests": [
+            "test_blocks_unapproved_template_and_missing_or_revoked_consent_and_dedupes_send",
+            "test_failed_provider_attempt_is_recorded_and_can_be_retried"
+          ]
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Communication/CampaignsTest.php",
+          "tests": []
+        },
+        {
+          "kind": "Document",
+          "path": "docs/evidence/G6.md",
+          "tests": []
+        }
+      ],
+      "limits": [
+        "Fournisseur de messages simulé (`fake`) : aucun SMS ni message WhatsApp réel n'est envoyé ; les comptes fournisseurs ne sont pas fournis."
+      ],
+      "lot": "L2",
+      "expected": "Consentement/opt-out/template/fenêtre service/retry inconnu : règles respectées, pas de double envoi aveugle ni donnée clinique exposée"
+    },
+    {
+      "id": "AT35",
+      "result": "PASS",
+      "mode": "fake",
+      "observed": "Assistant borné : demande d'un humain, prix non validé, diagnostic sollicité et injection dans la saisie mènent à un transfert avec résumé, l'assistant est suspendu, aucune écriture financière ni ordonnance ; une demande de rendez-vous du site garde la référence du showroom sans énumérer les patients.",
+      "evidence": [
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Crm/AssistantAndHandoffTest.php",
+          "tests": []
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Crm/KnowledgeBaseTest.php",
+          "tests": []
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Integrations/IntegrationSecurityAndReplayTest.php",
+          "tests": [
+            "test_at34_at35_phone_change_consent_isolation_unknown_reconcile_and_prompt_injection_handoff"
+          ]
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/Crm/AssistantAndHandoffTest.php",
+          "tests": [
+            "test_assistant_reads_published_showroom_catalog_and_hides_unpublished_or_unapproved_prices",
+            "test_assistant_turn_requires_and_enforces_idempotency_across_normal_and_handoff_turns"
+          ]
+        },
+        {
+          "kind": "PHPUnit",
+          "path": "tests/Feature/PublicSite/PublicBookingShowroomTest.php",
+          "tests": [
+            "test_une_demande_venue_d_une_reference_publiee_la_garde_et_ignore_une_reference_inconnue_ou_en_brouillon"
+          ]
+        },
+        {
+          "kind": "Playwright",
+          "path": "tests/e2e/public-booking.spec.ts",
+          "tests": []
+        }
+      ],
+      "limits": [
+        "Moteur d'assistant déterministe (aucun modèle de langage branché) : le comportement borné (y compris `get_public_catalog` et l'idempotence du tour) est prouvé, la qualité des réponses d'un modèle réel ne l'est pas."
+      ],
+      "lot": "L2/L3",
+      "expected": "Assistant demande humain, prix non validé, diagnostic sollicité, booking site : transfert avec résumé, bot suspendu, aucune écriture financière ou ordonnance IA"
+    }
+  ]
+}

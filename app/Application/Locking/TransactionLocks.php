@@ -264,11 +264,25 @@ final class TransactionLocks
         return $this->byId('invoices', $invoiceId);
     }
 
+    public function workshopOrder(string $workshopOrderId): ?stdClass
+    {
+        $this->enter(LockRank::WorkshopOrder, $workshopOrderId);
+
+        return $this->byId('workshop_orders', $workshopOrderId);
+    }
+
     public function cashSession(string $sessionId): ?stdClass
     {
         $this->enter(LockRank::CashSession, $sessionId);
 
         return $this->byId('cash_sessions', $sessionId);
+    }
+
+    public function paymentReconciliation(string $reconciliationId): ?stdClass
+    {
+        $this->enter(LockRank::PaymentReconciliation, $reconciliationId);
+
+        return $this->byId('payment_reconciliations', $reconciliationId);
     }
 
     /**
@@ -298,6 +312,125 @@ final class TransactionLocks
     public function stockQuotas(array $ids): array
     {
         return $this->many(LockRank::StockQuota, 'device_stock_allocations', $ids);
+    }
+
+    public function webhookInbox(string $webhookId): ?stdClass
+    {
+        $this->enter(LockRank::WebhookInbox, $webhookId);
+
+        return $this->byId('webhook_inbox', $webhookId);
+    }
+
+    public function integrationAccount(string $accountId): ?stdClass
+    {
+        $this->enter(LockRank::IntegrationAccount, $accountId);
+
+        return $this->byId('integration_accounts', $accountId);
+    }
+
+    public function calendarSyncState(string $syncStateId): ?stdClass
+    {
+        $this->enter(LockRank::CalendarSyncState, $syncStateId);
+
+        return $this->byId('calendar_sync_states', $syncStateId);
+    }
+
+    public function outboxEvent(string $eventId): ?stdClass
+    {
+        $this->enter(LockRank::OutboxEvent, $eventId);
+
+        return $this->byId('outbox_events', $eventId);
+    }
+
+    public function knowledgeEntry(string $entryId): ?stdClass
+    {
+        $this->enter(LockRank::KnowledgeEntry, $entryId);
+
+        return $this->byId('knowledge_entries', $entryId);
+    }
+
+    public function crmLead(string $leadId): ?stdClass
+    {
+        $this->enter(LockRank::CrmLead, $leadId);
+
+        return $this->byId('crm_leads', $leadId);
+    }
+
+    public function crmConversation(string $conversationId): ?stdClass
+    {
+        $this->enter(LockRank::CrmConversation, $conversationId);
+
+        return $this->byId('crm_conversations', $conversationId);
+    }
+
+    public function publicBookingRequest(string $bookingId): ?stdClass
+    {
+        $this->enter(LockRank::PublicBookingRequest, $bookingId);
+
+        return $this->byId('public_booking_requests', $bookingId);
+    }
+
+    public function prospectContact(string $prospectId): ?stdClass
+    {
+        $this->enter(LockRank::ProspectContact, $prospectId);
+
+        return $this->byId('prospect_contacts', $prospectId);
+    }
+
+    public function reminderPolicy(string $policyId): ?stdClass
+    {
+        $this->enter(LockRank::ReminderPolicy, $policyId);
+
+        return $this->byId('reminder_policies', $policyId);
+    }
+
+    public function communicationConsent(string $consentId): ?stdClass
+    {
+        $this->enter(LockRank::CommunicationConsent, $consentId);
+
+        return $this->byId('communication_consents', $consentId);
+    }
+
+    public function campaignDefinition(string $campaignId): ?stdClass
+    {
+        $this->enter(LockRank::Campaign, $campaignId);
+
+        return $this->byId('campaign_definitions', $campaignId);
+    }
+
+    public function campaignRecipient(string $recipientId): ?stdClass
+    {
+        $this->enter(LockRank::CampaignRecipient, $recipientId);
+
+        return $this->byId('campaign_recipients', $recipientId);
+    }
+
+    public function messageTemplate(string $templateId): ?stdClass
+    {
+        $this->enter(LockRank::MessageTemplate, $templateId);
+
+        return $this->byId('message_templates', $templateId);
+    }
+
+    public function messageAttempt(string $attemptId): ?stdClass
+    {
+        $this->enter(LockRank::MessageAttempt, $attemptId);
+
+        return $this->byId('message_attempts', $attemptId);
+    }
+
+    public function catalogPublication(string $publicationId): ?stdClass
+    {
+        $this->enter(LockRank::CatalogPublication, $publicationId);
+
+        return $this->byId('catalog_publications', $publicationId);
+    }
+
+    public function publicContent(string $contentId): ?stdClass
+    {
+        $this->enter(LockRank::PublicContent, $contentId);
+
+        return $this->byId('public_contents', $contentId);
     }
 
     public function approval(string $approvalId): ?stdClass

@@ -60,6 +60,8 @@ describe('routes et navigation des ventes', () => {
       'caisse-du-jour': ['sales', ['finance.global.read', 'cash.own_session']],
       // Finance du cabinet sur une période (R01) : la gérante seule.
       finance: ['sales', ['finance.global.read']],
+      // Rapprochements par canal (L1D06) : la gérante seule.
+      rapprochement: ['sales', ['finance.reconcile']],
       factures: ['sales', ['invoice.read']],
       'facture-nouvelle': ['sales', ['invoice.create', 'exam_fee.collect']],
       facture: ['sales', ['invoice.read']],

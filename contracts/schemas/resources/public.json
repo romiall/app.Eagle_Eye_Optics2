@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://eeo.invalid/contracts/schemas/resources/public.json",
-  "title": "Ressources : réservation publique (L2)",
-  "description": "Prestations réservables et créneaux administratifs, sans dossier ni nom de patient (fichier 08). Généré par contracts/tools/build_resources.py : ne pas modifier à la main.",
+  "title": "Ressources : site public (L2, L3)",
+  "description": "Prestations réservables, créneaux administratifs, showroom et contenus publics, sans dossier ni nom de patient (fichier 08). Généré par contracts/tools/build_resources.py : ne pas modifier à la main.",
   "$defs": {
     "PublicService": {
       "type": "object",
@@ -89,20 +89,28 @@
       "additionalProperties": false,
       "required": [
         "public_reference",
-        "status"
+        "status",
+        "service_id",
+        "requested_starts_at",
+        "requested_ends_at"
       ],
       "properties": {
         "public_reference": {
           "type": "string",
           "minLength": 1,
-          "maxLength": 32
+          "maxLength": 100
         },
         "status": {
-          "type": "string",
-          "enum": [
-            "RECEIVED",
-            "PENDING_CONFIRMATION"
-          ]
+          "$ref": "../../schemas/enums.json#/$defs/public_booking_requests.status"
+        },
+        "service_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "requested_starts_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        },
+        "requested_ends_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
         }
       }
     },
@@ -115,6 +123,510 @@
       "properties": {
         "data": {
           "$ref": "#/$defs/BookingReceipt"
+        }
+      }
+    },
+    "PublicationMedia": {
+      "description": "Image approuvée d'une fiche : texte alternatif et note de droits obligatoires.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "alt_text",
+        "rights_note",
+        "display_order",
+        "approved_at"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "alt_text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "rights_note": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        },
+        "display_order": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9999
+        },
+        "approved_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        }
+      }
+    },
+    "Publication": {
+      "description": "Fiche du showroom côté gérante. Seule une fiche PUBLIÉE dont l'article est actif et visible sort sur le site.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "catalog_item_id",
+        "item_name",
+        "item_reference",
+        "item_eligible",
+        "slug",
+        "public_title",
+        "public_description",
+        "style",
+        "show_sale_price",
+        "sale_price",
+        "status",
+        "display_order",
+        "published_at",
+        "version",
+        "media"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "catalog_item_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "item_name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        },
+        "item_reference": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "item_eligible": {
+          "type": "boolean"
+        },
+        "slug": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        },
+        "public_title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        },
+        "public_description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "style": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 100
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "show_sale_price": {
+          "type": "boolean"
+        },
+        "sale_price": {
+          "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+        },
+        "status": {
+          "$ref": "../../schemas/enums.json#/$defs/catalog_publications.status"
+        },
+        "display_order": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9999
+        },
+        "published_at": {
+          "$ref": "../../schemas/common.json#/$defs/NullableInstant"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "media": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/PublicationMedia"
+          }
+        }
+      }
+    },
+    "PublicationPage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data",
+        "meta"
+      ],
+      "properties": {
+        "data": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/Publication"
+          }
+        },
+        "meta": {
+          "$ref": "../../schemas/common.json#/$defs/Pagination"
+        }
+      }
+    },
+    "PublicationResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/Publication"
+        }
+      }
+    },
+    "PublicContentRevision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "code",
+        "title",
+        "content",
+        "revision_no",
+        "status",
+        "published_at",
+        "version"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "code": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        },
+        "content": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        },
+        "revision_no": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "status": {
+          "$ref": "../../schemas/enums.json#/$defs/public_contents.status"
+        },
+        "published_at": {
+          "$ref": "../../schemas/common.json#/$defs/NullableInstant"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "PublicContentEntry": {
+      "description": "Un code de contenu : la révision publiée et le brouillon en cours.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "label",
+        "published",
+        "draft"
+      ],
+      "properties": {
+        "code": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        },
+        "published": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PublicContentRevision"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "draft": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PublicContentRevision"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "PublicContentList": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/PublicContentEntry"
+          }
+        }
+      }
+    },
+    "PublicContentResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/PublicContentRevision"
+        }
+      }
+    },
+    "ShowroomMedia": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "url",
+        "alt"
+      ],
+      "properties": {
+        "url": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "alt": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        }
+      }
+    },
+    "ShowroomItem": {
+      "description": "Référence publiée : jamais de coût d'achat, de stock, de référence interne ni de donnée de patient. Le prix n'est rendu que si la gérante le montre.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "slug",
+        "title",
+        "description",
+        "style",
+        "brand",
+        "price",
+        "currency",
+        "media"
+      ],
+      "properties": {
+        "slug": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "style": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 100
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "brand": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 120
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "price": {
+          "anyOf": [
+            {
+              "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "currency": {
+          "type": "string",
+          "enum": [
+            "XAF"
+          ]
+        },
+        "media": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/ShowroomMedia"
+          }
+        }
+      }
+    },
+    "ShowroomFacets": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "styles",
+        "brands"
+      ],
+      "properties": {
+        "styles": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          }
+        },
+        "brands": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          }
+        }
+      }
+    },
+    "ShowroomPage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data",
+        "meta",
+        "facets"
+      ],
+      "properties": {
+        "data": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/ShowroomItem"
+          }
+        },
+        "meta": {
+          "$ref": "../../schemas/common.json#/$defs/Pagination"
+        },
+        "facets": {
+          "$ref": "#/$defs/ShowroomFacets"
+        }
+      }
+    },
+    "ShowroomItemResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/ShowroomItem"
+        }
+      }
+    },
+    "PublicContent": {
+      "description": "Contenu publié par la gérante ; pour WHATSAPP, le lien https://wa.me/<numéro>.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "title",
+        "content",
+        "whatsapp_url"
+      ],
+      "properties": {
+        "code": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        },
+        "content": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        },
+        "whatsapp_url": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 100
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "PublicContentPublicList": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/PublicContent"
+          }
         }
       }
     }

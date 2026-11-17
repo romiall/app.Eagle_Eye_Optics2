@@ -18,9 +18,11 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * Création (version attendue null) ou modification (version attendue, 409 sinon) d'une prestation réservable de
- * l'agenda (S01) : nom, durée en minutes (saisie par le cabinet, jamais inventée), active ou non. Une prestation
- * désactivée n'est plus proposée ; ses rendez-vous existants restent. Aucun prix ici (le catalogue des ventes porte les
- * prix). Gérante seulement (`users.manage`), en ligne seulement.
+ * l'agenda (S01) : nom, durée en minutes (saisie par le cabinet, jamais inventée), active ou non, et ouverte ou non à
+ * la réservation en ligne (`public_booking`, L3D03 : fermée par défaut, c'est la gérante qui décide quelles prestations
+ * le public voit ; champ absent à la modification = inchangé). Une prestation désactivée n'est plus proposée, ni au public
+ * ni à l'agenda ; ses rendez-vous existants restent. Aucun prix ici (le catalogue des ventes porte les prix). Gérante
+ * seulement (`users.manage`), en ligne seulement.
  */
 final class SaveAppointmentServiceHandler implements CommandHandler
 {
@@ -45,6 +47,8 @@ final class SaveAppointmentServiceHandler implements CommandHandler
         }
         $duration = (int) $payload['duration_minutes'];
         $active = (bool) $payload['active'];
+        // Absent : fermée à la création, inchangée à la modification (un ancien client ne la rouvre ni ne la ferme).
+        $publicBooking = array_key_exists('public_booking', $payload) ? (bool) $payload['public_booking'] : null;
         $stamp = SchedulingInput::stamp($context->now->utc());
 
         if ($command->expectedVersion === null) {
@@ -59,7 +63,7 @@ final class SaveAppointmentServiceHandler implements CommandHandler
                 'duration_minutes' => $duration,
                 'catalog_item_id' => null,
                 'active' => $active,
-                'public_booking' => false,
+                'public_booking' => $publicBooking ?? false,
                 'version' => 1,
                 'created_at' => $stamp,
                 'updated_at' => $stamp,
@@ -69,7 +73,7 @@ final class SaveAppointmentServiceHandler implements CommandHandler
                 result: ['service_id' => $serviceId, 'version' => 1],
                 resultType: 'appointment_services',
                 resultId: $serviceId,
-                audit: [new AuditEntry('agenda.service_created', 'appointment_services', $serviceId, null, ['duration_minutes' => $duration])],
+                audit: [new AuditEntry('agenda.service_created', 'appointment_services', $serviceId, null, ['duration_minutes' => $duration, 'public_booking' => $publicBooking ?? false])],
                 changes: [new ChangeRecord('appointment_services', $serviceId, 1, ChangeVisibility::Administrative, ChangeKind::Created)],
             );
         }
@@ -83,10 +87,12 @@ final class SaveAppointmentServiceHandler implements CommandHandler
         }
         SchedulingInput::throwIfAny($errors);
         $version = (int) $service->version + 1;
+        $nextPublicBooking = $publicBooking ?? (bool) $service->public_booking;
         DB::table('appointment_services')->where('clinic_id', $context->clinicId)->where('id', $serviceId)->update([
             'name' => $name,
             'duration_minutes' => $duration,
             'active' => $active,
+            'public_booking' => $nextPublicBooking,
             'version' => $version,
             'updated_at' => $stamp,
         ]);
@@ -96,8 +102,8 @@ final class SaveAppointmentServiceHandler implements CommandHandler
             resultType: 'appointment_services',
             resultId: $serviceId,
             audit: [new AuditEntry('agenda.service_updated', 'appointment_services', $serviceId, null, [
-                'before' => ['duration_minutes' => (int) $service->duration_minutes, 'active' => (bool) $service->active],
-                'after' => ['duration_minutes' => $duration, 'active' => $active],
+                'before' => ['duration_minutes' => (int) $service->duration_minutes, 'active' => (bool) $service->active, 'public_booking' => (bool) $service->public_booking],
+                'after' => ['duration_minutes' => $duration, 'active' => $active, 'public_booking' => $nextPublicBooking],
                 'version' => $version,
             ])],
             changes: [new ChangeRecord('appointment_services', $serviceId, $version, ChangeVisibility::Administrative, ChangeKind::Updated)],

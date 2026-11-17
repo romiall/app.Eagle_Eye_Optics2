@@ -2,12 +2,36 @@
 
 namespace App\Providers;
 
+use App\Application\TransactionRunner;
 use App\Domain\Access\EffectivePermissions;
+use App\Domain\Communication\CommunicationOutboxConsumer;
+use App\Domain\Communication\MessagingWebhookConsumer;
+use App\Domain\Crm\CrmOutboxConsumer;
+use App\Domain\Crm\CrmWebhookConsumer;
+use App\Domain\Operations\IntegrationAccounts;
+use App\Domain\Operations\IntegrationReconciler;
+use App\Domain\Operations\OutboxProcessor;
+use App\Domain\Operations\WebhookInboxService;
+use App\Domain\Scheduling\CalendarOutboxConsumer;
+use App\Domain\Scheduling\CalendarWebhookConsumer;
 use App\Models\User;
+use App\Support\Domain\DomainProbe;
+use App\Support\Domain\NetworkDomainProbe;
+use App\Support\Integrations\Assistant\AssistantEngineInterface;
+use App\Support\Integrations\Assistant\DeterministicAssistantEngine;
+use App\Support\Integrations\Contracts\OutboxConsumerInterface;
+use App\Support\Integrations\Contracts\WebhookConsumerInterface;
+use App\Support\Integrations\GoogleCalendar\FakeGoogleCalendarClient;
+use App\Support\Integrations\IntegrationCrypto;
+use App\Support\Integrations\IntegrationMode;
+use App\Support\Integrations\Kommo\FakeKommoClient;
+use App\Support\Integrations\Messaging\FakeMessagingClient;
+use App\Support\Integrations\WebhookSignatureVerifier;
 use App\Support\Testing\BlockDestructiveDatabaseCommands;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Console\Events\CommandStarting;
 use Illuminate\Contracts\Console\Kernel as ConsoleKernel;
+use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Foundation\Console\Kernel as FoundationConsoleKernel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Event;
@@ -26,6 +50,57 @@ class AppServiceProvider extends ServiceProvider
     {
         // Permissions effectives relues en base une fois par requête (désactivation/révocation immédiates).
         $this->app->scoped(EffectivePermissions::class);
+
+        // Doublons en mémoire partagés sur la durée de vie de l'application en mode `fake`.
+        $this->app->singleton(FakeGoogleCalendarClient::class);
+        $this->app->singleton(FakeKommoClient::class);
+        $this->app->singleton(FakeMessagingClient::class);
+
+        // Contrôle du domaine (eeo:domain:check, L3D04) : sondes réseau réelles, remplacées par des doublons dans les tests.
+        $this->app->bindIf(DomainProbe::class, NetworkDomainProbe::class);
+
+        // Moteur d'assistant IA borné par défaut (déterministe, remplaçable via le conteneur).
+        $this->app->bindIf(AssistantEngineInterface::class, DeterministicAssistantEngine::class);
+
+        // Consommateurs outbox et webhooks agrégés dans les processeurs centraux (L2D01 / L2D09).
+        $this->app->tag([
+            CalendarOutboxConsumer::class,
+            CrmOutboxConsumer::class,
+            CommunicationOutboxConsumer::class,
+        ], OutboxConsumerInterface::class);
+
+        $this->app->singleton(OutboxProcessor::class, static function (Application $app): OutboxProcessor {
+            /** @var iterable<OutboxConsumerInterface> $consumers */
+            $consumers = $app->tagged(OutboxConsumerInterface::class);
+
+            return new OutboxProcessor(
+                $app->make(TransactionRunner::class),
+                $app->make(IntegrationMode::class),
+                $consumers,
+            );
+        });
+
+        $this->app->tag([
+            CalendarWebhookConsumer::class,
+            CrmWebhookConsumer::class,
+            MessagingWebhookConsumer::class,
+        ], WebhookConsumerInterface::class);
+
+        $this->app->singleton(WebhookInboxService::class, static function (Application $app): WebhookInboxService {
+            /** @var iterable<WebhookConsumerInterface> $consumers */
+            $consumers = $app->tagged(WebhookConsumerInterface::class);
+
+            return new WebhookInboxService(
+                $app->make(TransactionRunner::class),
+                $app->make(IntegrationCrypto::class),
+                $app->make(IntegrationMode::class),
+                $app->make(WebhookSignatureVerifier::class),
+                $app->make(IntegrationAccounts::class),
+                $consumers,
+            );
+        });
+
+        $this->app->singleton(IntegrationReconciler::class);
     }
 
     /**
@@ -60,6 +135,10 @@ class AppServiceProvider extends ServiceProvider
         // Lectures d'un dossier clinique : un compte ne parcourt pas tous les dossiers à la chaîne (valeur configurable).
         RateLimiter::for('eeo-consultation-read', static fn (Request $request): Limit => Limit::perMinute((int) config('eeo.rate_limits.consultation_read', 60))->by('consultation-read:'.($request->user()?->getAuthIdentifier() ?? $request->ip())));
         RateLimiter::for('eeo-reauthenticate', static fn (Request $request): Limit => Limit::perMinute((int) config('eeo.rate_limits.reauthenticate', 5))->by('reauth:'.($request->user()?->getAuthIdentifier() ?? $request->ip())));
+        RateLimiter::for('eeo-public-booking', static fn (Request $request): Limit => Limit::perMinute((int) config('eeo.rate_limits.public_booking', 20))->by('public-booking:'.$request->ip()));
+        RateLimiter::for('eeo-public-webhook', static fn (Request $request): Limit => Limit::perMinute((int) config('eeo.rate_limits.public_webhook', 120))->by('public-webhook:'.$request->ip()));
+        // Lectures publiques du showroom (L3D02) : sans compte, donc limitées par adresse.
+        RateLimiter::for('eeo-public-read', static fn (Request $request): Limit => Limit::perMinute((int) config('eeo.rate_limits.public_read', 120))->by('public-read:'.$request->ip()));
     }
 
     /**

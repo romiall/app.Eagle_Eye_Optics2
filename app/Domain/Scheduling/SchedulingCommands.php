@@ -9,10 +9,12 @@ use App\Domain\Scheduling\Handlers\CancelAppointmentHandler;
 use App\Domain\Scheduling\Handlers\CancelFollowUpHandler;
 use App\Domain\Scheduling\Handlers\CreateAppointmentHandler;
 use App\Domain\Scheduling\Handlers\CreateFollowUpHandler;
+use App\Domain\Scheduling\Handlers\DecidePublicBookingHandler;
 use App\Domain\Scheduling\Handlers\MarkAppointmentNoShowHandler;
 use App\Domain\Scheduling\Handlers\ReplaceOpeningHoursHandler;
 use App\Domain\Scheduling\Handlers\RescheduleAppointmentHandler;
 use App\Domain\Scheduling\Handlers\SaveAppointmentServiceHandler;
+use App\Domain\Scheduling\Handlers\SaveCalendarSyncStateHandler;
 use App\Domain\Scheduling\Handlers\SaveSchedulingResourceHandler;
 use App\Domain\Shared\CommandSource;
 
@@ -59,6 +61,10 @@ final class SchedulingCommands
                 null, true, $http.'ResourceExceptionRequest'),
             new CommandDefinition(SaveAppointmentServiceHandler::COMMAND, SaveAppointmentServiceHandler::class, $direct,
                 null, true, $http.'AppointmentServiceRequest'),
+            // Google Agenda et réservations publiques (L2D02) : en ligne seulement ; le corps est validé par le service.
+            new CommandDefinition(SaveCalendarSyncStateHandler::COMMAND, SaveCalendarSyncStateHandler::class, $direct, null, true),
+            new CommandDefinition(DecidePublicBookingHandler::CONFIRM, DecidePublicBookingHandler::class, $direct, null, true),
+            new CommandDefinition(DecidePublicBookingHandler::REJECT, DecidePublicBookingHandler::class, $direct, null, true),
         ];
     }
 }

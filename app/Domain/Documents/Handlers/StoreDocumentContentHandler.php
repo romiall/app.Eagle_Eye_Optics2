@@ -33,7 +33,7 @@ final class StoreDocumentContentHandler implements CommandHandler
 
     public function permissions(): array
     {
-        return ['invoice.issue', 'payment.collect', 'clinical.complete'];
+        return ['invoice.issue', 'payment.collect', 'clinical.complete', 'workshop.manage'];
     }
 
     public function handle(Command $command, CommandContext $context, TransactionLocks $locks, ?string $idempotencyId): CommandOutcome

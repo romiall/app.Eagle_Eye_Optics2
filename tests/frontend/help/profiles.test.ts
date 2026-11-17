@@ -183,18 +183,13 @@ function routeModules(): string[] {
 }
 
 /**
- * ÉCART CONSTATÉ le 2026-10-29 entre `Modules::CODES` (11 codes) et `KNOWN_MODULES` (9 codes) :
- * `workshop` (atelier, livré par L1D04) et `communication` (livré par L2D06) existent côté serveur
- * pour que l'exploitant puisse un jour les ouvrir (`EEO_ENABLED_MODULES`), mais aucune route, aucun
- * écran et donc aucune fiche d'aide n'en dépend encore : ce sont les lots suivants (navigation.ts :
- * `delivered: false`). L'aide ne connaît que les modules qui portent au moins un écran, car
- * `KNOWN_MODULES` sert à « inclure les modules fermés » dans la lecture de la documentation.
- *
- * Ce n'est donc pas un oubli. Mais le jour où l'un d'eux reçoit sa première route, ce fichier échoue
- * (voir le test sur les routes) : ajouter alors son code à `KNOWN_MODULES`, écrire les fiches de ses
- * écrans, et retirer son code de cette liste.
+ * ÉCART CONSTATÉ entre `Modules::CODES` et `KNOWN_MODULES` :
+ * `communication` (livré par L2D06) existe côté serveur pour que l'exploitant puisse un jour
+ * l'ouvrir (`EEO_ENABLED_MODULES`), mais aucune route, aucun écran et donc aucune fiche d'aide
+ * n'en dépend encore (navigation.ts : `delivered: false`). `workshop` (atelier, L1D04) est livré
+ * avec ses routes et sa documentation.
  */
-const MODULES_WITHOUT_SCREEN = ['workshop', 'communication']
+const MODULES_WITHOUT_SCREEN: readonly string[] = []
 
 describe('KNOWN_MODULES et app/Support/Modules.php', () => {
   it('lit la liste du serveur en entier, commentaires de ligne exclus', () => {
@@ -212,7 +207,7 @@ describe('KNOWN_MODULES et app/Support/Modules.php', () => {
     expect(serverModules().every((code) => /^[a-z]+$/.test(code))).toBe(true)
   })
 
-  it('égale la liste du serveur moins workshop et communication, dans l’ordre de la navigation', () => {
+  it('égale la liste du serveur moins communication, dans l’ordre de la navigation', () => {
     expect(KNOWN_MODULES).toEqual(
       serverModules().filter((code) => !MODULES_WITHOUT_SCREEN.includes(code)),
     )

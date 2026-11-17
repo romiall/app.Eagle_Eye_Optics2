@@ -22,6 +22,8 @@ final class DocumentPolicy
 
     private const CLINICAL = ['OPTICAL_PRESCRIPTION', 'CLINICAL_RECORD'];
 
+    private const WORKSHOP = ['WORKSHOP'];
+
     public static function isFinancial(string $type): bool
     {
         return in_array($type, self::FINANCIAL, true);
@@ -32,6 +34,11 @@ final class DocumentPolicy
         return in_array($type, self::CLINICAL, true);
     }
 
+    public static function isWorkshop(string $type): bool
+    {
+        return in_array($type, self::WORKSHOP, true);
+    }
+
     public static function mayStore(?User $user, string $type): bool
     {
         if ($user === null) {
@@ -39,6 +46,9 @@ final class DocumentPolicy
         }
         if (self::isFinancial($type)) {
             return $user->can('invoice.issue') || $user->can('payment.collect');
+        }
+        if (self::isWorkshop($type)) {
+            return $user->can('workshop.manage');
         }
 
         return self::isClinical($type) && $user->can('clinical.complete');
@@ -52,6 +62,9 @@ final class DocumentPolicy
         if (self::isFinancial($type)) {
             return $user->can('invoice.read');
         }
+        if (self::isWorkshop($type)) {
+            return $user->can('workshop.manage');
+        }
 
         return self::isClinical($type) && $user->can('clinical.export');
     }
@@ -59,11 +72,19 @@ final class DocumentPolicy
     /** Classement du fichier privé (`stored_files.classification`). */
     public static function classification(string $type): string
     {
-        return self::isClinical($type) ? 'MEDICAL' : 'FINANCIAL';
+        return match (true) {
+            self::isClinical($type) => 'MEDICAL',
+            self::isWorkshop($type) => 'INTERNAL',
+            default => 'FINANCIAL',
+        };
     }
 
     public static function visibility(string $type): ChangeVisibility
     {
-        return self::isClinical($type) ? ChangeVisibility::Clinical : ChangeVisibility::Financial;
+        return match (true) {
+            self::isClinical($type) => ChangeVisibility::Clinical,
+            self::isWorkshop($type) => ChangeVisibility::Manager,
+            default => ChangeVisibility::Financial,
+        };
     }
 }

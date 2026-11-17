@@ -86,6 +86,12 @@ export async function startTlsProxy(options: TlsProxyOptions): Promise<TlsProxy>
       if (!outgoing.headersSent) outgoing.writeHead(502)
       outgoing.end()
     })
+    incoming.on('error', () => {
+      forwarded.destroy()
+    })
+    outgoing.on('error', () => {
+      forwarded.destroy()
+    })
     incoming.pipe(forwarded)
   })
 

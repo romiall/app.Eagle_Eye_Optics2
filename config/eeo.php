@@ -44,6 +44,10 @@ return [
         // parcours e2e (EEO_RATE_REAUTHENTICATE) : préparer un poste en demande quatre ou cinq à la suite, et deux parcours
         // enchaînés partagent la même minute.
         'reauthenticate' => (int) env('EEO_RATE_REAUTHENTICATE', 5),
+        'public_booking' => (int) env('EEO_RATE_PUBLIC_BOOKING', 20),
+        'public_webhook' => (int) env('EEO_RATE_PUBLIC_WEBHOOK', 120),
+        // Lectures publiques du showroom et des contenus (L3D02) : par adresse, sans compte.
+        'public_read' => (int) env('EEO_RATE_PUBLIC_READ', 120),
     ],
 
     /*
@@ -222,6 +226,8 @@ return [
             // Devis (L1D07) : série distincte, ni facture ni reçu ; préfixe réel à choisir avec la gérante (Q03).
             'QUOTE' => env('EEO_NUMBER_PREFIX_QUOTE', 'TEST-DEV'),
         ],
+        // Bons laboratoire de l'atelier (L1D04) : hors séries financières (BillingNumbers).
+        'workshop_prefix' => env('EEO_NUMBER_PREFIX_WORKSHOP', 'TEST-ATL'),
     ],
 
     /*
@@ -236,6 +242,55 @@ return [
 
     'integrations' => [
         'mode' => env('EEO_INTEGRATIONS_MODE', 'fake'),
+        'credentials_key' => env('EEO_INTEGRATIONS_KEY', ''),
+        'destination_hash_salt' => env('EEO_DESTINATION_HASH_SALT', ''),
+        'default_clinic_id' => env('EEO_PUBLIC_CLINIC_ID', ''),
+        'webhook_max_bytes' => (int) env('EEO_WEBHOOK_MAX_BYTES', 262144),
+        'outbox_max_attempts' => (int) env('EEO_OUTBOX_MAX_ATTEMPTS', 5),
+        'timeout_seconds' => (int) env('EEO_INTEGRATIONS_TIMEOUT_SECONDS', 10),
+        'google' => [
+            'client_id' => env('EEO_GOOGLE_CLIENT_ID', ''),
+            'client_secret' => env('EEO_GOOGLE_CLIENT_SECRET', ''),
+            'webhook_token' => env('EEO_GOOGLE_WEBHOOK_TOKEN', ''),
+        ],
+        'kommo' => [
+            'client_id' => env('EEO_KOMMO_CLIENT_ID', ''),
+            'client_secret' => env('EEO_KOMMO_CLIENT_SECRET', ''),
+            'webhook_secret' => env('EEO_KOMMO_WEBHOOK_SECRET', ''),
+            'subdomain' => env('EEO_KOMMO_SUBDOMAIN', ''),
+        ],
+        'meta' => [
+            'app_secret' => env('EEO_META_APP_SECRET', ''),
+            'verify_token' => env('EEO_META_VERIFY_TOKEN', ''),
+            'phone_number_id' => env('EEO_META_PHONE_NUMBER_ID', ''),
+        ],
+        'sms' => [
+            'provider' => env('EEO_SMS_PROVIDER', ''),
+            'api_key' => env('EEO_SMS_API_KEY', ''),
+            'sender_id' => env('EEO_SMS_SENDER_ID', ''),
+        ],
+        'assistant' => [
+            'enabled' => filter_var(env('EEO_ASSISTANT_ENABLED', true), FILTER_VALIDATE_BOOL),
+            'max_tools_per_run' => (int) env('EEO_ASSISTANT_MAX_TOOLS', 5),
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Site public (L3)
+    |--------------------------------------------------------------------------
+    |
+    | Showroom, contenus publics et réservation en ligne, lus SANS compte par `/public/v1/*` : seules les références
+    | publiées et les contenus approuvés par la gérante sortent de l'application. `allowed_origins` : sites tiers
+    | autorisés à appeler cette API depuis un navigateur (vide par défaut : aucune origine tierce).
+    |
+    */
+
+    'public_site' => [
+        'allowed_origins' => array_values(array_filter(array_map('trim', explode(',', (string) env('EEO_PUBLIC_ALLOWED_ORIGINS', ''))))),
+        'max_media_bytes' => (int) env('EEO_PUBLIC_MEDIA_MAX_BYTES', 3145728),
+        'max_media_per_publication' => (int) env('EEO_PUBLIC_MEDIA_PER_PUBLICATION', 8),
+        'cache_seconds' => (int) env('EEO_PUBLIC_CACHE_SECONDS', 300),
     ],
 
 ];

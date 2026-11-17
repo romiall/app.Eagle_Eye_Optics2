@@ -25,7 +25,16 @@ enum LockRank: int
     case Account = 15;
     case Device = 20;
     case Idempotency = 30;
+    case WebhookInbox = 35;
+    case IntegrationAccount = 36;
+    case CalendarSyncState = 37;
+    case OutboxEvent = 38;
+    case KnowledgeEntry = 39;
     case Sequence = 40;
+    case CrmLead = 41;
+    case CrmConversation = 42;
+    case PublicBookingRequest = 43;
+    case ProspectContact = 44;
     case Patient = 45;
     case Visit = 46;
     case Consultation = 47;
@@ -35,13 +44,23 @@ enum LockRank: int
     case ContactTask = 51;
     case SchedulingResource = 52;
     case AppointmentService = 53;
+    case ReminderPolicy = 54;
     // Devis (L1D07) : après le dossier patient qu'il vise, avant la facture que sa conversion crée.
     case Quote = 55;
     case Invoice = 60;
+    case CommunicationConsent = 61;
+    case Campaign = 62;
+    case CampaignRecipient = 63;
+    case MessageTemplate = 64;
+    case WorkshopOrder = 65;
+    case MessageAttempt = 67;
     case CashSession = 70;
+    case PaymentReconciliation = 75;
     case StockPosition = 80;
     case StockLot = 81;
     case StockQuota = 82;
+    case CatalogPublication = 85;
+    case PublicContent = 86;
     case Approval = 90;
 
     public function label(): string
@@ -51,7 +70,16 @@ enum LockRank: int
             self::Account => 'compte',
             self::Device => 'appareil',
             self::Idempotency => 'idempotence',
+            self::WebhookInbox => 'boîte de réception webhook',
+            self::IntegrationAccount => 'compte d’intégration',
+            self::CalendarSyncState => 'état de synchronisation agenda',
+            self::OutboxEvent => 'événement d’outbox',
+            self::KnowledgeEntry => 'fiche de connaissances',
             self::Sequence => 'séquence de numéros',
+            self::CrmLead => 'piste CRM',
+            self::CrmConversation => 'conversation CRM',
+            self::PublicBookingRequest => 'demande de rendez-vous publique',
+            self::ProspectContact => 'contact prospect',
             self::Patient => 'dossier patient',
             self::Visit => 'visite',
             self::Consultation => 'consultation',
@@ -61,12 +89,22 @@ enum LockRank: int
             self::ContactTask => 'tâche de contact',
             self::SchedulingResource => "ressource de l'agenda",
             self::AppointmentService => "prestation de l'agenda",
+            self::ReminderPolicy => 'politique de rappel',
             self::Quote => 'devis',
             self::Invoice => 'facture',
+            self::CommunicationConsent => 'consentement de communication',
+            self::Campaign => 'campagne de diffusion',
+            self::CampaignRecipient => 'destinataire de campagne',
+            self::MessageTemplate => 'modèle de message',
+            self::WorkshopOrder => 'commande atelier',
+            self::MessageAttempt => 'tentative d’envoi',
             self::CashSession => 'session de caisse',
+            self::PaymentReconciliation => 'rapprochement de paiement',
             self::StockPosition => 'position de stock',
             self::StockLot => 'lot de stock',
             self::StockQuota => 'quota de poste',
+            self::CatalogPublication => 'publication catalogue',
+            self::PublicContent => 'contenu public',
             self::Approval => 'approbation',
         };
     }

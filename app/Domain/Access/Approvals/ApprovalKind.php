@@ -50,6 +50,11 @@ enum ApprovalKind: string
      */
     case CashMovement = 'CASH_MOVEMENT';
 
+    /**
+     * Envoi d'une campagne de communication : gel des cibles admissibles et autorisation avant soumission (L2D08).
+     */
+    case CampaignSend = 'CAMPAIGN_SEND';
+
     public function actionCode(): string
     {
         return match ($this) {
@@ -61,6 +66,7 @@ enum ApprovalKind: string
             self::CreditDelivery => 'delivery.confirm',
             self::StockMovement => 'stock.adjust',
             self::CashMovement => 'cash.manage',
+            self::CampaignSend => 'communication.manage',
         };
     }
 
@@ -72,6 +78,7 @@ enum ApprovalKind: string
             self::DraftLineRights, self::CreditNote, self::Refund, self::CreditDelivery => 'invoices',
             self::StockMovement => 'stock_positions',
             self::CashMovement => 'cash_sessions',
+            self::CampaignSend => 'campaign_definitions',
         };
     }
 
@@ -86,6 +93,7 @@ enum ApprovalKind: string
             self::CreditDelivery => 'Remise avant règlement complet',
             self::StockMovement => 'Casse ou ajustement de stock',
             self::CashMovement => 'Mouvement de caisse hors vente',
+            self::CampaignSend => 'Envoi d\'une campagne de communication',
         };
     }
 

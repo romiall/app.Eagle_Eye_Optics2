@@ -17,7 +17,7 @@ export function phpServerOptions(): string[] {
     'php',
     [
       '-r',
-      "echo extension_loaded('Zend OPcache') ? 'loaded' : (is_file(ini_get('extension_dir').DIRECTORY_SEPARATOR.(PHP_OS_FAMILY === 'Windows' ? 'php_opcache.dll' : 'opcache.so')) ? 'available' : 'absent');",
+      "$extDir = (string) ini_get('extension_dir'); $file = PHP_OS_FAMILY === 'Windows' ? 'php_opcache.dll' : 'opcache.so'; $phpDir = dirname(PHP_BINARY); $found = is_file($extDir.DIRECTORY_SEPARATOR.$file) || is_file($phpDir.DIRECTORY_SEPARATOR.$extDir.DIRECTORY_SEPARATOR.$file) || is_file($phpDir.DIRECTORY_SEPARATOR.'ext'.DIRECTORY_SEPARATOR.$file); echo extension_loaded('Zend OPcache') ? 'loaded' : ($found ? 'available' : 'absent');",
     ],
     { encoding: 'utf8', windowsHide: true },
   )
@@ -25,12 +25,19 @@ export function phpServerOptions(): string[] {
   // JIT d'OPcache coupé pour ce processus : actif par défaut sur la CI (setup-php), il compile mal les chemins du
   // hors-ligne (grants, pull) : TypeError absurde « CarbonImmutable attendu, CarbonImmutable reçu » en PHP 8.3.6,
   // erreur de segmentation du serveur en CI (2026-10-25). Le cache d'opcodes, seul utile ici, reste actif.
-  const noJit = ['-d', 'opcache.jit=disable']
+  const opcacheFlags = [
+    '-d',
+    'opcache.enable=1',
+    '-d',
+    'opcache.enable_cli=1',
+    '-d',
+    'opcache.jit=disable',
+  ]
   cached =
     state === 'available'
-      ? ['-d', 'zend_extension=opcache', ...noJit]
+      ? ['-d', 'zend_extension=opcache', ...opcacheFlags]
       : state === 'loaded'
-        ? noJit
+        ? opcacheFlags
         : []
   return cached
 }

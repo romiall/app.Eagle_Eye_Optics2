@@ -18,6 +18,7 @@ import {
   demoReceiptSettlement,
   demoReferralLetter,
   demoRefund,
+  demoWorkshopOrder,
 } from './fixtures'
 
 /** Instant fixe des brouillons de démonstration : le rendu reste identique d'une exécution à l'autre. */
@@ -88,6 +89,7 @@ export const DEMO_DOCUMENTS: readonly DemoDocument[] = [
   entry('ordonnance', 'Ordonnance de médicaments', 'MEDICATION_ORDER', demoMedicationOrder),
   entry('lettre-orientation', 'Lettre d’orientation', 'REFERRAL_LETTER', demoReferralLetter),
   entry('dossier-clinique', 'Fiche de consultation', 'CLINICAL_RECORD', demoClinicalRecord),
+  entry('bon-laboratoire', 'Bon laboratoire anonymisé', 'WORKSHOP', demoWorkshopOrder),
 ]
 
 export function demoDocumentById(id: string): DemoDocument | undefined {

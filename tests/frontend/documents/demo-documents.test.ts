@@ -63,6 +63,17 @@ describe.each(DEMO_DOCUMENTS.map((entry) => [entry.id, entry] as const))(
     it('sépare les mondes : une pièce financière sans donnée clinique, un document clinique sans montant', () => {
       if (isClinicalDocument(entry.kind)) {
         expect(text).not.toContain('FCFA')
+      } else if (entry.kind === 'WORKSHOP') {
+        expect(text).not.toContain('FCFA')
+        for (const word of [
+          'Antécédents',
+          'Symptômes',
+          'Réfraction',
+          'urgence',
+          'PATIENT FICTIF',
+        ]) {
+          expect(text, word).not.toContain(word)
+        }
       } else {
         for (const word of ['Antécédents', 'Symptômes', 'Réfraction', 'Sphère', 'Acuité']) {
           expect(text, word).not.toContain(word)

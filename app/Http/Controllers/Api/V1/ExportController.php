@@ -76,6 +76,38 @@ final class ExportController extends CommandController
         ]);
     }
 
+    public function manifest(Request $request, string $id): JsonResponse
+    {
+        $actor = $this->actor($request);
+        $export = $this->find($actor, $id);
+        $event = DB::table('audit_events')
+            ->where('clinic_id', $actor->clinic_id)
+            ->where('target_type', 'export_requests')
+            ->where('target_id', $id)
+            ->where('action', 'export.ready')
+            ->orderByDesc('recorded_at')
+            ->first(['sanitized_diff']);
+
+        if ($event === null || $event->sanitized_diff === null) {
+            throw new BusinessError('STATE_TRANSITION_REFUSED', 'Le manifeste n\'est pas encore disponible pour cet export.', 409, details: [
+                'current_status' => (string) $export->status,
+            ]);
+        }
+
+        /** @var array<string, mixed> $diff */
+        $diff = json_decode((string) $event->sanitized_diff, true, 512, JSON_THROW_ON_ERROR);
+        $manifest = $diff['manifest'] ?? null;
+        if (! is_array($manifest)) {
+            throw new BusinessError('STATE_TRANSITION_REFUSED', 'Le manifeste conservé est indisponible pour cet export.', 409, details: [
+                'current_status' => (string) $export->status,
+            ]);
+        }
+
+        $manifest['archive_status'] = (string) $export->status;
+
+        return new JsonResponse(['data' => $manifest]);
+    }
+
     /**
      * @return array<string, mixed>
      */

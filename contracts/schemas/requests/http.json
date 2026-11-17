@@ -552,6 +552,9 @@
         },
         "active": {
           "type": "boolean"
+        },
+        "public_booking": {
+          "type": "boolean"
         }
       }
     },
@@ -1027,6 +1030,195 @@
         "private_path": {
           "type": "string",
           "pattern": "^evidence/[0-9A-HJKMNP-TV-Z]{26}/[0-9a-f]{64}[.](?:pdf|jpg|png)$"
+        }
+      }
+    },
+    "StoreStatementEvidenceCommand": {
+      "description": "Charge INTERNE de la commande StoreStatementEvidence, construite par le serveur après contrôle des octets reçus (POST /payment-reconciliations/statement-file) : jamais envoyée par un poste.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sha256",
+        "size_bytes",
+        "mime_type",
+        "private_path"
+      ],
+      "properties": {
+        "expected_version": {
+          "type": "null"
+        },
+        "sha256": {
+          "$ref": "../../schemas/common.json#/$defs/Sha256Hex"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "mime_type": {
+          "type": "string",
+          "enum": [
+            "application/pdf",
+            "image/jpeg",
+            "image/png"
+          ]
+        },
+        "private_path": {
+          "type": "string",
+          "pattern": "^evidence/[0-9A-HJKMNP-TV-Z]{26}/[0-9a-f]{64}[.](?:pdf|jpg|png)$"
+        }
+      }
+    },
+    "SavePaymentReconciliationRequest": {
+      "description": "Création ou modification complète d'un brouillon de rapprochement par canal (L1D06) : un règlement ou remboursement ne peut être pointé qu'une seule fois ; expected_amount recalculé côté serveur.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_version",
+        "reconciliation_id",
+        "method",
+        "period_starts_at",
+        "period_ends_at",
+        "statement_amount",
+        "statement_file_id",
+        "variance_reason",
+        "lines"
+      ],
+      "properties": {
+        "expected_version": {
+          "type": "null"
+        },
+        "reconciliation_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "method": {
+          "$ref": "../../schemas/enums.json#/$defs/payment_reconciliations.method"
+        },
+        "period_starts_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        },
+        "period_ends_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        },
+        "statement_amount": {
+          "anyOf": [
+            {
+              "$ref": "../../schemas/common.json#/$defs/SignedMoneyXaf"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "statement_file_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "variance_reason": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 2000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "lines": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "line_id",
+              "payment_id",
+              "refund_id",
+              "external_reference",
+              "statement_amount",
+              "status"
+            ],
+            "properties": {
+              "line_id": {
+                "$ref": "../../schemas/common.json#/$defs/Ulid"
+              },
+              "payment_id": {
+                "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+              },
+              "refund_id": {
+                "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+              },
+              "external_reference": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 0,
+                    "maxLength": 180
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "statement_amount": {
+                "$ref": "../../schemas/common.json#/$defs/SignedMoneyXaf"
+              },
+              "status": {
+                "$ref": "../../schemas/enums.json#/$defs/payment_reconciliation_lines.status"
+              },
+              "note": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 0,
+                    "maxLength": 1000
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          },
+          "maxItems": 500
+        }
+      }
+    },
+    "ValidatePaymentReconciliationRequest": {
+      "description": "Validation réauthentifiée d'un rapprochement (L1D06) : fige attendu serveur, montant du relevé, écart motivé si non nul et lignes ; refuse 409 si déjà validé ou si une ligne chevauche un autre rapprochement.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_version",
+        "reconciliation_id",
+        "statement_amount",
+        "statement_file_id",
+        "variance_reason"
+      ],
+      "properties": {
+        "expected_version": {
+          "type": "null"
+        },
+        "reconciliation_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "statement_amount": {
+          "$ref": "../../schemas/common.json#/$defs/SignedMoneyXaf"
+        },
+        "statement_file_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "variance_reason": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 2000
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       }
     },
@@ -1838,6 +2030,569 @@
         }
       }
     },
+    "SupplierRequest": {
+      "description": "Fournisseur ou laboratoire (L1D01), création ou modification complète ; code unique par cabinet, désactivation par `active` faux. Droit stock.receive.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_version",
+        "name",
+        "reference"
+      ],
+      "properties": {
+        "expected_version": {
+          "type": "null"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 180
+        },
+        "reference": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "phone": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 32
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "email": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 254
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "address": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 2000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "is_optical_lab": {
+          "type": "boolean"
+        },
+        "active": {
+          "type": "boolean"
+        }
+      }
+    },
+    "GoodsReceiptDraftRequest": {
+      "description": "Brouillon de réception (L1D01), création ou remplacement complet : aucun lot ni stock avant la validation ; coût unitaire connu ou null (inconnu).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_version",
+        "supplier_id",
+        "location_id",
+        "supplier_reference",
+        "received_at",
+        "lines"
+      ],
+      "properties": {
+        "expected_version": {
+          "type": "null"
+        },
+        "supplier_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "location_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "supplier_reference": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "received_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        },
+        "notes": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 2000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "lines": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "item_id",
+              "quantity",
+              "unit_cost"
+            ],
+            "properties": {
+              "item_id": {
+                "$ref": "../../schemas/common.json#/$defs/Ulid"
+              },
+              "quantity": {
+                "$ref": "../../schemas/common.json#/$defs/Quantity"
+              },
+              "unit_cost": {
+                "anyOf": [
+                  {
+                    "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          },
+          "maxItems": 200
+        }
+      }
+    },
+    "ValidateGoodsReceiptRequest": {
+      "description": "Validation d'une réception (L1D01) : CHAQUE ligne du brouillon confirme son lot (obligatoire pour un article périssable ou déjà suivi par lots) et son coût final (null = inconnu).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_version",
+        "lines"
+      ],
+      "properties": {
+        "expected_version": {
+          "type": "null"
+        },
+        "lines": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "position",
+              "lot",
+              "unit_cost"
+            ],
+            "properties": {
+              "position": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 200
+              },
+              "lot": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "batch_number",
+                      "expires_on"
+                    ],
+                    "properties": {
+                      "batch_number": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 80
+                      },
+                      "expires_on": {
+                        "$ref": "../../schemas/common.json#/$defs/NullableCivilDate"
+                      }
+                    }
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "unit_cost": {
+                "anyOf": [
+                  {
+                    "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          },
+          "maxItems": 200
+        }
+      }
+    },
+    "OpenInventoryCountRequest": {
+      "description": "Ouverture d'un inventaire (L1D02) : un emplacement, théorique figé à l'instant d'ouverture ; un seul inventaire actif par emplacement. Droit stock.inventory.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_version",
+        "location_id",
+        "reference"
+      ],
+      "properties": {
+        "expected_version": {
+          "type": "null"
+        },
+        "location_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "reference": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        }
+      }
+    },
+    "RecordInventoryCountsRequest": {
+      "description": "Quantités comptées d'un inventaire ouvert : zéro admis, null efface le comptage ; le motif de l'écart est facultatif ici, obligatoire à la validation pour tout écart non nul. Aucun stock n'est modifié.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_version",
+        "lines"
+      ],
+      "properties": {
+        "expected_version": {
+          "type": "null"
+        },
+        "lines": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "line_id",
+              "counted_quantity"
+            ],
+            "properties": {
+              "line_id": {
+                "$ref": "../../schemas/common.json#/$defs/Ulid"
+              },
+              "counted_quantity": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "description": "Quantité comptée DECIMAL(12,3), zéro admis (rien trouvé).",
+                    "pattern": "^(0|[1-9][0-9]{0,8})(\\.[0-9]{1,3})?$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "variance_reason": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 0,
+                    "maxLength": 1000
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          },
+          "maxItems": 500
+        }
+      }
+    },
+    "InventoryCountActionRequest": {
+      "description": "Terminer le comptage (toutes les lignes comptées) ou rouvrir un inventaire compté (corps réduit à expected_version null).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_version"
+      ],
+      "properties": {
+        "expected_version": {
+          "type": "null"
+        }
+      }
+    },
+    "AbandonInventoryCountRequest": {
+      "description": "Abandon d'un inventaire ouvert ou compté, sans effet sur le stock ; motif facultatif conservé dans l'audit.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_version"
+      ],
+      "properties": {
+        "expected_version": {
+          "type": "null"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 1000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "ValidateInventoryCountRequest": {
+      "description": "Validation par la gérante réauthentifiée : motif de l'approbation (3 à 1 000 caractères) ; chaque écart non nul doit déjà porter son motif.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_version",
+        "reason"
+      ],
+      "properties": {
+        "expected_version": {
+          "type": "null"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 1000
+        }
+      }
+    },
+    "DeleteGoodsReceiptDraftRequest": {
+      "description": "Suppression d'un brouillon de réception jamais validé (corps vide).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_version"
+      ],
+      "properties": {
+        "expected_version": {
+          "type": "null"
+        }
+      }
+    },
+    "EvaluateStockAlertsRequest": {
+      "description": "Évaluation des seuils bas et péremptions du stock (corps réduit à expected_version null).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_version"
+      ],
+      "properties": {
+        "expected_version": {
+          "type": "null"
+        }
+      }
+    },
+    "StockAlertActionRequest": {
+      "description": "Accuser réception ou résoudre une alerte de stock (corps réduit à expected_version null).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_version"
+      ],
+      "properties": {
+        "expected_version": {
+          "type": "null"
+        }
+      }
+    },
+    "CreateWorkshopOrderRequest": {
+      "description": "Création en ligne d'une commande atelier (L1D04) à partir d'une ligne de facture émise et d'une prescription optique validée.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_version",
+        "invoice_line_id",
+        "prescription_id",
+        "supplier_id",
+        "quantity"
+      ],
+      "properties": {
+        "expected_version": {
+          "type": "null"
+        },
+        "invoice_line_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "prescription_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "supplier_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "frame_item_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "lab_reference": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 100
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "expected_at": {
+          "$ref": "../../schemas/common.json#/$defs/NullableInstant"
+        },
+        "quantity": {
+          "$ref": "../../schemas/common.json#/$defs/Quantity"
+        },
+        "lens_type": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 100
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "frame_reference_snapshot": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 100
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "pd_od": {
+          "$ref": "../../schemas/common.json#/$defs/NullableDiopter"
+        },
+        "pd_og": {
+          "$ref": "../../schemas/common.json#/$defs/NullableDiopter"
+        },
+        "fitting_height_od": {
+          "$ref": "../../schemas/common.json#/$defs/NullableDiopter"
+        },
+        "fitting_height_og": {
+          "$ref": "../../schemas/common.json#/$defs/NullableDiopter"
+        },
+        "notes": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "AdvanceWorkshopOrderRequest": {
+      "description": "Transition, contrôle qualité, reprise, ajustement ou annulation d'une commande atelier (L1D04, version optimiste).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_version",
+        "workshop_order_id",
+        "event_type"
+      ],
+      "properties": {
+        "expected_version": {
+          "$ref": "../../schemas/common.json#/$defs/Version"
+        },
+        "workshop_order_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "event_type": {
+          "$ref": "../../schemas/enums.json#/$defs/workshop_events.event_type"
+        },
+        "new_status": {
+          "anyOf": [
+            {
+              "$ref": "../../schemas/enums.json#/$defs/workshop_orders.status"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "quality_result": {
+          "anyOf": [
+            {
+              "$ref": "../../schemas/enums.json#/$defs/workshop_events.quality_result"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "observations": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "lab_reference": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 100
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "expected_at": {
+          "$ref": "../../schemas/common.json#/$defs/NullableInstant"
+        },
+        "notes": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "delivery_line_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        }
+      }
+    },
     "EnrollDeviceRequest": {
       "description": "Enrôlement (O02) : clé publique ES256 du poste et preuve de possession (JWS compact ES256 signé par la clé PRIVÉE du poste, typ eeo-device-proof+jws, kid = empreinte RFC 7638, charge JCS {clinic_id, device_code, issued_at, jwk_thumbprint, purpose=enroll, v=1}, fraîche de 10 minutes).",
       "type": "object",
@@ -2186,7 +2941,34 @@
         "filters": {
           "anyOf": [
             {
-              "type": "object"
+              "description": "Filtres facultatifs d'un export contrôlé (période civile inclusive et profil de portée qui restreint sans jamais élargir les droits).",
+              "type": "object",
+              "additionalProperties": false,
+              "required": [],
+              "properties": {
+                "from": {
+                  "$ref": "../../schemas/common.json#/$defs/NullableCivilDate"
+                },
+                "to": {
+                  "$ref": "../../schemas/common.json#/$defs/NullableCivilDate"
+                },
+                "scope_role": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "CASHIER",
+                        "CLINICIAN",
+                        "MANAGER",
+                        "RECEPTION"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              }
             },
             {
               "type": "null"
@@ -2196,7 +2978,7 @@
       }
     },
     "BookingRequest": {
-      "description": "Réservation publique (L2) : consentement explicite exigé, anti-abus et idempotence.",
+      "description": "Réservation publique (L2, L3) : consentement explicite exigé, anti-abus et idempotence. `publication_slug` relie la demande à la référence du showroom qui a donné envie de venir (ignoré si la référence n'est pas publiée) ; `website` est un piège à robots : un visiteur humain ne le voit pas et ne le remplit jamais, une demande qui le remplit est refusée.",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -2209,6 +2991,9 @@
       "properties": {
         "service_id": {
           "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "resource_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
         },
         "starts_at": {
           "$ref": "../../schemas/common.json#/$defs/Instant"
@@ -2234,6 +3019,940 @@
         },
         "consent": {
           "const": true
+        },
+        "publication_slug": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 180
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "website": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 200
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "SaveIntegrationAccountRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "provider",
+        "external_account_id",
+        "display_name",
+        "status"
+      ],
+      "properties": {
+        "provider": {
+          "$ref": "../../schemas/enums.json#/$defs/integration_accounts.provider"
+        },
+        "external_account_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        },
+        "display_name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        },
+        "status": {
+          "$ref": "../../schemas/enums.json#/$defs/integration_accounts.status"
+        },
+        "credentials": {
+          "anyOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "public_configuration": {
+          "anyOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "UpdateIntegrationAccountRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_version"
+      ],
+      "properties": {
+        "expected_version": {
+          "$ref": "../../schemas/common.json#/$defs/Version"
+        },
+        "display_name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        },
+        "status": {
+          "$ref": "../../schemas/enums.json#/$defs/integration_accounts.status"
+        },
+        "credentials": {
+          "anyOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "public_configuration": {
+          "anyOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "ProcessOutboxRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [],
+      "properties": {
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 200
+        },
+        "event_types": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          }
+        }
+      }
+    },
+    "SaveCalendarSyncStateRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "integration_account_id",
+        "resource_id",
+        "external_calendar_id"
+      ],
+      "properties": {
+        "integration_account_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "resource_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "external_calendar_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "status": {
+          "$ref": "../../schemas/enums.json#/$defs/calendar_sync_states.status"
+        }
+      }
+    },
+    "CalendarSyncRunRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [],
+      "properties": {
+        "resource_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "full_resync": {
+          "type": "boolean"
+        }
+      }
+    },
+    "DecidePublicBookingRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [],
+      "properties": {
+        "resource_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 1000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "SaveProspectContactRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "origin"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        },
+        "phone": {
+          "anyOf": [
+            {
+              "$ref": "../../schemas/common.json#/$defs/Phone"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "email": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 254
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "origin": {
+          "$ref": "../../schemas/enums.json#/$defs/prospect_contacts.origin"
+        },
+        "administrative_notes": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 4000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "UpdateProspectContactRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_version"
+      ],
+      "properties": {
+        "expected_version": {
+          "$ref": "../../schemas/common.json#/$defs/Version"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        },
+        "phone": {
+          "anyOf": [
+            {
+              "$ref": "../../schemas/common.json#/$defs/Phone"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "email": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 254
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "administrative_notes": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 4000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "LinkProspectPatientRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "patient_id"
+      ],
+      "properties": {
+        "patient_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        }
+      }
+    },
+    "SyncCrmLeadsRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [],
+      "properties": {
+        "integration_account_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 200
+        }
+      }
+    },
+    "SaveKnowledgeEntryRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "title",
+        "category",
+        "content"
+      ],
+      "properties": {
+        "code": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        },
+        "category": {
+          "$ref": "../../schemas/enums.json#/$defs/knowledge_entries.category"
+        },
+        "content": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 10000
+        },
+        "language": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 10
+        }
+      }
+    },
+    "CreateKnowledgeVersionRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "content"
+      ],
+      "properties": {
+        "content": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 10000
+        },
+        "language": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 10
+        }
+      }
+    },
+    "KnowledgeActionRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [],
+      "properties": {
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 1000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "AssistantTurnRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "message"
+      ],
+      "properties": {
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "service_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "preferred_starts_at": {
+          "$ref": "../../schemas/common.json#/$defs/NullableInstant"
+        }
+      }
+    },
+    "ConversationHandoffRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reason"
+      ],
+      "properties": {
+        "reason": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 2000
+        },
+        "administrative_summary": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 4000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "assign_to_self": {
+          "type": "boolean"
+        }
+      }
+    },
+    "RecordConsentRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "channel",
+        "purpose",
+        "destination",
+        "proof"
+      ],
+      "properties": {
+        "patient_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "prospect_contact_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "channel": {
+          "$ref": "../../schemas/enums.json#/$defs/communication_consents.channel"
+        },
+        "purpose": {
+          "$ref": "../../schemas/enums.json#/$defs/communication_consents.purpose"
+        },
+        "destination": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 254
+        },
+        "proof": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 2000
+        },
+        "policy_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        }
+      }
+    },
+    "RevokeConsentRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "channel",
+        "purpose",
+        "destination",
+        "proof"
+      ],
+      "properties": {
+        "patient_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "prospect_contact_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "channel": {
+          "$ref": "../../schemas/enums.json#/$defs/communication_consents.channel"
+        },
+        "purpose": {
+          "$ref": "../../schemas/enums.json#/$defs/communication_consents.purpose"
+        },
+        "destination": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 254
+        },
+        "proof": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 2000
+        },
+        "policy_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        }
+      }
+    },
+    "SaveMessageTemplateRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "channel",
+        "purpose"
+      ],
+      "properties": {
+        "code": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "channel": {
+          "$ref": "../../schemas/enums.json#/$defs/message_templates.channel"
+        },
+        "purpose": {
+          "$ref": "../../schemas/enums.json#/$defs/message_templates.purpose"
+        }
+      }
+    },
+    "CreateMessageTemplateVersionRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "body"
+      ],
+      "properties": {
+        "integration_account_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "provider_template_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 180
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "language": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 10
+        },
+        "body": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 5000
+        },
+        "allowed_variables": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          }
+        }
+      }
+    },
+    "SaveReminderPolicyRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "label",
+        "purpose",
+        "channel",
+        "offset_unit",
+        "offset_value"
+      ],
+      "properties": {
+        "code": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        },
+        "purpose": {
+          "$ref": "../../schemas/enums.json#/$defs/reminder_policies.purpose"
+        },
+        "channel": {
+          "$ref": "../../schemas/enums.json#/$defs/reminder_policies.channel"
+        },
+        "offset_unit": {
+          "$ref": "../../schemas/enums.json#/$defs/reminder_policies.offset_unit"
+        },
+        "offset_value": {
+          "type": "integer",
+          "minimum": -3650,
+          "maximum": 3650
+        },
+        "local_send_time": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 8
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "active": {
+          "type": "boolean"
+        }
+      }
+    },
+    "UpdateReminderPolicyRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_version"
+      ],
+      "properties": {
+        "expected_version": {
+          "$ref": "../../schemas/common.json#/$defs/Version"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        },
+        "channel": {
+          "$ref": "../../schemas/enums.json#/$defs/reminder_policies.channel"
+        },
+        "offset_unit": {
+          "$ref": "../../schemas/enums.json#/$defs/reminder_policies.offset_unit"
+        },
+        "offset_value": {
+          "type": "integer",
+          "minimum": -3650,
+          "maximum": 3650
+        },
+        "local_send_time": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 8
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "active": {
+          "type": "boolean"
+        }
+      }
+    },
+    "SendTaskMessageRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [],
+      "properties": {
+        "template_version_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "channel": {
+          "anyOf": [
+            {
+              "$ref": "../../schemas/enums.json#/$defs/communication_consents.channel"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "SaveAudienceSegmentRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "criteria"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        },
+        "criteria": {
+          "type": "object"
+        }
+      }
+    },
+    "UpdateAudienceSegmentRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_version"
+      ],
+      "properties": {
+        "expected_version": {
+          "$ref": "../../schemas/common.json#/$defs/Version"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        },
+        "criteria": {
+          "type": "object"
+        }
+      }
+    },
+    "SaveCampaignRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "segment_id",
+        "template_version_id"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        },
+        "segment_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "template_version_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "scheduled_at": {
+          "$ref": "../../schemas/common.json#/$defs/NullableInstant"
+        }
+      }
+    },
+    "FreezeCampaignRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [],
+      "properties": {
+        "approval_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        }
+      }
+    },
+    "PauseCampaignRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [],
+      "properties": {
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 1000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "ReconcileIntegrationsRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [],
+      "properties": {
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 200
+        }
+      }
+    },
+    "SaveCatalogPublicationRequest": {
+      "description": "Brouillon d'une fiche du showroom (création : catalog_item_id et version nulle ; modification : version attendue, la fiche repasse en brouillon).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_version",
+        "public_title",
+        "public_description"
+      ],
+      "properties": {
+        "expected_version": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "catalog_item_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "slug": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        },
+        "public_title": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 180
+        },
+        "public_description": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 2000
+        },
+        "style": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 100
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "show_sale_price": {
+          "type": "boolean"
+        },
+        "display_order": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9999
+        }
+      }
+    },
+    "ChangePublicStatusRequest": {
+      "description": "Publier (décision de la gérante), retirer (retour en brouillon) ou archiver une fiche ou un contenu public.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_version",
+        "status"
+      ],
+      "properties": {
+        "expected_version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "DRAFT",
+            "PUBLISHED",
+            "ARCHIVED"
+          ]
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 500
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "SavePublicContentRequest": {
+      "description": "Brouillon d'un contenu public ; il remplace le brouillon existant du même code, sinon ouvre une révision.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_version",
+        "code",
+        "title",
+        "content"
+      ],
+      "properties": {
+        "expected_version": {
+          "type": "null"
+        },
+        "code": {
+          "type": "string",
+          "enum": [
+            "ACCUEIL",
+            "EXPERTISES",
+            "HORAIRES",
+            "LOCALISATION",
+            "WHATSAPP",
+            "RESEAUX_SOCIAUX",
+            "CONTACT"
+          ]
+        },
+        "title": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 180
+        },
+        "content": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
         }
       }
     }

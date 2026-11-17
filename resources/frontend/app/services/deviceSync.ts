@@ -52,8 +52,10 @@ export async function refreshDeviceSync(): Promise<void> {
   }
 }
 
-/** Un échange maintenant (push puis pull) ; l'état est relu ensuite, même en cas d'échec (qui est relevé). */
-export async function syncDeviceNow(): Promise<void> {
+let activeAutoSync: Promise<void> | null = null
+let activeManualSync: Promise<void> | null = null
+
+async function runSyncOnce(): Promise<void> {
   const current = deviceSyncOrNull()
   if (current === null) return
   try {
@@ -63,17 +65,42 @@ export async function syncDeviceNow(): Promise<void> {
   }
 }
 
+/**
+ * Un échange maintenant (push puis pull), déclenché explicitement par le poste : attend la fin d'un éventuel échange
+ * automatique en cours pour ne jamais mutualiser un essai périmé (session ou réseau changé), puis lance un essai neuf.
+ */
+export function syncDeviceNow(): Promise<void> {
+  if (activeManualSync !== null) return activeManualSync
+  activeManualSync = (async () => {
+    try {
+      if (activeAutoSync !== null) {
+        await activeAutoSync.catch(() => undefined)
+      }
+      await runSyncOnce()
+    } finally {
+      activeManualSync = null
+    }
+  })()
+  return activeManualSync
+}
+
 async function quietSync(): Promise<void> {
   if (deviceSyncOrNull() === null) return
+  if (activeManualSync !== null || activeAutoSync !== null) return
   if (typeof navigator !== 'undefined' && navigator.onLine === false) {
     await refreshDeviceSync()
     return
   }
-  try {
-    await syncDeviceNow()
-  } catch {
-    // L'échec est annoncé par l'état (« Dernier essai d'échange sans réponse du serveur »).
-  }
+  activeAutoSync = (async () => {
+    try {
+      await runSyncOnce()
+    } catch {
+      // L'échec est annoncé par l'état (« Dernier essai d'échange sans réponse du serveur »).
+    } finally {
+      activeAutoSync = null
+    }
+  })()
+  await activeAutoSync
 }
 
 let scheduled: ReturnType<typeof setTimeout> | null = null

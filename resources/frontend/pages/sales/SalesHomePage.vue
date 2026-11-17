@@ -40,6 +40,24 @@ const entries = computed<Entry[]>(() =>
       visible: canOnScreen('finance.global.read'),
     },
     {
+      name: 'rapports-gestion',
+      label: 'Rapports de gestion',
+      text: 'Tableaux consolidés multi-domaines (Finance, Stock, Atelier, Patients, Clinique), comparaison N vs N-1 et téléchargements CSV / JSON.',
+      visible:
+        moduleOpenOnScreen('reports') &&
+        (canOnScreen('statistics.activity') ||
+          canOnScreen('statistics.clinical') ||
+          canOnScreen('finance.global.read') ||
+          canOnScreen('stock.read') ||
+          canOnScreen('workshop.manage')),
+    },
+    {
+      name: 'rapprochement',
+      label: 'Rapprochements par canal',
+      text: 'Pointer Mobile Money, banque, chèque et espèces avec le relevé, joindre le justificatif et valider.',
+      visible: canOnScreen('finance.reconcile'),
+    },
+    {
       name: 'facture-nouvelle',
       label: 'Nouvelle facture',
       text: 'Préparer un brouillon pour un patient, puis l’émettre.',

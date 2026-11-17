@@ -2,7 +2,7 @@ import { expect, test, type Page } from '@playwright/test'
 
 import { activeServiceWorkerScope, foreignRequests, recordRequests } from './support/browser'
 import { chromiumLaunchOptions } from './support/chromium'
-import { startLaravelServer, type RunningServer } from './support/laravel-server'
+import { findFreePort, startLaravelServer, type RunningServer } from './support/laravel-server'
 import { HTTPS_BACKEND_PORT, HTTPS_HOSTNAME, HTTPS_PROXY_PORT } from './support/ports'
 import { startTlsProxy, type TlsProxy } from './support/tls-proxy'
 
@@ -34,15 +34,18 @@ test.use({
 })
 
 test.describe('origine HTTPS derrière un proxy qui termine TLS', () => {
-  const origin = `https://${HTTPS_HOSTNAME}:${HTTPS_PROXY_PORT}`
+  let origin = `https://${HTTPS_HOSTNAME}:${HTTPS_PROXY_PORT}`
   let backend: RunningServer | undefined
   let proxy: TlsProxy | undefined
 
   test.beforeAll(async () => {
-    backend = await startLaravelServer(HTTPS_BACKEND_PORT, { APP_URL: origin })
+    const backendPort = await findFreePort(HTTPS_BACKEND_PORT)
+    const proxyPort = await findFreePort(HTTPS_PROXY_PORT)
+    origin = `https://${HTTPS_HOSTNAME}:${proxyPort}`
+    backend = await startLaravelServer(backendPort, { APP_URL: origin })
     proxy = await startTlsProxy({
       hostname: HTTPS_HOSTNAME,
-      port: HTTPS_PROXY_PORT,
+      port: proxyPort,
       target: backend.url,
     })
   })

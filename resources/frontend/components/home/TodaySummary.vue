@@ -5,7 +5,8 @@
  * elle mène (et comme la route du serveur, qui revérifie tout) :
  *  - file du jour : `visit.register` ou `agenda.read`, module « today » ;
  *  - rendez-vous du jour : `agenda.read`, module « agenda » ;
- *  - encaissé net du jour : `finance.global.read` ou `cash.own_session`, module « sales ».
+ *  - encaissé net du jour : `finance.global.read` ou `cash.own_session`, module « sales » ;
+ *  - alertes de stock bas et péremption : `stock.read`, module « stock ».
  * Sans aucune tuile ouverte, rien n'est affiché ni lu. Quand les tuiles ouvertes changent (droits
  * relus avec la session), le bloc des tuiles est remonté et ses lectures recréées.
  */
@@ -24,16 +25,20 @@ const cash = computed(() => {
   const readable = canOnScreen('finance.global.read') || canOnScreen('cash.own_session')
   return readable && moduleOpenOnScreen('sales')
 })
+const stockAlerts = computed(() => canOnScreen('stock.read') && moduleOpenOnScreen('stock'))
 /** Change avec les tuiles ouvertes : le bloc est remonté et ses lectures recréées. */
-const shownKey = computed(() => [queue.value, appointments.value, cash.value].join('-'))
+const shownKey = computed(() =>
+  [queue.value, appointments.value, cash.value, stockAlerts.value].join('-'),
+)
 </script>
 
 <template>
   <TodayFigures
-    v-if="queue || appointments || cash"
+    v-if="queue || appointments || cash || stockAlerts"
     :key="shownKey"
     :queue="queue"
     :appointments="appointments"
     :cash="cash"
+    :stock-alerts="stockAlerts"
   />
 </template>

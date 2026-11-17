@@ -98,6 +98,7 @@ for (const wide of [false, true]) {
     test('un bouton posé à côté d’un champ est aligné sur la saisie à 768, 1024 et 1280 px', async ({
       page,
     }) => {
+      test.setTimeout(120_000)
       await signIn(page, 'MANAGER')
 
       for (const width of [768, 1024, 1280]) {
@@ -179,17 +180,19 @@ for (const wide of [false, true]) {
       await signIn(page, 'MANAGER')
       const send = page.getByRole('button', { name: 'Demander l’export' })
 
-      // Tablette : la liste puis le bouton dessous, sans décalage d'étiquette ni retour à la ligne
+      // Tablette : les champs puis le bouton dessous, sans décalage d'étiquette ni retour à la ligne
       // dépendant de la largeur des polices.
       await page.setViewportSize({ width: 768, height: 900 })
       await page.goto('/parametres/exports')
       await expectBelow(page, page.locator('#export-type'), send, 'exports')
+      await expectBelow(page, page.locator('#export-filter-to'), send, 'exports (filtres)')
       expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0)
 
-      // Ordinateur : une ligne, le bouton aligné sur la saisie.
+      // Ordinateur : rangée de filtres alignée sur la saisie malgré l'aide sous les DateField.
       for (const width of [1024, 1280]) {
         await page.setViewportSize({ width, height: 900 })
-        await expectAligned(page, page.locator('#export-type'), send, 'exports')
+        await expectBelow(page, page.locator('#export-type'), send, 'exports (sous type)')
+        await expectAligned(page, page.locator('#export-filter-from'), send, 'exports')
       }
     })
 

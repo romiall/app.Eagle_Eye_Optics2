@@ -57,6 +57,9 @@ final class ApprovalTargets
             case ApprovalKind::CashMovement:
                 $this->cashMovement($locks, $context, (string) $content['cash_session_id'], (string) $content['movement_kind'], (int) $content['signed_amount'], is_string($content['expense_category_id'] ?? null) ? $content['expense_category_id'] : null);
                 break;
+            case ApprovalKind::CampaignSend:
+                $this->campaignSend($locks, $context, (string) $content['campaign_id'], (string) $content['segment_id'], (string) $content['template_version_id'], (int) $content['eligible_count']);
+                break;
         }
     }
 
@@ -113,6 +116,35 @@ final class ApprovalTargets
         }
         if ($categoryId !== null && ! CashMovements::activeCategory($context->clinicId, $categoryId)) {
             throw BusinessError::validation(['subject.expense_category_id' => ['Catégorie de dépense introuvable ou désactivée.']]);
+        }
+    }
+
+    /** Envoi d'une campagne : brouillon du cabinet, segment existant, modèle approuvé et effectif admissible positif. */
+    private function campaignSend(TransactionLocks $locks, CommandContext $context, string $campaignId, string $segmentId, string $templateVersionId, int $eligibleCount): void
+    {
+        if ($eligibleCount <= 0) {
+            throw BusinessError::validation(['subject.eligible_count' => ['Une campagne doit contenir au moins un destinataire admissible.']]);
+        }
+        $campaign = $locks->campaignDefinition($campaignId);
+        if ($campaign === null) {
+            throw BusinessError::validation(['subject.campaign_id' => ['Campagne introuvable dans ce cabinet.']]);
+        }
+        if ((string) $campaign->status !== 'DRAFT') {
+            throw BusinessError::stateRefused('Seule une campagne au statut brouillon peut être approuvée.', (string) $campaign->status);
+        }
+        if ((string) $campaign->segment_id !== $segmentId) {
+            throw BusinessError::validation(['subject.segment_id' => ['Le segment ne correspond plus à la campagne.']]);
+        }
+        if ((string) $campaign->template_version_id !== $templateVersionId) {
+            throw BusinessError::validation(['subject.template_version_id' => ['La version du modèle ne correspond plus à la campagne.']]);
+        }
+        $segment = DB::table('audience_segments')->where('clinic_id', $context->clinicId)->where('id', $segmentId)->first();
+        if ($segment === null) {
+            throw BusinessError::validation(['subject.segment_id' => ['Segment d\'audience introuvable dans ce cabinet.']]);
+        }
+        $version = DB::table('message_template_versions')->where('clinic_id', $context->clinicId)->where('id', $templateVersionId)->first();
+        if ($version === null || (string) $version->provider_approval_status !== 'APPROVED') {
+            throw BusinessError::validation(['subject.template_version_id' => ['La version du modèle de message doit être approuvée.']]);
         }
     }
 

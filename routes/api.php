@@ -1,33 +1,53 @@
 <?php
 
+use App\Http\Controllers\Api\V1\AccountingExportController;
 use App\Http\Controllers\Api\V1\AgendaController;
 use App\Http\Controllers\Api\V1\AppointmentController;
 use App\Http\Controllers\Api\V1\ApprovalController;
+use App\Http\Controllers\Api\V1\AssistantHandoffController;
 use App\Http\Controllers\Api\V1\AuditEventController;
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\CalendarSyncStateController;
+use App\Http\Controllers\Api\V1\CampaignCommandController;
+use App\Http\Controllers\Api\V1\CampaignController;
 use App\Http\Controllers\Api\V1\CashDayReportController;
 use App\Http\Controllers\Api\V1\CashMovementController;
 use App\Http\Controllers\Api\V1\CashSessionController;
 use App\Http\Controllers\Api\V1\CatalogController;
 use App\Http\Controllers\Api\V1\CatalogImportController;
 use App\Http\Controllers\Api\V1\ClinicSettingsController;
+use App\Http\Controllers\Api\V1\CommunicationCommandController;
+use App\Http\Controllers\Api\V1\CommunicationController;
 use App\Http\Controllers\Api\V1\ConsultationController;
 use App\Http\Controllers\Api\V1\ConsultationListController;
 use App\Http\Controllers\Api\V1\ContactTaskController;
 use App\Http\Controllers\Api\V1\CorrectionController;
 use App\Http\Controllers\Api\V1\CorrectionDocumentController;
+use App\Http\Controllers\Api\V1\CrmCommandController;
+use App\Http\Controllers\Api\V1\CrmController;
 use App\Http\Controllers\Api\V1\DeliveryController;
 use App\Http\Controllers\Api\V1\DeviceController;
 use App\Http\Controllers\Api\V1\DocumentController;
 use App\Http\Controllers\Api\V1\ExportController;
 use App\Http\Controllers\Api\V1\FinancialReportController;
 use App\Http\Controllers\Api\V1\FollowUpController;
+use App\Http\Controllers\Api\V1\GoogleCalendarController;
+use App\Http\Controllers\Api\V1\IntegrationAccountController;
+use App\Http\Controllers\Api\V1\IntegrationController;
+use App\Http\Controllers\Api\V1\InventoryCountController;
 use App\Http\Controllers\Api\V1\InvoiceController;
+use App\Http\Controllers\Api\V1\KnowledgeController;
 use App\Http\Controllers\Api\V1\LegacyBalanceController;
+use App\Http\Controllers\Api\V1\ManagementReportController;
 use App\Http\Controllers\Api\V1\PatientActivityController;
 use App\Http\Controllers\Api\V1\PatientController;
 use App\Http\Controllers\Api\V1\PatientMergeController;
+use App\Http\Controllers\Api\V1\PaymentReconciliationController;
 use App\Http\Controllers\Api\V1\PrescriptionController;
+use App\Http\Controllers\Api\V1\PublicationController;
+use App\Http\Controllers\Api\V1\PublicBookingDecisionController;
+use App\Http\Controllers\Api\V1\PublicContentController;
+use App\Http\Controllers\Api\V1\PurchasingController;
 use App\Http\Controllers\Api\V1\QuoteController;
 use App\Http\Controllers\Api\V1\ReceiptController;
 use App\Http\Controllers\Api\V1\SalesSettingsController;
@@ -38,6 +58,9 @@ use App\Http\Controllers\Api\V1\SyncController;
 use App\Http\Controllers\Api\V1\TaxRuleController;
 use App\Http\Controllers\Api\V1\VisitController;
 use App\Http\Controllers\Api\V1\VisualAcuityScaleController;
+use App\Http\Controllers\Api\V1\WebhookAdminController;
+use App\Http\Controllers\Api\V1\WorkshopController;
+use App\Http\Controllers\PublicBookingController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -78,7 +101,7 @@ Route::prefix('v1')->group(function (): void {
         // Identité du cabinet imprimée sur les documents (en-tête, pied) : tout profil qui produit un document
         // (l'un des droits d'un document financier ou clinique suffit). Ne dépend d'aucun module.
         Route::get('clinic/document-identity', [ClinicSettingsController::class, 'documentIdentity'])
-            ->middleware('any-permission:invoice.read,invoice.create,invoice.issue,payment.collect,cash.own_session,cash.manage,credit_note.issue,refund.execute,finance.global.read,clinical.read,clinical.export')
+            ->middleware('any-permission:invoice.read,invoice.create,invoice.issue,payment.collect,cash.own_session,cash.manage,credit_note.issue,refund.execute,finance.global.read,clinical.read,clinical.export,workshop.manage')
             ->name('api.clinic.document-identity');
 
         // Journal d'audit append-only : lecture seule, permission audit.read (gérante), limitée au cabinet.
@@ -353,6 +376,41 @@ Route::prefix('v1')->group(function (): void {
             Route::post('expense-categories', [CashMovementController::class, 'saveCategory'])
                 ->middleware('can:cash.manage')
                 ->name('api.expense-categories.save');
+            // Rapprochement par canal de paiement et format comptable Q13 (L1D06).
+            Route::get('payment-reconciliations', [PaymentReconciliationController::class, 'index'])
+                ->middleware('can:finance.reconcile')
+                ->name('api.payment-reconciliations.index');
+            Route::get('payment-reconciliations/candidates', [PaymentReconciliationController::class, 'candidates'])
+                ->middleware('can:finance.reconcile')
+                ->name('api.payment-reconciliations.candidates');
+            Route::post('payment-reconciliations/statement-file', [PaymentReconciliationController::class, 'storeStatementFile'])
+                ->middleware(['can:finance.reconcile', 'reauthenticated'])
+                ->name('api.payment-reconciliations.statement-file.store');
+            Route::get('payment-reconciliations/statement-file/{id}', [PaymentReconciliationController::class, 'downloadStatementFile'])
+                ->middleware('can:finance.reconcile')
+                ->whereUlid('id')
+                ->name('api.payment-reconciliations.statement-file.show');
+            Route::post('payment-reconciliations', [PaymentReconciliationController::class, 'store'])
+                ->middleware('can:finance.reconcile')
+                ->name('api.payment-reconciliations.store');
+            Route::get('payment-reconciliations/{id}', [PaymentReconciliationController::class, 'show'])
+                ->middleware('can:finance.reconcile')
+                ->whereUlid('id')
+                ->name('api.payment-reconciliations.show');
+            Route::patch('payment-reconciliations/{id}', [PaymentReconciliationController::class, 'update'])
+                ->middleware('can:finance.reconcile')
+                ->whereUlid('id')
+                ->name('api.payment-reconciliations.update');
+            Route::post('payment-reconciliations/{id}/validate', [PaymentReconciliationController::class, 'validateReconciliation'])
+                ->middleware(['can:finance.reconcile', 'reauthenticated'])
+                ->whereUlid('id')
+                ->name('api.payment-reconciliations.validate');
+            Route::get('reports/accounting-export', [AccountingExportController::class, 'show'])
+                ->middleware('can:finance.global.read')
+                ->name('api.reports.accounting-export.show');
+            Route::get('reports/accounting-export/download', [AccountingExportController::class, 'download'])
+                ->middleware('can:finance.global.read')
+                ->name('api.reports.accounting-export.download');
         });
 
         // Approbations exactes (B06) : module « settings » (gestion gérante, fichier 04). Une demande porte le contenu exact
@@ -375,6 +433,10 @@ Route::prefix('v1')->group(function (): void {
                 ->middleware('any-permission:export.global,clinical.export')
                 ->whereUlid('id')
                 ->name('api.exports.download');
+            Route::get('exports/{id}/manifest', [ExportController::class, 'manifest'])
+                ->middleware('any-permission:export.global,clinical.export')
+                ->whereUlid('id')
+                ->name('api.exports.manifest');
             Route::get('approvals', [ApprovalController::class, 'index'])
                 ->middleware('any-permission:approval.request,approval.decide')
                 ->name('api.approvals.index');
@@ -404,12 +466,124 @@ Route::prefix('v1')->group(function (): void {
             Route::get('stock/availability', [StockController::class, 'availability'])
                 ->middleware('can:stock.read')
                 ->name('api.stock.availability');
+            // Historique des mouvements d'un article (cahier des charges §6), lecture seule ; le coût unitaire exige
+            // en plus stock.valuation.read (décidé par le contrôleur).
+            Route::get('stock/movements', [StockController::class, 'movements'])
+                ->middleware('can:stock.read')
+                ->name('api.stock.movements.index');
             Route::get('stock/locations', [StockController::class, 'locations'])
                 ->middleware('can:stock.read')
                 ->name('api.stock.locations');
             Route::post('stock/opening', [StockController::class, 'opening'])
                 ->middleware(['can:stock.adjust', 'reauthenticated'])
                 ->name('api.stock.opening');
+
+            // Achats (L1D01) : fournisseurs et réceptions, droit stock.receive (les coûts d'achat y figurent). Un brouillon
+            // ne touche jamais au stock ; la validation, seule à l'augmenter, exige une réauthentification récente.
+            Route::get('suppliers', [PurchasingController::class, 'suppliers'])
+                ->middleware('can:stock.receive')
+                ->name('api.suppliers.index');
+            Route::post('suppliers', [PurchasingController::class, 'storeSupplier'])
+                ->middleware('can:stock.receive')
+                ->name('api.suppliers.store');
+            Route::patch('suppliers/{id}', [PurchasingController::class, 'updateSupplier'])
+                ->middleware('can:stock.receive')
+                ->whereUlid('id')
+                ->name('api.suppliers.update');
+            Route::get('goods-receipts', [PurchasingController::class, 'receipts'])
+                ->middleware('can:stock.receive')
+                ->name('api.goods-receipts.index');
+            Route::post('goods-receipts', [PurchasingController::class, 'storeReceipt'])
+                ->middleware('can:stock.receive')
+                ->name('api.goods-receipts.store');
+            Route::get('goods-receipts/{id}', [PurchasingController::class, 'receipt'])
+                ->middleware('can:stock.receive')
+                ->whereUlid('id')
+                ->name('api.goods-receipts.show');
+            Route::patch('goods-receipts/{id}', [PurchasingController::class, 'updateReceipt'])
+                ->middleware('can:stock.receive')
+                ->whereUlid('id')
+                ->name('api.goods-receipts.update');
+            Route::post('goods-receipts/{id}/validate', [PurchasingController::class, 'validateReceipt'])
+                ->middleware(['can:stock.receive', 'reauthenticated'])
+                ->whereUlid('id')
+                ->name('api.goods-receipts.validate');
+            Route::post('goods-receipts/{id}/delete', [PurchasingController::class, 'deleteReceipt'])
+                ->middleware('can:stock.receive')
+                ->whereUlid('id')
+                ->name('api.goods-receipts.delete');
+
+            // Inventaires (L1D02) : droit stock.inventory. Le comptage ne change jamais le stock ; la validation, seule à
+            // écrire des ajustements signés et approuvés, exige la gérante réauthentifiée.
+            Route::get('inventory-counts', [InventoryCountController::class, 'index'])
+                ->middleware('can:stock.inventory')
+                ->name('api.inventory-counts.index');
+            Route::post('inventory-counts', [InventoryCountController::class, 'store'])
+                ->middleware('can:stock.inventory')
+                ->name('api.inventory-counts.store');
+            Route::get('inventory-counts/{id}', [InventoryCountController::class, 'show'])
+                ->middleware('can:stock.inventory')
+                ->whereUlid('id')
+                ->name('api.inventory-counts.show');
+            Route::patch('inventory-counts/{id}/lines', [InventoryCountController::class, 'record'])
+                ->middleware('can:stock.inventory')
+                ->whereUlid('id')
+                ->name('api.inventory-counts.lines');
+            Route::post('inventory-counts/{id}/complete', [InventoryCountController::class, 'complete'])
+                ->middleware('can:stock.inventory')
+                ->whereUlid('id')
+                ->name('api.inventory-counts.complete');
+            Route::post('inventory-counts/{id}/reopen', [InventoryCountController::class, 'reopen'])
+                ->middleware('can:stock.inventory')
+                ->whereUlid('id')
+                ->name('api.inventory-counts.reopen');
+            Route::post('inventory-counts/{id}/abandon', [InventoryCountController::class, 'abandon'])
+                ->middleware('can:stock.inventory')
+                ->whereUlid('id')
+                ->name('api.inventory-counts.abandon');
+            Route::post('inventory-counts/{id}/validate', [InventoryCountController::class, 'validateCount'])
+                ->middleware(['can:stock.inventory', 'reauthenticated'])
+                ->whereUlid('id')
+                ->name('api.inventory-counts.validate');
+
+            // Alertes de seuil bas et de péremption (L1D03) : lecture avec stock.read, actions avec un droit de gestion du stock.
+            Route::get('stock/alerts', [StockController::class, 'alerts'])
+                ->middleware('can:stock.read')
+                ->name('api.stock.alerts.index');
+            Route::post('stock/alerts/evaluate', [StockController::class, 'evaluateAlerts'])
+                ->middleware('any-permission:stock.adjust,stock.receive,stock.inventory')
+                ->name('api.stock.alerts.evaluate');
+            Route::post('stock/alerts/{id}/acknowledge', [StockController::class, 'acknowledgeAlert'])
+                ->middleware('any-permission:stock.adjust,stock.receive,stock.inventory')
+                ->whereUlid('id')
+                ->name('api.stock.alerts.acknowledge');
+            Route::post('stock/alerts/{id}/resolve', [StockController::class, 'resolveAlert'])
+                ->middleware('any-permission:stock.adjust,stock.receive,stock.inventory')
+                ->whereUlid('id')
+                ->name('api.stock.alerts.resolve');
+        });
+
+        // Atelier optique (L1D04) : module « workshop », droit workshop.manage, en ligne seulement. Commandes labo
+        // liées à une ligne de facture émise et une prescription optique validée du même patient ; bon laboratoire
+        // anonymisé sans prix ni antécédents médicaux.
+        Route::middleware('module:workshop')->group(function (): void {
+            Route::get('workshop-orders', [WorkshopController::class, 'index'])
+                ->middleware('can:workshop.manage')
+                ->name('api.workshop-orders.index');
+            Route::get('workshop-orders/eligible-lines', [WorkshopController::class, 'eligibleLines'])
+                ->middleware('can:workshop.manage')
+                ->name('api.workshop-orders.eligible-lines');
+            Route::post('workshop-orders', [WorkshopController::class, 'store'])
+                ->middleware('can:workshop.manage')
+                ->name('api.workshop-orders.store');
+            Route::get('workshop-orders/{id}', [WorkshopController::class, 'show'])
+                ->middleware('can:workshop.manage')
+                ->whereUlid('id')
+                ->name('api.workshop-orders.show');
+            Route::post('workshop-orders/{id}/advance', [WorkshopController::class, 'advance'])
+                ->middleware('can:workshop.manage')
+                ->whereUlid('id')
+                ->name('api.workshop-orders.advance');
         });
 
         // Agenda interne (S01) et suivis (S02) : module « agenda ». Lecture de l'agenda (agenda.read : gérante, accueil,
@@ -486,14 +660,14 @@ Route::prefix('v1')->group(function (): void {
                 ->name('api.contact-tasks.attempts');
         });
 
-        // Originaux PDF des documents générés (D01) : stockage privé, Policy par famille de document (financière ou
-        // clinique) vérifiée par le contrôleur, module de la famille ouvert (404 sinon).
+        // Originaux PDF des documents générés (D01) : stockage privé, Policy par famille de document (financière,
+        // clinique ou atelier) vérifiée par le contrôleur, module de la famille ouvert (404 sinon).
         Route::post('documents/{id}/content', [DocumentController::class, 'content'])
-            ->middleware('any-permission:invoice.issue,payment.collect,clinical.complete')
+            ->middleware('any-permission:invoice.issue,payment.collect,clinical.complete,workshop.manage')
             ->whereUlid('id')
             ->name('api.documents.content');
         Route::get('documents/{id}/download', [DocumentController::class, 'download'])
-            ->middleware('any-permission:invoice.read,clinical.export')
+            ->middleware('any-permission:invoice.read,clinical.export,workshop.manage')
             ->whereUlid('id')
             ->name('api.documents.download');
 
@@ -507,6 +681,12 @@ Route::prefix('v1')->group(function (): void {
             Route::get('reports/clinical', [StatisticsController::class, 'clinical'])
                 ->middleware('can:statistics.clinical')
                 ->name('api.reports.clinical');
+            Route::get('reports/management', [ManagementReportController::class, 'show'])
+                ->middleware('any-permission:statistics.activity,statistics.clinical,finance.global.read,stock.read,workshop.manage')
+                ->name('api.reports.management.show');
+            Route::get('reports/management/download', [ManagementReportController::class, 'download'])
+                ->middleware('any-permission:statistics.activity,statistics.clinical,finance.global.read,stock.read,workshop.manage')
+                ->name('api.reports.management.download');
         });
 
         // Consultation clinique (C01 à C04) : module « consultations ». Données cliniques : accueil et caisse n'ont
@@ -671,6 +851,229 @@ Route::prefix('v1')->group(function (): void {
                 ->middleware(['can:approval.decide', 'reauthenticated'])
                 ->whereUlid('id')
                 ->name('api.sync.conflicts.resolve');
+        });
+
+        // Intégrations externes, santé, outbox et réconciliation (L2D01 / L2D09).
+        Route::middleware('can:integration.manage')->group(function (): void {
+            Route::get('integrations/health', [IntegrationController::class, 'health'])
+                ->name('api.integrations.health');
+            Route::get('integrations/accounts', [IntegrationController::class, 'accounts'])
+                ->name('api.integrations.accounts.index');
+            Route::post('integrations/accounts', [IntegrationAccountController::class, 'store'])
+                ->middleware('reauthenticated')
+                ->name('api.integrations.accounts.store');
+            Route::patch('integrations/accounts/{id}', [IntegrationAccountController::class, 'update'])
+                ->middleware('reauthenticated')
+                ->whereUlid('id')
+                ->name('api.integrations.accounts.update');
+            Route::post('integrations/accounts/{id}/test', [IntegrationController::class, 'testAccount'])
+                ->whereUlid('id')
+                ->name('api.integrations.accounts.test');
+            Route::get('integrations/outbox', [IntegrationController::class, 'outbox'])
+                ->name('api.integrations.outbox.index');
+            Route::post('integrations/outbox/process', [IntegrationController::class, 'processOutbox'])
+                ->name('api.integrations.outbox.process');
+            Route::get('integrations/webhooks', [WebhookAdminController::class, 'webhooks'])
+                ->name('api.integrations.webhooks.index');
+            Route::post('integrations/reconcile', [WebhookAdminController::class, 'reconcile'])
+                ->name('api.integrations.reconcile');
+        });
+
+        // Synchronisation Google Calendar par ressource (L2D02).
+        Route::get('integrations/google/states', [GoogleCalendarController::class, 'states'])
+            ->middleware('any-permission:integration.manage,agenda.read')
+            ->name('api.integrations.google.states.index');
+        Route::post('integrations/google/states', [CalendarSyncStateController::class, 'store'])
+            ->middleware('can:integration.manage')
+            ->name('api.integrations.google.states.store');
+        Route::post('integrations/google/sync', [GoogleCalendarController::class, 'sync'])
+            ->middleware('any-permission:integration.manage,agenda.write')
+            ->name('api.integrations.google.sync');
+
+        // Communication, réservations publiques, CRM Kommo, base de connaissances et campagnes (L2D02-L2D08).
+        Route::middleware('module:communication')->group(function (): void {
+            Route::get('public-bookings', [PublicBookingController::class, 'index'])
+                ->middleware('any-permission:agenda.read,communication.manage')
+                ->name('api.public-bookings.index');
+            Route::post('public-bookings/{id}/confirm', [PublicBookingDecisionController::class, 'confirm'])
+                ->middleware('can:agenda.write')
+                ->whereUlid('id')
+                ->name('api.public-bookings.confirm');
+            Route::post('public-bookings/{id}/reject', [PublicBookingDecisionController::class, 'reject'])
+                ->middleware('can:agenda.write')
+                ->whereUlid('id')
+                ->name('api.public-bookings.reject');
+
+            // Prospects et miroir Kommo CRM (L2D03).
+            Route::get('crm/prospects', [CrmController::class, 'indexProspects'])
+                ->middleware('any-permission:communication.manage,agenda.read')
+                ->name('api.crm.prospects.index');
+            Route::post('crm/prospects', [CrmCommandController::class, 'storeProspect'])
+                ->middleware('any-permission:communication.manage,agenda.write')
+                ->name('api.crm.prospects.store');
+            Route::patch('crm/prospects/{id}', [CrmCommandController::class, 'updateProspect'])
+                ->middleware('any-permission:communication.manage,agenda.write')
+                ->whereUlid('id')
+                ->name('api.crm.prospects.update');
+            Route::post('crm/prospects/{id}/link-patient', [CrmCommandController::class, 'linkPatient'])
+                ->middleware('any-permission:communication.manage,patient.read')
+                ->whereUlid('id')
+                ->name('api.crm.prospects.link-patient');
+            Route::get('crm/leads', [CrmController::class, 'indexLeads'])
+                ->middleware('can:communication.manage')
+                ->name('api.crm.leads.index');
+            Route::post('crm/leads/sync', [CrmController::class, 'syncLeads'])
+                ->middleware('any-permission:communication.manage,integration.manage')
+                ->name('api.crm.leads.sync');
+            Route::get('crm/conversations', [CrmController::class, 'indexConversations'])
+                ->middleware('can:communication.manage')
+                ->name('api.crm.conversations.index');
+            Route::get('crm/conversations/{id}', [CrmController::class, 'showConversation'])
+                ->middleware('can:communication.manage')
+                ->whereUlid('id')
+                ->name('api.crm.conversations.show');
+
+            // Assistant IA borné et prise en charge humaine (L2D05).
+            Route::post('crm/conversations/{id}/assistant-turn', [AssistantHandoffController::class, 'assistantTurn'])
+                ->middleware('can:communication.manage')
+                ->whereUlid('id')
+                ->name('api.crm.conversations.assistant-turn');
+            Route::post('crm/conversations/{id}/handoff', [CrmCommandController::class, 'handoff'])
+                ->middleware('can:communication.manage')
+                ->whereUlid('id')
+                ->name('api.crm.conversations.handoff');
+            Route::post('crm/conversations/{id}/resume-bot', [CrmCommandController::class, 'resumeBot'])
+                ->middleware('can:communication.manage')
+                ->whereUlid('id')
+                ->name('api.crm.conversations.resume-bot');
+            Route::get('crm/conversations/{id}/handoffs', [AssistantHandoffController::class, 'handoffs'])
+                ->middleware('can:communication.manage')
+                ->whereUlid('id')
+                ->name('api.crm.conversations.handoffs');
+            Route::get('crm/conversations/{id}/runs', [AssistantHandoffController::class, 'runs'])
+                ->middleware('can:communication.manage')
+                ->whereUlid('id')
+                ->name('api.crm.conversations.runs');
+
+            // Base de connaissances gouvernée (L2D04).
+            Route::get('knowledge', [KnowledgeController::class, 'index'])
+                ->middleware('can:communication.manage')
+                ->name('api.knowledge.index');
+            Route::post('knowledge', [KnowledgeController::class, 'store'])
+                ->middleware('can:communication.manage')
+                ->name('api.knowledge.store');
+            Route::post('knowledge/{id}/versions', [KnowledgeController::class, 'storeVersion'])
+                ->middleware('can:communication.manage')
+                ->whereUlid('id')
+                ->name('api.knowledge.versions.store');
+            Route::post('knowledge/versions/{id}/approve', [KnowledgeController::class, 'approveVersion'])
+                ->middleware('can:communication.manage')
+                ->whereUlid('id')
+                ->name('api.knowledge.versions.approve');
+            Route::post('knowledge/versions/{id}/publish', [KnowledgeController::class, 'publishVersion'])
+                ->middleware('can:communication.manage')
+                ->whereUlid('id')
+                ->name('api.knowledge.versions.publish');
+
+            // Consentements, modèles, rappels, envois transactionnels, segments et campagnes (L2D06-L2D08).
+            Route::middleware('can:communication.manage')->group(function (): void {
+                Route::get('communication/consents', [CommunicationController::class, 'listConsents'])
+                    ->name('api.communication.consents.index');
+                Route::post('communication/consents', [CommunicationCommandController::class, 'storeConsent'])
+                    ->name('api.communication.consents.store');
+                Route::post('communication/consents/revoke', [CommunicationCommandController::class, 'revokeConsent'])
+                    ->name('api.communication.consents.revoke');
+
+                Route::get('communication/templates', [CommunicationController::class, 'listTemplates'])
+                    ->name('api.communication.templates.index');
+                Route::post('communication/templates', [CommunicationCommandController::class, 'storeTemplate'])
+                    ->name('api.communication.templates.store');
+                Route::post('communication/templates/{id}/versions', [CommunicationCommandController::class, 'storeTemplateVersion'])
+                    ->whereUlid('id')
+                    ->name('api.communication.templates.versions.store');
+                Route::post('communication/templates/versions/{id}/approve', [CommunicationCommandController::class, 'approveTemplateVersion'])
+                    ->whereUlid('id')
+                    ->name('api.communication.templates.versions.approve');
+
+                Route::get('communication/reminder-policies', [CommunicationController::class, 'listReminderPolicies'])
+                    ->name('api.communication.reminder-policies.index');
+                Route::post('communication/reminder-policies', [CommunicationCommandController::class, 'storeReminderPolicy'])
+                    ->name('api.communication.reminder-policies.store');
+                Route::patch('communication/reminder-policies/{id}', [CommunicationCommandController::class, 'updateReminderPolicy'])
+                    ->whereUlid('id')
+                    ->name('api.communication.reminder-policies.update');
+
+                Route::get('communication/attempts', [CommunicationController::class, 'listAttempts'])
+                    ->name('api.communication.attempts.index');
+                Route::post('communication/tasks/{id}/send', [CommunicationController::class, 'sendTaskMessage'])
+                    ->whereUlid('id')
+                    ->name('api.communication.tasks.send');
+                Route::post('communication/attempts/{id}/reconcile', [CommunicationController::class, 'reconcileAttempt'])
+                    ->whereUlid('id')
+                    ->name('api.communication.attempts.reconcile');
+
+                Route::get('communication/segments', [CampaignController::class, 'listSegments'])
+                    ->name('api.communication.segments.index');
+                Route::post('communication/segments', [CampaignCommandController::class, 'storeSegment'])
+                    ->name('api.communication.segments.store');
+                Route::patch('communication/segments/{id}', [CampaignCommandController::class, 'updateSegment'])
+                    ->whereUlid('id')
+                    ->name('api.communication.segments.update');
+
+                Route::get('communication/campaigns', [CampaignController::class, 'listCampaigns'])
+                    ->name('api.communication.campaigns.index');
+                Route::post('communication/campaigns', [CampaignCommandController::class, 'storeCampaign'])
+                    ->name('api.communication.campaigns.store');
+                Route::post('communication/campaigns/{id}/preview', [CampaignController::class, 'previewCampaign'])
+                    ->whereUlid('id')
+                    ->name('api.communication.campaigns.preview');
+                Route::post('communication/campaigns/{id}/freeze', [CampaignCommandController::class, 'freezeCampaign'])
+                    ->whereUlid('id')
+                    ->name('api.communication.campaigns.freeze');
+                Route::post('communication/campaigns/{id}/execute', [CampaignController::class, 'executeCampaign'])
+                    ->whereUlid('id')
+                    ->name('api.communication.campaigns.execute');
+                Route::post('communication/campaigns/{id}/pause', [CampaignCommandController::class, 'pauseCampaign'])
+                    ->whereUlid('id')
+                    ->name('api.communication.campaigns.pause');
+                Route::get('communication/campaigns/{id}/recipients', [CampaignController::class, 'listRecipients'])
+                    ->whereUlid('id')
+                    ->name('api.communication.campaigns.recipients.index');
+            });
+
+            // Site public (L3D02) : fiches du showroom, images et contenus publics, droit site.publish (gérante). Publier ou
+            // retirer exige une réauthentification récente ; l'image arrive en octets bruts (contrôlés avant écriture).
+            Route::middleware('can:site.publish')->group(function (): void {
+                Route::get('publications', [PublicationController::class, 'index'])
+                    ->name('api.publications.index');
+                Route::post('publications', [PublicationController::class, 'store'])
+                    ->name('api.publications.store');
+                Route::patch('publications/{id}', [PublicationController::class, 'update'])
+                    ->whereUlid('id')
+                    ->name('api.publications.update');
+                Route::post('publications/{id}/status', [PublicationController::class, 'status'])
+                    ->middleware('reauthenticated')
+                    ->whereUlid('id')
+                    ->name('api.publications.status');
+                Route::post('publications/{id}/media', [PublicationController::class, 'attachMedia'])
+                    ->whereUlid('id')
+                    ->name('api.publications.media.store');
+                Route::delete('publications/{id}/media/{mediaId}', [PublicationController::class, 'removeMedia'])
+                    ->whereUlid('id')
+                    ->whereUlid('mediaId')
+                    ->name('api.publications.media.destroy');
+                Route::get('publication-media/{id}', [PublicationController::class, 'mediaFile'])
+                    ->whereUlid('id')
+                    ->name('api.publication-media.show');
+                Route::get('public-contents', [PublicContentController::class, 'index'])
+                    ->name('api.public-contents.index');
+                Route::post('public-contents', [PublicContentController::class, 'store'])
+                    ->name('api.public-contents.store');
+                Route::post('public-contents/{id}/status', [PublicContentController::class, 'status'])
+                    ->middleware('reauthenticated')
+                    ->whereUlid('id')
+                    ->name('api.public-contents.status');
+            });
         });
     });
 });

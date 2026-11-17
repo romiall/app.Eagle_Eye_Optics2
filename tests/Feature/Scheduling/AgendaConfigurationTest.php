@@ -116,4 +116,51 @@ final class AgendaConfigurationTest extends TestCase
             ->assertOk()->assertJsonPath('data.duration_minutes', 25)->assertJsonPath('data.version', 2);
         $this->send($this->manager, 'POST', '/api/v1/agenda/services', ['service_id' => Ulid::generate(), 'duration_minutes' => 2] + $body)->assertStatus(422);
     }
+
+    public function test_une_prestation_s_ouvre_a_la_reservation_en_ligne_par_decision_de_la_gerante(): void
+    {
+        config(['eeo.integrations.default_clinic_id' => $this->clinicId]);
+        $id = Ulid::generate();
+        $uri = "/api/v1/agenda/services/$id";
+        $body = ['expected_version' => null, 'service_id' => $id, 'name' => 'Examen en ligne fictif', 'duration_minutes' => 20, 'active' => true];
+        $publicIds = fn (): array => array_column($this->getJson('/public/v1/services')->assertOk()->json('data'), 'id');
+
+        // Fermée par défaut : le public ne la voit pas, et la réponse respecte le contrat.
+        $created = $this->send($this->manager, 'POST', '/api/v1/agenda/services', $body)->assertCreated()->assertJsonPath('data.public_booking', false);
+        $this->assertMatchesContract($created, 'schemas/resources/scheduling.json#/$defs/AppointmentServiceResponse');
+        $this->assertNotContains($id, $publicIds());
+
+        // Ouverte par la gérante : elle apparaît, avec sa seule identité publique (ni prix, ni donnée clinique).
+        $this->send($this->manager, 'PATCH', $uri, ['expected_version' => 1, 'public_booking' => true] + $body)
+            ->assertOk()->assertJsonPath('data.public_booking', true);
+        $this->assertContains($id, $publicIds());
+        foreach ($this->getJson('/public/v1/services')->json('data') as $row) {
+            $keys = array_keys($row);
+            sort($keys);
+            $this->assertSame(['duration_minutes', 'id', 'name'], $keys);
+        }
+
+        // Un ancien client qui n'envoie pas le champ ne la ferme pas.
+        $this->send($this->manager, 'PATCH', $uri, ['expected_version' => 2, 'duration_minutes' => 25] + $body)
+            ->assertOk()->assertJsonPath('data.public_booking', true)->assertJsonPath('data.duration_minutes', 25);
+
+        // Désactivée, elle quitte le public même ouverte ; réactivée, elle revient.
+        $this->send($this->manager, 'PATCH', $uri, ['expected_version' => 3, 'active' => false] + $body)->assertOk();
+        $this->assertNotContains($id, $publicIds());
+        $this->send($this->manager, 'PATCH', $uri, ['expected_version' => 4] + $body)->assertOk();
+        $this->assertContains($id, $publicIds());
+
+        // Refermée : le public ne la voit plus, et l'audit garde l'avant et l'après.
+        $this->send($this->manager, 'PATCH', $uri, ['expected_version' => 5, 'public_booking' => false] + $body)
+            ->assertOk()->assertJsonPath('data.public_booking', false);
+        $this->assertNotContains($id, $publicIds());
+        $after = json_decode((string) DB::table('audit_events')->where('target_type', 'appointment_services')->where('target_id', $id)
+            ->where('action', 'agenda.service_updated')->orderByDesc('recorded_at')->orderByDesc('id')->value('sanitized_diff'), true);
+        $this->assertTrue($after['before']['public_booking']);
+        $this->assertFalse($after['after']['public_booking']);
+
+        // Un champ qui n'existe pas est refusé (contrat strict).
+        $this->send($this->manager, 'PATCH', $uri, ['expected_version' => 6, 'public_booking' => 'oui'] + $body)->assertStatus(422);
+        $this->send($this->clinician, 'PATCH', $uri, ['expected_version' => 6, 'public_booking' => true] + $body)->assertForbidden();
+    }
 }

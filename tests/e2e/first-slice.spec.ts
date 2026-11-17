@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs'
 
 import { expect, test, type Locator, type Page } from '@playwright/test'
 
+import { retireDevice } from './support/database'
 import {
   api,
   deviceIdByCode,
@@ -122,6 +123,9 @@ test.describe('G1 : tranche urgente persistante et rejouable (AT36 à AT38)', ()
     const reference1 = `MOMO-G1-A-${run}`.toUpperCase()
     const reference2 = `MOMO-G1-B-${run}`.toUpperCase()
     const profile = newProfileDirectory()
+    const deviceCode = `G1-${run}`.toUpperCase()
+    let enrolled = false
+    let released = false
     let context = await openProfile(profile)
 
     try {
@@ -129,12 +133,12 @@ test.describe('G1 : tranche urgente persistante et rejouable (AT36 à AT38)', ()
       await signIn(page, 'MANAGER')
 
       // --- 1. En ligne : poste préparé, facture de 80 000 émise et attribuée au poste ----------------------------
-      const deviceCode = `G1-${run}`.toUpperCase()
       await prepareThisDevice(page, {
         secret: VAULT_SECRET,
         code: deviceCode,
         name: 'Caisse G1 (e2e)',
       })
+      enrolled = true
       const deviceId = await deviceIdByCode(page, deviceCode)
       const { invoicePath, invoiceId } = await issueInvoiceForDevice(page, {
         deviceId,
@@ -225,6 +229,8 @@ test.describe('G1 : tranche urgente persistante et rejouable (AT36 à AT38)', ()
       //  - « ack-lost » : le serveur applique le lot, mais la réponse n'atteint jamais le poste ;
       //  - « open »     : tout passe.
       let pushMode: 'cut' | 'ack-lost' | 'open' = 'cut'
+      let ackLostHandled = false
+      let ackLostStatus = 0
       // Tête du journal du poste, lue dans les lots envoyés : elle sert à rendre les ressources en fin de parcours.
       const journal: { head: { sequence: string; hash: string } | null } = { head: null }
       await context.route('**/api/v1/sync/push', async (route) => {
@@ -241,7 +247,11 @@ test.describe('G1 : tranche urgente persistante et rejouable (AT36 à AT38)', ()
           await route.continue()
           return
         }
-        if (pushMode === 'ack-lost') await route.fetch()
+        if (pushMode === 'ack-lost') {
+          const response = await route.fetch()
+          ackLostStatus = response.status()
+          ackLostHandled = true
+        }
         await route.abort('failed')
       })
       page = await context.newPage()
@@ -271,6 +281,8 @@ test.describe('G1 : tranche urgente persistante et rejouable (AT36 à AT38)', ()
       pushMode = 'ack-lost'
       await page.getByRole('button', { name: 'Synchroniser maintenant' }).click()
       await expect(page.getByText(/Échange impossible pour le moment/).first()).toBeVisible()
+      expect(ackLostHandled, 'le lot a bien atteint le serveur avant la perte d’ACK').toBe(true)
+      expect(ackLostStatus).toBe(200)
 
       const afterLoss = await invoicePayments(page, invoiceId)
       expect(afterLoss.map((payment) => payment.reference).sort()).toEqual(
@@ -349,7 +361,7 @@ test.describe('G1 : tranche urgente persistante et rejouable (AT36 à AT38)', ()
       // Les ressources de ce poste sont rendues (reprise complète) : les parcours suivants préparent leur propre
       // caisse, car une seule caisse hors ligne principale détient les numéros financiers à la fois.
       expect(journal.head, 'tête du journal lue dans les lots envoyés').not.toBeNull()
-      const released = await request.post(`/api/v1/devices/${deviceId}/release`, {
+      const releaseResponse = await request.post(`/api/v1/devices/${deviceId}/release`, {
         headers: { ...headers, 'Idempotency-Key': `e2e-g1-release-${run}` },
         data: {
           expected_version: null,
@@ -358,8 +370,10 @@ test.describe('G1 : tranche urgente persistante et rejouable (AT36 à AT38)', ()
           reason: 'Fin du parcours G1 (e2e)',
         },
       })
-      expect(released.status(), await released.text()).toBe(200)
+      expect(releaseResponse.status(), await releaseResponse.text()).toBe(200)
+      released = true
     } finally {
+      if (enrolled && !released) retireDevice(deviceCode)
       await context.close().catch(() => undefined)
       removeProfileDirectory(profile)
     }

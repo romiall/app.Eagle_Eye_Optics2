@@ -110,7 +110,7 @@ Toute route d'API qui modifie des données est classée et prouvée à l'exécut
 | Tentatives épuisées | `503 SERVER_BUSY` + `Retry-After: 2`, aucune modification ; le client renvoie la même demande avec la même clé |
 | Attente de verrou dépassée (1205) | Pas de relance interne (trois attentes de plusieurs secondes dépasseraient le délai de la requête) : `503 SERVER_BUSY` |
 | Délai de verrou | `innodb_lock_wait_timeout` de la session fixé à `eeo.transactions.lock_wait_timeout_seconds` (10 s par défaut, variable `EEO_LOCK_WAIT_TIMEOUT`) |
-| Transaction imbriquée | Refusée hors des tests (`LogicException`) : une relance sur interblocage ne rejouerait que le point de sauvegarde |
+| Transaction imbriquée | `run()` la refuse hors des tests (`LogicException`) : une relance sur interblocage ne rejouerait que le point de sauvegarde. Un service du domaine appelé À LA FOIS par une action du bus et par une tâche utilise `joinOrRun()` : dans une unité de travail déjà ouverte par l'exécuteur il s'y joint (l'interblocage remonte à l'unité extérieure, qui rejoue TOUT), sans elle il se comporte comme `run()` |
 
 ## Ajouter une commande (liste de contrôle)
 
@@ -125,6 +125,50 @@ Toute route d'API qui modifie des données est classée et prouvée à l'exécut
 `CreateStaffMember`, `UpdateStaffMember`, `SetStaffPermissionOverride`, `ResetStaffPassword` et `UpdateClinicSettings` conservent leur signature (contrôleurs, scénarios de concurrence et tests de F05 inchangés) mais ne sont plus que des **façades** : validation de la saisie et hachage du mot de passe hors transaction, puis `CommandBus::dispatch`. Leurs règles vivent dans `app/Domain/Access/Handlers/` et s'exécutent sous le verrou du cabinet. Ce sont des opérations en ligne seulement : pas de schéma dans `contracts/commands/`, pas de clé d'idempotence imposée (la version attendue et l'unicité de `login` et `email` en tiennent lieu ; le contrat F06 les déclare `x-idempotency: none`).
 
 La connexion, le changement de son propre mot de passe, la mise en service, la procédure de secours et les comptes de démonstration gardent leur logique (verrou partagé du cabinet, audit d'échec sans auteur, saisie console) mais ouvrent leur transaction par `TransactionRunner`, comme tout le reste.
+
+## La couche L2 sur le chemin central (2026-11-15)
+
+**Constat.** Les écritures de la couche L2 (intégrations, CRM, base de connaissances, communication, réservations
+publiques) avaient été écrites avec leur propre mécanique : chaque service prenait lui-même le verrou du cabinet, réservait
+et rejouait la clé d'idempotence et écrivait son audit, derrière des contrôleurs qui ne passaient pas par
+`CommandController`. C'était un SECOND chemin, que F07 interdit, et `MutationRoutesTest` l'a relevé (36 routes hors du bus).
+
+**Décision.** Chaque route d'écriture de DONNÉES passe par le bus, une commande par intention (22 noms, 11 actions) :
+
+| Famille | Commandes | Droit (l'un suffit) |
+| --- | --- | --- |
+| Compte d'intégration | `SaveIntegrationAccount` | `integration.manage` (+ réauthentification récente, middleware) |
+| Google Agenda, réservations publiques | `SaveCalendarSyncState`, `ConfirmPublicBooking`, `RejectPublicBooking` | `integration.manage` ; `agenda.write` |
+| CRM | `SaveProspectContact`, `LinkProspectPatient`, `HandoffConversation`, `ResumeConversationBot` | `communication.manage` ou `agenda.write` ; `communication.manage` ou `patient.read` ; `communication.manage` |
+| Base de connaissances | `SaveKnowledgeEntry`, `CreateKnowledgeVersion`, `ApproveKnowledgeVersion`, `PublishKnowledgeVersion` | `communication.manage` (l'approbation exige en plus `knowledge.manage`, jugé par le service) |
+| Communication | `RecordConsent`, `RevokeConsent`, `SaveMessageTemplate`, `CreateMessageTemplateVersion`, `ApproveMessageTemplateVersion`, `SaveReminderPolicy`, `SaveAudienceSegment`, `SaveCampaign`, `FreezeCampaign`, `PauseCampaign` | `communication.manage` |
+
+- **Une action = `ServiceCommandHandler`** (`app/Application/`) : elle valide le corps contre la requête HTTP du contrat, appelle le
+  service du domaine EXISTANT sans clé d'idempotence (c'est le bus qui rejoue une réponse perdue) et rend `['id' => …]`.
+  Jamais une ligne entière : une ligne peut porter un secret ou une destination chiffrée, que la ligne d'idempotence
+  conserverait. Le contrôleur relit l'agrégat pour répondre. Les services gardent leur audit.
+- **Routes inchangées** : mêmes adresses, mêmes corps, mêmes réponses. Ce qui change : la clé `Idempotency-Key` (8 à 128 caractères,
+  l'écran l'envoie déjà partout) est jugée par le bus, le droit est relu sous le verrou du cabinet, et la clé d'une
+  même intention avec un autre contenu est `409 IDEMPOTENCY_PAYLOAD_MISMATCH`.
+- **`TransactionRunner::joinOrRun()`** : les services L2 sont aussi appelés par des tâches (consommateurs d'outbox, webhooks) :
+  dans une action du bus ils se joignent à sa transaction, hors du bus ils ouvrent la leur.
+- **Preuve** : `MutationRoutesTest` (aucune route d'écriture non classée), `L2CommandsOnBusTest` (registre, verrou du cabinet,
+  rejeu, contenu différent, clé manquante, droit refusé), `CentralPathGuardTest` (inchangé : aucune transaction hors de l'exécuteur,
+  aucun effet externe dans le domaine, tout gestionnaire enregistré).
+
+### Opérations à appel fournisseur
+
+Neuf routes ne sont PAS des commandes, parce qu'aucune action du bus ne peut appeler Google, Kommo ou la messagerie (« aucun
+effet externe dans la transaction ») : sonde de connexion d'un compte, traitement de l'outbox, rattrapage des événements,
+synchronisation Google, synchronisation des leads Kommo, tour de l'assistant, envoi d'un message, rattrapage d'une
+tentative, exécution d'une campagne. Chacune s'exécute en DEUX transactions (`TransactionRunner`) autour de l'appel. Celles qui envoient ou que l'on rejoue (envoi d'un message, rattrapage d'une tentative, exécution d'une campagne, synchronisation Google, tour de l'assistant) tiennent leur PROPRE idempotence (clé obligatoire, même table `idempotency_requests`) et ne renvoient jamais à l'aveugle un message dont le résultat est inconnu ni ne dupliquent un tour ou un handoff ; l'écran conserve la même clé d'idempotence sur reprise réseau. La synchronisation des leads, le traitement de l'outbox et le rattrapage sont sûrs à répéter (clé externe ou événement déjà traité). Elles sont nommées une à une dans `MutationRoutesTest::PROVIDER_OPERATION_ROUTES` (jamais une famille de routes) ; `OperationRoutesGuardTest` prouve qu'elles exigent un compte et un droit, qu'aucun appel au fournisseur ou au moteur externe (`LimitedAssistant`) n'est écrit dans la fonction d'une transaction, et que le garde reconnaît un appel mal placé. L'aperçu d'une campagne (`campaigns/{id}/preview`) est une LECTURE portée par un POST : `CampaignsTest` prouve qu'il n'émet aucune instruction d'écriture.
+
+### Entrées publiques sans compte
+
+Le dépôt d'une demande de réservation par un visiteur (`POST /public/v1/booking-requests`) et les webhooks entrants ne sont pas
+des commandes PAR NATURE : aucun compte, donc aucun acteur ni droit à relire. Ils se protègent par leur limite de débit, leur
+clé d'idempotence propre, la vérification de signature (webhooks) et le verrou du cabinet que le service prend lui-même.
+`MutationRoutesTest` ne les voit pas (préfixe `public/`) : cette limite est documentée ici, pas masquée.
 
 ## Consultation de l'audit
 

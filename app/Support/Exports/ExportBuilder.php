@@ -2,7 +2,12 @@
 
 namespace App\Support\Exports;
 
+use App\Domain\Access\EffectivePermissions;
+use App\Domain\Billing\Reports\ReportPeriod;
 use App\Domain\Operations\ExportPlan;
+use App\Domain\Shared\DayWindow;
+use App\Models\Clinic;
+use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
@@ -11,25 +16,61 @@ use stdClass;
 use ZipArchive;
 
 /**
- * Production de l'archive d'un export contrôlé (X02) : un fichier CSV par table (séparateur « ; », UTF-8 avec BOM,
- * lisible par un tableur), le dictionnaire des colonnes tiré du catalogue du schéma, un manifeste (lignes et
- * empreinte SHA-256 de chaque fichier) et, pour la seule remise complète, les pièces privées. Écrite sur le disque
- * PRIVÉ (storage/app/private/exports), jamais servie directement. Hors du domaine : lectures et fichiers sont des
- * effets externes, appelés par la tâche planifiée `eeo:exports:process`.
+ * Production de l'archive d'un export contrôlé (X02 / L1D09) : un fichier CSV par table (séparateur « ; »,
+ * UTF-8 avec BOM, lisible par un tableur), filtrage par période et portée de profil sans escalade, le dictionnaire
+ * des colonnes tiré du catalogue du schéma, un manifeste complet (lignes, mode de filtrage, exclusions et SHA-256)
+ * et, pour la seule remise complète, les pièces privées.
  */
 final class ExportBuilder
 {
     private const DELIMITER = ';';
 
+    public function __construct(private readonly EffectivePermissions $permissions) {}
+
     /**
-     * @return array{relative_path: string, sha256: string, size: int, tables: int}
+     * @return array{relative_path: string, sha256: string, size: int, tables: int, manifest: array<string, mixed>}
      */
     public function build(stdClass $request): array
     {
         $catalog = $this->catalog();
         $clinicId = (string) $request->clinic_id;
         $type = (string) $request->export_type;
-        $tables = ExportPlan::tables($type, array_keys(array_filter($catalog, static fn (array $table): bool => $table['clinic'])));
+        $clinic = Clinic::query()->find($clinicId);
+        $timezone = $clinic !== null && $clinic->timezone !== '' ? (string) $clinic->timezone : 'Africa/Douala';
+        $clinicName = $clinic !== null ? (string) $clinic->name : 'Cabinet';
+        $currency = $clinic !== null ? (string) $clinic->currency : 'XAF';
+
+        /** @var array{from?: string|null, to?: string|null, scope_role?: string|null}|null $decodedFilters */
+        $decodedFilters = $request->filters === null ? null : json_decode((string) $request->filters, true);
+        $requester = User::query()->where('clinic_id', $clinicId)->find((string) $request->requested_by);
+        $requesterName = $requester !== null ? (string) $requester->display_name : 'Compte';
+        $actorPermissions = $requester !== null ? $this->permissions->for($requester) : [];
+        $scopeRole = is_array($decodedFilters) && is_string($decodedFilters['scope_role'] ?? null)
+            ? $decodedFilters['scope_role']
+            : null;
+        $effectiveScope = $scopeRole !== null
+            ? array_values(array_intersect($actorPermissions, ExportPlan::rolePermissions($scopeRole)))
+            : $actorPermissions;
+        sort($effectiveScope);
+
+        $periodWindow = null;
+        if (is_array($decodedFilters) && (($decodedFilters['from'] ?? null) !== null || ($decodedFilters['to'] ?? null) !== null)) {
+            $nowPeriod = ReportPeriod::resolve(
+                $timezone,
+                CarbonImmutable::now('UTC'),
+                $decodedFilters['from'] ?? null,
+                $decodedFilters['to'] ?? null,
+            );
+            $periodWindow = [
+                'from' => $nowPeriod->from->toString(),
+                'to' => $nowPeriod->to->toString(),
+                'start' => DayWindow::utc($nowPeriod->from, $timezone)[0],
+                'end' => DayWindow::utc($nowPeriod->to, $timezone)[1],
+            ];
+        }
+
+        $plannedTables = ExportPlan::tables($type, array_keys(array_filter($catalog, static fn (array $table): bool => $table['clinic'])));
+        ['included' => $tables, 'excluded' => $excludedTables] = ExportPlan::tablePartition($plannedTables, $effectiveScope);
 
         $relative = 'exports/'.$clinicId.'/'.$request->id.'.zip';
         $absolute = storage_path('app/private/'.$relative);
@@ -42,21 +83,28 @@ final class ExportBuilder
             throw new RuntimeException('Archive impossible à créer.');
         }
 
-        $filters = $this->recordFilters($clinicId, $type, $request->patient_id === null ? null : (string) $request->patient_id);
+        $recordFilters = $this->recordFilters($clinicId, $type, $request->patient_id === null ? null : (string) $request->patient_id);
         $manifestTables = [];
         foreach ($tables as $table) {
-            $columns = ExportPlan::exportedColumns($table, $catalog[$table]['columns']);
-            [$csv, $rows] = $this->tableCsv($clinicId, $table, $columns, $type, $filters);
+            $columns = ExportPlan::exportedColumnsFor($table, $catalog[$table]['columns'], $effectiveScope);
+            [$csv, $rows, $filterMode, $dateColumn] = $this->tableCsv($clinicId, $table, $columns, $type, $recordFilters, $periodWindow);
             $name = 'donnees/'.$table.'.csv';
             $zip->addFromString($name, $csv);
-            $manifestTables[] = ['file' => $name, 'table' => $table, 'rows' => $rows, 'sha256' => hash('sha256', $csv)];
+            $manifestTables[] = [
+                'table' => $table,
+                'file' => $name,
+                'rows' => $rows,
+                'sha256' => hash('sha256', $csv),
+                'filter_mode' => $filterMode,
+                'date_column' => $dateColumn,
+            ];
         }
 
         $dictionary = $this->dictionary($catalog, $tables);
         $zip->addFromString('dictionnaire.csv', $dictionary);
 
         $files = 0;
-        if (ExportPlan::includesFiles($type)) {
+        if (ExportPlan::includesFiles($type) && in_array('audit.read', $effectiveScope, true)) {
             foreach (DB::table('stored_files')->where('clinic_id', $clinicId)->whereNull('archived_at')->orderBy('id')->get(['id', 'private_path']) as $file) {
                 $path = storage_path('app/private/'.$file->private_path);
                 if (is_file($path)) {
@@ -66,17 +114,33 @@ final class ExportBuilder
             }
         }
 
+        $now = CarbonImmutable::now('UTC');
         $manifest = [
             'export_id' => (string) $request->id,
             'export_type' => $type,
+            'patient_id' => $request->patient_id === null ? null : (string) $request->patient_id,
             'clinic_id' => $clinicId,
-            'patient_id' => $request->patient_id,
+            'clinic_name' => $clinicName,
             'requested_by' => (string) $request->requested_by,
-            'generated_at' => CarbonImmutable::now('UTC')->format('Y-m-d\TH:i:s.v\Z'),
+            'requested_by_name' => $requesterName,
+            'generated_at' => $now->format('Y-m-d\TH:i:s.v\Z'),
+            'expires_at' => $now->addHours(ExportPlan::RETENTION_HOURS)->format('Y-m-d\TH:i:s.v\Z'),
+            'archive_status' => 'READY',
+            'filters' => $decodedFilters,
+            'scope_permissions' => $effectiveScope,
+            'checksum_algorithm' => 'SHA-256',
+            'archive_sha256' => null,
+            'provenance' => [
+                'source' => 'eeo.export_builder.v1',
+                'timezone' => $timezone,
+                'currency' => $currency,
+                'manifest_preserved' => true,
+                'note' => 'Export du serveur : les opérations non synchronisées d\'un poste hors ligne en sont exclues ; le manifeste reste conservé au journal d\'audit après expiration 48 h du fichier ZIP.',
+            ],
+            'excluded_tables' => $excludedTables,
             'tables' => $manifestTables,
             'files' => $files,
             'dictionary' => ['file' => 'dictionnaire.csv', 'sha256' => hash('sha256', $dictionary)],
-            'notice' => 'Export du serveur : les saisies encore en attente sur un poste hors ligne ne s\'y trouvent pas tant qu\'elles ne sont pas synchronisées.',
         ];
         $zip->addFromString('manifeste.json', (string) json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
         $zip->addFromString('LISEZMOI.txt', $this->readme($type));
@@ -88,8 +152,10 @@ final class ExportBuilder
         if ($hash === false) {
             throw new RuntimeException('Empreinte de l\'archive impossible à calculer.');
         }
+        $manifest['archive_sha256'] = $hash;
+        unset($manifest['files'], $manifest['dictionary']);
 
-        return ['relative_path' => $relative, 'sha256' => $hash, 'size' => (int) filesize($absolute), 'tables' => count($tables)];
+        return ['relative_path' => $relative, 'sha256' => $hash, 'size' => (int) filesize($absolute), 'tables' => count($tables), 'manifest' => $manifest];
     }
 
     /**
@@ -148,9 +214,10 @@ final class ExportBuilder
     /**
      * @param  list<string>  $columns
      * @param  array{patient: list<string>, consultation: list<string>, history: list<string>, prescription: list<string>}|null  $filters
-     * @return array{0: string, 1: int}
+     * @param  array{from: string, to: string, start: string, end: string}|null  $periodWindow
+     * @return array{0: string, 1: int, 2: string, 3: string|null}
      */
-    private function tableCsv(string $clinicId, string $table, array $columns, string $type, ?array $filters): array
+    private function tableCsv(string $clinicId, string $table, array $columns, string $type, ?array $filters, ?array $periodWindow): array
     {
         $stream = fopen('php://temp', 'w+');
         if ($stream === false) {
@@ -160,13 +227,42 @@ final class ExportBuilder
         fputcsv($stream, $columns, self::DELIMITER, '"', '');
 
         $query = DB::table($table)->where('clinic_id', $clinicId)->select($columns);
+        $filterMode = 'SNAPSHOT_MASTER';
+        $dateColumn = null;
+
         if ($type === 'PATIENT_RECORD') {
+            $filterMode = 'PATIENT_SCOPED';
             $filter = ExportPlan::recordFilter($table);
             $ids = $filter === null || $filters === null ? [] : $filters[$filter['source']];
             if ($filter === null || $ids === []) {
                 $query->whereRaw('1 = 0');
             } else {
                 $query->whereIn($filter['column'], $ids);
+                $dateColumn = $filter['column'];
+            }
+        } elseif ($periodWindow !== null) {
+            $rule = ExportPlan::periodRuleFor($table);
+            if ($rule !== null) {
+                $filterMode = 'PERIOD_FILTERED';
+                $dateColumn = $rule['column'];
+                if ($rule['kind'] === 'timestamp') {
+                    $query->where($rule['column'], '>=', $periodWindow['start'])->where($rule['column'], '<', $periodWindow['end']);
+                } elseif ($rule['kind'] === 'civil_date') {
+                    $query->where($rule['column'], '>=', $periodWindow['from'])->where($rule['column'], '<=', $periodWindow['to']);
+                } elseif ($rule['kind'] === 'parent' && isset($rule['parent'])) {
+                    $parentTable = $rule['parent'];
+                    $parentRule = ExportPlan::periodRuleFor($parentTable);
+                    if ($parentRule !== null && $parentRule['kind'] === 'timestamp') {
+                        $dateColumn = $parentTable.'.'.$parentRule['column'];
+                        $query->whereIn($rule['column'], static function (Builder $sub) use ($clinicId, $parentTable, $parentRule, $periodWindow): void {
+                            $sub->select('id')
+                                ->from($parentTable)
+                                ->where('clinic_id', $clinicId)
+                                ->where($parentRule['column'], '>=', $periodWindow['start'])
+                                ->where($parentRule['column'], '<', $periodWindow['end']);
+                        });
+                    }
+                }
             }
         }
         if (in_array('id', $columns, true)) {
@@ -187,7 +283,7 @@ final class ExportBuilder
         $csv = (string) stream_get_contents($stream);
         fclose($stream);
 
-        return [$csv, $rows];
+        return [$csv, $rows, $filterMode, $dateColumn];
     }
 
     /**

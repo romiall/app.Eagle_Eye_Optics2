@@ -49,7 +49,10 @@ const props = withDefaults(defineProps<{ invoice: Invoice; local?: boolean }>(),
   local: false,
 })
 
-const emit = defineEmits<{ reload: [] }>()
+const emit = defineEmits<{
+  reload: []
+  recorded: [update: { balance: Invoice['balance']; ledgerVersion: number }]
+}>()
 
 const canCollect = computed(() => canOnScreen('payment.collect') || canOnScreen('exam_fee.collect'))
 const canReadCash = computed(() => canOnScreen('cash.own_session'))
@@ -160,10 +163,18 @@ const otherPayments = computed(() =>
   props.invoice.payments.filter((payment) => payment.status !== 'CONFIRMED'),
 )
 
-function onRecorded(receipt: { receiptId: string; receiptNumber: string | null }): void {
+function onRecorded(receipt: {
+  receiptId: string
+  receiptNumber: string | null
+  balance?: Invoice['balance']
+  ledgerVersion?: number
+}): void {
   lastReceiptId.value = receipt.receiptId
   lastReceiptNumber.value = receipt.receiptNumber
   showPaymentForm.value = false
+  if (receipt.balance !== undefined && receipt.ledgerVersion !== undefined) {
+    emit('recorded', { balance: receipt.balance, ledgerVersion: receipt.ledgerVersion })
+  }
   emit('reload')
   void cash.reload()
 }

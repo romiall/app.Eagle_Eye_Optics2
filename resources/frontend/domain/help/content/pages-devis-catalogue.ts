@@ -565,7 +565,7 @@ export const PAGES_DEVIS_CATALOGUE: readonly PageHelp[] = [
     tips: [
       'L’application ne propose aucun prix : saisissez ceux du cabinet. Les données de démonstration sont fictives.',
       'L’examen de vue se crée comme une prestation : catégorie « Prestation / examen », unité « Prestation » et mode « Sans stock (prestation) ».',
-      'La case « Visible sur le site public (lot suivant) » annonce une fonction d’un lot suivant : elle n’a pas d’effet visible aujourd’hui.',
+      'La case « Visible sur le site public » autorise une fiche du showroom pour cet article ; la fiche se prépare dans « Site public : showroom et contenus ».',
       'Le coût d’achat n’apparaît qu’avec le droit de lire les coûts d’achat, que seule la gérante détient dans la configuration d’origine.',
       'Les devis déjà émis gardent leurs prix : une révision figée ne suit pas le catalogue, et la conversion en facture montre l’écart.',
     ],

@@ -511,13 +511,13 @@ export type WorkshopOrderEyesEye = ("OD" | "OG")
  */
 export type WorkshopOrdersStatus = ("ORDERED" | "RECEIVED" | "MOUNTING" | "QUALITY_CHECK" | "READY" | "DELIVERED" | "CANCELLED")
 /**
- * Codes du fichier 08 et compléments documentés (F05). Un nouveau code s'ajoute ici avec sa route. STATE_TRANSITION_REFUSED (409) : l'état actuel de la ressource ne permet pas l'opération (consultation déjà démarrée, visite non démarrable, consultation terminée) ; details.current_status porte ce statut. MODULE_NOT_ENABLED (409, O05) : la commande d'un poste relève d'un module fermé par le déploiement (EEO_ENABLED_MODULES) ; elle n'est jamais appliquée, elle reste dans l'inbox du serveur en conflit durable (CONFLICT_REQUIRES_REVIEW), et ne se rejoue qu'une fois le module ouvert, sur décision motivée de la gérante.
+ * Codes du fichier 08 et compléments documentés (F05, L2). Un nouveau code s'ajoute ici avec sa route. STATE_TRANSITION_REFUSED (409) : l'état actuel de la ressource ne permet pas l'opération (consultation déjà démarrée, visite non démarrable, consultation terminée) ; details.current_status porte ce statut. MODULE_NOT_ENABLED (409, O05) : la commande d'un poste relève d'un module fermé par le déploiement (EEO_ENABLED_MODULES) ; elle n'est jamais appliquée, elle reste dans l'inbox du serveur en conflit durable (CONFLICT_REQUIRES_REVIEW), et ne se rejoue qu'une fois le module ouvert, sur décision motivée de la gérante. INTEGRATION_UNAVAILABLE (503, L2) : connecteur externe indisponible ou injoignable. ASSISTANT_DISABLED (503, L2) : assistant automatisé désactivé pour le cabinet. KNOWLEDGE_CODE_EXISTS (409, L2) : une fiche de connaissance utilise déjà ce code dans ce cabinet.
  */
-export type ErrorCode = ("AUTH_REQUIRED" | "SESSION_CONTEXT_EXPIRED" | "SESSION_REQUIRED" | "ACTION_FORBIDDEN" | "RESOURCE_NOT_FOUND" | "METHOD_NOT_ALLOWED" | "VERSION_CONFLICT" | "STATE_TRANSITION_REFUSED" | "PAYMENT_EXCEEDS_BALANCE" | "STOCK_UNAVAILABLE" | "IDEMPOTENCY_PAYLOAD_MISMATCH" | "SLOT_UNAVAILABLE" | "VALIDATION_FAILED" | "EXAM_PAYMENT_REQUIRED" | "APPROVAL_REQUIRED_OR_EXPIRED" | "REAUTHENTICATION_REQUIRED" | "LOT_EXPIRED" | "RATE_LIMITED" | "DEPENDENCY_UNAVAILABLE" | "CLINIC_NOT_CONFIGURED" | "CLINIC_ALREADY_SET_UP" | "LAST_MANAGER_REQUIRED" | "MANAGER_RESET_REQUIRES_CONSOLE" | "SELF_DEACTIVATION_FORBIDDEN" | "SELF_OVERRIDE_FORBIDDEN" | "SELF_RESET_FORBIDDEN" | "SELF_ROLE_CHANGE_FORBIDDEN" | "WRITE_OWNER_REQUIRED" | "NUMBER_RANGE_EXHAUSTED" | "GRANT_EXPIRED_OR_REVOKED" | "AUTHORIZATION_REVIEW_REQUIRED" | "SYNC_INTEGRITY_FAILED" | "SYNC_SEQUENCE_GAP" | "SYNC_INCOMPLETE" | "NUMBER_RANGE_INVALID" | "DEPENDENCY_REJECTED" | "FINANCIAL_DEVICE_ELSEWHERE" | "DEVICE_REPLACED" | "PAYLOAD_TOO_LARGE" | "SERVER_BUSY" | "MODULE_NOT_ENABLED" | "HTTP_ERROR" | "INTERNAL_ERROR")
+export type ErrorCode = ("AUTH_REQUIRED" | "SESSION_CONTEXT_EXPIRED" | "SESSION_REQUIRED" | "ACTION_FORBIDDEN" | "RESOURCE_NOT_FOUND" | "METHOD_NOT_ALLOWED" | "VERSION_CONFLICT" | "STATE_TRANSITION_REFUSED" | "PAYMENT_EXCEEDS_BALANCE" | "STOCK_UNAVAILABLE" | "IDEMPOTENCY_PAYLOAD_MISMATCH" | "SLOT_UNAVAILABLE" | "VALIDATION_FAILED" | "EXAM_PAYMENT_REQUIRED" | "APPROVAL_REQUIRED_OR_EXPIRED" | "REAUTHENTICATION_REQUIRED" | "LOT_EXPIRED" | "RATE_LIMITED" | "DEPENDENCY_UNAVAILABLE" | "CLINIC_NOT_CONFIGURED" | "CLINIC_ALREADY_SET_UP" | "LAST_MANAGER_REQUIRED" | "MANAGER_RESET_REQUIRES_CONSOLE" | "SELF_DEACTIVATION_FORBIDDEN" | "SELF_OVERRIDE_FORBIDDEN" | "SELF_RESET_FORBIDDEN" | "SELF_ROLE_CHANGE_FORBIDDEN" | "WRITE_OWNER_REQUIRED" | "NUMBER_RANGE_EXHAUSTED" | "GRANT_EXPIRED_OR_REVOKED" | "AUTHORIZATION_REVIEW_REQUIRED" | "SYNC_INTEGRITY_FAILED" | "SYNC_SEQUENCE_GAP" | "SYNC_INCOMPLETE" | "NUMBER_RANGE_INVALID" | "DEPENDENCY_REJECTED" | "FINANCIAL_DEVICE_ELSEWHERE" | "DEVICE_REPLACED" | "PAYLOAD_TOO_LARGE" | "SERVER_BUSY" | "MODULE_NOT_ENABLED" | "INTEGRATION_UNAVAILABLE" | "ASSISTANT_DISABLED" | "KNOWLEDGE_CODE_EXISTS" | "HTTP_ERROR" | "INTERNAL_ERROR")
 /**
  * Contenu exact de l'opération à approuver ; la nature (kind) fixe l'action, la cible et les champs.
  */
-export type ApprovalSubject = (ExamFeeWaiverSubject | DraftLineRightsSubject | PaymentReversalSubject | CreditNoteSubject | RefundSubject | CreditDeliverySubject | StockMovementSubject | CashMovementSubject)
+export type ApprovalSubject = (ExamFeeWaiverSubject | DraftLineRightsSubject | PaymentReversalSubject | CreditNoteSubject | RefundSubject | CreditDeliverySubject | StockMovementSubject | CashMovementSubject | CampaignSendSubject)
 /**
  * Élément de l'activité, distingué par type.
  */
@@ -549,7 +549,7 @@ export type CommandName = ("CreatePatient" | "UpdatePatient" | "RegisterVisit" |
 /**
  * Événements de la version 1 (fichier 08).
  */
-export type EventType = ("PatientCreated" | "ConsultationCompleted" | "PrescriptionValidated" | "FollowUpScheduled" | "AppointmentConfirmed" | "AppointmentRescheduled" | "AppointmentCancelled" | "InvoiceIssued" | "PaymentConfirmed" | "CreditNoteIssued" | "DeliveryConfirmed" | "StockThresholdCrossed" | "WorkshopReady")
+export type EventType = ("PatientCreated" | "ConsultationCompleted" | "PrescriptionValidated" | "FollowUpScheduled" | "AppointmentConfirmed" | "AppointmentRescheduled" | "AppointmentCancelled" | "InvoiceIssued" | "PaymentConfirmed" | "CreditNoteIssued" | "DeliveryConfirmed" | "StockThresholdCrossed" | "WorkshopReady" | "AppointmentNoShow" | "PublicBookingRequested" | "HumanHandoffRequested" | "CampaignCompleted")
 
 export interface ContractTypes {
 SchemasClinicalStepsJsonAnamnesis?: Anamnesis
@@ -718,6 +718,9 @@ SchemasRequestsHttpJsonCatalogImportRequest?: CatalogImportRequest
 SchemasRequestsHttpJsonStoreDocumentContentCommand?: StoreDocumentContentCommand
 SchemasRequestsHttpJsonLegacyBalanceImportRequest?: LegacyBalanceImportRequest
 SchemasRequestsHttpJsonStoreLegacyEvidenceCommand?: StoreLegacyEvidenceCommand
+SchemasRequestsHttpJsonStoreStatementEvidenceCommand?: StoreStatementEvidenceCommand
+SchemasRequestsHttpJsonSavePaymentReconciliationRequest?: SavePaymentReconciliationRequest
+SchemasRequestsHttpJsonValidatePaymentReconciliationRequest?: ValidatePaymentReconciliationRequest
 SchemasRequestsHttpJsonTaxRuleRequest?: TaxRuleRequest
 SchemasRequestsHttpJsonCreateQuoteDraftRequest?: CreateQuoteDraftRequest
 SchemasRequestsHttpJsonUpdateQuoteDraftRequest?: UpdateQuoteDraftRequest
@@ -736,6 +739,19 @@ SchemasRequestsHttpJsonCancelFollowUpRequest?: CancelFollowUpRequest
 SchemasRequestsHttpJsonDeleteConsultationDraftRequest?: DeleteConsultationDraftRequest
 SchemasRequestsHttpJsonCancelVisitRequest?: CancelVisitRequest
 SchemasRequestsHttpJsonOpeningStockRequest?: OpeningStockRequest
+SchemasRequestsHttpJsonSupplierRequest?: SupplierRequest
+SchemasRequestsHttpJsonGoodsReceiptDraftRequest?: GoodsReceiptDraftRequest
+SchemasRequestsHttpJsonValidateGoodsReceiptRequest?: ValidateGoodsReceiptRequest
+SchemasRequestsHttpJsonOpenInventoryCountRequest?: OpenInventoryCountRequest
+SchemasRequestsHttpJsonRecordInventoryCountsRequest?: RecordInventoryCountsRequest
+SchemasRequestsHttpJsonInventoryCountActionRequest?: InventoryCountActionRequest
+SchemasRequestsHttpJsonAbandonInventoryCountRequest?: AbandonInventoryCountRequest
+SchemasRequestsHttpJsonValidateInventoryCountRequest?: ValidateInventoryCountRequest
+SchemasRequestsHttpJsonDeleteGoodsReceiptDraftRequest?: DeleteGoodsReceiptDraftRequest
+SchemasRequestsHttpJsonEvaluateStockAlertsRequest?: EvaluateStockAlertsRequest
+SchemasRequestsHttpJsonStockAlertActionRequest?: StockAlertActionRequest
+SchemasRequestsHttpJsonCreateWorkshopOrderRequest?: CreateWorkshopOrderRequest
+SchemasRequestsHttpJsonAdvanceWorkshopOrderRequest?: AdvanceWorkshopOrderRequest
 SchemasRequestsHttpJsonEnrollDeviceRequest?: EnrollDeviceRequest
 SchemasRequestsHttpJsonIssueOfflineGrantRequest?: IssueOfflineGrantRequest
 SchemasRequestsHttpJsonRevokeDeviceRequest?: RevokeDeviceRequest
@@ -747,6 +763,37 @@ SchemasRequestsHttpJsonReconcileReplacementRequest?: ReconcileReplacementRequest
 SchemasRequestsHttpJsonConflictResolutionRequest?: ConflictResolutionRequest
 SchemasRequestsHttpJsonCreateExportRequest?: CreateExportRequest
 SchemasRequestsHttpJsonBookingRequest?: BookingRequest
+SchemasRequestsHttpJsonSaveIntegrationAccountRequest?: SaveIntegrationAccountRequest
+SchemasRequestsHttpJsonUpdateIntegrationAccountRequest?: UpdateIntegrationAccountRequest
+SchemasRequestsHttpJsonProcessOutboxRequest?: ProcessOutboxRequest
+SchemasRequestsHttpJsonSaveCalendarSyncStateRequest?: SaveCalendarSyncStateRequest
+SchemasRequestsHttpJsonCalendarSyncRunRequest?: CalendarSyncRunRequest
+SchemasRequestsHttpJsonDecidePublicBookingRequest?: DecidePublicBookingRequest
+SchemasRequestsHttpJsonSaveProspectContactRequest?: SaveProspectContactRequest
+SchemasRequestsHttpJsonUpdateProspectContactRequest?: UpdateProspectContactRequest
+SchemasRequestsHttpJsonLinkProspectPatientRequest?: LinkProspectPatientRequest
+SchemasRequestsHttpJsonSyncCrmLeadsRequest?: SyncCrmLeadsRequest
+SchemasRequestsHttpJsonSaveKnowledgeEntryRequest?: SaveKnowledgeEntryRequest
+SchemasRequestsHttpJsonCreateKnowledgeVersionRequest?: CreateKnowledgeVersionRequest
+SchemasRequestsHttpJsonKnowledgeActionRequest?: KnowledgeActionRequest
+SchemasRequestsHttpJsonAssistantTurnRequest?: AssistantTurnRequest
+SchemasRequestsHttpJsonConversationHandoffRequest?: ConversationHandoffRequest
+SchemasRequestsHttpJsonRecordConsentRequest?: RecordConsentRequest
+SchemasRequestsHttpJsonRevokeConsentRequest?: RevokeConsentRequest
+SchemasRequestsHttpJsonSaveMessageTemplateRequest?: SaveMessageTemplateRequest
+SchemasRequestsHttpJsonCreateMessageTemplateVersionRequest?: CreateMessageTemplateVersionRequest
+SchemasRequestsHttpJsonSaveReminderPolicyRequest?: SaveReminderPolicyRequest
+SchemasRequestsHttpJsonUpdateReminderPolicyRequest?: UpdateReminderPolicyRequest
+SchemasRequestsHttpJsonSendTaskMessageRequest?: SendTaskMessageRequest
+SchemasRequestsHttpJsonSaveAudienceSegmentRequest?: SaveAudienceSegmentRequest
+SchemasRequestsHttpJsonUpdateAudienceSegmentRequest?: UpdateAudienceSegmentRequest
+SchemasRequestsHttpJsonSaveCampaignRequest?: SaveCampaignRequest
+SchemasRequestsHttpJsonFreezeCampaignRequest?: FreezeCampaignRequest
+SchemasRequestsHttpJsonPauseCampaignRequest?: PauseCampaignRequest
+SchemasRequestsHttpJsonReconcileIntegrationsRequest?: ReconcileIntegrationsRequest
+SchemasRequestsHttpJsonSaveCatalogPublicationRequest?: SaveCatalogPublicationRequest
+SchemasRequestsHttpJsonChangePublicStatusRequest?: ChangePublicStatusRequest
+SchemasRequestsHttpJsonSavePublicContentRequest?: SavePublicContentRequest
 SchemasResourcesAccessJsonStaffMemberSummary?: StaffMemberSummary
 SchemasResourcesAccessJsonStaffMember?: StaffMember
 SchemasResourcesAccessJsonClinicSummary?: ClinicSummary
@@ -770,6 +817,16 @@ SchemasResourcesBillingJsonImportReport?: ImportReport
 SchemasResourcesBillingJsonImportReportResponse?: ImportReportResponse
 SchemasResourcesBillingJsonLegacyEvidence?: LegacyEvidence
 SchemasResourcesBillingJsonLegacyEvidenceResponse?: LegacyEvidenceResponse
+SchemasResourcesBillingJsonStatementEvidence?: StatementEvidence
+SchemasResourcesBillingJsonStatementEvidenceResponse?: StatementEvidenceResponse
+SchemasResourcesBillingJsonPaymentReconciliationLine?: PaymentReconciliationLine
+SchemasResourcesBillingJsonPaymentReconciliation?: PaymentReconciliation
+SchemasResourcesBillingJsonPaymentReconciliationSummary?: PaymentReconciliationSummary
+SchemasResourcesBillingJsonPaymentReconciliationResponse?: PaymentReconciliationResponse
+SchemasResourcesBillingJsonPaymentReconciliationPage?: PaymentReconciliationPage
+SchemasResourcesBillingJsonPaymentReconciliationCandidate?: PaymentReconciliationCandidate
+SchemasResourcesBillingJsonPaymentReconciliationCandidates?: PaymentReconciliationCandidates
+SchemasResourcesBillingJsonPaymentReconciliationCandidatesResponse?: PaymentReconciliationCandidatesResponse
 SchemasResourcesBillingJsonInvoiceLine?: InvoiceLine
 SchemasResourcesBillingJsonInvoiceBalance?: InvoiceBalance
 SchemasResourcesBillingJsonInvoicePayment?: InvoicePayment
@@ -849,6 +906,77 @@ SchemasResourcesClinicalJsonPrescriptionDeletion?: PrescriptionDeletion
 SchemasResourcesClinicalJsonDeletePrescriptionDraftResponse?: DeletePrescriptionDraftResponse
 SchemasResourcesClinicalJsonPrescriptionResponse?: PrescriptionResponse
 SchemasResourcesClinicalJsonPrescriptionList?: PrescriptionList
+SchemasResourcesCommunicationJsonIntegrationAccount?: IntegrationAccount
+SchemasResourcesCommunicationJsonIntegrationAccountList?: IntegrationAccountList
+SchemasResourcesCommunicationJsonIntegrationAccountResponse?: IntegrationAccountResponse
+SchemasResourcesCommunicationJsonIntegrationHealth?: IntegrationHealth
+SchemasResourcesCommunicationJsonIntegrationHealthResponse?: IntegrationHealthResponse
+SchemasResourcesCommunicationJsonIntegrationConnectionTest?: IntegrationConnectionTest
+SchemasResourcesCommunicationJsonIntegrationConnectionTestResponse?: IntegrationConnectionTestResponse
+SchemasResourcesCommunicationJsonOutboxEvent?: OutboxEvent
+SchemasResourcesCommunicationJsonOutboxEventPage?: OutboxEventPage
+SchemasResourcesCommunicationJsonOutboxBatchResult?: OutboxBatchResult
+SchemasResourcesCommunicationJsonOutboxBatchResultResponse?: OutboxBatchResultResponse
+SchemasResourcesCommunicationJsonCalendarSyncState?: CalendarSyncState
+SchemasResourcesCommunicationJsonCalendarSyncStateList?: CalendarSyncStateList
+SchemasResourcesCommunicationJsonCalendarSyncStateResponse?: CalendarSyncStateResponse
+SchemasResourcesCommunicationJsonCalendarSyncRunResult?: CalendarSyncRunResult
+SchemasResourcesCommunicationJsonCalendarSyncRunResultResponse?: CalendarSyncRunResultResponse
+SchemasResourcesCommunicationJsonPublicBookingAdminItem?: PublicBookingAdminItem
+SchemasResourcesCommunicationJsonPublicBookingAdminPage?: PublicBookingAdminPage
+SchemasResourcesCommunicationJsonPublicBookingAdminResponse?: PublicBookingAdminResponse
+SchemasResourcesCommunicationJsonProspectContact?: ProspectContact
+SchemasResourcesCommunicationJsonProspectContactPage?: ProspectContactPage
+SchemasResourcesCommunicationJsonProspectContactResponse?: ProspectContactResponse
+SchemasResourcesCommunicationJsonCrmLead?: CrmLead
+SchemasResourcesCommunicationJsonCrmLeadPage?: CrmLeadPage
+SchemasResourcesCommunicationJsonCrmLeadResponse?: CrmLeadResponse
+SchemasResourcesCommunicationJsonCrmLeadSyncResult?: CrmLeadSyncResult
+SchemasResourcesCommunicationJsonCrmLeadSyncResultResponse?: CrmLeadSyncResultResponse
+SchemasResourcesCommunicationJsonCrmConversation?: CrmConversation
+SchemasResourcesCommunicationJsonCrmConversationPage?: CrmConversationPage
+SchemasResourcesCommunicationJsonCrmConversationResponse?: CrmConversationResponse
+SchemasResourcesCommunicationJsonKnowledgeEntryVersion?: KnowledgeEntryVersion
+SchemasResourcesCommunicationJsonKnowledgeEntry?: KnowledgeEntry
+SchemasResourcesCommunicationJsonKnowledgeEntryPage?: KnowledgeEntryPage
+SchemasResourcesCommunicationJsonKnowledgeEntryResponse?: KnowledgeEntryResponse
+SchemasResourcesCommunicationJsonKnowledgeEntryVersionResponse?: KnowledgeEntryVersionResponse
+SchemasResourcesCommunicationJsonConversationHandoff?: ConversationHandoff
+SchemasResourcesCommunicationJsonConversationHandoffList?: ConversationHandoffList
+SchemasResourcesCommunicationJsonAssistantRun?: AssistantRun
+SchemasResourcesCommunicationJsonAssistantRunList?: AssistantRunList
+SchemasResourcesCommunicationJsonAssistantTurnResult?: AssistantTurnResult
+SchemasResourcesCommunicationJsonAssistantTurnResultResponse?: AssistantTurnResultResponse
+SchemasResourcesCommunicationJsonCommunicationConsent?: CommunicationConsent
+SchemasResourcesCommunicationJsonCommunicationConsentPage?: CommunicationConsentPage
+SchemasResourcesCommunicationJsonCommunicationConsentResponse?: CommunicationConsentResponse
+SchemasResourcesCommunicationJsonMessageTemplateVersion?: MessageTemplateVersion
+SchemasResourcesCommunicationJsonMessageTemplate?: MessageTemplate
+SchemasResourcesCommunicationJsonMessageTemplateList?: MessageTemplateList
+SchemasResourcesCommunicationJsonMessageTemplateResponse?: MessageTemplateResponse
+SchemasResourcesCommunicationJsonMessageTemplateVersionResponse?: MessageTemplateVersionResponse
+SchemasResourcesCommunicationJsonReminderPolicy?: ReminderPolicy
+SchemasResourcesCommunicationJsonReminderPolicyList?: ReminderPolicyList
+SchemasResourcesCommunicationJsonReminderPolicyResponse?: ReminderPolicyResponse
+SchemasResourcesCommunicationJsonMessageAttempt?: MessageAttempt
+SchemasResourcesCommunicationJsonMessageAttemptPage?: MessageAttemptPage
+SchemasResourcesCommunicationJsonMessageAttemptResponse?: MessageAttemptResponse
+SchemasResourcesCommunicationJsonAudienceSegment?: AudienceSegment
+SchemasResourcesCommunicationJsonAudienceSegmentList?: AudienceSegmentList
+SchemasResourcesCommunicationJsonAudienceSegmentResponse?: AudienceSegmentResponse
+SchemasResourcesCommunicationJsonCampaignRecipient?: CampaignRecipient
+SchemasResourcesCommunicationJsonCampaignRecipientPage?: CampaignRecipientPage
+SchemasResourcesCommunicationJsonCampaignDefinition?: CampaignDefinition
+SchemasResourcesCommunicationJsonCampaignPage?: CampaignPage
+SchemasResourcesCommunicationJsonCampaignResponse?: CampaignResponse
+SchemasResourcesCommunicationJsonCampaignPreview?: CampaignPreview
+SchemasResourcesCommunicationJsonCampaignPreviewResponse?: CampaignPreviewResponse
+SchemasResourcesCommunicationJsonWebhookInboxItem?: WebhookInboxItem
+SchemasResourcesCommunicationJsonWebhookInboxPage?: WebhookInboxPage
+SchemasResourcesCommunicationJsonWebhookIngestResult?: WebhookIngestResult
+SchemasResourcesCommunicationJsonWebhookIngestResultResponse?: WebhookIngestResultResponse
+SchemasResourcesCommunicationJsonIntegrationReconcileResult?: IntegrationReconcileResult
+SchemasResourcesCommunicationJsonIntegrationReconcileResultResponse?: IntegrationReconcileResultResponse
 SchemasResourcesOperationsJsonPublicJwk?: PublicJwk
 SchemasResourcesOperationsJsonEnrolledDevice?: EnrolledDevice
 SchemasResourcesOperationsJsonEnrolledDeviceResponse?: EnrolledDeviceResponse
@@ -874,11 +1002,20 @@ SchemasResourcesOperationsJsonConflictPage?: ConflictPage
 SchemasResourcesOperationsJsonConflictResponse?: ConflictResponse
 SchemasResourcesOperationsJsonGeneratedDocument?: GeneratedDocument
 SchemasResourcesOperationsJsonGeneratedDocumentResponse?: GeneratedDocumentResponse
+SchemasResourcesOperationsJsonExportFilters?: ExportFilters
 SchemasResourcesOperationsJsonExportRequest?: ExportRequest
 SchemasResourcesOperationsJsonExportRequestResponse?: ExportRequestResponse
 SchemasResourcesOperationsJsonExportRequestList?: ExportRequestList
+SchemasResourcesOperationsJsonExportManifest?: ExportManifest
+SchemasResourcesOperationsJsonExportManifestResponse?: ExportManifestResponse
 SchemasResourcesOperationsJsonFinancialReport?: FinancialReport
 SchemasResourcesOperationsJsonFinancialReportResponse?: FinancialReportResponse
+SchemasResourcesOperationsJsonAccountingExportReport?: AccountingExportReport
+SchemasResourcesOperationsJsonAccountingExportReportResponse?: AccountingExportReportResponse
+SchemasResourcesOperationsJsonManagementComparisonCount?: ManagementComparisonCount
+SchemasResourcesOperationsJsonManagementComparisonMoney?: ManagementComparisonMoney
+SchemasResourcesOperationsJsonManagementReport?: ManagementReport
+SchemasResourcesOperationsJsonManagementReportResponse?: ManagementReportResponse
 SchemasResourcesOperationsJsonAuditEvent?: AuditEvent
 SchemasResourcesOperationsJsonAuditEventPage?: AuditEventPage
 SchemasResourcesPatientsJsonPatientSummary?: PatientSummary
@@ -914,6 +1051,21 @@ SchemasResourcesPublicJsonPublicSlot?: PublicSlot
 SchemasResourcesPublicJsonPublicSlotList?: PublicSlotList
 SchemasResourcesPublicJsonBookingReceipt?: BookingReceipt
 SchemasResourcesPublicJsonBookingReceiptResponse?: BookingReceiptResponse
+SchemasResourcesPublicJsonPublicationMedia?: PublicationMedia
+SchemasResourcesPublicJsonPublication?: Publication
+SchemasResourcesPublicJsonPublicationPage?: PublicationPage
+SchemasResourcesPublicJsonPublicationResponse?: PublicationResponse
+SchemasResourcesPublicJsonPublicContentRevision?: PublicContentRevision
+SchemasResourcesPublicJsonPublicContentEntry?: PublicContentEntry
+SchemasResourcesPublicJsonPublicContentList?: PublicContentList
+SchemasResourcesPublicJsonPublicContentResponse?: PublicContentResponse
+SchemasResourcesPublicJsonShowroomMedia?: ShowroomMedia
+SchemasResourcesPublicJsonShowroomItem?: ShowroomItem
+SchemasResourcesPublicJsonShowroomFacets?: ShowroomFacets
+SchemasResourcesPublicJsonShowroomPage?: ShowroomPage
+SchemasResourcesPublicJsonShowroomItemResponse?: ShowroomItemResponse
+SchemasResourcesPublicJsonPublicContent?: PublicContent
+SchemasResourcesPublicJsonPublicContentPublicList?: PublicContentPublicList
 SchemasResourcesSchedulingJsonSchedulingPatient?: SchedulingPatient
 SchemasResourcesSchedulingJsonOpeningHour?: OpeningHour
 SchemasResourcesSchedulingJsonSchedulingResource?: SchedulingResource
@@ -944,6 +1096,8 @@ SchemasResourcesSchedulingJsonClinicalReport?: ClinicalReport
 SchemasResourcesSchedulingJsonClinicalReportResponse?: ClinicalReportResponse
 SchemasResourcesStockJsonStockAvailability?: StockAvailability
 SchemasResourcesStockJsonStockAvailabilityPage?: StockAvailabilityPage
+SchemasResourcesStockJsonStockMovementHistoryEntry?: StockMovementHistoryEntry
+SchemasResourcesStockJsonStockMovementHistoryPage?: StockMovementHistoryPage
 SchemasResourcesStockJsonStockLocation?: StockLocation
 SchemasResourcesStockJsonStockLocationList?: StockLocationList
 SchemasResourcesStockJsonStockMovement?: StockMovement
@@ -952,6 +1106,40 @@ SchemasResourcesStockJsonOpeningStockResult?: OpeningStockResult
 SchemasResourcesStockJsonOpeningStockResponse?: OpeningStockResponse
 SchemasResourcesStockJsonPhysicalReturn?: PhysicalReturn
 SchemasResourcesStockJsonPhysicalReturnResponse?: PhysicalReturnResponse
+SchemasResourcesStockJsonSupplier?: Supplier
+SchemasResourcesStockJsonSupplierResponse?: SupplierResponse
+SchemasResourcesStockJsonSupplierList?: SupplierList
+SchemasResourcesStockJsonGoodsReceiptSummary?: GoodsReceiptSummary
+SchemasResourcesStockJsonGoodsReceiptPage?: GoodsReceiptPage
+SchemasResourcesStockJsonGoodsReceipt?: GoodsReceipt
+SchemasResourcesStockJsonGoodsReceiptLine?: GoodsReceiptLine
+SchemasResourcesStockJsonGoodsReceiptResponse?: GoodsReceiptResponse
+SchemasResourcesStockJsonDeleteGoodsReceiptDraftResult?: DeleteGoodsReceiptDraftResult
+SchemasResourcesStockJsonDeleteGoodsReceiptDraftResponse?: DeleteGoodsReceiptDraftResponse
+SchemasResourcesStockJsonInventoryCountLine?: InventoryCountLine
+SchemasResourcesStockJsonInventoryCountSummary?: InventoryCountSummary
+SchemasResourcesStockJsonInventoryCountPage?: InventoryCountPage
+SchemasResourcesStockJsonInventoryCount?: InventoryCount
+SchemasResourcesStockJsonInventoryCountResponse?: InventoryCountResponse
+SchemasResourcesStockJsonStockAlert?: StockAlert
+SchemasResourcesStockJsonStockAlertPage?: StockAlertPage
+SchemasResourcesStockJsonStockAlertResponse?: StockAlertResponse
+SchemasResourcesStockJsonStockAlertEvaluationSummary?: StockAlertEvaluationSummary
+SchemasResourcesStockJsonStockAlertEvaluationResponse?: StockAlertEvaluationResponse
+SchemasResourcesWorkshopJsonWorkshopPatient?: WorkshopPatient
+SchemasResourcesWorkshopJsonWorkshopOrderEye?: WorkshopOrderEye
+SchemasResourcesWorkshopJsonWorkshopEvent?: WorkshopEvent
+SchemasResourcesWorkshopJsonWorkshopDeliveryCandidate?: WorkshopDeliveryCandidate
+SchemasResourcesWorkshopJsonWorkshopOrderSummary?: WorkshopOrderSummary
+SchemasResourcesWorkshopJsonWorkshopOrder?: WorkshopOrder
+SchemasResourcesWorkshopJsonWorkshopOrderPage?: WorkshopOrderPage
+SchemasResourcesWorkshopJsonWorkshopOrderResponse?: WorkshopOrderResponse
+SchemasResourcesWorkshopJsonWorkshopEligibleInvoiceLine?: WorkshopEligibleInvoiceLine
+SchemasResourcesWorkshopJsonWorkshopEligiblePrescription?: WorkshopEligiblePrescription
+SchemasResourcesWorkshopJsonWorkshopEligibleSupplier?: WorkshopEligibleSupplier
+SchemasResourcesWorkshopJsonWorkshopEligibleFrame?: WorkshopEligibleFrame
+SchemasResourcesWorkshopJsonWorkshopEligibleLines?: WorkshopEligibleLines
+SchemasResourcesWorkshopJsonWorkshopEligibleLinesResponse?: WorkshopEligibleLinesResponse
 SchemasRuleVectorsJson?: RuleVectors
 SchemasRuleVectorsJsonVectorCase?: VectorCase
 SchemasRuleVectorsJsonVectorRefusal?: VectorRefusal
@@ -1013,6 +1201,7 @@ CommandsRequestApprovalV1JsonRefundSubject?: RefundSubject
 CommandsRequestApprovalV1JsonCreditDeliverySubject?: CreditDeliverySubject
 CommandsRequestApprovalV1JsonStockMovementSubject?: StockMovementSubject
 CommandsRequestApprovalV1JsonCashMovementSubject?: CashMovementSubject
+CommandsRequestApprovalV1JsonCampaignSendSubject?: CampaignSendSubject
 ReversePaymentPayload?: ReversePaymentPayload
 CommandsReversePaymentV1JsonDirectRequest?: ReversePaymentDirectRequest
 SaveClinicalStepPayload?: SaveClinicalStepPayload
@@ -1028,15 +1217,19 @@ CommandsValidatePrescriptionV1JsonDirectRequest?: ValidatePrescriptionDirectRequ
 CommandsDispatchJsonCommandName?: CommandName
 AppointmentCancelledEventPayload?: AppointmentCancelledEventPayload
 AppointmentConfirmedEventPayload?: AppointmentConfirmedEventPayload
+AppointmentNoShowEventPayload?: AppointmentNoShowEventPayload
 AppointmentRescheduledEventPayload?: AppointmentRescheduledEventPayload
+CampaignCompletedEventPayload?: CampaignCompletedEventPayload
 ConsultationCompletedEventPayload?: ConsultationCompletedEventPayload
 CreditNoteIssuedEventPayload?: CreditNoteIssuedEventPayload
 DeliveryConfirmedEventPayload?: DeliveryConfirmedEventPayload
 FollowUpScheduledEventPayload?: FollowUpScheduledEventPayload
+HumanHandoffRequestedEventPayload?: HumanHandoffRequestedEventPayload
 InvoiceIssuedEventPayload?: InvoiceIssuedEventPayload
 PatientCreatedEventPayload?: PatientCreatedEventPayload
 PaymentConfirmedEventPayload?: PaymentConfirmedEventPayload
 PrescriptionValidatedEventPayload?: PrescriptionValidatedEventPayload
+PublicBookingRequestedEventPayload?: PublicBookingRequestedEventPayload
 StockThresholdCrossedEventPayload?: StockThresholdCrossedEventPayload
 WorkshopReadyEventPayload?: WorkshopReadyEventPayload
 EventEnvelope?: EventEnvelope
@@ -1050,6 +1243,7 @@ InvoiceTaxSnapshot?: InvoiceTaxSnapshot
 QuoteRevisionSnapshot?: QuoteRevisionSnapshot
 ReceiptSnapshot?: ReceiptSnapshot
 RefundSnapshot?: RefundSnapshot
+WorkshopOrderSnapshot?: WorkshopOrderSnapshot
 }
 export interface Anamnesis {
 symptoms: (string | null)
@@ -6006,6 +6200,7 @@ service_id: Ulid
 name: string
 duration_minutes: number
 active: boolean
+public_booking?: boolean
 }
 /**
  * Création (expected_version null) ou modification d'un article par la gérante (catalog.manage). Les prix réels sont fournis par le cabinet : seules des données fictives sont utilisées en développement.
@@ -6125,6 +6320,52 @@ sha256: Sha256Hex
 size_bytes: number
 mime_type: ("application/pdf" | "image/jpeg" | "image/png")
 private_path: string
+}
+/**
+ * Charge INTERNE de la commande StoreStatementEvidence, construite par le serveur après contrôle des octets reçus (POST /payment-reconciliations/statement-file) : jamais envoyée par un poste.
+ */
+export interface StoreStatementEvidenceCommand {
+expected_version?: null
+sha256: Sha256Hex
+size_bytes: number
+mime_type: ("application/pdf" | "image/jpeg" | "image/png")
+private_path: string
+}
+/**
+ * Création ou modification complète d'un brouillon de rapprochement par canal (L1D06) : un règlement ou remboursement ne peut être pointé qu'une seule fois ; expected_amount recalculé côté serveur.
+ */
+export interface SavePaymentReconciliationRequest {
+expected_version: null
+reconciliation_id: Ulid
+method: PaymentReconciliationsMethod
+period_starts_at: Instant
+period_ends_at: Instant
+statement_amount: (SignedMoneyXaf | null)
+statement_file_id: NullableUlid
+variance_reason: (string | null)
+/**
+ * @minItems 0
+ * @maxItems 500
+ */
+lines: {
+line_id: Ulid
+payment_id: NullableUlid
+refund_id: NullableUlid
+external_reference: (string | null)
+statement_amount: SignedMoneyXaf
+status: PaymentReconciliationLinesStatus
+note?: (string | null)
+}[]
+}
+/**
+ * Validation réauthentifiée d'un rapprochement (L1D06) : fige attendu serveur, montant du relevé, écart motivé si non nul et lignes ; refuse 409 si déjà validé ou si une ligne chevauche un autre rapprochement.
+ */
+export interface ValidatePaymentReconciliationRequest {
+expected_version: null
+reconciliation_id: Ulid
+statement_amount: SignedMoneyXaf
+statement_file_id: NullableUlid
+variance_reason: (string | null)
 }
 /**
  * Règle fiscale saisie par la gérante ; validate = true enregistre la validation (réauthentification). Aucune taxe n'est préconfigurée.
@@ -6373,6 +6614,168 @@ expires_on: NullableCivilDate
 quantity: Quantity
 unit_cost: (MoneyXaf | null)
 })[]]
+}
+/**
+ * Fournisseur ou laboratoire (L1D01), création ou modification complète ; code unique par cabinet, désactivation par `active` faux. Droit stock.receive.
+ */
+export interface SupplierRequest {
+expected_version: null
+name: string
+reference: string
+phone?: (string | null)
+email?: (string | null)
+address?: (string | null)
+is_optical_lab?: boolean
+active?: boolean
+}
+/**
+ * Brouillon de réception (L1D01), création ou remplacement complet : aucun lot ni stock avant la validation ; coût unitaire connu ou null (inconnu).
+ */
+export interface GoodsReceiptDraftRequest {
+expected_version: null
+supplier_id: Ulid
+location_id: Ulid
+supplier_reference: string
+received_at: Instant
+notes?: (string | null)
+/**
+ * @minItems 1
+ * @maxItems 200
+ */
+lines: [{
+item_id: Ulid
+quantity: Quantity
+unit_cost: (MoneyXaf | null)
+}, ...({
+item_id: Ulid
+quantity: Quantity
+unit_cost: (MoneyXaf | null)
+})[]]
+}
+/**
+ * Validation d'une réception (L1D01) : CHAQUE ligne du brouillon confirme son lot (obligatoire pour un article périssable ou déjà suivi par lots) et son coût final (null = inconnu).
+ */
+export interface ValidateGoodsReceiptRequest {
+expected_version: null
+/**
+ * @minItems 1
+ * @maxItems 200
+ */
+lines: [{
+position: number
+lot: ({
+batch_number: string
+expires_on: NullableCivilDate
+} | null)
+unit_cost: (MoneyXaf | null)
+}, ...({
+position: number
+lot: ({
+batch_number: string
+expires_on: NullableCivilDate
+} | null)
+unit_cost: (MoneyXaf | null)
+})[]]
+}
+/**
+ * Ouverture d'un inventaire (L1D02) : un emplacement, théorique figé à l'instant d'ouverture ; un seul inventaire actif par emplacement. Droit stock.inventory.
+ */
+export interface OpenInventoryCountRequest {
+expected_version: null
+location_id: Ulid
+reference: string
+}
+/**
+ * Quantités comptées d'un inventaire ouvert : zéro admis, null efface le comptage ; le motif de l'écart est facultatif ici, obligatoire à la validation pour tout écart non nul. Aucun stock n'est modifié.
+ */
+export interface RecordInventoryCountsRequest {
+expected_version: null
+/**
+ * @minItems 1
+ * @maxItems 500
+ */
+lines: [{
+line_id: Ulid
+counted_quantity: (string | null)
+variance_reason?: (string | null)
+}, ...({
+line_id: Ulid
+counted_quantity: (string | null)
+variance_reason?: (string | null)
+})[]]
+}
+/**
+ * Terminer le comptage (toutes les lignes comptées) ou rouvrir un inventaire compté (corps réduit à expected_version null).
+ */
+export interface InventoryCountActionRequest {
+expected_version: null
+}
+/**
+ * Abandon d'un inventaire ouvert ou compté, sans effet sur le stock ; motif facultatif conservé dans l'audit.
+ */
+export interface AbandonInventoryCountRequest {
+expected_version: null
+reason?: (string | null)
+}
+/**
+ * Validation par la gérante réauthentifiée : motif de l'approbation (3 à 1 000 caractères) ; chaque écart non nul doit déjà porter son motif.
+ */
+export interface ValidateInventoryCountRequest {
+expected_version: null
+reason: string
+}
+/**
+ * Suppression d'un brouillon de réception jamais validé (corps vide).
+ */
+export interface DeleteGoodsReceiptDraftRequest {
+expected_version: null
+}
+/**
+ * Évaluation des seuils bas et péremptions du stock (corps réduit à expected_version null).
+ */
+export interface EvaluateStockAlertsRequest {
+expected_version: null
+}
+/**
+ * Accuser réception ou résoudre une alerte de stock (corps réduit à expected_version null).
+ */
+export interface StockAlertActionRequest {
+expected_version: null
+}
+/**
+ * Création en ligne d'une commande atelier (L1D04) à partir d'une ligne de facture émise et d'une prescription optique validée.
+ */
+export interface CreateWorkshopOrderRequest {
+expected_version: null
+invoice_line_id: Ulid
+prescription_id: Ulid
+supplier_id: Ulid
+frame_item_id?: NullableUlid
+lab_reference?: (string | null)
+expected_at?: NullableInstant
+quantity: Quantity
+lens_type?: (string | null)
+frame_reference_snapshot?: (string | null)
+pd_od?: NullableDiopter
+pd_og?: NullableDiopter
+fitting_height_od?: NullableDiopter
+fitting_height_og?: NullableDiopter
+notes?: (string | null)
+}
+/**
+ * Transition, contrôle qualité, reprise, ajustement ou annulation d'une commande atelier (L1D04, version optimiste).
+ */
+export interface AdvanceWorkshopOrderRequest {
+expected_version: Version
+workshop_order_id: Ulid
+event_type: WorkshopEventsEventType
+new_status?: (WorkshopOrdersStatus | null)
+quality_result?: (WorkshopEventsQualityResult | null)
+observations?: (string | null)
+lab_reference?: (string | null)
+expected_at?: NullableInstant
+notes?: (string | null)
+delivery_line_id?: NullableUlid
 }
 /**
  * Enrôlement (O02) : clé publique ES256 du poste et preuve de possession (JWS compact ES256 signé par la clé PRIVÉE du poste, typ eeo-device-proof+jws, kid = empreinte RFC 7638, charge JCS {clinic_id, device_code, issued_at, jwk_thumbprint, purpose=enroll, v=1}, fraîche de 10 minutes).
@@ -6706,19 +7109,227 @@ expected_version?: null
 export_type: ExportRequestsExportType
 patient_id?: NullableUlid
 filters?: ({
-
+from?: NullableCivilDate
+to?: NullableCivilDate
+scope_role?: (("CASHIER" | "CLINICIAN" | "MANAGER" | "RECEPTION") | null)
 } | null)
 }
 /**
- * Réservation publique (L2) : consentement explicite exigé, anti-abus et idempotence.
+ * Réservation publique (L2, L3) : consentement explicite exigé, anti-abus et idempotence. `publication_slug` relie la demande à la référence du showroom qui a donné envie de venir (ignoré si la référence n'est pas publiée) ; `website` est un piège à robots : un visiteur humain ne le voit pas et ne le remplit jamais, une demande qui le remplit est refusée.
  */
 export interface BookingRequest {
 service_id: Ulid
+resource_id?: NullableUlid
 starts_at: Instant
 name: string
 phone: Phone
 email?: (string | null)
 consent: true
+publication_slug?: (string | null)
+website?: (string | null)
+}
+export interface SaveIntegrationAccountRequest {
+provider: IntegrationAccountsProvider
+external_account_id: string
+display_name: string
+status: IntegrationAccountsStatus
+credentials?: ({
+
+} | null)
+public_configuration?: ({
+
+} | null)
+}
+export interface UpdateIntegrationAccountRequest {
+expected_version: Version
+display_name?: string
+status?: IntegrationAccountsStatus
+credentials?: ({
+
+} | null)
+public_configuration?: ({
+
+} | null)
+}
+export interface ProcessOutboxRequest {
+limit?: number
+/**
+ * @minItems 0
+ */
+event_types?: string[]
+}
+export interface SaveCalendarSyncStateRequest {
+integration_account_id: Ulid
+resource_id: Ulid
+external_calendar_id: string
+status?: CalendarSyncStatesStatus
+}
+export interface CalendarSyncRunRequest {
+resource_id?: NullableUlid
+full_resync?: boolean
+}
+export interface DecidePublicBookingRequest {
+resource_id?: NullableUlid
+reason?: (string | null)
+}
+export interface SaveProspectContactRequest {
+name: string
+phone?: (Phone | null)
+email?: (string | null)
+origin: ProspectContactsOrigin
+administrative_notes?: (string | null)
+}
+export interface UpdateProspectContactRequest {
+expected_version: Version
+name?: string
+phone?: (Phone | null)
+email?: (string | null)
+administrative_notes?: (string | null)
+}
+export interface LinkProspectPatientRequest {
+patient_id: Ulid
+}
+export interface SyncCrmLeadsRequest {
+integration_account_id?: NullableUlid
+limit?: number
+}
+export interface SaveKnowledgeEntryRequest {
+code: string
+title: string
+category: KnowledgeEntriesCategory
+content: string
+language?: string
+}
+export interface CreateKnowledgeVersionRequest {
+content: string
+language?: string
+}
+export interface KnowledgeActionRequest {
+reason?: (string | null)
+}
+export interface AssistantTurnRequest {
+message: string
+service_id?: NullableUlid
+preferred_starts_at?: NullableInstant
+}
+export interface ConversationHandoffRequest {
+reason: string
+administrative_summary?: (string | null)
+assign_to_self?: boolean
+}
+export interface RecordConsentRequest {
+patient_id?: NullableUlid
+prospect_contact_id?: NullableUlid
+channel: CommunicationConsentsChannel
+purpose: CommunicationConsentsPurpose
+destination: string
+proof: string
+policy_version?: string
+}
+export interface RevokeConsentRequest {
+patient_id?: NullableUlid
+prospect_contact_id?: NullableUlid
+channel: CommunicationConsentsChannel
+purpose: CommunicationConsentsPurpose
+destination: string
+proof: string
+policy_version?: string
+}
+export interface SaveMessageTemplateRequest {
+code: string
+channel: MessageTemplatesChannel
+purpose: MessageTemplatesPurpose
+}
+export interface CreateMessageTemplateVersionRequest {
+integration_account_id?: NullableUlid
+provider_template_id?: (string | null)
+language?: string
+body: string
+/**
+ * @minItems 0
+ */
+allowed_variables?: string[]
+}
+export interface SaveReminderPolicyRequest {
+code: string
+label: string
+purpose: ReminderPoliciesPurpose
+channel: ReminderPoliciesChannel
+offset_unit: ReminderPoliciesOffsetUnit
+offset_value: number
+local_send_time?: (string | null)
+active?: boolean
+}
+export interface UpdateReminderPolicyRequest {
+expected_version: Version
+label?: string
+channel?: ReminderPoliciesChannel
+offset_unit?: ReminderPoliciesOffsetUnit
+offset_value?: number
+local_send_time?: (string | null)
+active?: boolean
+}
+export interface SendTaskMessageRequest {
+template_version_id?: NullableUlid
+channel?: (CommunicationConsentsChannel | null)
+}
+export interface SaveAudienceSegmentRequest {
+name: string
+criteria: {
+
+}
+}
+export interface UpdateAudienceSegmentRequest {
+expected_version: Version
+name?: string
+criteria?: {
+
+}
+}
+export interface SaveCampaignRequest {
+name: string
+segment_id: Ulid
+template_version_id: Ulid
+scheduled_at?: NullableInstant
+}
+export interface FreezeCampaignRequest {
+approval_id?: NullableUlid
+}
+export interface PauseCampaignRequest {
+reason?: (string | null)
+}
+export interface ReconcileIntegrationsRequest {
+limit?: number
+}
+/**
+ * Brouillon d'une fiche du showroom (création : catalog_item_id et version nulle ; modification : version attendue, la fiche repasse en brouillon).
+ */
+export interface SaveCatalogPublicationRequest {
+expected_version: (number | null)
+catalog_item_id?: Ulid
+slug?: string
+public_title: string
+public_description: string
+style?: (string | null)
+show_sale_price?: boolean
+display_order?: number
+}
+/**
+ * Publier (décision de la gérante), retirer (retour en brouillon) ou archiver une fiche ou un contenu public.
+ */
+export interface ChangePublicStatusRequest {
+expected_version: number
+status: ("DRAFT" | "PUBLISHED" | "ARCHIVED")
+reason?: (string | null)
+}
+/**
+ * Brouillon d'un contenu public ; il remplace le brouillon existant du même code, sinon ouvre une révision.
+ */
+export interface SavePublicContentRequest {
+expected_version: null
+code: ("ACCUEIL" | "EXPERTISES" | "HORAIRES" | "LOCALISATION" | "WHATSAPP" | "RESEAUX_SOCIAUX" | "CONTACT")
+title: string
+content: string
 }
 /**
  * Compte dans une liste : sans les permissions effectives.
@@ -6942,6 +7553,145 @@ size_bytes: number
 }
 export interface LegacyEvidenceResponse {
 data: LegacyEvidence
+}
+/**
+ * Relevé numérisé (MoMo, banque, bordereau) d'un rapprochement de paiement (L1D06), conservé dans le stockage privé (classement FINANCIAL).
+ */
+export interface StatementEvidence {
+file_id: Ulid
+sha256: Sha256Hex
+mime_type: ("application/pdf" | "image/jpeg" | "image/png")
+size_bytes: number
+}
+export interface StatementEvidenceResponse {
+data: StatementEvidence
+}
+/**
+ * Ligne de rapprochement d'un canal de paiement : pointée sur un paiement ou un remboursement distinct (jamais les deux), ou écriture du relevé sans pièce interne (frais, rejet, écart).
+ */
+export interface PaymentReconciliationLine {
+id: Ulid
+payment_id: NullableUlid
+refund_id: NullableUlid
+external_reference: (string | null)
+statement_amount: SignedMoneyXaf
+expected_item_amount: (SignedMoneyXaf | null)
+status: PaymentReconciliationLinesStatus
+note: (string | null)
+kind: (("PAYMENT" | "REFUND") | null)
+piece_number: (string | null)
+effective_at: NullableInstant
+payment_reference: (string | null)
+}
+/**
+ * Rapprochement de canal de paiement (L1D06 : Mobile Money, banque, chèque, espèces) : attendus calculés par le serveur ; un règlement ne se rapproche jamais dans deux rapprochements ; écart motivé à la validation ; immuable une fois VALIDATED.
+ */
+export interface PaymentReconciliation {
+id: Ulid
+method: PaymentReconciliationsMethod
+period_starts_at: Instant
+period_ends_at: Instant
+status: PaymentReconciliationsStatus
+expected_amount: SignedMoneyXaf
+current_expected_amount: SignedMoneyXaf
+statement_amount: (SignedMoneyXaf | null)
+variance_amount: (SignedMoneyXaf | null)
+matched_lines_amount: SignedMoneyXaf
+disputed_lines_count: number
+unmatched_lines_count: number
+statement_file: (StatementEvidence | null)
+variance_reason: (string | null)
+validated_by: NullableUlid
+validated_by_name: (string | null)
+validated_at: NullableInstant
+/**
+ * @minItems 0
+ */
+lines: PaymentReconciliationLine[]
+created_at: Instant
+updated_at: Instant
+}
+/**
+ * En-tête d'un rapprochement de canal sans ses lignes (liste).
+ */
+export interface PaymentReconciliationSummary {
+id: Ulid
+method: PaymentReconciliationsMethod
+period_starts_at: Instant
+period_ends_at: Instant
+status: PaymentReconciliationsStatus
+expected_amount: SignedMoneyXaf
+statement_amount: (SignedMoneyXaf | null)
+variance_amount: (SignedMoneyXaf | null)
+statement_file: (StatementEvidence | null)
+variance_reason: (string | null)
+validated_by: NullableUlid
+validated_by_name: (string | null)
+validated_at: NullableInstant
+lines_count: number
+disputed_lines_count: number
+unmatched_lines_count: number
+created_at: Instant
+updated_at: Instant
+}
+export interface PaymentReconciliationResponse {
+data: PaymentReconciliation
+}
+export interface PaymentReconciliationPage {
+/**
+ * @minItems 0
+ */
+data: PaymentReconciliationSummary[]
+meta: Pagination
+}
+/**
+ * Mouvement du grand livre (encaissement net de contre-écritures ou remboursement) du canal et de la période qui n'est rattaché à aucun autre rapprochement.
+ */
+export interface PaymentReconciliationCandidate {
+kind: ("PAYMENT" | "REFUND")
+payment_id: NullableUlid
+refund_id: NullableUlid
+method: PaymentReconciliationsMethod
+amount: SignedMoneyXaf
+gross_amount: PositiveMoneyXaf
+reversed_amount: MoneyXaf
+effective_at: Instant
+reference: (string | null)
+invoice_id: Ulid
+invoice_number: (string | null)
+piece_number: (string | null)
+patient_name: (string | null)
+}
+/**
+ * Attendu serveur et mouvements éligibles au pointage pour un canal et une période, accompagnés de la fraîcheur des postes hors ligne.
+ */
+export interface PaymentReconciliationCandidates {
+method: PaymentReconciliationsMethod
+period_starts_at: Instant
+period_ends_at: Instant
+expected_amount: SignedMoneyXaf
+/**
+ * @minItems 0
+ */
+candidates: PaymentReconciliationCandidate[]
+freshness: {
+complete: boolean
+silence_hours: number
+/**
+ * @minItems 0
+ */
+devices: {
+device_id: Ulid
+name: string
+last_sync_at: NullableInstant
+commands_pending: number
+commands_in_conflict: number
+state: ("UP_TO_DATE" | "WAITING" | "SILENT")
+}[]
+}
+}
+export interface PaymentReconciliationCandidatesResponse {
+data: PaymentReconciliationCandidates
 }
 export interface InvoiceLine {
 id: Ulid
@@ -7697,7 +8447,7 @@ data: Refund
  */
 export interface Approval {
 id: Ulid
-kind: (("EXAM_FEE_WAIVER" | "DRAFT_LINE_RIGHTS" | "PAYMENT_REVERSAL" | "CREDIT_NOTE" | "REFUND" | "CREDIT_DELIVERY" | "STOCK_MOVEMENT" | "CASH_MOVEMENT") | null)
+kind: (("EXAM_FEE_WAIVER" | "DRAFT_LINE_RIGHTS" | "PAYMENT_REVERSAL" | "CREDIT_NOTE" | "REFUND" | "CREDIT_DELIVERY" | "STOCK_MOVEMENT" | "CASH_MOVEMENT" | "CAMPAIGN_SEND") | null)
 action_code: PermissionCode
 target_type: string
 target_id: Ulid
@@ -7833,6 +8583,16 @@ cash_session_id: Ulid
 movement_kind: ("DEPOSIT" | "WITHDRAWAL" | "EXPENSE" | "OPENING_CORRECTION")
 signed_amount: number
 expense_category_id: NullableUlid
+}
+/**
+ * Gel et envoi d'une campagne de communication vers un segment avec version de modèle approuvée et effectif exact (action communication.manage, cible campaign_definitions).
+ */
+export interface CampaignSendSubject {
+kind: "CAMPAIGN_SEND"
+campaign_id: Ulid
+segment_id: Ulid
+template_version_id: Ulid
+eligible_count: number
 }
 /**
  * Résumé de la cible pour décider : identité administrative du patient, numéro de facture (null pour un brouillon), heure de la visite, paiement visé.
@@ -8541,6 +9301,569 @@ export interface PrescriptionList {
 data: Prescription[]
 }
 /**
+ * Compte connecteur externe (secrets chiffrés jamais retournés en lecture).
+ */
+export interface IntegrationAccount {
+id: Ulid
+provider: IntegrationAccountsProvider
+external_account_id: string
+display_name: string
+status: IntegrationAccountsStatus
+has_credentials: boolean
+encryption_key_id: (string | null)
+token_expires_at: NullableInstant
+public_configuration: ({
+
+} | null)
+version: Version
+updated_at: Instant
+}
+export interface IntegrationAccountList {
+/**
+ * @minItems 0
+ */
+data: IntegrationAccount[]
+}
+export interface IntegrationAccountResponse {
+data: IntegrationAccount
+}
+export interface IntegrationHealth {
+mode: ("fake" | "live" | "disabled")
+credentials_configured: boolean
+accounts_total: number
+accounts_active: number
+accounts_error: number
+outbox_pending: number
+outbox_failed: number
+webhook_pending: number
+webhook_failed: number
+calendar_stale: number
+/**
+ * @minItems 0
+ */
+accounts: IntegrationAccount[]
+}
+export interface IntegrationHealthResponse {
+data: IntegrationHealth
+}
+export interface IntegrationConnectionTest {
+account_id: Ulid
+provider: IntegrationAccountsProvider
+reachable: boolean
+mode: ("fake" | "live")
+status: IntegrationAccountsStatus
+checked_at: Instant
+detail: (string | null)
+}
+export interface IntegrationConnectionTestResponse {
+data: IntegrationConnectionTest
+}
+export interface OutboxEvent {
+id: Ulid
+event_type: string
+event_version: number
+source_type: string
+source_id: Ulid
+source_version: Version
+status: OutboxEventsStatus
+attempt_count: number
+next_attempt_at: NullableInstant
+processed_at: NullableInstant
+last_error_code: (string | null)
+correlation_id: string
+created_at: Instant
+}
+export interface OutboxEventPage {
+/**
+ * @minItems 0
+ */
+data: OutboxEvent[]
+meta: Pagination
+}
+export interface OutboxBatchResult {
+processed: number
+failed: number
+skipped: number
+/**
+ * @minItems 0
+ */
+events: OutboxEvent[]
+}
+export interface OutboxBatchResultResponse {
+data: OutboxBatchResult
+}
+export interface CalendarSyncState {
+id: Ulid
+integration_account_id: Ulid
+resource_id: Ulid
+external_calendar_id: string
+status: CalendarSyncStatesStatus
+last_full_sync_at: NullableInstant
+last_incremental_sync_at: NullableInstant
+last_error_code: (string | null)
+push_expires_at: NullableInstant
+version: Version
+updated_at: Instant
+}
+export interface CalendarSyncStateList {
+/**
+ * @minItems 0
+ */
+data: CalendarSyncState[]
+}
+export interface CalendarSyncStateResponse {
+data: CalendarSyncState
+}
+export interface CalendarSyncRunResult {
+synced_states: number
+pushed_appointments: number
+pulled_blocks: number
+conflicts: number
+/**
+ * @minItems 0
+ */
+states: CalendarSyncState[]
+}
+export interface CalendarSyncRunResultResponse {
+data: CalendarSyncRunResult
+}
+export interface PublicBookingAdminItem {
+id: Ulid
+public_reference: string
+status: PublicBookingRequestsStatus
+service_id: Ulid
+service_name: (string | null)
+resource_id: NullableUlid
+prospect_contact_id: Ulid
+prospect_name: (string | null)
+prospect_phone: (string | null)
+requested_starts_at: Instant
+requested_ends_at: Instant
+appointment_id: NullableUlid
+consent_recorded_at: Instant
+created_at: Instant
+}
+export interface PublicBookingAdminPage {
+/**
+ * @minItems 0
+ */
+data: PublicBookingAdminItem[]
+meta: Pagination
+}
+export interface PublicBookingAdminResponse {
+data: PublicBookingAdminItem
+}
+export interface ProspectContact {
+id: Ulid
+name: string
+phone: (string | null)
+email: (string | null)
+patient_id: NullableUlid
+origin: ProspectContactsOrigin
+administrative_notes: (string | null)
+version: Version
+created_at: Instant
+updated_at: Instant
+}
+export interface ProspectContactPage {
+/**
+ * @minItems 0
+ */
+data: ProspectContact[]
+meta: Pagination
+}
+export interface ProspectContactResponse {
+data: ProspectContact
+}
+export interface CrmLead {
+id: Ulid
+prospect_contact_id: Ulid
+prospect_name: (string | null)
+integration_account_id: Ulid
+external_lead_id: string
+pipeline_id: (string | null)
+pipeline_stage: (string | null)
+product_interest: (string | null)
+budget_min: (MoneyXaf | null)
+budget_max: (MoneyXaf | null)
+acquisition_source: (string | null)
+assigned_to: NullableUlid
+status: CrmLeadsStatus
+last_synced_at: NullableInstant
+updated_at: Instant
+}
+export interface CrmLeadPage {
+/**
+ * @minItems 0
+ */
+data: CrmLead[]
+meta: Pagination
+}
+export interface CrmLeadResponse {
+data: CrmLead
+}
+export interface CrmLeadSyncResult {
+synced: number
+created: number
+updated: number
+conflicts: number
+}
+export interface CrmLeadSyncResultResponse {
+data: CrmLeadSyncResult
+}
+export interface CrmConversation {
+id: Ulid
+crm_lead_id: NullableUlid
+integration_account_id: Ulid
+external_conversation_id: string
+channel: CrmConversationsChannel
+status: CrmConversationsStatus
+human_owner_id: NullableUlid
+takeover_at: NullableInstant
+takeover_reason: (string | null)
+administrative_summary: (string | null)
+bot_resumed_at: NullableInstant
+last_activity_at: Instant
+version: Version
+}
+export interface CrmConversationPage {
+/**
+ * @minItems 0
+ */
+data: CrmConversation[]
+meta: Pagination
+}
+export interface CrmConversationResponse {
+data: CrmConversation
+}
+export interface KnowledgeEntryVersion {
+id: Ulid
+entry_id: Ulid
+revision_no: number
+content: string
+language: string
+authored_by: Ulid
+approved_by: NullableUlid
+approved_at: NullableInstant
+published_at: NullableInstant
+retired_at: NullableInstant
+is_published: boolean
+created_at: Instant
+}
+export interface KnowledgeEntry {
+id: Ulid
+code: string
+title: string
+category: KnowledgeEntriesCategory
+active: boolean
+version: Version
+published_version: (KnowledgeEntryVersion | null)
+/**
+ * @minItems 0
+ */
+versions: KnowledgeEntryVersion[]
+}
+export interface KnowledgeEntryPage {
+/**
+ * @minItems 0
+ */
+data: KnowledgeEntry[]
+meta: Pagination
+}
+export interface KnowledgeEntryResponse {
+data: KnowledgeEntry
+}
+export interface KnowledgeEntryVersionResponse {
+data: KnowledgeEntryVersion
+}
+export interface ConversationHandoff {
+id: Ulid
+conversation_id: Ulid
+event_type: ConversationHandoffsEventType
+actor_id: NullableUlid
+reason: (string | null)
+administrative_summary: (string | null)
+occurred_at: Instant
+}
+export interface ConversationHandoffList {
+/**
+ * @minItems 0
+ */
+data: ConversationHandoff[]
+}
+export interface AssistantRun {
+id: Ulid
+conversation_id: Ulid
+engine_name: string
+model_name: string
+rules_version: string
+started_at: Instant
+completed_at: NullableInstant
+status: AssistantRunsStatus
+input_tokens: (number | null)
+output_tokens: (number | null)
+/**
+ * @minItems 0
+ */
+knowledge_version_ids: Ulid[]
+/**
+ * @minItems 0
+ */
+sanitized_tool_results: {
+
+}[]
+error_code: (string | null)
+}
+export interface AssistantRunList {
+/**
+ * @minItems 0
+ */
+data: AssistantRun[]
+}
+export interface AssistantTurnResult {
+run: AssistantRun
+reply: string
+handoff_triggered: boolean
+clinical_refusal: boolean
+conversation_status: CrmConversationsStatus
+/**
+ * @minItems 0
+ */
+knowledge_citations: string[]
+booking_reference: (string | null)
+}
+export interface AssistantTurnResultResponse {
+data: AssistantTurnResult
+}
+export interface CommunicationConsent {
+id: Ulid
+patient_id: NullableUlid
+prospect_contact_id: NullableUlid
+channel: CommunicationConsentsChannel
+purpose: CommunicationConsentsPurpose
+status: CommunicationConsentsStatus
+destination_masked: string
+recorded_at: Instant
+recorded_by: NullableUlid
+proof: (string | null)
+policy_version: string
+event_sequence: number
+}
+export interface CommunicationConsentPage {
+/**
+ * @minItems 0
+ */
+data: CommunicationConsent[]
+meta: Pagination
+}
+export interface CommunicationConsentResponse {
+data: CommunicationConsent
+}
+export interface MessageTemplateVersion {
+id: Ulid
+template_id: Ulid
+integration_account_id: NullableUlid
+revision_no: number
+provider_template_id: (string | null)
+language: string
+body: string
+/**
+ * @minItems 0
+ */
+allowed_variables: string[]
+provider_approval_status: MessageTemplateVersionsProviderApprovalStatus
+approved_by: NullableUlid
+approved_at: NullableInstant
+created_at: Instant
+}
+export interface MessageTemplate {
+id: Ulid
+code: string
+channel: MessageTemplatesChannel
+purpose: MessageTemplatesPurpose
+active: boolean
+version: Version
+/**
+ * @minItems 0
+ */
+versions: MessageTemplateVersion[]
+}
+export interface MessageTemplateList {
+/**
+ * @minItems 0
+ */
+data: MessageTemplate[]
+}
+export interface MessageTemplateResponse {
+data: MessageTemplate
+}
+export interface MessageTemplateVersionResponse {
+data: MessageTemplateVersion
+}
+export interface ReminderPolicy {
+id: Ulid
+code: string
+label: string
+purpose: ReminderPoliciesPurpose
+channel: ReminderPoliciesChannel
+offset_unit: ReminderPoliciesOffsetUnit
+offset_value: number
+local_send_time: (string | null)
+active: boolean
+version: Version
+}
+export interface ReminderPolicyList {
+/**
+ * @minItems 0
+ */
+data: ReminderPolicy[]
+}
+export interface ReminderPolicyResponse {
+data: ReminderPolicy
+}
+export interface MessageAttempt {
+id: Ulid
+task_id: NullableUlid
+campaign_recipient_id: NullableUlid
+integration_account_id: Ulid
+template_version_id: NullableUlid
+consent_event_id: NullableUlid
+dedupe_key: string
+provider_message_id: (string | null)
+attempt_no: number
+status: MessageAttemptsStatus
+submitted_at: NullableInstant
+delivered_at: NullableInstant
+read_at: NullableInstant
+error_code: (string | null)
+created_at: Instant
+}
+export interface MessageAttemptPage {
+/**
+ * @minItems 0
+ */
+data: MessageAttempt[]
+meta: Pagination
+}
+export interface MessageAttemptResponse {
+data: MessageAttempt
+}
+export interface AudienceSegment {
+id: Ulid
+name: string
+criteria: {
+
+}
+criteria_schema_version: string
+created_by: Ulid
+version: Version
+updated_at: Instant
+}
+export interface AudienceSegmentList {
+/**
+ * @minItems 0
+ */
+data: AudienceSegment[]
+}
+export interface AudienceSegmentResponse {
+data: AudienceSegment
+}
+export interface CampaignRecipient {
+id: Ulid
+campaign_id: Ulid
+patient_id: NullableUlid
+prospect_contact_id: NullableUlid
+destination_masked: string
+consent_event_id: NullableUlid
+status: CampaignRecipientsStatus
+exclusion_reason: (string | null)
+consent_checked_at: NullableInstant
+}
+export interface CampaignRecipientPage {
+/**
+ * @minItems 0
+ */
+data: CampaignRecipient[]
+meta: Pagination
+}
+export interface CampaignDefinition {
+id: Ulid
+name: string
+segment_id: Ulid
+template_version_id: Ulid
+approval_id: NullableUlid
+scheduled_at: NullableInstant
+status: CampaignDefinitionsStatus
+created_by: Ulid
+target_frozen_at: NullableInstant
+eligible_count: number
+excluded_count: number
+delivered_count: number
+failed_count: number
+created_at: Instant
+updated_at: Instant
+}
+export interface CampaignPage {
+/**
+ * @minItems 0
+ */
+data: CampaignDefinition[]
+meta: Pagination
+}
+export interface CampaignResponse {
+data: CampaignDefinition
+}
+export interface CampaignPreview {
+campaign_id: Ulid
+total_candidates: number
+eligible_count: number
+excluded_count: number
+/**
+ * @minItems 0
+ */
+sample: CampaignRecipient[]
+}
+export interface CampaignPreviewResponse {
+data: CampaignPreview
+}
+export interface WebhookInboxItem {
+id: Ulid
+integration_account_id: NullableUlid
+provider_event_key: string
+payload_hash: Sha256Hex
+received_at: Instant
+status: WebhookInboxStatus
+verified_at: NullableInstant
+processed_at: NullableInstant
+attempt_count: number
+last_error_code: (string | null)
+}
+export interface WebhookInboxPage {
+/**
+ * @minItems 0
+ */
+data: WebhookInboxItem[]
+meta: Pagination
+}
+export interface WebhookIngestResult {
+accepted: boolean
+duplicate: boolean
+inbox_id: NullableUlid
+status: WebhookInboxStatus
+}
+export interface WebhookIngestResultResponse {
+data: WebhookIngestResult
+}
+export interface IntegrationReconcileResult {
+outbox_processed: number
+webhooks_processed: number
+attempts_reconciled: number
+calendar_synced: number
+}
+export interface IntegrationReconcileResultResponse {
+data: IntegrationReconcileResult
+}
+/**
  * Poste enrôlé (O02) : clé PUBLIQUE ES256 seulement ; kid = empreinte RFC 7638 de cette clé.
  */
 export interface EnrolledDevice {
@@ -8886,13 +10209,19 @@ failure_code: (string | null)
 export interface GeneratedDocumentResponse {
 data: GeneratedDocument
 }
+/**
+ * Filtres facultatifs d'un export contrôlé (période civile inclusive et profil de portée qui restreint sans jamais élargir les droits).
+ */
+export interface ExportFilters {
+from?: NullableCivilDate
+to?: NullableCivilDate
+scope_role?: (("CASHIER" | "CLINICIAN" | "MANAGER" | "RECEPTION") | null)
+}
 export interface ExportRequest {
 id: Ulid
 export_type: ExportRequestsExportType
 patient_id: NullableUlid
-filters: ({
-
-} | null)
+filters: (ExportFilters | null)
 status: ExportRequestsStatus
 requested_by: Ulid
 completed_at: NullableInstant
@@ -8907,6 +10236,56 @@ export interface ExportRequestList {
  * @minItems 0
  */
 data: ExportRequest[]
+}
+/**
+ * Manifeste permanent d'un export privé (conservé dans le journal d'audit même après expiration 48 h de l'archive ZIP).
+ */
+export interface ExportManifest {
+export_id: Ulid
+export_type: ExportRequestsExportType
+patient_id: NullableUlid
+clinic_id: Ulid
+clinic_name: string
+requested_by: Ulid
+requested_by_name: string
+generated_at: Instant
+expires_at: NullableInstant
+archive_status: ExportRequestsStatus
+filters: (ExportFilters | null)
+/**
+ * @minItems 0
+ */
+scope_permissions: string[]
+checksum_algorithm: "SHA-256"
+archive_sha256: NullableSha256Hex
+provenance: {
+source: string
+timezone: string
+currency: Currency
+manifest_preserved: boolean
+note: string
+}
+/**
+ * @minItems 0
+ */
+excluded_tables: {
+table: string
+reason: ("PERMISSION_MISSING" | "NOT_IN_SCOPE")
+}[]
+/**
+ * @minItems 0
+ */
+tables: {
+table: string
+file: string
+rows: number
+sha256: Sha256Hex
+filter_mode: ("PERIOD_FILTERED" | "PATIENT_SCOPED" | "SNAPSHOT_MASTER")
+date_column: (string | null)
+}[]
+}
+export interface ExportManifestResponse {
+data: ExportManifest
 }
 /**
  * Finance du cabinet sur une période de jours civils (gérante, finance.global.read). Le chiffre d'affaires (factures émises − avoirs émis, reprises papier exclues) et les encaissements (paiements − contre-écritures − remboursements, à leur date effective) sont des indicateurs DISTINCTS ; les créances (restes dus de toutes périodes, dont la part des reprises papier) et les crédits à rembourser sont lus à l'instant de la lecture et restent à part. Vente par auteur de l'émission, encaissement par auteur du paiement. freshness : un état par poste de caisse hors ligne actif (UP_TO_DATE, WAITING : commandes reçues en attente ou en conflit, SILENT : rien reçu depuis plus de silence_hours) ; les totaux ne contiennent jamais une opération restée sur un poste.
@@ -9022,6 +10401,372 @@ generated_at: Instant
 }
 export interface FinancialReportResponse {
 data: FinancialReport
+}
+/**
+ * Restitution comptable Q13 (L1D06, gérante, finance.global.read) : sépare strictement chiffre d'affaires (factures − avoirs, hors reprises papier), encaissements nets par mode, dépenses de caisse par catégorie, rapprochements par canal, impayés à l'instant de la lecture et valorisation au coût connu. Jamais de double compte avec les devis ni les reprises papier.
+ */
+export interface AccountingExportReport {
+period: {
+from: CivilDate
+to: CivilDate
+}
+currency: Currency
+freshness: {
+complete: boolean
+silence_hours: number
+/**
+ * @minItems 0
+ */
+devices: {
+device_id: Ulid
+name: string
+last_sync_at: NullableInstant
+commands_pending: number
+commands_in_conflict: number
+state: ("UP_TO_DATE" | "WAITING" | "SILENT")
+}[]
+}
+revenue: {
+invoices_count: number
+invoiced_gross: MoneyXaf
+credit_notes_count: number
+credited_gross: MoneyXaf
+net_revenue: SignedMoneyXaf
+legacy_excluded_note: string
+}
+collections: {
+/**
+ * @minItems 0
+ */
+by_method: {
+method: PaymentsMethod
+payments_count: number
+payments_amount: MoneyXaf
+reversals_amount: MoneyXaf
+refunds_amount: MoneyXaf
+net_amount: SignedMoneyXaf
+}[]
+net_total: SignedMoneyXaf
+on_legacy: {
+payments_count: number
+net_amount: SignedMoneyXaf
+}
+}
+expenses: {
+total_amount: MoneyXaf
+movements_count: number
+/**
+ * @minItems 0
+ */
+by_category: {
+category_id: NullableUlid
+code: (string | null)
+name: string
+movements_count: number
+amount: MoneyXaf
+}[]
+other_cash_movements: {
+deposits: MoneyXaf
+withdrawals: MoneyXaf
+opening_adjustments: SignedMoneyXaf
+}
+}
+reconciliations: {
+validated_count: number
+draft_count: number
+/**
+ * @minItems 0
+ */
+by_method: {
+method: PaymentReconciliationsMethod
+validated_count: number
+expected_total: SignedMoneyXaf
+statement_total: SignedMoneyXaf
+variance_total: SignedMoneyXaf
+disputed_lines: number
+}[]
+/**
+ * @minItems 0
+ */
+items: {
+id: Ulid
+method: PaymentReconciliationsMethod
+period_starts_at: Instant
+period_ends_at: Instant
+status: PaymentReconciliationsStatus
+expected_amount: SignedMoneyXaf
+statement_amount: (SignedMoneyXaf | null)
+variance_amount: (SignedMoneyXaf | null)
+validated_at: NullableInstant
+}[]
+}
+receivables_at_read: {
+invoices_count: number
+amount_due: MoneyXaf
+of_which_legacy: {
+invoices_count: number
+amount_due: MoneyXaf
+}
+refundable_credit: {
+invoices_count: number
+amount: MoneyXaf
+}
+}
+stock_valuation_at_read: ({
+known_cost_value: MoneyXaf
+unknown_cost_positions: number
+total_positions: number
+} | null)
+/**
+ * @minItems 0
+ */
+lines: {
+section: ("REVENUE_INVOICE" | "REVENUE_CREDIT_NOTE" | "COLLECTION_PAYMENT" | "COLLECTION_REVERSAL" | "COLLECTION_REFUND" | "EXPENSE" | "OTHER_CASH_MOVEMENT" | "RECONCILIATION")
+occurred_at: Instant
+reference: (string | null)
+channel: (string | null)
+category_or_label: string
+signed_amount: SignedMoneyXaf
+excluded_from_ca: boolean
+reconciliation_status: (PaymentReconciliationsStatus | null)
+}[]
+generated_at: Instant
+}
+export interface AccountingExportReportResponse {
+data: AccountingExportReport
+}
+export interface ManagementComparisonCount {
+current: number
+previous: number
+delta: number
+delta_pct_bps: (number | null)
+}
+export interface ManagementComparisonMoney {
+current: SignedMoneyXaf
+previous: SignedMoneyXaf
+delta: SignedMoneyXaf
+delta_pct_bps: (number | null)
+}
+/**
+ * Tableaux de gestion multi-domaines L1D09 filtrés par profil et modules actifs, comparés à la période précédente équivalente, sans double compte et avec inconnus explicites.
+ */
+export interface ManagementReport {
+period: {
+from: CivilDate
+to: CivilDate
+days: number
+}
+previous_period: {
+from: CivilDate
+to: CivilDate
+days: number
+}
+timezone: string
+currency: Currency
+freshness: {
+complete: boolean
+silence_hours: number
+/**
+ * @minItems 0
+ */
+devices: {
+device_id: Ulid
+name: string
+last_sync_at: NullableInstant
+commands_pending: number
+commands_in_conflict: number
+state: ("UP_TO_DATE" | "WAITING" | "SILENT")
+}[]
+}
+/**
+ * @minItems 0
+ */
+excluded_sections: {
+section: ("FINANCE" | "STOCK" | "STOCK_VALUATION" | "WORKSHOP" | "PATIENTS" | "CLINICAL")
+reason: ("PERMISSION_MISSING" | "MODULE_DISABLED")
+detail: string
+}[]
+finance: ({
+net_revenue: ManagementComparisonMoney
+invoiced_gross: ManagementComparisonMoney
+credited_gross: ManagementComparisonMoney
+net_collections: ManagementComparisonMoney
+expenses_total: ManagementComparisonMoney
+quotes_pipeline: {
+issued_count: number
+issued_amount: MoneyXaf
+accepted_count: number
+converted_count: number
+excluded_from_revenue_note: string
+}
+receivables_at_read: {
+invoices_count: number
+amount_due: MoneyXaf
+of_which_legacy_count: number
+of_which_legacy_amount: MoneyXaf
+refundable_credit_amount: MoneyXaf
+}
+/**
+ * @minItems 0
+ */
+collections_by_method: {
+method: PaymentsMethod
+payments_amount: MoneyXaf
+reversals_amount: MoneyXaf
+refunds_amount: MoneyXaf
+net_amount: SignedMoneyXaf
+}[]
+reconciliations_period: {
+validated_count: number
+draft_count: number
+disputed_lines: number
+variance_total: SignedMoneyXaf
+}
+cash_sessions: {
+closed_count: number
+open_count: number
+variance_total: SignedMoneyXaf
+post_closure_reversals: MoneyXaf
+}
+} | null)
+stock: ({
+valuation_at_read: ({
+known_cost_value: MoneyXaf
+unknown_cost_positions: number
+unknown_cost_lots: number
+total_positions: number
+} | null)
+valuation_hidden_reason: (string | null)
+positions_count: number
+low_stock_items_count: number
+open_alerts: {
+total: number
+low_stock: number
+expiring: number
+expired: number
+without_due_date: number
+}
+movements_in_period: {
+receipts_validated_count: number
+adjustments_count: number
+deliveries_confirmed_count: number
+physical_returns_count: number
+open_inventories_count: number
+validated_inventories_count: number
+}
+/**
+ * @minItems 0
+ */
+by_location: {
+location_id: Ulid
+code: string
+name: string
+positions_count: number
+quantity_on_hand: Quantity
+unknown_cost_positions: number
+}[]
+/**
+ * @minItems 0
+ */
+by_category: {
+category_code: string
+category_name: string
+items_count: number
+quantity_on_hand: Quantity
+unknown_cost_positions: number
+known_cost_value: (MoneyXaf | null)
+}[]
+} | null)
+workshop: ({
+created_count: ManagementComparisonCount
+delivered_or_ready_count: ManagementComparisonCount
+open_total: number
+overdue_open_count: number
+unknown_expected_date_count: number
+orders_without_frame_item_count: number
+reworks_in_period: number
+failed_qc_in_period: number
+/**
+ * @minItems 0
+ */
+by_status: {
+status: WorkshopOrdersStatus
+count: number
+overdue_count: number
+}[]
+} | null)
+patients: ({
+visits_count: ManagementComparisonCount
+distinct_patients: ManagementComparisonCount
+new_patients: ManagementComparisonCount
+returning_patients: ManagementComparisonCount
+/**
+ * @minItems 0
+ */
+visits_by_reason: {
+reason: VisitsReason
+count: number
+}[]
+incomplete_identity: {
+total_active_patients: number
+birth_date_unknown: number
+sex_unknown: number
+phone_unknown: number
+address_unknown: number
+}
+} | null)
+clinical: ({
+consultations_completed: ManagementComparisonCount
+optical_prescriptions_issued: ManagementComparisonCount
+prescriptions_rate_bps: number
+medication_orders_count: number
+referrals_count: number
+incomplete_clinical_data: {
+without_complaint: number
+without_acuity: number
+without_refraction: number
+without_ametropia: number
+referral_unknown: number
+}
+/**
+ * @minItems 0
+ */
+by_ametropia: {
+code: string
+count: number
+}[]
+} | null)
+/**
+ * @minItems 0
+ */
+unknowns: {
+domain: ("FINANCE" | "STOCK" | "WORKSHOP" | "PATIENTS" | "CLINICAL" | "SYNC")
+code: string
+label: string
+count: number
+note: string
+}[]
+/**
+ * @minItems 0
+ */
+definitions: {
+code: string
+domain: string
+label: string
+formula: string
+denominator: string
+exclusion_note: string
+}[]
+provenance: {
+source: string
+period_timezone: string
+previous_period_rule: string
+dataset_sha256: Sha256Hex
+}
+generated_at: Instant
+}
+export interface ManagementReportResponse {
+data: ManagementReport
 }
 /**
  * Événement du journal append-only (lecture gérante, audit.read) ; aucun secret dans le diff.
@@ -9412,10 +11157,141 @@ data: PublicSlot[]
  */
 export interface BookingReceipt {
 public_reference: string
-status: ("RECEIVED" | "PENDING_CONFIRMATION")
+status: PublicBookingRequestsStatus
+service_id: Ulid
+requested_starts_at: Instant
+requested_ends_at: Instant
 }
 export interface BookingReceiptResponse {
 data: BookingReceipt
+}
+/**
+ * Image approuvée d'une fiche : texte alternatif et note de droits obligatoires.
+ */
+export interface PublicationMedia {
+id: Ulid
+alt_text: string
+rights_note: string
+display_order: number
+approved_at: Instant
+}
+/**
+ * Fiche du showroom côté gérante. Seule une fiche PUBLIÉE dont l'article est actif et visible sort sur le site.
+ */
+export interface Publication {
+id: Ulid
+catalog_item_id: Ulid
+item_name: string
+item_reference: string
+item_eligible: boolean
+slug: string
+public_title: string
+public_description: string
+style: (string | null)
+show_sale_price: boolean
+sale_price: MoneyXaf
+status: CatalogPublicationsStatus
+display_order: number
+published_at: NullableInstant
+version: number
+/**
+ * @minItems 0
+ */
+media: PublicationMedia[]
+}
+export interface PublicationPage {
+/**
+ * @minItems 0
+ */
+data: Publication[]
+meta: Pagination
+}
+export interface PublicationResponse {
+data: Publication
+}
+export interface PublicContentRevision {
+id: Ulid
+code: string
+title: string
+content: string
+revision_no: number
+status: PublicContentsStatus
+published_at: NullableInstant
+version: number
+}
+/**
+ * Un code de contenu : la révision publiée et le brouillon en cours.
+ */
+export interface PublicContentEntry {
+code: string
+label: string
+published: (PublicContentRevision | null)
+draft: (PublicContentRevision | null)
+}
+export interface PublicContentList {
+/**
+ * @minItems 0
+ */
+data: PublicContentEntry[]
+}
+export interface PublicContentResponse {
+data: PublicContentRevision
+}
+export interface ShowroomMedia {
+url: string
+alt: string
+}
+/**
+ * Référence publiée : jamais de coût d'achat, de stock, de référence interne ni de donnée de patient. Le prix n'est rendu que si la gérante le montre.
+ */
+export interface ShowroomItem {
+slug: string
+title: string
+description: string
+style: (string | null)
+brand: (string | null)
+price: (MoneyXaf | null)
+currency: "XAF"
+/**
+ * @minItems 0
+ */
+media: ShowroomMedia[]
+}
+export interface ShowroomFacets {
+/**
+ * @minItems 0
+ */
+styles: string[]
+/**
+ * @minItems 0
+ */
+brands: string[]
+}
+export interface ShowroomPage {
+/**
+ * @minItems 0
+ */
+data: ShowroomItem[]
+meta: Pagination
+facets: ShowroomFacets
+}
+export interface ShowroomItemResponse {
+data: ShowroomItem
+}
+/**
+ * Contenu publié par la gérante ; pour WHATSAPP, le lien https://wa.me/<numéro>.
+ */
+export interface PublicContent {
+code: string
+title: string
+content: string
+whatsapp_url: (string | null)
+}
+export interface PublicContentPublicList {
+/**
+ * @minItems 0
+ */
+data: PublicContent[]
 }
 /**
  * Identité administrative minimale du patient d'un rendez-vous, d'un suivi ou d'une tâche.
@@ -9461,6 +11337,7 @@ id: Ulid
 name: string
 duration_minutes: number
 active: boolean
+public_booking: boolean
 version: Version
 }
 export interface AppointmentServiceResponse {
@@ -9776,6 +11653,34 @@ data: StockAvailability[]
 meta: Pagination
 }
 /**
+ * Mouvement physique append-only d'un article (cahier des charges §6) : quantité signée, motif, lot, auteur. Le coût unitaire n'est rendu qu'avec stock.valuation.read.
+ */
+export interface StockMovementHistoryEntry {
+id: Ulid
+kind: StockMovementsKind
+/**
+ * DECIMAL(12,3) en chaîne exacte, zéro admis.
+ */
+signed_quantity: string
+occurred_at: Instant
+reason: string
+location_name: string
+lot: ({
+lot_id: Ulid
+batch_number: string
+expires_on: NullableCivilDate
+} | null)
+actor_name: (string | null)
+unit_cost: (MoneyXaf | null)
+}
+export interface StockMovementHistoryPage {
+/**
+ * @minItems 0
+ */
+data: StockMovementHistoryEntry[]
+meta: Pagination
+}
+/**
  * Emplacement de stock (rayon, atelier, réserve) ; PRINCIPAL créé par eeo:sales:bootstrap.
  */
 export interface StockLocation {
@@ -9829,6 +11734,634 @@ credit_note_id: NullableUlid
 }
 export interface PhysicalReturnResponse {
 data: PhysicalReturn
+}
+/**
+ * Fournisseur ou laboratoire (L1D01) : coordonnées d'une entreprise ; il se désactive, il ne se supprime jamais.
+ */
+export interface Supplier {
+id: Ulid
+name: string
+reference: string
+phone: (string | null)
+email: (string | null)
+address: (string | null)
+is_optical_lab: boolean
+active: boolean
+}
+export interface SupplierResponse {
+data: Supplier
+}
+export interface SupplierList {
+/**
+ * @minItems 0
+ */
+data: Supplier[]
+}
+/**
+ * Réception fournisseur sans ses lignes (liste) : valeur au coût connu arrondie au FCFA par ligne, lignes sans coût comptées à part (jamais valorisées à zéro).
+ */
+export interface GoodsReceiptSummary {
+id: Ulid
+supplier_id: Ulid
+supplier_name: string
+location_id: Ulid
+location_name: string
+supplier_reference: string
+received_at: Instant
+status: GoodsReceiptsStatus
+validated_at: NullableInstant
+notes: (string | null)
+line_count: number
+known_cost_total: MoneyXaf
+unknown_cost_lines: number
+}
+export interface GoodsReceiptPage {
+/**
+ * @minItems 0
+ */
+data: GoodsReceiptSummary[]
+meta: Pagination
+}
+/**
+ * Réception fournisseur (L1D01) : brouillon sans lot, ou validée (lots, coûts confirmés, un mouvement RECEIPT par ligne). Une réception validée est définitive.
+ */
+export interface GoodsReceipt {
+id: Ulid
+supplier_id: Ulid
+supplier_name: string
+location_id: Ulid
+location_name: string
+supplier_reference: string
+received_at: Instant
+status: GoodsReceiptsStatus
+validated_at: NullableInstant
+notes: (string | null)
+line_count: number
+known_cost_total: MoneyXaf
+unknown_cost_lines: number
+/**
+ * @minItems 0
+ */
+lines: GoodsReceiptLine[]
+}
+/**
+ * Ligne de réception : coût unitaire connu ou null (inconnu, jamais zéro) ; lot renseigné à la validation.
+ */
+export interface GoodsReceiptLine {
+position: number
+item_id: Ulid
+item_reference: string
+item_name: string
+/**
+ * DECIMAL(12,3) en chaîne exacte, zéro admis.
+ */
+quantity: string
+unit_cost: (MoneyXaf | null)
+lot: ({
+lot_id: Ulid
+batch_number: string
+expires_on: NullableCivilDate
+} | null)
+}
+export interface GoodsReceiptResponse {
+data: GoodsReceipt
+}
+export interface DeleteGoodsReceiptDraftResult {
+receipt_id: Ulid
+deleted: boolean
+}
+export interface DeleteGoodsReceiptDraftResponse {
+data: DeleteGoodsReceiptDraftResult
+}
+/**
+ * Ligne d'inventaire : théorique figé à l'ouverture, quantité comptée, écart brut, ajustement écrit à la validation ; coût et valeur seulement avec stock.valuation.read (null ailleurs, et null quand le coût est inconnu).
+ */
+export interface InventoryCountLine {
+line_id: Ulid
+item_id: Ulid
+item_reference: string
+item_name: string
+lot: ({
+lot_id: Ulid
+batch_number: string
+expires_on: NullableCivilDate
+} | null)
+/**
+ * DECIMAL(12,3) en chaîne exacte, zéro admis.
+ */
+theoretical_quantity: string
+counted_quantity: (string | null)
+variance_quantity: (string | null)
+variance_reason: (string | null)
+adjustment_quantity: (string | null)
+unit_cost: (MoneyXaf | null)
+variance_value: (SignedMoneyXaf | null)
+}
+/**
+ * Inventaire sans ses lignes (liste) : périmètre = un emplacement, figé à snapshot_at ; valeur des écarts au coût connu, lignes à coût inconnu comptées à part.
+ */
+export interface InventoryCountSummary {
+id: Ulid
+reference: string
+location_id: Ulid
+location_name: string
+snapshot_at: Instant
+status: InventoryCountsStatus
+validated_at: NullableInstant
+line_count: number
+counted_lines: number
+variance_lines: number
+variance_value_known: (SignedMoneyXaf | null)
+unknown_cost_lines: (number | null)
+}
+export interface InventoryCountPage {
+/**
+ * @minItems 0
+ */
+data: InventoryCountSummary[]
+meta: Pagination
+}
+/**
+ * Inventaire (L1D02) : le comptage ne change jamais le stock ; la validation écrit un mouvement ADJUSTMENT signé par écart non nul, approuvé par la gérante.
+ */
+export interface InventoryCount {
+id: Ulid
+reference: string
+location_id: Ulid
+location_name: string
+snapshot_at: Instant
+status: InventoryCountsStatus
+validated_at: NullableInstant
+line_count: number
+counted_lines: number
+variance_lines: number
+variance_value_known: (SignedMoneyXaf | null)
+unknown_cost_lines: (number | null)
+/**
+ * @minItems 0
+ */
+lines: InventoryCountLine[]
+}
+export interface InventoryCountResponse {
+data: InventoryCount
+}
+/**
+ * Alerte de stock bas ou de péremption proche/expirée (L1D03), dédupliquée et accompagnée des projections physiques, réservées et quotas des postes.
+ */
+export interface StockAlert {
+id: Ulid
+kind: StockAlertsKind
+status: StockAlertsStatus
+item_id: Ulid
+item_reference: string
+item_name: string
+location_id: Ulid
+location_code: string
+location_name: string
+lot_id: NullableUlid
+batch_number: (string | null)
+detected_at: Instant
+due_on: NullableCivilDate
+resolved_at: NullableInstant
+acknowledged_by: NullableUlid
+acknowledged_by_name: (string | null)
+on_hand: (string | null)
+reserved: (string | null)
+offline_allocated: (string | null)
+central_available: (string | null)
+low_stock_threshold: (string | null)
+expiry_alert_days: (number | null)
+expired: boolean
+}
+export interface StockAlertPage {
+/**
+ * @minItems 0
+ */
+data: StockAlert[]
+meta: Pagination
+}
+export interface StockAlertResponse {
+data: StockAlert
+}
+/**
+ * Résumé d'une évaluation des alertes de stock : ouvertures, réouvertures, résolutions automatiques et total actif.
+ */
+export interface StockAlertEvaluationSummary {
+opened: number
+reopened: number
+resolved: number
+unchanged: number
+open_count: number
+acknowledged_count: number
+}
+export interface StockAlertEvaluationResponse {
+data: StockAlertEvaluationSummary
+}
+/**
+ * Identité administrative de base du patient dans l'application atelier (jamais imprimée sur le bon laboratoire anonymisé).
+ */
+export interface WorkshopPatient {
+id: Ulid
+record_number: string
+last_name: string
+first_names: (string | null)
+}
+export interface WorkshopOrderEye {
+id: Ulid
+eye: WorkshopOrderEyesEye
+sphere: NullableDiopter
+cylinder: NullableDiopter
+axis: (number | null)
+addition: NullableDiopter
+pd: NullableDiopter
+fitting_height: NullableDiopter
+lens_type: string
+lens_index: (string | null)
+/**
+ * @minItems 0
+ */
+treatments_snapshot: string[]
+frame_reference_snapshot: (string | null)
+}
+export interface WorkshopEvent {
+id: Ulid
+sequence_no: number
+event_type: WorkshopEventsEventType
+previous_status: (WorkshopOrdersStatus | null)
+new_status: (WorkshopOrdersStatus | null)
+quality_result: WorkshopEventsQualityResult
+observations: (string | null)
+occurred_at: Instant
+actor_id: Ulid
+actor_name: (string | null)
+delivery_line_id: NullableUlid
+}
+export interface WorkshopDeliveryCandidate {
+delivery_id: Ulid
+delivery_line_id: Ulid
+delivered_at: Instant
+quantity: Quantity
+item_name: string
+batch_number: (string | null)
+}
+/**
+ * Commande atelier sans détail des yeux ni journal (liste et recherche).
+ */
+export interface WorkshopOrderSummary {
+id: Ulid
+reference: string
+lab_reference: (string | null)
+status: WorkshopOrdersStatus
+is_overdue: boolean
+ordered_at: Instant
+expected_at: NullableInstant
+received_at: NullableInstant
+ready_revision: number
+quantity: Quantity
+supplier_id: Ulid
+supplier_name: string
+patient: WorkshopPatient
+invoice_line_id: Ulid
+invoice_id: Ulid
+invoice_number: string
+invoice_line_description: string
+prescription_id: Ulid
+prescription_version_no: number
+frame_item_id: NullableUlid
+frame_reference: (string | null)
+version: Version
+document: ({
+document_id: Ulid
+document_status: GeneratedDocumentsStatus
+} | null)
+}
+/**
+ * Commande atelier complète (L1D04) : spécifications OD/OG figées, journal append-only, liaisons remise, snapshot anonymisé du bon laboratoire.
+ */
+export interface WorkshopOrder {
+id: Ulid
+reference: string
+lab_reference: (string | null)
+status: WorkshopOrdersStatus
+is_overdue: boolean
+ordered_at: Instant
+expected_at: NullableInstant
+received_at: NullableInstant
+ready_revision: number
+quantity: Quantity
+supplier_id: Ulid
+supplier_name: string
+patient: WorkshopPatient
+invoice_line_id: Ulid
+invoice_id: Ulid
+invoice_number: string
+invoice_line_description: string
+prescription_id: Ulid
+prescription_version_no: number
+frame_item_id: NullableUlid
+frame_reference: (string | null)
+version: Version
+document: ({
+document_id: Ulid
+document_status: GeneratedDocumentsStatus
+} | null)
+notes: (string | null)
+created_by: Ulid
+created_by_name: (string | null)
+patient_id: Ulid
+prescription: {
+id: Ulid
+series_id: Ulid
+version_no: number
+origin: OpticalPrescriptionsOrigin
+validated_at: Instant
+usage_code: (string | null)
+lens_type_code: (string | null)
+lens_index: (string | null)
+pd_total: NullableDiopter
+pd_od: NullableDiopter
+pd_og: NullableDiopter
+}
+supplier: {
+id: Ulid
+name: string
+reference: string
+phone: (string | null)
+email: (string | null)
+}
+frame: ({
+id: Ulid
+reference: string
+name: string
+brand: (string | null)
+model: (string | null)
+} | null)
+/**
+ * @minItems 1
+ * @maxItems 2
+ */
+eyes: [WorkshopOrderEye]|[WorkshopOrderEye, WorkshopOrderEye]
+/**
+ * @minItems 1
+ */
+events: [WorkshopEvent, ...(WorkshopEvent)[]]
+/**
+ * @minItems 0
+ */
+eligible_delivery_lines: WorkshopDeliveryCandidate[]
+snapshot: WorkshopOrderSnapshot
+}
+export interface WorkshopOrderSnapshot {
+schema: number
+workshop_order_id: Ulid
+reference: string
+lab_reference: (string | null)
+ordered_at: Instant
+expected_at: NullableInstant
+quantity: Quantity
+notes: (string | null)
+/**
+ * En-tête du cabinet au moment de l'émission ; test_document = true tant que production_documents_enabled est faux (document TEST clairement marqué, fichier 23).
+ */
+clinic: {
+clinic_id: Ulid
+name: string
+address: (string | null)
+phone: (string | null)
+email: (string | null)
+tax_identifier: (string | null)
+professional_mentions: (string | null)
+document_settings: ({
+
+} | null)
+currency: Currency
+timezone: string
+test_document: boolean
+}
+patient: {
+patient_id: Ulid
+record_number: string
+}
+supplier: {
+supplier_id: Ulid
+name: string
+reference: string
+phone: (string | null)
+email: (string | null)
+}
+frame: ({
+frame_item_id: Ulid
+reference: string
+name: string
+brand: (string | null)
+model: (string | null)
+} | null)
+invoice_line: {
+invoice_id: Ulid
+invoice_number: string
+invoice_line_id: Ulid
+description: string
+}
+prescription: {
+prescription_id: Ulid
+series_id: Ulid
+version_no: number
+origin: OpticalPrescriptionsOrigin
+validated_at: Instant
+external_prescriber: (string | null)
+external_prescribed_on: NullableCivilDate
+usage_code: (string | null)
+usage_label: (string | null)
+lens_type_code: (string | null)
+lens_type_label: string
+lens_index: (string | null)
+lens_index_label: (string | null)
+pd_total: NullableDiopter
+pd_od: NullableDiopter
+pd_og: NullableDiopter
+pd_inconsistency_reason: (string | null)
+notes: (string | null)
+/**
+ * @minItems 0
+ */
+treatments: string[]
+/**
+ * @minItems 1
+ * @maxItems 2
+ */
+eyes: [{
+eye: WorkshopOrderEyesEye
+sphere: NullableDiopter
+cylinder: NullableDiopter
+axis: (number | null)
+addition: NullableDiopter
+pd: NullableDiopter
+fitting_height: NullableDiopter
+lens_type: string
+lens_index: (string | null)
+/**
+ * @minItems 0
+ */
+treatments_snapshot: string[]
+frame_reference_snapshot: (string | null)
+}]|[{
+eye: WorkshopOrderEyesEye
+sphere: NullableDiopter
+cylinder: NullableDiopter
+axis: (number | null)
+addition: NullableDiopter
+pd: NullableDiopter
+fitting_height: NullableDiopter
+lens_type: string
+lens_index: (string | null)
+/**
+ * @minItems 0
+ */
+treatments_snapshot: string[]
+frame_reference_snapshot: (string | null)
+}, {
+eye: WorkshopOrderEyesEye
+sphere: NullableDiopter
+cylinder: NullableDiopter
+axis: (number | null)
+addition: NullableDiopter
+pd: NullableDiopter
+fitting_height: NullableDiopter
+lens_type: string
+lens_index: (string | null)
+/**
+ * @minItems 0
+ */
+treatments_snapshot: string[]
+frame_reference_snapshot: (string | null)
+}]
+}
+created_by: {
+user_id: Ulid
+display_name: string
+}
+template_version: string
+}
+export interface WorkshopOrderPage {
+/**
+ * @minItems 0
+ */
+data: WorkshopOrderSummary[]
+meta: Pagination
+}
+export interface WorkshopOrderResponse {
+data: WorkshopOrder
+}
+export interface WorkshopEligibleInvoiceLine {
+invoice_line_id: Ulid
+invoice_id: Ulid
+invoice_number: string
+issued_at: Instant
+description: string
+item_id: NullableUlid
+item_reference: (string | null)
+category_code: (string | null)
+quantity: Quantity
+/**
+ * DECIMAL(12,3) en chaîne exacte, zéro admis.
+ */
+ordered_quantity: string
+/**
+ * DECIMAL(12,3) en chaîne exacte, zéro admis.
+ */
+remaining_quantity: string
+linked_prescription_id: NullableUlid
+patient: WorkshopPatient
+}
+export interface WorkshopEligiblePrescription {
+id: Ulid
+patient_id: Ulid
+series_id: Ulid
+version_no: number
+origin: OpticalPrescriptionsOrigin
+validated_at: Instant
+usage_code: (string | null)
+usage_other: (string | null)
+lens_type_code: (string | null)
+lens_type_other: (string | null)
+lens_index: (string | null)
+pd_total: NullableDiopter
+pd_od: NullableDiopter
+pd_og: NullableDiopter
+/**
+ * @minItems 0
+ */
+treatments: {
+term_code: Code
+other_text: (string | null)
+}[]
+/**
+ * @minItems 1
+ * @maxItems 2
+ */
+eyes: [{
+eye: OpticalPrescriptionEyesEye
+no_correction: boolean
+sphere: NullableDiopter
+cylinder: NullableDiopter
+axis: (number | null)
+addition: NullableDiopter
+fitting_height: NullableDiopter
+}]|[{
+eye: OpticalPrescriptionEyesEye
+no_correction: boolean
+sphere: NullableDiopter
+cylinder: NullableDiopter
+axis: (number | null)
+addition: NullableDiopter
+fitting_height: NullableDiopter
+}, {
+eye: OpticalPrescriptionEyesEye
+no_correction: boolean
+sphere: NullableDiopter
+cylinder: NullableDiopter
+axis: (number | null)
+addition: NullableDiopter
+fitting_height: NullableDiopter
+}]
+}
+export interface WorkshopEligibleSupplier {
+id: Ulid
+name: string
+reference: string
+phone: (string | null)
+email: (string | null)
+}
+export interface WorkshopEligibleFrame {
+id: Ulid
+reference: string
+name: string
+brand: (string | null)
+model: (string | null)
+}
+/**
+ * Éléments disponibles pour créer une commande atelier (L1D04) : lignes facturées avec reliquat > 0, prescriptions validées correspondantes, laboratoires optiques actifs et montures actives. Aucun montant ni antécédent.
+ */
+export interface WorkshopEligibleLines {
+/**
+ * @minItems 0
+ */
+lines: WorkshopEligibleInvoiceLine[]
+/**
+ * @minItems 0
+ */
+prescriptions: WorkshopEligiblePrescription[]
+/**
+ * @minItems 0
+ */
+suppliers: WorkshopEligibleSupplier[]
+/**
+ * @minItems 0
+ */
+frames: WorkshopEligibleFrame[]
+}
+export interface WorkshopEligibleLinesResponse {
+data: WorkshopEligibleLines
 }
 export interface RuleVectors {
 /**
@@ -12876,6 +15409,13 @@ starts_at: Instant
 ends_at: Instant
 source: AppointmentsSource
 }
+export interface AppointmentNoShowEventPayload {
+appointment_id: Ulid
+patient_id: NullableUlid
+prospect_contact_id: NullableUlid
+starts_at: Instant
+marked_at: Instant
+}
 export interface AppointmentRescheduledEventPayload {
 appointment_id: Ulid
 patient_id: NullableUlid
@@ -12884,6 +15424,11 @@ resource_id: Ulid
 previous_starts_at: Instant
 starts_at: Instant
 ends_at: Instant
+}
+export interface CampaignCompletedEventPayload {
+campaign_id: Ulid
+status: CampaignDefinitionsStatus
+completed_at: Instant
 }
 export interface ConsultationCompletedEventPayload {
 consultation_id: Ulid
@@ -12914,6 +15459,13 @@ consultation_id: Ulid
 recommended_date: CivilDate
 reminder_enabled: boolean
 preferred_channel: FollowUpPlansPreferredChannel
+}
+export interface HumanHandoffRequestedEventPayload {
+handoff_id: Ulid
+conversation_id: Ulid
+lead_id: NullableUlid
+event_type: ConversationHandoffsEventType
+occurred_at: Instant
 }
 export interface InvoiceIssuedEventPayload {
 invoice_id: Ulid
@@ -12948,6 +15500,13 @@ origin: OpticalPrescriptionsOrigin
 version_no: number
 validated_at: Instant
 document_id: NullableUlid
+}
+export interface PublicBookingRequestedEventPayload {
+booking_request_id: Ulid
+public_reference: string
+service_id: Ulid
+requested_starts_at: Instant
+status: PublicBookingRequestsStatus
 }
 export interface StockThresholdCrossedEventPayload {
 stock_alert_id: Ulid

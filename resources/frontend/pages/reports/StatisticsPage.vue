@@ -16,6 +16,7 @@ import DateField from '@/components/form/DateField.vue'
 import PageHeader from '@/components/layout/PageHeader.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
+import LinkButton from '@/components/ui/LinkButton.vue'
 import {
   PERIOD_LABELS,
   PERIOD_PRESETS,
@@ -84,7 +85,22 @@ function applyCustom(): void {
       title="Statistiques"
       icon="chart"
       subtitle="Comptages du cabinet sur la période choisie, calculés par le serveur. Aucune information ne permet d’identifier un patient."
-    />
+    >
+      <template
+        v-if="
+          canOnScreen('finance.global.read') ||
+          canOnScreen('stock.read') ||
+          canOnScreen('workshop.manage') ||
+          canOnScreen('statistics.activity') ||
+          canOnScreen('statistics.clinical')
+        "
+        #actions
+      >
+        <LinkButton :to="{ name: 'rapports-gestion' }" variant="secondary">
+          Rapports de gestion
+        </LinkButton>
+      </template>
+    </PageHeader>
 
     <div role="group" aria-label="Choisir la période" class="card space-y-4 p-4 sm:p-5">
       <div

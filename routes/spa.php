@@ -18,6 +18,7 @@ Route::get('/manifest.webmanifest', [SpaController::class, 'manifest'])->name('p
 /*
 | Repli SPA pour les URL de navigation du routeur Vue. Exclusions, qui repondent 404 :
 |   - api et sous-chemins : JSON 404, jamais la coquille ;
+|   - public et sous-chemins : routes publiques (/public/v1), jamais la coquille ;
 |   - build et storage : ressources statiques absentes ;
 |   - tout chemin dont le dernier segment ressemble a un fichier (extension).
 */

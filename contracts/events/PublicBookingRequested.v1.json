@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eeo.invalid/contracts/events/PublicBookingRequested.v1.json",
+  "title": "PublicBookingRequested (charge v1)",
+  "description": "Demande publique de rendez-vous enregistrée (L2) : référence publique uniquement. Généré par contracts/tools/build_events.py : ne pas modifier à la main.",
+  "x-entity-type": "public_booking_requests",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "booking_request_id",
+    "public_reference",
+    "service_id",
+    "requested_starts_at",
+    "status"
+  ],
+  "properties": {
+    "booking_request_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    },
+    "public_reference": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 32
+    },
+    "service_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    },
+    "requested_starts_at": {
+      "$ref": "../schemas/common.json#/$defs/Instant"
+    },
+    "status": {
+      "$ref": "../schemas/enums.json#/$defs/public_booking_requests.status"
+    }
+  }
+}

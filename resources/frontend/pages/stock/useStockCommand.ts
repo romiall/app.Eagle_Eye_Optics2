@@ -99,6 +99,11 @@ export function useStockCommand(approvalMessage: string) {
     return absorb(await mutation.retry())
   }
 
+  /** Reprise de la MÊME commande (même clé d'idempotence) après une issue non confirmée. */
+  async function retry(): Promise<MutationOutcome> {
+    return absorb(await mutation.retry())
+  }
+
   /** La demande d'autorisation est créée : l'opération se renverra sous son identifiant, après l'accord. */
   function approvalRequested(approval: Approval): void {
     requestedApproval.value = approval
@@ -122,6 +127,7 @@ export function useStockCommand(approvalMessage: string) {
     stale,
     send,
     passwordConfirmed,
+    retry,
     approvalRequested,
   }
 }

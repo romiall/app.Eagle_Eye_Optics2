@@ -34,6 +34,7 @@ import DevicePreparationPage from '@/pages/settings/DevicePreparationPage.vue'
 import CashDayPage from '@/pages/cash/CashDayPage.vue'
 import CashSessionPage from '@/pages/cash/CashSessionPage.vue'
 import ExpenseCategoriesPage from '@/pages/cash/ExpenseCategories.vue'
+import ReconciliationPage from '@/pages/cash/ReconciliationPage.vue'
 import FinancialPage from '@/pages/reports/Financial.vue'
 import CatalogPage from '@/pages/sales/CatalogPage.vue'
 import InvoiceCreatePage from '@/pages/sales/InvoiceCreatePage.vue'
@@ -50,9 +51,20 @@ import SettingsHomePage from '@/pages/settings/SettingsHomePage.vue'
 import StaffCreatePage from '@/pages/settings/StaffCreatePage.vue'
 import StaffListPage from '@/pages/settings/StaffListPage.vue'
 import StaffMemberPage from '@/pages/settings/StaffMemberPage.vue'
+import InventoriesPage from '@/pages/inventory/InventoriesPage.vue'
+import InventoryPage from '@/pages/inventory/InventoryPage.vue'
+import ReceiptPage from '@/pages/purchasing/ReceiptPage.vue'
+import ReceiptsPage from '@/pages/purchasing/ReceiptsPage.vue'
+import SuppliersPage from '@/pages/purchasing/SuppliersPage.vue'
+import StockAlertsPage from '@/pages/stock/Alerts.vue'
+import StockMovementHistoryPage from '@/pages/stock/MovementHistoryPage.vue'
+import WorkshopCreatePage from '@/pages/workshop/WorkshopCreatePage.vue'
+import WorkshopOrderDetailPage from '@/pages/workshop/WorkshopOrderDetailPage.vue'
+import WorkshopOrdersPage from '@/pages/workshop/WorkshopOrdersPage.vue'
 import MovementForm from '@/pages/stock/MovementForm.vue'
 import StockPage from '@/pages/stock/StockPage.vue'
 import ArrivalPage from '@/pages/today/ArrivalPage.vue'
+import ManagementReportPage from '@/pages/reports/Advanced.vue'
 import TodayPage from '@/pages/today/TodayPage.vue'
 
 import {
@@ -334,6 +346,17 @@ export function createEeoRouter(history: RouterHistory = createWebHistory()): Ro
         },
       },
       {
+        // Rapprochements par canal de paiement (L1D06) : la gérante pointe les encaissements et remboursements.
+        path: '/ventes/rapprochement',
+        name: 'rapprochement',
+        component: ReconciliationPage,
+        meta: {
+          title: 'Rapprochements par canal',
+          permissions: ['finance.reconcile'],
+          module: 'sales',
+        },
+      },
+      {
         path: '/ventes/factures',
         name: 'factures',
         component: InvoiceListPage,
@@ -415,6 +438,84 @@ export function createEeoRouter(history: RouterHistory = createWebHistory()): Ro
         name: 'stock-movement',
         component: MovementForm,
         meta: { title: 'Casse ou ajustement', permissions: ['stock.adjust'], module: 'stock' },
+      },
+      // Achats (L1D01) : fournisseurs et réceptions fournisseur, droit stock.receive (les coûts d'achat y figurent).
+      {
+        path: '/stock/fournisseurs',
+        name: 'suppliers',
+        component: SuppliersPage,
+        meta: { title: 'Fournisseurs', permissions: ['stock.receive'], module: 'stock' },
+      },
+      {
+        path: '/stock/receptions',
+        name: 'goods-receipts',
+        component: ReceiptsPage,
+        meta: { title: 'Réceptions fournisseur', permissions: ['stock.receive'], module: 'stock' },
+      },
+      {
+        path: '/stock/receptions/nouvelle',
+        name: 'goods-receipt-new',
+        component: ReceiptPage,
+        meta: { title: 'Nouvelle réception', permissions: ['stock.receive'], module: 'stock' },
+      },
+      {
+        path: `/stock/receptions/${ULID_ID}`,
+        name: 'goods-receipt',
+        component: ReceiptPage,
+        meta: { title: 'Réception fournisseur', permissions: ['stock.receive'], module: 'stock' },
+      },
+      // Inventaires (L1D02) : droit stock.inventory ; la validation des écarts est celle de la gérante.
+      {
+        path: '/stock/inventaires',
+        name: 'inventories',
+        component: InventoriesPage,
+        meta: { title: 'Inventaires', permissions: ['stock.inventory'], module: 'stock' },
+      },
+      {
+        path: `/stock/inventaires/${ULID_ID}`,
+        name: 'inventory',
+        component: InventoryPage,
+        meta: { title: 'Inventaire', permissions: ['stock.inventory'], module: 'stock' },
+      },
+      {
+        path: '/stock/alertes',
+        name: 'stock-alerts',
+        component: StockAlertsPage,
+        meta: { title: 'Alertes et seuils', permissions: ['stock.read'], module: 'stock' },
+      },
+      // Historique des mouvements d'un article (cahier des charges §6), lecture seule, en ligne.
+      {
+        path: '/stock/historique',
+        name: 'stock-history',
+        component: StockMovementHistoryPage,
+        meta: {
+          title: 'Historique des mouvements',
+          permissions: ['stock.read'],
+          module: 'stock',
+        },
+      },
+      // Atelier optique et bon laboratoire anonymisé (L1D04), module « workshop », droit workshop.manage.
+      {
+        path: '/atelier',
+        name: 'workshop',
+        component: WorkshopOrdersPage,
+        meta: { title: 'Atelier optique', permissions: ['workshop.manage'], module: 'workshop' },
+      },
+      {
+        path: '/atelier/nouveau',
+        name: 'atelier-nouveau',
+        component: WorkshopCreatePage,
+        meta: {
+          title: 'Nouvelle commande atelier',
+          permissions: ['workshop.manage'],
+          module: 'workshop',
+        },
+      },
+      {
+        path: `/atelier/${ULID_ID}`,
+        name: 'atelier-detail',
+        component: WorkshopOrderDetailPage,
+        meta: { title: 'Commande atelier', permissions: ['workshop.manage'], module: 'workshop' },
       },
       // Paramètres (module « settings ») : comptes du personnel et identité du cabinet, gérante seulement
       // (users.manage ; le serveur revérifie et exige une réauthentification pour chaque écriture).
@@ -519,6 +620,23 @@ export function createEeoRouter(history: RouterHistory = createWebHistory()): Ro
         },
       },
       {
+        // Tableaux et exports de gestion multi-domaines (L1D09), module « reports ».
+        path: '/rapports/gestion',
+        name: 'rapports-gestion',
+        component: ManagementReportPage,
+        meta: {
+          title: 'Rapports de gestion',
+          permissions: [
+            'statistics.activity',
+            'statistics.clinical',
+            'finance.global.read',
+            'stock.read',
+            'workshop.manage',
+          ],
+          module: 'reports',
+        },
+      },
+      {
         // Agenda interne (S01), module « agenda » : vues jour et semaine, prise de rendez-vous, configuration (gérante).
         path: '/agenda',
         name: 'agenda',
@@ -548,6 +666,139 @@ export function createEeoRouter(history: RouterHistory = createWebHistory()): Ro
         name: 'suivis',
         component: FollowUpsPage,
         meta: { title: 'Patients à rappeler', permissions: ['agenda.read'], module: 'agenda' },
+      },
+      {
+        path: '/parametres/integrations',
+        name: 'integrations',
+        component: () => import('@/pages/manager/Integrations.vue'),
+        meta: {
+          title: 'Intégrations et connecteurs',
+          module: 'settings',
+          permissions: ['integration.manage'],
+        },
+      },
+      {
+        path: '/communication',
+        name: 'communication',
+        component: () => import('@/pages/communication/CommunicationHomePage.vue'),
+        meta: {
+          title: 'Communication et CRM',
+          module: 'communication',
+          permissions: [
+            'communication.manage',
+            'knowledge.manage',
+            'conversation.takeover',
+            'integration.manage',
+            'agenda.read',
+            'site.publish',
+          ],
+        },
+      },
+      {
+        // Site public (L3D02) : fiches du showroom et contenus du site ; brouillon puis publication par la gérante.
+        path: '/communication/site',
+        name: 'communication-site',
+        component: () => import('@/pages/communication/SitePage.vue'),
+        meta: {
+          title: 'Site public : showroom et contenus',
+          module: 'communication',
+          permissions: ['site.publish'],
+        },
+      },
+      {
+        path: '/communication/reservations',
+        name: 'communication-bookings',
+        component: () => import('@/pages/communication/PublicBookingsAdminPage.vue'),
+        meta: {
+          title: 'Réservations publiques & Google Agenda',
+          module: 'communication',
+          permissions: [
+            'agenda.read',
+            'agenda.write',
+            'communication.manage',
+            'integration.manage',
+          ],
+        },
+      },
+      {
+        path: '/communication/crm',
+        name: 'communication-crm',
+        component: () => import('@/pages/communication/CrmLinks.vue'),
+        meta: {
+          title: 'Prospects, CRM Kommo et liens patients',
+          module: 'communication',
+          permissions: ['communication.manage', 'integration.manage', 'patient.read'],
+        },
+      },
+      {
+        path: '/communication/connaissances',
+        name: 'communication-knowledge',
+        component: () => import('@/pages/communication/Knowledge.vue'),
+        meta: {
+          title: 'Base de connaissances gouvernée',
+          module: 'communication',
+          permissions: ['communication.manage', 'knowledge.manage'],
+        },
+      },
+      {
+        path: '/communication/assistant',
+        name: 'communication-handoffs',
+        component: () => import('@/pages/communication/Handoffs.vue'),
+        meta: {
+          title: 'Assistant borné et reprises humaines',
+          module: 'communication',
+          permissions: ['communication.manage', 'conversation.takeover'],
+        },
+      },
+      {
+        path: '/communication/consentements',
+        name: 'communication-consents',
+        component: () => import('@/pages/communication/Consents.vue'),
+        meta: {
+          title: 'Consentements, modèles et relances',
+          module: 'communication',
+          permissions: ['communication.manage'],
+        },
+      },
+      {
+        path: '/communication/campagnes',
+        name: 'communication-campaigns',
+        component: () => import('@/pages/communication/Campaigns.vue'),
+        meta: {
+          title: 'Segments d’audience et campagnes',
+          module: 'communication',
+          permissions: ['communication.manage'],
+        },
+      },
+      {
+        path: '/communication/boite-envoi',
+        name: 'communication-outbox',
+        component: () => import('@/pages/communication/OutboxAndWebhooks.vue'),
+        meta: {
+          title: 'Boîte d’envoi et webhooks',
+          module: 'communication',
+          permissions: ['integration.manage'],
+        },
+      },
+      {
+        // Pages publiques du site (L3D02, L3D03) : SANS compte, en ligne seulement, aucune donnée clinique. Le showroom
+        // dépend du module « communication » côté serveur (404 si fermé) ; la prise de rendez-vous n'envoie qu'une demande.
+        path: '/rendez-vous',
+        name: 'public-booking',
+        component: () => import('@/pages/public/PublicBookingPage.vue'),
+        meta: { public: true, title: 'Prendre rendez-vous' },
+      },
+      {
+        path: '/showroom',
+        name: 'public-showroom',
+        component: () => import('@/pages/public/ShowroomPage.vue'),
+        meta: { public: true, title: 'Showroom' },
+      },
+      {
+        path: '/showroom/:slug([a-z0-9-]+)',
+        name: 'public-showroom-item',
+        component: () => import('@/pages/public/ShowroomItemPage.vue'),
+        meta: { public: true, title: 'Référence du showroom' },
       },
       {
         // Aide intégrée : tout compte connecté ; elle ne montre que les écrans de ses droits et modules ouverts.

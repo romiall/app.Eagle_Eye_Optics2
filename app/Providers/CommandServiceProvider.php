@@ -17,11 +17,15 @@ use App\Domain\Cash\CashCommands;
 use App\Domain\Clinical\ClinicalCommands;
 use App\Domain\Clinical\ExamFeeControl;
 use App\Domain\Clinical\UncontrolledExamFee;
+use App\Domain\Communication\CommunicationCommands;
+use App\Domain\Crm\CrmCommands;
 use App\Domain\Documents\DocumentCommands;
 use App\Domain\Inventory\InventoryCommands;
 use App\Domain\Operations\OperationsCommands;
 use App\Domain\Patients\PatientCommands;
+use App\Domain\PublicSite\PublicSiteCommands;
 use App\Domain\Scheduling\SchedulingCommands;
+use App\Domain\Workshop\WorkshopCommands;
 use App\Offline\OfflineCommands;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Support\ServiceProvider;
@@ -104,6 +108,21 @@ final class CommandServiceProvider extends ServiceProvider
         }
         // Préparation des postes (O02) : enrôlement, grants signés et révocations, en ligne seulement.
         foreach (OfflineCommands::definitions() as $definition) {
+            $registry->register($definition);
+        }
+        // CRM, base de connaissances et communication (L2D03 à L2D08) : opérations en ligne seulement, par la route directe.
+        foreach (CrmCommands::definitions() as $definition) {
+            $registry->register($definition);
+        }
+        foreach (CommunicationCommands::definitions() as $definition) {
+            $registry->register($definition);
+        }
+        // Site public (L3D02) : fiches du showroom, images et contenus publics, approuvés par la gérante.
+        foreach (PublicSiteCommands::definitions() as $definition) {
+            $registry->register($definition);
+        }
+        // Atelier optique (L1D04) : création de commande labo, suivi montage/contrôle qualité et bon laboratoire.
+        foreach (WorkshopCommands::definitions() as $definition) {
             $registry->register($definition);
         }
     }

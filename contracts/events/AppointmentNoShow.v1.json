@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eeo.invalid/contracts/events/AppointmentNoShow.v1.json",
+  "title": "AppointmentNoShow (charge v1)",
+  "description": "Rendez-vous marqué absent (L2) : aucune donnée clinique, relance administrative éventuelle. Généré par contracts/tools/build_events.py : ne pas modifier à la main.",
+  "x-entity-type": "appointments",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "appointment_id",
+    "patient_id",
+    "prospect_contact_id",
+    "starts_at",
+    "marked_at"
+  ],
+  "properties": {
+    "appointment_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    },
+    "patient_id": {
+      "$ref": "../schemas/common.json#/$defs/NullableUlid"
+    },
+    "prospect_contact_id": {
+      "$ref": "../schemas/common.json#/$defs/NullableUlid"
+    },
+    "starts_at": {
+      "$ref": "../schemas/common.json#/$defs/Instant"
+    },
+    "marked_at": {
+      "$ref": "../schemas/common.json#/$defs/Instant"
+    }
+  }
+}

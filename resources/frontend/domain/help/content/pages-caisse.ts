@@ -471,6 +471,20 @@ export const PAGES_CAISSE: readonly PageHelp[] = [
         label: 'Voir la caisse du jour',
         effect: 'Ouvre la caisse d’un jour, avec ses sessions et leur relevé.',
       },
+      {
+        label: 'Rapprochements par canal',
+        effect: 'Ouvre le pointage des encaissements et remboursements par canal avec le relevé.',
+        anyPermission: ['finance.reconcile'],
+      },
+      {
+        label: 'Aperçu comptable Q13',
+        effect:
+          'Calcule la synthèse structurée Q13 sans mélanger ventes, trésorerie, créances et stock.',
+      },
+      {
+        label: 'Télécharger l’export CSV Q13',
+        effect: 'Télécharge le fichier CSV comptable complet de la période choisie.',
+      },
     ],
     tasks: [
       {
@@ -514,6 +528,11 @@ export const PAGES_CAISSE: readonly PageHelp[] = [
         route: 'caisse-du-jour',
         label: 'Caisse du jour',
         why: 'Pour le détail d’un jour, session par session.',
+      },
+      {
+        route: 'rapprochement',
+        label: 'Rapprochements par canal',
+        why: 'Pour pointer les relevés Mobile Money, banque ou espèces.',
       },
       {
         route: 'factures',
@@ -561,5 +580,97 @@ export const PAGES_CAISSE: readonly PageHelp[] = [
       'Créance papier',
       'Session de caisse',
     ],
+  },
+  {
+    route: 'rapprochement',
+    title: 'Rapprochements par canal',
+    module: 'sales',
+    anyPermission: ['finance.reconcile'],
+    purpose:
+      'La gérante compare les encaissements et remboursements enregistrés sur un canal (Mobile Money, banque, chèque ou espèces) avec le relevé opérateur ou bancaire, joint le justificatif puis valide le rapprochement.',
+    actions: [
+      {
+        label: 'Charger les écritures attendues',
+        effect: 'Lit l’attendu serveur et les règlements encore libres sur le canal et la période.',
+      },
+      {
+        label: 'Pointer',
+        effect:
+          'Ajoute un encaissement ou remboursement du cabinet dans le rapprochement en brouillon.',
+      },
+      {
+        label: 'Ajouter cette écriture',
+        effect: 'Ajoute au relevé une ligne de frais ou un écart en litige sans pièce interne.',
+      },
+      {
+        label: 'Enregistrer le brouillon',
+        effect: 'Sauvegarde les lignes pointées et le total du relevé pour reprendre plus tard.',
+      },
+      {
+        label: 'Valider définitivement',
+        effect:
+          'Fige le rapprochement après confirmation du mot de passe et contrôle d’un éventuel écart.',
+      },
+      {
+        label: 'Nouveau rapprochement',
+        effect: 'Vide l’éditeur en cours pour démarrer un autre rapprochement.',
+      },
+      {
+        label: 'Ouvrir',
+        effect:
+          'Affiche un rapprochement enregistré, en brouillon modifiable ou validé en lecture seule.',
+      },
+    ],
+    tasks: [
+      {
+        id: 'rapprocher-un-canal',
+        title: 'Rapprocher un canal et le valider',
+        steps: [
+          'Ouvrez « Ventes et caisse », puis « Rapprochements par canal ».',
+          'Choisissez le « Canal de paiement », saisissez « Du » et « Au », puis cliquez sur « Charger les écritures attendues ».',
+          'Pointez chaque encaissement ou remboursement présent sur le relevé avec « Pointer », puis ajoutez d’éventuels frais ou litiges.',
+          'Saisissez le « Total net du relevé (FCFA) » et déposez le « Justificatif du relevé (PDF, JPEG ou PNG) » si vous le possédez.',
+          'En cas d’écart entre relevé et « Attendu serveur », expliquez-le dans « Motif de l’écart (obligatoire à la validation si écart ≠ 0) ».',
+          'Cliquez sur « Valider définitivement », puis saisissez votre mot de passe si l’écran le demande.',
+        ],
+        result:
+          'Le bandeau « Rapprochement validé et figé » confirme que le rapprochement et son justificatif sont archivés.',
+      },
+    ],
+    rules: [
+      'Un encaissement ou remboursement ne peut être pointé que dans un seul rapprochement : le serveur refuse toute duplication.',
+      'L’attendu est toujours recalculé par le serveur à partir des règlements confirmés, contre-écritures et remboursements.',
+      'Une fois validé, un rapprochement est définitivement figé et ne peut plus être modifié ni supprimé.',
+      'Le dépôt du justificatif et la validation définitive demandent la confirmation du mot de passe.',
+    ],
+    next: [
+      {
+        route: 'finance',
+        label: 'Finance du cabinet',
+        why: 'Pour consulter le chiffre d’affaires et télécharger l’export comptable Q13.',
+      },
+      {
+        route: 'caisse-du-jour',
+        label: 'Caisse du jour',
+        why: 'Pour vérifier le détail des sessions de caisse.',
+      },
+    ],
+    tips: [
+      'Vérifiez la fraîcheur des caisses en haut de l’écran avant de clôturer un canal : cet écran demande une connexion Internet et lit uniquement les pièces reçues par le serveur.',
+      'Enregistrez un « Brouillon » à tout moment avant d’avoir reçu le justificatif complet.',
+    ],
+    problems: [
+      {
+        symptom: '« Enregistrement impossible »',
+        remedy:
+          'Vérifiez qu’un écart non nul porte un motif d’au moins 3 caractères et qu’aucun règlement n’est déjà rapproché ailleurs.',
+      },
+      {
+        symptom: '« Écritures non chargées »',
+        remedy:
+          'Vérifiez la connexion Internet et les bornes « Du » et « Au » puis cliquez sur « Charger les écritures attendues ».',
+      },
+    ],
+    terms: ['Écart de caisse', 'Remboursement', 'Contre-écriture', 'Session de caisse'],
   },
 ]

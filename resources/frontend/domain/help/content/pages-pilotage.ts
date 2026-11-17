@@ -6,6 +6,120 @@ import type { PageHelp } from '../model'
  */
 export const PAGES_PILOTAGE: readonly PageHelp[] = [
   {
+    route: 'rapports-gestion',
+    title: 'Rapports de gestion',
+    module: 'reports',
+    anyPermission: [
+      'statistics.activity',
+      'statistics.clinical',
+      'finance.global.read',
+      'stock.read',
+      'workshop.manage',
+    ],
+    purpose:
+      'Consultez sur un seul écran la synthèse Finance, Stock, Atelier, Patients et Clinique pour vos droits et les modules ouverts, avec comparaison à la période précédente comparable (N vs N-1), inconnus signalés à part et téléchargement CSV ou JSON.',
+    actions: [
+      {
+        label: 'Aujourd’hui',
+        effect:
+          'Affiche le rapport de gestion pour la journée en cours et sa comparaison à la veille.',
+      },
+      {
+        label: 'Cette semaine',
+        effect: 'Affiche la semaine en cours et la semaine précédente comparable.',
+      },
+      {
+        label: 'Ce mois',
+        effect: 'Affiche le mois en cours et le mois précédent comparable (choix à l’ouverture).',
+      },
+      {
+        label: 'Cette année',
+        effect: 'Affiche l’année en cours et l’année précédente comparable.',
+      },
+      {
+        label: 'Afficher la période',
+        effect:
+          'Charge le rapport et les liens de téléchargement pour les dates choisies dans « Du » et « Au ».',
+      },
+      {
+        label: 'Télécharger le CSV',
+        effect:
+          'Télécharge le tableau de gestion filtré à vos droits au format CSV avec dictionnaire de colonnes.',
+      },
+      {
+        label: 'Télécharger le JSON',
+        effect: 'Télécharge le rapport de gestion structuré avec provenance et empreinte SHA-256.',
+      },
+      {
+        label: 'Statistiques détaillées',
+        effect:
+          'Ouvre l’écran Statistiques pour les ventilations d’accueil et d’activité clinique.',
+        anyPermission: ['statistics.activity', 'statistics.clinical'],
+      },
+      {
+        label: 'Exports contrôlés',
+        effect:
+          'Ouvre Exports pour demander ou consulter les archives par table et leur manifeste conservé.',
+        anyPermission: ['export.global', 'clinical.export'],
+      },
+      {
+        label: 'Réessayer',
+        effect: 'Relit le rapport sur le serveur après un incident réseau.',
+      },
+    ],
+    tasks: [
+      {
+        id: 'lire-rapport-gestion',
+        title: 'Lire et comparer une période de gestion',
+        steps: [
+          'Choisissez un raccourci (« Ce mois », « Cette année ») ou saisissez « Du » et « Au », puis cliquez sur « Afficher la période ».',
+          'Contrôlez d’abord les bandeaux éventuels sur la fraîcheur des postes distants et la carte « Sections non affichées ».',
+          'Parcourez les cartes visibles pour votre profil et la section « Éléments inconnus ou non assimilés à zéro ».',
+        ],
+        result:
+          'Chaque indicateur comparé affiche N, N-1 et l’écart calculé sur le serveur, sans double compte entre devis, ventes et encaissements.',
+      },
+      {
+        id: 'exporter-gestion-csv-json',
+        title: 'Télécharger le rapport CSV ou JSON',
+        steps: [
+          'Réglez la période souhaitée sur l’écran.',
+          'Cliquez sur « Télécharger le CSV » pour ouvrir les sections et le dictionnaire dans un tableur, ou sur « Télécharger le JSON » pour l’archive structurée.',
+        ],
+        result:
+          'Le fichier téléchargé reprend uniquement les sections autorisées à votre compte, avec l’horodatage et l’empreinte SHA-256 du jeu de données.',
+      },
+    ],
+    rules: [
+      'Un profil ne voit que les domaines de ses droits et des modules ouverts ; les domaines écartés apparaissent dans « Sections non affichées » sans jamais être affichés à zéro.',
+      'La valorisation du stock au coût d’achat n’est visible qu’avec le droit dédié : sinon, les quantités restent lisibles et le montant affiche « Masquée (droit valorisation absent) ».',
+      'Chiffre d’affaires net, encaissements nets, dépenses de caisse, créances, devis et créances antérieures reprises du papier restent strictement séparés.',
+      'Aucune donnée manquante (coût d’achat absent, date attendue d’atelier absente, rubrique clinique non renseignée) n’est assimilée à zéro.',
+    ],
+    next: [
+      {
+        route: 'statistiques',
+        label: 'Statistiques',
+        why: 'Pour consulter les tableaux détaillés de fréquentation et d’examens.',
+      },
+      {
+        route: 'parametres-exports',
+        label: 'Exports',
+        why: 'Pour produire une archive multi-tables avec manifeste conservé.',
+      },
+    ],
+    tips: [
+      'En bas de page, « Définitions et provenance » précise la formule exacte, le dénominateur et les exclusions de chaque indicateur.',
+    ],
+    problems: [
+      {
+        symptom: '« Date invalide : JJ/MM/AAAA ou AAAA-MM-JJ. »',
+        remedy:
+          'Vérifiez le format des dates « Du » et « Au » puis cliquez à nouveau sur « Afficher la période ».',
+      },
+    ],
+  },
+  {
     route: 'statistiques',
     title: 'Statistiques',
     module: 'reports',
@@ -745,7 +859,16 @@ export const PAGES_PILOTAGE: readonly PageHelp[] = [
       },
       {
         label: 'Actualiser la liste',
-        effect: 'Relit la liste pour voir l’état de chaque export.',
+        effect: 'Relit la liste pour voir l’état de chaque export et ses filtres éventuels.',
+      },
+      {
+        label: 'Voir le manifeste conservé',
+        effect:
+          'Affiche le manifeste conservé d’un export produit ou expiré : provenance, empreinte SHA-256, tables incluses et exclusions.',
+      },
+      {
+        label: 'Fermer le manifeste',
+        effect: 'Referme le panneau « Manifeste conservé de l’export ».',
       },
       {
         label: 'Télécharger l’archive',
@@ -764,6 +887,7 @@ export const PAGES_PILOTAGE: readonly PageHelp[] = [
         steps: [
           'Ouvrez « Paramètres », puis la carte « Exports ».',
           'Dans « Contenu de l’export », choisissez « Patients et visites », « Ventes, encaissements et caisse », « Catalogue et stock » ou « Remise complète des données ».',
+          'Optionnellement, limitez le périmètre dans « Portée de profil (optionnel) » ou bornez les mouvements et actes avec « Du (optionnel) » et « Au (optionnel) ».',
           'Cliquez sur « Demander l’export ».',
           'Si « Confirmer votre mot de passe » s’ouvre, saisissez votre mot de passe, puis cliquez sur « Confirmer et reprendre ».',
         ],
@@ -798,10 +922,10 @@ export const PAGES_PILOTAGE: readonly PageHelp[] = [
     ],
     rules: [
       'Chaque export est une archive privée : un fichier par table à ouvrir dans un tableur, le sens de chaque colonne et un contrôle d’intégrité.',
-      'Le serveur prépare l’archive en quelques minutes ; elle se télécharge pendant 48 heures, puis l’état devient « Expiré » et le fichier est supprimé.',
+      'Le serveur prépare l’archive en quelques minutes ; elle se télécharge pendant 48 heures, puis l’état devient « Expiré » et le fichier est supprimé, tandis que son manifeste reste consultable.',
       'La demande est une opération sensible : votre mot de passe est confirmé. Le téléchargement est tracé.',
       'Les quatre exports globaux sont réservés à la gérante. Le dossier d’un seul patient se demande depuis sa fiche : gérante et professionnel peuvent le faire.',
-      'L’export contient tout le contenu du type choisi : il n’y a pas de filtre par période.',
+      'Un export global accepte une période (« Du (optionnel) », « Au (optionnel) ») ou « Portée de profil (optionnel) » ; le référentiel reste en cliché complet.',
       'Rien n’est préparé ni gardé dans le navigateur : le lien de téléchargement est privé et passe par votre session.',
     ],
     next: [

@@ -94,9 +94,24 @@ final class BillingRoutesGateTest extends TestCase
             'GET cash-sessions/{id}/movements' => ['GET', 'cash-sessions/{id}/movements', $cash],
             'POST cash-sessions/{id}/movements' => ['POST', 'cash-sessions/{id}/movements', $cash],
             'POST cash-sessions/{id}/variance-review' => ['POST', 'cash-sessions/{id}/variance-review', ['manager']],
+            // Rapprochements par canal (L1D06) : gérante (finance.reconcile), module sales.
+            'GET payment-reconciliations' => ['GET', 'payment-reconciliations', ['manager']],
+            'GET payment-reconciliations/candidates' => ['GET', 'payment-reconciliations/candidates', ['manager']],
+            'POST payment-reconciliations/statement-file' => ['POST', 'payment-reconciliations/statement-file', ['manager']],
+            'GET payment-reconciliations/statement-file/{id}' => ['GET', 'payment-reconciliations/statement-file/{id}', ['manager']],
+            'POST payment-reconciliations' => ['POST', 'payment-reconciliations', ['manager']],
+            'GET payment-reconciliations/{id}' => ['GET', 'payment-reconciliations/{id}', ['manager']],
+            'PATCH payment-reconciliations/{id}' => ['PATCH', 'payment-reconciliations/{id}', ['manager']],
+            'POST payment-reconciliations/{id}/validate' => ['POST', 'payment-reconciliations/{id}/validate', ['manager']],
             'GET stock/availability' => ['GET', 'stock/availability', ['manager', 'clinician', 'cashier']],
             'GET stock/locations' => ['GET', 'stock/locations', ['manager', 'clinician', 'cashier']],
+            'GET stock/alerts' => ['GET', 'stock/alerts', ['manager', 'clinician', 'cashier']],
+            'POST stock/alerts/evaluate' => ['POST', 'stock/alerts/evaluate', ['manager']],
+            'POST stock/alerts/{id}/acknowledge' => ['POST', 'stock/alerts/{id}/acknowledge', ['manager']],
+            'POST stock/alerts/{id}/resolve' => ['POST', 'stock/alerts/{id}/resolve', ['manager']],
             'POST stock/opening' => ['POST', 'stock/opening', ['manager']],
+            // Historique des mouvements d'un article (lecture seule, stock.read) : mêmes comptes que les disponibilités.
+            'GET stock/movements' => ['GET', 'stock/movements', ['manager', 'clinician', 'cashier']],
             'POST stock/movements' => ['POST', 'stock/movements', ['manager']],
         ];
     }
@@ -151,7 +166,7 @@ final class BillingRoutesGateTest extends TestCase
     {
         $prefixes = [
             'api.catalog.', 'api.tax-rules.', 'api.invoices.', 'api.quotes.', 'api.receipts.', 'api.payments.', 'api.credit-notes.', 'api.refunds.',
-            'api.cash-registers.', 'api.cash-sessions.', 'api.deliveries.', 'api.stock.',
+            'api.cash-registers.', 'api.cash-sessions.', 'api.payment-reconciliations.', 'api.deliveries.', 'api.stock.',
         ];
         $checked = 0;
 

@@ -12,6 +12,7 @@
  * dit (jamais un emplacement deviné).
  */
 import { computed, ref } from 'vue'
+import { RouterLink } from 'vue-router'
 
 import { clinicTimeZone } from '@/app/clinicTime'
 import { getStockAvailability, listStockLocations, searchCatalog } from '@/app/services/billing'
@@ -88,6 +89,8 @@ const stockedItems = computed(() =>
 )
 const result = computed(() => read.data.value)
 const canOpen = computed(() => canOnScreen('stock.adjust'))
+const canReceive = computed(() => canOnScreen('stock.receive'))
+const canInventory = computed(() => canOnScreen('stock.inventory'))
 const withCost = computed(() => canOnScreen('catalog.purchase_cost.read'))
 
 function itemName(id: string): string {
@@ -364,14 +367,29 @@ async function onPasswordConfirmed(): Promise<void> {
 <template>
   <section aria-labelledby="titre-stock" class="max-w-3xl space-y-6">
     <h1 id="titre-stock" class="text-2xl font-semibold tracking-tight">Stock</h1>
-    <LinkButton v-if="canOpen" :to="{ name: 'stock-movement' }" variant="secondary"
-      >Casse ou ajustement</LinkButton
-    >
+    <div class="flex flex-wrap gap-3">
+      <LinkButton v-if="canReceive" :to="{ name: 'goods-receipts' }" variant="secondary"
+        >Réceptions fournisseur</LinkButton
+      >
+      <LinkButton v-if="canReceive" :to="{ name: 'suppliers' }" variant="secondary"
+        >Fournisseurs</LinkButton
+      >
+      <LinkButton v-if="canInventory" :to="{ name: 'inventories' }" variant="secondary"
+        >Inventaires</LinkButton
+      >
+      <LinkButton :to="{ name: 'stock-alerts' }" variant="secondary">Alertes et seuils</LinkButton>
+      <LinkButton v-if="canOpen" :to="{ name: 'stock-movement' }" variant="secondary"
+        >Casse ou ajustement</LinkButton
+      >
+    </div>
 
     <StateMessage v-if="notice" state="success" :title="notice" />
 
     <section aria-labelledby="titre-disponibilites" class="space-y-3">
       <h2 id="titre-disponibilites" class="text-lg font-semibold">Disponibilités</h2>
+      <p class="max-w-prose text-sm text-muted">
+        Le disponible central est égal à Physique moins Réservé moins Quotas des postes.
+      </p>
       <SalesReadMessage
         v-if="read.state.value !== 'ready' && read.state.value !== 'empty'"
         :state="read.state.value"
@@ -427,6 +445,13 @@ async function onPasswordConfirmed(): Promise<void> {
                 >
               </li>
             </ul>
+            <p>
+              <RouterLink
+                :to="{ name: 'stock-history', query: { article: row.item_id } }"
+                class="text-link inline-flex min-h-11 items-center"
+                >Historique des mouvements</RouterLink
+              >
+            </p>
           </li>
         </ul>
         <PaginationControls

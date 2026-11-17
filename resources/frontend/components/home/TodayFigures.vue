@@ -22,24 +22,30 @@ import { clinicToday, formatTimeFr } from '@/app/clinicTime'
 import { listAppointments } from '@/app/services/agenda'
 import { getCashDayReport } from '@/app/services/billing'
 import { type ReadState, useRead } from '@/app/services/reads'
+import { listStockAlerts } from '@/app/services/stockAlerts'
 import { type DayVisits, listDayVisits } from '@/app/services/visits'
 import { revalidateSession } from '@/app/session'
 import StatTile, { type StatTone } from '@/components/layout/StatTile.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
-import type { Appointment, CashDayReport } from '@/domain/contracts/generated'
+import type { Appointment, CashDayReport, StockAlertPage } from '@/domain/contracts/generated'
 import { formatMoney } from '@/domain/values/money'
 
 import { activeAppointmentCount, queueCounts } from './todayFigures'
 
-const props = defineProps<{
-  /** File du jour lisible : `visit.register` ou `agenda.read`, module « today ». */
-  queue: boolean
-  /** Rendez-vous lisibles : `agenda.read`, module « agenda ». */
-  appointments: boolean
-  /** Caisse du jour lisible : `finance.global.read` ou `cash.own_session`, module « sales ». */
-  cash: boolean
-}>()
+const props = withDefaults(
+  defineProps<{
+    /** File du jour lisible : `visit.register` ou `agenda.read`, module « today ». */
+    queue: boolean
+    /** Rendez-vous lisibles : `agenda.read`, module « agenda ». */
+    appointments: boolean
+    /** Caisse du jour lisible : `finance.global.read` ou `cash.own_session`, module « sales ». */
+    cash: boolean
+    /** Alertes de stock lisibles : `stock.read`, module « stock ». */
+    stockAlerts?: boolean
+  }>(),
+  { stockAlerts: false },
+)
 
 /** Jour civil du cabinet des lectures (`AAAA-MM-JJ`), relu à chaque actualisation. */
 const day = ref(clinicToday().toString())
@@ -50,6 +56,12 @@ const appointmentsRead = props.appointments
   ? useRead<Appointment[]>(() => listAppointments(day.value, day.value))
   : null
 const cashRead = props.cash ? useRead<CashDayReport>(() => getCashDayReport(day.value)) : null
+const lowStockAlertsRead = props.stockAlerts
+  ? useRead<StockAlertPage>(() => listStockAlerts({ status: 'OPEN', kind: 'LOW_STOCK', page: 1 }))
+  : null
+const expiryAlertsRead = props.stockAlerts
+  ? useRead<StockAlertPage>(() => listStockAlerts({ status: 'OPEN', kind: 'EXPIRY', page: 1 }))
+  : null
 
 /** Ce que le bandeau suit de chaque lecture : son état, l'heure de sa réponse, sa relance. */
 interface TileRead {
@@ -67,6 +79,8 @@ const reads: TileRead[] = []
 if (queueRead !== null) reads.push(queueRead)
 if (appointmentsRead !== null) reads.push(appointmentsRead)
 if (cashRead !== null) reads.push(cashRead)
+if (lowStockAlertsRead !== null) reads.push(lowStockAlertsRead)
+if (expiryAlertsRead !== null) reads.push(expiryAlertsRead)
 
 /** Explication écrite d'une tuile sans valeur, selon l'état de sa lecture. */
 const UNAVAILABLE: Readonly<Record<Exclude<ReadState, 'ready' | 'empty'>, string>> = {
@@ -116,6 +130,9 @@ const cashHint = computed(() => {
   if (report.value === null) return undefined
   return report.value.scope === 'CLINIC' ? 'Tout le cabinet' : 'Vos encaissements seulement'
 })
+
+const lowStockAlertCount = computed(() => readyData(lowStockAlertsRead)?.meta.total ?? null)
+const expiryAlertCount = computed(() => readyData(expiryAlertsRead)?.meta.total ?? null)
 
 /** Heure de la plus ancienne réponse affichée (« 10h42 ») ; null sans aucune valeur affichée. */
 const readAt = computed(() => {
@@ -208,8 +225,12 @@ function refresh(): void {
       />
     </dl>
 
-    <dl v-if="cashRead !== null" class="stat-grid stat-grid-wide lg:grid-cols-2">
+    <dl
+      v-if="cashRead !== null || (lowStockAlertsRead !== null && expiryAlertsRead !== null)"
+      class="stat-grid stat-grid-wide lg:grid-cols-3"
+    >
       <StatTile
+        v-if="cashRead !== null"
         label="Encaissé net"
         :value="cashValue"
         :unavailable-text="unavailableText(cashRead)"
@@ -218,6 +239,28 @@ function refresh(): void {
         :tone="cashTone"
         :to="{ name: 'caisse-du-jour' }"
         link-label="Voir la caisse du jour"
+      />
+      <StatTile
+        v-if="lowStockAlertsRead !== null"
+        label="Alertes stock bas"
+        :value="lowStockAlertCount"
+        :unavailable-text="unavailableText(lowStockAlertsRead)"
+        :hint="lowStockAlertCount === null ? undefined : 'Seuils centraux ouverts'"
+        icon="alert"
+        :tone="lowStockAlertCount !== null && lowStockAlertCount > 0 ? 'warning' : 'success'"
+        :to="{ name: 'stock-alerts' }"
+        link-label="Voir les alertes"
+      />
+      <StatTile
+        v-if="expiryAlertsRead !== null"
+        label="Alertes péremption"
+        :value="expiryAlertCount"
+        :unavailable-text="unavailableText(expiryAlertsRead)"
+        :hint="expiryAlertCount === null ? undefined : 'Lots expirés ou à surveiller'"
+        icon="clock"
+        :tone="expiryAlertCount !== null && expiryAlertCount > 0 ? 'danger' : 'success'"
+        :to="{ name: 'stock-alerts' }"
+        link-label="Voir les alertes"
       />
     </dl>
   </section>
