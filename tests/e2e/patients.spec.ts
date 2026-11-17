@@ -76,13 +76,26 @@ test.describe('patients (P01, P02) sur la vraie application', () => {
     await expect(page).toHaveURL(/\/patients\/[0-9A-HJKMNP-TV-Z]{26}$/)
     expect(page.url()).not.toBe(firstUrl)
 
-    // Recherche insensible aux accents, à la casse et à l'ordre des mots.
+    // Liste directe à l'ouverture, nombre de lignes réglable, puis recherche insensible aux accents, à la casse et à l'ordre des mots.
     await page.goto('/patients')
+    const results = page.getByRole('main')
+    await expect(results.getByRole('heading', { name: 'Liste des patients' })).toBeVisible()
+    await expect(results.getByText('Nguema Parcours').first()).toBeVisible()
+    const perPageSelect = page.locator('#patients-per-page')
+    await expect(perPageSelect).toBeVisible()
+    await perPageSelect.selectOption('15')
+    await expect(perPageSelect).toHaveValue('15')
+    await expect(results.getByText('Nguema Parcours').first()).toBeVisible()
+
     await page.getByRole('searchbox', { name: 'Rechercher un patient' }).fill('elodie NGUEMA')
     await page.getByRole('button', { name: 'Rechercher' }).click()
-    const results = page.getByRole('main')
     await expect(results.getByText('Nguema Parcours').first()).toBeVisible()
     await expect(results.getByRole('link', { name: /Nguema Parcours/ })).toHaveCount(2)
+
+    // Effacer la recherche réaffiche la liste complète.
+    await page.getByRole('button', { name: 'Effacer' }).click()
+    await expect(results.getByRole('heading', { name: 'Liste des patients' })).toBeVisible()
+    await expect(page.getByRole('searchbox', { name: 'Rechercher un patient' })).toHaveValue('')
 
     // Moins de deux caractères : message, aucune recherche.
     await page.getByRole('searchbox', { name: 'Rechercher un patient' }).fill('n')

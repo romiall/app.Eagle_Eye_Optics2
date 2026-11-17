@@ -5994,7 +5994,7 @@ CONCLUSION: Conclusion
 export interface Pagination {
 current_page: number
 last_page: number
-per_page: (25 | 50)
+per_page: number
 total: number
 }
 export interface CompatibilityDeclaration {

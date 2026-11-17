@@ -182,7 +182,8 @@
         },
         "per_page": {
           "type": "integer",
-          "enum": [25, 50]
+          "minimum": 1,
+          "maximum": 100
         },
         "total": {
           "type": "integer",

@@ -141,15 +141,44 @@ final class PatientSearchTest extends TestCase
     {
         $this->seedPatient('Alpha', null, '600000001');
 
-        foreach (['', ' ', 'a', ' a '] as $query) {
+        foreach (['a', ' a '] as $query) {
             $this->actingAsFresh($this->reception)
                 ->getJson('/api/v1/patients?'.http_build_query(['query' => $query]))
                 ->assertStatus(422)
                 ->assertJsonPath('error.code', 'VALIDATION_FAILED')
                 ->assertJsonStructure(['error' => ['fields' => ['query']]]);
         }
-        $this->actingAsFresh($this->reception)->getJson('/api/v1/patients')->assertStatus(422);
         $this->assertSame(['Alpha'], $this->names('al'));
+    }
+
+    public function test_requete_vide_ou_absente_renvoie_tous_les_patients(): void
+    {
+        $this->seedPatient('Alpha', null, '600000001');
+        $this->seedPatient('Beta', null, '600000002');
+
+        foreach (['', ' ', null] as $query) {
+            $url = $query === null ? '/api/v1/patients' : '/api/v1/patients?'.http_build_query(['query' => $query]);
+            $response = $this->actingAsFresh($this->reception)->getJson($url);
+            $response->assertOk();
+            $this->assertMatchesContract($response, 'schemas/resources/patients.json#/$defs/PatientPage');
+            $names = array_map(static fn (array $row): string => $row['last_name'], $response->json('data'));
+            $this->assertSame(['Alpha', 'Beta'], $names);
+        }
+    }
+
+    public function test_le_nombre_de_lignes_par_page_est_reglable(): void
+    {
+        $this->seedPatient('Alpha', null, '600000001');
+        $this->seedPatient('Beta', null, '600000002');
+
+        $response = $this->actingAsFresh($this->reception)->getJson('/api/v1/patients?per_page=15');
+        $response->assertOk();
+        $this->assertMatchesContract($response, 'schemas/resources/patients.json#/$defs/PatientPage');
+        $this->assertSame(15, $response->json('meta.per_page'));
+
+        // Hors bornes 5..100 -> 422
+        $this->actingAsFresh($this->reception)->getJson('/api/v1/patients?per_page=2')->assertStatus(422);
+        $this->actingAsFresh($this->reception)->getJson('/api/v1/patients?per_page=105')->assertStatus(422);
     }
 
     public function test_les_jokers_de_like_sont_cherches_comme_des_caracteres(): void

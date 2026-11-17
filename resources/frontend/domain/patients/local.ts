@@ -266,6 +266,7 @@ function digitsOf(value: string): string {
 export function matchesLocalSearch(patient: Patient, query: string): boolean {
   // Comme le serveur : une fiche fusionnée dans une autre n'est jamais proposée.
   if (patient.merged_into_patient_id !== null) return false
+  if (query === '') return true
   const term = searchTerm(query)
   if (!term.ok) return false
   const wanted = plain(term.text)
@@ -283,22 +284,25 @@ export function matchesLocalSearch(patient: Patient, query: string): boolean {
   return wanted !== '' && plain(patient.record_number).includes(wanted)
 }
 
-const PAGE_SIZE = 25
-
-/** Page de résultats locaux (25 par page), triés par nom puis prénoms ; `total` ne compte que les fiches de ce poste. */
-export function localPatientPage(patients: readonly Patient[], page: number): PatientPage {
+/** Page de résultats locaux, triés par nom puis prénoms ; `total` ne compte que les fiches de ce poste. */
+export function localPatientPage(
+  patients: readonly Patient[],
+  page: number,
+  perPage = 25,
+): PatientPage {
   const sorted = [...patients].sort(
     (left, right) =>
       left.last_name.localeCompare(right.last_name, 'fr') ||
       (left.first_names ?? '').localeCompare(right.first_names ?? '', 'fr'),
   )
-  const start = (page - 1) * PAGE_SIZE
+  const size = Math.max(5, Math.min(100, perPage))
+  const start = (page - 1) * size
   return {
-    data: sorted.slice(start, start + PAGE_SIZE).map(patientSummary),
+    data: sorted.slice(start, start + size).map(patientSummary),
     meta: {
       current_page: page,
-      last_page: Math.max(1, intDiv(sorted.length + PAGE_SIZE - 1, PAGE_SIZE)),
-      per_page: PAGE_SIZE,
+      last_page: Math.max(1, intDiv(sorted.length + size - 1, size)),
+      per_page: size,
       total: sorted.length,
     },
   }

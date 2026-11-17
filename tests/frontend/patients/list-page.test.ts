@@ -47,17 +47,22 @@ afterEach(() => {
   resetEverything()
 })
 
-describe('écran Patients : recherche', () => {
-  it('s’ouvre sans interroger le serveur et explique quoi saisir', async () => {
-    const api = stubPatientsApi({ permissions: READER })
+describe('écran Patients : recherche et liste', () => {
+  it('s’ouvre en chargeant directement la liste des patients avec le sélecteur de lignes', async () => {
+    const api = stubPatientsApi({
+      permissions: READER,
+      handlers: { search: () => json(200, pageOf([summaryOf(patient())])) },
+    })
     const { root, unmount } = await openApp('/patients')
 
     expect(root.querySelector('h1')?.textContent).toBe('Patients')
     expect(document.title).toBe('Patients – Eagle’s Eye Optics Medical')
-    expect(callsTo(api, 'GET', SEARCH)).toHaveLength(0)
-    expect(textOf(root)).toContain('Saisissez un nom, un téléphone ou un numéro de dossier')
-    // Aucun « aucun résultat » avant la moindre recherche.
-    expect(textOf(root)).not.toContain('Aucun résultat')
+    expect(callsTo(api, 'GET', SEARCH)).toHaveLength(1)
+    expect(textOf(root)).toContain('Liste des patients')
+    expect(textOf(root)).toContain('PATIENT FICTIF Élodie')
+    const select = root.querySelector('select#patients-per-page') as HTMLSelectElement | null
+    expect(select).not.toBeNull()
+    expect(select?.value).toBe('25')
     const input = field(root, 'Rechercher un patient')
     expect(input.getAttribute('type')).toBe('search')
     expect(input.getAttribute('autocomplete')).toBe('off')
@@ -66,25 +71,27 @@ describe('écran Patients : recherche', () => {
     unmount()
   })
 
-  it('refuse un texte de moins de 2 caractères sans appeler le serveur', async () => {
+  it('refuse un texte de moins de 2 caractères sans appel supplémentaire au serveur', async () => {
     const api = stubPatientsApi({ permissions: READER })
     const { root, unmount } = await openApp('/patients')
 
+    expect(callsTo(api, 'GET', SEARCH)).toHaveLength(1)
+
     await search(root, 'a')
 
-    expect(callsTo(api, 'GET', SEARCH)).toHaveLength(0)
+    expect(callsTo(api, 'GET', SEARCH)).toHaveLength(1)
     const input = field(root, 'Rechercher un patient')
     expect(input.getAttribute('aria-invalid')).toBe('true')
     expect(textOf(root)).toContain('Saisissez au moins 2 caractères pour lancer la recherche.')
     expect(document.activeElement).toBe(input)
 
     await search(root, '   ')
-    expect(callsTo(api, 'GET', SEARCH)).toHaveLength(0)
+    expect(callsTo(api, 'GET', SEARCH)).toHaveLength(1)
     expect(textOf(root)).toContain('Saisissez au moins 2 caractères : un nom')
 
     // La correction efface l'erreur ; 2 caractères suffisent.
     await search(root, 'ab')
-    expect(callsTo(api, 'GET', SEARCH)).toHaveLength(1)
+    expect(callsTo(api, 'GET', SEARCH)).toHaveLength(2)
     expect(input.getAttribute('aria-invalid')).toBeNull()
 
     unmount()
@@ -103,7 +110,7 @@ describe('écran Patients : recherche', () => {
       ?.dispatchEvent(new Event('submit', { cancelable: true }))
     await flushPromises()
 
-    const [call] = callsTo(api, 'GET', SEARCH)
+    const call = callsTo(api, 'GET', SEARCH).at(-1)
     expect(call?.query.get('query')).toBe('Éb Ngono')
     expect(call?.query.get('page')).toBe('1')
     unmount()
@@ -206,7 +213,7 @@ describe('écran Patients : recherche', () => {
     // « Réessayer » relit : la liste apparaît dès que le serveur répond.
     answer = 'ok'
     await click(buttonByName(root, 'Réessayer'))
-    expect(callsTo(api, 'GET', SEARCH)).toHaveLength(2)
+    expect(callsTo(api, 'GET', SEARCH)).toHaveLength(3)
     expect(textOf(root)).toContain('PATIENT FICTIF')
     expect(textOf(root)).not.toContain('Recherche serveur indisponible')
 
@@ -316,7 +323,9 @@ describe('écran Patients : recherche', () => {
 
     await click(buttonByName(root, 'Page suivante'))
 
-    const pagesAsked = callsTo(api, 'GET', SEARCH).map((call) => call.query.get('page'))
+    const pagesAsked = callsTo(api, 'GET', SEARCH)
+      .filter((call) => call.query.get('query') === 'fictif')
+      .map((call) => call.query.get('page'))
     expect(pagesAsked).toEqual(['1', '2'])
     expect(textOf(root)).toContain('DEUXIEME FICTIF')
     expect(textOf(root)).toContain('Page 2 sur 3')
@@ -471,7 +480,7 @@ describe('écran Patients : droits, module et vie privée', () => {
     expect(field(root, 'Rechercher un patient').value).toBe('fictif')
     expect(textOf(root)).toContain('PATIENT FICTIF')
     // La liste est relue (jamais une copie ancienne) et rien n'est écrit dans le navigateur.
-    expect(callsTo(api, 'GET', SEARCH)).toHaveLength(2)
+    expect(callsTo(api, 'GET', SEARCH)).toHaveLength(3)
     expect(JSON.stringify(Object.entries(window.localStorage))).toBe('[]')
     expect(JSON.stringify(Object.entries(window.sessionStorage))).toBe('[]')
     unmount()
@@ -496,7 +505,44 @@ describe('écran Patients : droits, module et vie privée', () => {
     const second = await openApp('/patients')
 
     expect(field(second.root, 'Rechercher un patient').value).toBe('')
-    expect(textOf(second.root)).not.toContain('PATIENT FICTIF')
+    // La recherche précédente n'est pas reprise : la requête au serveur est vide (aucun paramètre query).
+    expect(callsTo(api, 'GET', SEARCH).at(-1)?.query.get('query')).toBeNull()
     second.unmount()
+  })
+
+  it('permet de régler le nombre de lignes par page (15, 20, 25, 50)', async () => {
+    const api = stubPatientsApi({
+      permissions: READER,
+      handlers: { search: () => json(200, pageOf([summaryOf(patient())])) },
+    })
+    const { root, unmount } = await openApp('/patients')
+
+    const select = root.querySelector('select#patients-per-page') as HTMLSelectElement
+    expect(select.value).toBe('25')
+
+    select.value = '15'
+    select.dispatchEvent(new Event('change'))
+    await flushPromises()
+
+    const lastCall = callsTo(api, 'GET', SEARCH).at(-1)
+    expect(lastCall?.query.get('per_page')).toBe('15')
+    unmount()
+  })
+
+  it('bouton Effacer réinitialise la recherche et recharge tous les patients', async () => {
+    const api = stubPatientsApi({
+      permissions: READER,
+      handlers: { search: () => json(200, pageOf([summaryOf(patient())])) },
+    })
+    const { root, unmount } = await openApp('/patients')
+
+    await search(root, 'fictif')
+    expect(buttonByName(root, 'Effacer')).not.toBeNull()
+
+    await click(buttonByName(root, 'Effacer'))
+    expect(field(root, 'Rechercher un patient').value).toBe('')
+    const lastCall = callsTo(api, 'GET', SEARCH).at(-1)
+    expect(lastCall?.query.get('query')).toBeNull()
+    unmount()
   })
 })

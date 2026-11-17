@@ -1,20 +1,15 @@
 <script setup lang="ts">
 /**
- * Recherche de patients (P02 ; fichier 02 : à partir de 2 caractères, insensible à la casse et aux
- * accents, téléphone ou numéro de dossier ; fichier 04 : écran « Patients »). La recherche part à la
- * validation du formulaire (Entrée ou bouton), jamais sous 2 caractères. Le texte cherché reste en
- * mémoire de la session pour revenir de la fiche à la liste, sans passer par l'URL (aucun nom ni
- * téléphone dans l'adresse). « Créer » n'est proposé qu'à côté des résultats : on vérifie d'abord
- * que le patient n'existe pas.
- *
- * Présentation : en-tête d'écran, barre de recherche en carte, puis les résultats en rangées
- * (`PatientSearchResults`) ; avant toute recherche, un état vide explique quoi saisir.
+ * Recherche et liste des patients (P02 ; fichier 02 : à partir de 2 caractères, insensible à la casse et aux
+ * accents, téléphone ou numéro de dossier ; fichier 04 : écran « Patients »). À l'ouverture de l'écran, la
+ * liste complète des patients du cabinet est affichée directement, avec un nombre de lignes réglable.
+ * Une recherche par formulaire (Entrée ou bouton) permet de filtrer les résultats ; laisser le champ vide
+ * ou cliquer sur « Effacer » réaffiche l'ensemble des patients.
  */
 import { computed, ref, watch } from 'vue'
 
 import { can } from '@/app/session'
 import TextField from '@/components/form/TextField.vue'
-import EmptyState from '@/components/layout/EmptyState.vue'
 import PageHeader from '@/components/layout/PageHeader.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
@@ -39,9 +34,16 @@ watch(text, (value) => {
 })
 
 const canCreate = computed(() => can('patient.create'))
-const resultsKey = computed(() => `${memory.run}\u{1F}${memory.query}\u{1F}${memory.page}`)
+const resultsKey = computed(
+  () => `${memory.run}\u{1F}${memory.query}\u{1F}${memory.page}\u{1F}${memory.perPage}`,
+)
 
 function search(): void {
+  if (text.value === '' && memory.query !== '') {
+    resetSearch()
+    return
+  }
+
   const term = searchTerm(text.value)
   if (!term.ok) {
     error.value =
@@ -59,10 +61,27 @@ function search(): void {
   memory.run += 1
 }
 
+function resetSearch(): void {
+  text.value = ''
+  memory.text = ''
+  memory.query = ''
+  memory.page = 1
+  memory.run += 1
+  error.value = null
+  announcement.value = 'Affichage de tous les patients…'
+  focusResults.value = false
+}
+
 function goToPage(page: number): void {
   announcement.value = 'Chargement de la page…'
   focusResults.value = true
   memory.page = page
+}
+
+function onPerPageChange(perPage: number): void {
+  memory.perPage = perPage
+  memory.page = 1
+  memory.run += 1
 }
 </script>
 
@@ -95,29 +114,36 @@ function goToPage(page: number): void {
           type="search"
           inputmode="search"
           :control-id="SEARCH_ID"
-          hint="Nom, prénom, téléphone ou numéro de dossier (par exemple EE-2026-0001). Au moins 2 caractères."
+          hint="Nom, prénom, téléphone ou numéro de dossier (par exemple EE-2026-0001). Laissez vide pour afficher tous les patients."
           :error="error"
         />
       </div>
       <AppButton type="submit" class="field-action"
         ><AppIcon name="search" :size="18" />Rechercher</AppButton
       >
+      <AppButton
+        v-if="text !== '' || memory.query !== ''"
+        type="button"
+        variant="ghost"
+        class="field-action"
+        @click="resetSearch"
+      >
+        Effacer
+      </AppButton>
     </form>
 
     <p role="status" aria-live="polite" class="sr-only">{{ announcement }}</p>
 
     <PatientSearchResults
-      v-if="memory.query !== ''"
       :key="resultsKey"
       :query="memory.query"
       :page="memory.page"
+      :per-page="memory.perPage"
       :focus-on-load="focusResults"
       @page="goToPage"
+      @per-page="onPerPageChange"
+      @reset-search="resetSearch"
       @summary="announcement = $event"
     />
-    <EmptyState v-else title="Commencez par une recherche" icon="search">
-      Saisissez un nom, un téléphone ou un numéro de dossier pour afficher les fiches. Avant de
-      créer un nouveau patient, vérifiez qu’il n’existe pas déjà.
-    </EmptyState>
   </section>
 </template>

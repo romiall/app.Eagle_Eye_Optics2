@@ -37,17 +37,23 @@ const props = withDefaults(
   defineProps<{
     query: string
     page: number
+    perPage?: number
     /** Vrai après un changement de page : le focus va au titre des résultats une fois chargés. */
     focusOnLoad?: boolean
   }>(),
-  { focusOnLoad: false },
+  { perPage: 25, focusOnLoad: false },
 )
 
-const emit = defineEmits<{ page: [page: number]; summary: [text: string] }>()
+const emit = defineEmits<{
+  page: [page: number]
+  perPage: [perPage: number]
+  resetSearch: []
+  summary: [text: string]
+}>()
 
 // Serveur injoignable : les fiches de CE poste répondent (jamais un « aucun résultat » affirmé : `live` faux).
 const read = usePatientRead<PatientPage>(
-  () => searchPatients(props.query, props.page, { includeLocal: true }),
+  () => searchPatients(props.query, props.page, { includeLocal: true, perPage: props.perPage }),
   { isEmpty: (result) => result.data.length === 0 },
 )
 
@@ -65,13 +71,22 @@ function announcement(): string {
   switch (read.state.value) {
     case 'ready': {
       const meta = result.value?.meta
-      const count = meta?.total === 1 ? '1 patient trouvé' : `${meta?.total ?? 0} patients trouvés`
+      const count =
+        meta?.total === 1
+          ? props.query
+            ? '1 patient trouvé'
+            : '1 patient enregistré'
+          : `${meta?.total ?? 0} ${props.query ? 'patients trouvés' : 'patients enregistrés'}`
       return meta !== undefined && meta.last_page > 1
         ? `${count}, page ${meta.current_page} sur ${meta.last_page}`
         : count
     }
     case 'empty':
-      return pastTheEnd.value ? 'Cette page ne contient plus de résultats' : 'Aucun résultat'
+      return pastTheEnd.value
+        ? 'Cette page ne contient plus de résultats'
+        : props.query
+          ? 'Aucun résultat'
+          : 'Aucun patient enregistré'
     case 'offline':
       return 'Recherche serveur indisponible'
     case 'forbidden':
@@ -79,7 +94,7 @@ function announcement(): string {
     case 'session-expired':
       return 'Session expirée'
     case 'error':
-      return 'La recherche a échoué'
+      return 'La lecture des patients a échoué'
     default:
       return ''
   }
@@ -99,9 +114,12 @@ watch(
 )
 
 /** Nombre de fiches trouvées, écrit au-dessus de la liste (le même texte est annoncé). */
-const found = computed(() =>
-  total.value === 1 ? '1 patient trouvé' : `${total.value} patients trouvés`,
-)
+const found = computed(() => {
+  if (total.value === 1) {
+    return props.query ? '1 patient trouvé' : '1 patient enregistré'
+  }
+  return `${total.value} ${props.query ? 'patients trouvés' : 'patients enregistrés'}`
+})
 
 function age(patient: PatientPage['data'][number]): string {
   return formatAge(patientAge(patient.birth_date, today))
@@ -110,13 +128,47 @@ function age(patient: PatientPage['data'][number]): string {
 
 <template>
   <section aria-labelledby="titre-resultats" class="space-y-4">
-    <div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-      <h2 id="titre-resultats" ref="heading" tabindex="-1" class="section-title focus:outline-none">
-        Résultats
-      </h2>
-      <p v-if="read.state.value === 'ready' && result !== null" class="text-sm text-muted">
-        {{ found }}
-      </p>
+    <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+      <div>
+        <h2
+          id="titre-resultats"
+          ref="heading"
+          tabindex="-1"
+          class="section-title focus:outline-none"
+        >
+          {{ props.query ? 'Résultats' : 'Liste des patients' }}
+        </h2>
+        <p v-if="read.state.value === 'ready' && result !== null" class="text-sm text-muted">
+          {{ found }}
+        </p>
+      </div>
+
+      <div
+        v-if="read.state.value === 'ready' && result !== null && total > 0"
+        class="flex flex-wrap items-center gap-2 text-sm text-muted"
+      >
+        <label for="patients-per-page" class="font-medium whitespace-nowrap text-ink"
+          >Afficher :</label
+        >
+        <div class="relative">
+          <select
+            id="patients-per-page"
+            :value="props.perPage"
+            class="field-control min-h-11 cursor-pointer appearance-none rounded-lg border border-field bg-surface py-2 pr-10 pl-3 text-base leading-6 font-medium text-ink shadow-[inset_0_1px_2px_rgb(35_31_32/0.04)] hover:border-primary"
+            @change="emit('perPage', Number(($event.target as HTMLSelectElement).value))"
+          >
+            <option :value="15">15 par page</option>
+            <option :value="20">20 par page</option>
+            <option :value="25">25 par page</option>
+            <option :value="50">50 par page</option>
+          </select>
+          <AppIcon
+            name="chevron-down"
+            :size="18"
+            class="pointer-events-none absolute top-1/2 right-3.5 -translate-y-1/2 text-muted"
+          />
+        </div>
+      </div>
     </div>
 
     <ReadStateMessage
@@ -140,11 +192,36 @@ function age(patient: PatientPage['data'][number]): string {
       </template>
     </StateMessage>
 
-    <EmptyState v-else-if="read.state.value === 'empty'" title="Aucun résultat" icon="search">
+    <EmptyState
+      v-else-if="read.state.value === 'empty' && props.query !== ''"
+      title="Aucun résultat"
+      icon="search"
+    >
       Le serveur n’a trouvé aucun patient pour cette recherche. Vérifiez l’orthographe, ou cherchez
       par téléphone ou par numéro de dossier avant de créer une nouvelle fiche.
+      <template #action>
+        <div class="flex flex-wrap items-center justify-center gap-3">
+          <AppButton variant="secondary" @click="emit('resetSearch')">
+            Afficher tous les patients
+          </AppButton>
+          <LinkButton v-if="canCreate" to="/patients/nouveau" variant="primary">
+            Créer un patient
+          </LinkButton>
+        </div>
+      </template>
+    </EmptyState>
+
+    <EmptyState
+      v-else-if="read.state.value === 'empty'"
+      title="Aucun patient enregistré"
+      icon="patients"
+    >
+      Aucun patient n’est encore enregistré dans la clinique. Créez une première fiche patient pour
+      commencer.
       <template v-if="canCreate" #action>
-        <LinkButton to="/patients/nouveau" variant="primary">Créer un patient</LinkButton>
+        <LinkButton to="/patients/nouveau" variant="primary">
+          <AppIcon name="user-plus" :size="18" />Créer un patient
+        </LinkButton>
       </template>
     </EmptyState>
 

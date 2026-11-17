@@ -38,17 +38,28 @@ function fromThisDevice<T>(data: T): ReadOutcome<T> {
 
 /**
  * Recherche paginée : nom ou prénom (casse, accents et ordre des mots ignorés), téléphone (chiffres)
- * ou numéro de dossier. Moins de 2 caractères n'est jamais envoyé : l'écran le refuse avant.
+ * ou numéro de dossier. Si la requête est vide, la liste complète des patients du cabinet est affichée.
  */
 export async function searchPatients(
-  query: string,
+  query = '',
   page = 1,
-  options: { includeLocal?: boolean } = {},
+  options: { includeLocal?: boolean; perPage?: number } = {},
 ): Promise<ReadOutcome<PatientPage>> {
-  const term = searchTerm(query)
-  if (!term.ok) throw new RangeError('La recherche demande 2 caractères au moins.')
+  let queryText: string | null = null
+  if (query !== '') {
+    const term = searchTerm(query)
+    if (!term.ok) throw new RangeError('La recherche demande 2 caractères au moins.')
+    queryText = term.text
+  }
   if (!Number.isSafeInteger(page) || page < 1) throw new RangeError('Page de résultats invalide.')
-  const parameters = new URLSearchParams({ query: term.text, page: String(page) })
+  const parameters = new URLSearchParams()
+  if (queryText !== null) {
+    parameters.set('query', queryText)
+  }
+  parameters.set('page', String(page))
+  if (options.perPage && options.perPage >= 5 && options.perPage <= 100) {
+    parameters.set('per_page', String(options.perPage))
+  }
   let response: PatientPage | null = null
   try {
     response = await apiRequest<PatientPage>('GET', `/api/v1/patients?${parameters}`)
@@ -67,6 +78,7 @@ export async function searchPatients(
       localPatientPage(
         matches.map((entry) => entry.patient),
         page,
+        options.perPage ?? 25,
       ),
     )
   }
@@ -82,6 +94,7 @@ export async function searchPatients(
   const merged = localPatientPage(
     extra.map((entry) => entry.patient),
     1,
+    options.perPage ?? 25,
   )
   return answered({
     data: [...merged.data, ...response.data],

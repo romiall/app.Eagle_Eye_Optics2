@@ -61,6 +61,7 @@ def op(method, path, operation_id, summary, tag, *, permission=None, reauth=Fals
 
 ID = ('path', 'id', 'Identifiant ULID de la ressource.')
 PAGE = ('query', 'page', 'Page (pagination, 1 par défaut).')
+PER_PAGE = ('query', 'per_page', 'Nombre de fiches par page (25 par défaut, entre 5 et 100).')
 
 OPERATIONS_TABLE = [
     # --- Session (F05, implémenté) -------------------------------------------------------------------
@@ -113,7 +114,7 @@ OPERATIONS_TABLE = [
     # --- Patients et visites -------------------------------------------------------------------------
     op('get', '/v1/patients', 'SearchPatients', 'Rechercher des patients (identité administrative)', 'Patients',
        permission=['patient.read'], response=PATIENTS + 'PatientPage', implemented=True, task='P02', errors=(404, 422, 429),
-       params=(('query', 'query', 'Nom, numéro de dossier ou téléphone (recherche normalisée, 2 caractères au moins).'), PAGE)),
+       params=(('query', 'query', 'Nom, numéro de dossier ou téléphone (recherche normalisée, 2 caractères au moins, ou vide pour la liste complète).'), PAGE, PER_PAGE)),
     op('post', '/v1/patients', 'CreatePatient', 'Créer un patient (numéro central)', 'Patients',
        permission=['patient.create', 'patient.read'], command='CreatePatient', response=PATIENTS + 'PatientResponse', status=201,
        implemented=True, task='P01', errors=(404, 409, 422),
@@ -1086,6 +1087,8 @@ def build_operation(spec):
             parameter['schema'] = {'$ref': './schemas/common.json#/$defs/Ulid'}
         elif name in ('page',):
             parameter['schema'] = {'type': 'integer', 'minimum': 1}
+        elif name in ('per_page',):
+            parameter['schema'] = {'type': 'integer', 'minimum': 5, 'maximum': 100}
         else:
             parameter['schema'] = {'type': 'string'}
         parameters.append(parameter)

@@ -24,7 +24,12 @@ final class PatientController extends CommandController
 {
     public function index(Request $request, PatientSearch $search): JsonResponse
     {
-        $page = $search($this->actor($request)->clinic_id, $request->query('query'), $request->query('page'));
+        $page = $search(
+            (string) $this->actor($request)->clinic_id,
+            $request->query('query'),
+            $request->query('page'),
+            $request->query('per_page')
+        );
 
         return new JsonResponse([
             'data' => array_map(PatientPresenter::summary(...), $page->items()),

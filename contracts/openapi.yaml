@@ -557,7 +557,7 @@ paths:
         - name: "query"
           in: "query"
           required: false
-          description: "Nom, numéro de dossier ou téléphone (recherche normalisée, 2 caractères au moins)."
+          description: "Nom, numéro de dossier ou téléphone (recherche normalisée, 2 caractères au moins, ou vide pour la liste complète)."
           schema:
             type: "string"
         - name: "page"
@@ -567,6 +567,14 @@ paths:
           schema:
             type: "integer"
             minimum: 1
+        - name: "per_page"
+          in: "query"
+          required: false
+          description: "Nombre de fiches par page (25 par défaut, entre 5 et 100)."
+          schema:
+            type: "integer"
+            minimum: 5
+            maximum: 100
       responses:
         "200":
           description: "Succès."

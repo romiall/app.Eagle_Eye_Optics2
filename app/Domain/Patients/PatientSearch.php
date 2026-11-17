@@ -6,12 +6,14 @@ use App\Domain\Shared\BusinessError;
 use App\Domain\Shared\RuleViolation;
 use App\Domain\Shared\ValueObjects\Text;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
 use stdClass;
 
 /**
- * Recherche de patients (P02, fichier 02) : à partir de deux caractères, insensible à la casse et aux accents
- * pour les noms, normalisée pour les téléphones, jamais limitée à un seul critère.
+ * Recherche et liste des patients (P02, fichier 02) : sans texte, renvoie toutes les fiches du cabinet ;
+ * avec texte (deux caractères au moins), insensible à la casse et aux accents pour les noms, normalisée pour
+ * les téléphones, jamais limitée à un seul critère.
  *
  * - Numéro de dossier : « EE-… » (préfixe), ou « AAAA-NNNN » (fin du numéro).
  * - Chiffres (téléphone, fin de numéro de dossier) : les chiffres sont comparés aux téléphones normalisés, qui
@@ -22,11 +24,15 @@ use stdClass;
  *   doit se retrouver dans la clé de recherche de la fiche.
  *
  * Toujours limitée au cabinet ; les fiches fusionnées dans une autre ne sont pas proposées. Tri stable (clé de
- * recherche, numéro, identifiant) ; 25 résultats par page ; requête de 100 caractères au plus.
+ * recherche, numéro, identifiant) ; 25 résultats par page par défaut (réglable de 5 à 100) ; requête de 100 caractères au plus.
  */
 final class PatientSearch
 {
     public const PER_PAGE = 25;
+
+    public const MIN_PER_PAGE = 5;
+
+    public const MAX_PER_PAGE = 100;
 
     public const MIN_LENGTH = 2;
 
@@ -41,15 +47,26 @@ final class PatientSearch
     /**
      * @return LengthAwarePaginator<int, stdClass>
      */
-    public function __invoke(string $clinicId, mixed $query, mixed $page = null): LengthAwarePaginator
+    public function __invoke(string $clinicId, mixed $query = null, mixed $page = null, mixed $perPage = null): LengthAwarePaginator
     {
         $text = $this->text($query);
-        $pageNumber = $this->page($page);
+        $pageNumber = self::intInRange($page, 1, 1, self::MAX_PAGE, 'page', 'La page est un entier compris entre 1 et '.self::MAX_PAGE.'.');
+        $perPageCount = self::intInRange($perPage, self::PER_PAGE, self::MIN_PER_PAGE, self::MAX_PER_PAGE, 'per_page', 'Le nombre de lignes par page est un entier compris entre '.self::MIN_PER_PAGE.' et '.self::MAX_PER_PAGE.'.');
 
         $builder = DB::table('patient_records')
             ->where('clinic_id', $clinicId)
             ->whereNull('merged_into_patient_id');
 
+        if ($text !== null) {
+            $this->applyFilter($builder, $text);
+        }
+
+        return $builder->orderBy('name_search')->orderBy('record_number')->orderBy('id')
+            ->paginate($perPageCount, ['*'], 'page', $pageNumber);
+    }
+
+    private function applyFilter(Builder $builder, string $text): void
+    {
         if (preg_match('/^EE-\d{1,4}(?:-\d*)?\z/i', $text) === 1) {
             // « EE-2026 » ou « EE-2026-00 » : préfixe du numéro de dossier (au moins un chiffre après « EE- »).
             $builder->where('record_number', 'like', self::like(strtoupper($text)).'%');
@@ -87,17 +104,20 @@ final class PatientSearch
                 $builder->where('name_search', 'like', '%'.self::like($token).'%');
             }
         }
-
-        return $builder->orderBy('name_search')->orderBy('record_number')->orderBy('id')
-            ->paginate(self::PER_PAGE, ['*'], 'page', $pageNumber);
     }
 
-    private function text(mixed $query): string
+    private function text(mixed $query): ?string
     {
+        if ($query === null) {
+            return null;
+        }
         if (! is_string($query) || ! mb_check_encoding($query, 'UTF-8')) {
             throw BusinessError::validation(['query' => ['Saisissez au moins '.self::MIN_LENGTH.' caractères.']]);
         }
         $text = Text::trim($query);
+        if ($text === '') {
+            return null;
+        }
         $length = mb_strlen($text, 'UTF-8');
         if ($length < self::MIN_LENGTH) {
             throw BusinessError::validation(['query' => ['Saisissez au moins '.self::MIN_LENGTH.' caractères.']]);
@@ -109,14 +129,14 @@ final class PatientSearch
         return $text;
     }
 
-    private function page(mixed $page): int
+    private static function intInRange(mixed $value, int $default, int $min, int $max, string $field, string $message): int
     {
-        if ($page === null) {
-            return 1;
+        if ($value === null || $value === '') {
+            return $default;
         }
-        $number = (is_string($page) || is_int($page)) ? filter_var($page, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => self::MAX_PAGE]]) : false;
+        $number = (is_string($value) || is_int($value)) ? filter_var($value, FILTER_VALIDATE_INT, ['options' => ['min_range' => $min, 'max_range' => $max]]) : false;
         if ($number === false) {
-            throw BusinessError::validation(['page' => ['La page est un entier compris entre 1 et '.self::MAX_PAGE.'.']]);
+            throw BusinessError::validation([$field => [$message]]);
         }
 
         return $number;

@@ -13,14 +13,23 @@ interface SearchMemory {
   owner: string | null
   /** Texte dans le champ de recherche. */
   text: string
-  /** Recherche envoyée (vide : aucune). */
+  /** Recherche envoyée (vide : affichage de tous les patients). */
   query: string
   page: number
+  /** Nombre d'éléments affichés par page (15, 20, 25, 50 ; 25 par défaut). */
+  perPage: number
   /** Incrémenté à chaque envoi : relancer la même recherche la relit. */
   run: number
 }
 
-const memory = reactive<SearchMemory>({ owner: null, text: '', query: '', page: 1, run: 0 })
+const memory = reactive<SearchMemory>({
+  owner: null,
+  text: '',
+  query: '',
+  page: 1,
+  perPage: 25,
+  run: 0,
+})
 
 export function searchMemory(): SearchMemory {
   const account = knownAccountId()
@@ -29,6 +38,7 @@ export function searchMemory(): SearchMemory {
     memory.text = ''
     memory.query = ''
     memory.page = 1
+    memory.perPage = 25
     memory.run = 0
   }
   return memory
@@ -40,5 +50,6 @@ export function resetSearchMemoryForTests(): void {
   memory.text = ''
   memory.query = ''
   memory.page = 1
+  memory.perPage = 25
   memory.run = 0
 }
