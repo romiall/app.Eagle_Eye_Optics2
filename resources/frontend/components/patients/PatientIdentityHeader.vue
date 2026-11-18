@@ -52,7 +52,7 @@ const CHIP =
       :first-names="props.patient.first_names"
       size="lg"
     />
-    <div class="min-w-0 space-y-1">
+    <div class="min-w-0 flex-1 space-y-1">
       <component
         :is="props.as"
         :id="props.titleId"

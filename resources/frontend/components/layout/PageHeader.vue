@@ -48,8 +48,10 @@ const props = withDefaults(
         ><AppIcon name="arrow-left" :size="16" />{{ props.back.label }}</RouterLink
       >
     </p>
-    <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
-      <div class="flex min-w-0 items-start gap-4">
+    <div
+      class="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between sm:gap-6"
+    >
+      <div class="flex min-w-0 flex-1 items-start gap-4 sm:basis-72">
         <div
           v-if="props.icon"
           aria-hidden="true"
@@ -78,10 +80,7 @@ const props = withDefaults(
           </div>
         </div>
       </div>
-      <div
-        v-if="$slots.actions"
-        class="flex flex-wrap gap-3 *:grow sm:shrink-0 sm:justify-end sm:*:grow-0"
-      >
+      <div v-if="$slots.actions" class="flex min-w-0 max-w-full flex-wrap gap-3 *:grow sm:*:grow-0">
         <slot name="actions" />
       </div>
     </div>

@@ -69,9 +69,9 @@ function bodyClass(): string {
   >
     <div
       v-if="hasHeader()"
-      class="flex flex-col gap-3 px-4 pt-4 sm:flex-row sm:items-start sm:justify-between sm:px-6 sm:pt-5"
+      class="flex flex-col gap-3 px-4 pt-4 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between sm:px-6 sm:pt-5"
     >
-      <div class="flex min-w-0 items-start gap-3">
+      <div class="flex min-w-0 flex-1 items-start gap-3 sm:basis-60">
         <div
           v-if="props.icon"
           aria-hidden="true"
@@ -96,7 +96,7 @@ function bodyClass(): string {
           </p>
         </div>
       </div>
-      <div v-if="$slots.actions" class="flex flex-wrap gap-2 sm:shrink-0 sm:justify-end">
+      <div v-if="$slots.actions" class="flex min-w-0 max-w-full flex-wrap gap-2">
         <slot name="actions" />
       </div>
     </div>

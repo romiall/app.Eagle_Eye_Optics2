@@ -335,6 +335,12 @@ describe('fiche patient', () => {
     expect(linkTo(manager.root, `/agenda/nouveau?patient=${ID_A}`)).not.toBeNull()
     expect(linkTo(manager.root, `/ventes/factures/nouvelle?patient=${ID_A}`)).not.toBeNull()
     expect(linkTo(manager.root, `/ventes/devis/nouveau?patient=${ID_A}`)).not.toBeNull()
+    const headerCard = manager.root.querySelector('h1')?.closest('.card')
+    expect(headerCard?.className).toContain('flex-col')
+    expect(headerCard?.className).not.toContain('xl:flex-row')
+    const actionsBar = linkTo(manager.root, `/patients/${ID_A}/modifier`)?.parentElement
+    expect(actionsBar?.className).toContain('flex-wrap')
+    expect(actionsBar?.className).not.toContain('xl:shrink-0')
     manager.unmount()
     resetEverything()
 

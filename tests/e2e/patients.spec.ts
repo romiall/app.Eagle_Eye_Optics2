@@ -209,4 +209,46 @@ test.describe('patients (P01, P02) sur la vraie application', () => {
       Math.abs(search.y + search.height / 2 - (button.y + button.height / 2)),
     ).toBeLessThanOrEqual(2)
   })
+
+  test('écran large 1280 px : après enregistrement gérante, le nom et les 5 actions tiennent dans la carte sans écrasement', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 720 })
+    await signIn(page, 'MANAGER')
+    await page.goto('/patients/nouveau')
+    await fillIdentity(page, {
+      lastName: 'MEEWOMBE ESSEMBE',
+      firstNames: 'Claire',
+      birth: '12/05/1990',
+      phone: `+237 600 99 ${String(Date.now()).slice(-4, -2)} ${String(Date.now()).slice(-2)}`,
+    })
+    await page.getByRole('button', { name: 'Enregistrer le patient' }).click()
+    await expect(page).toHaveURL(/\/patients\/[0-9A-HJKMNP-TV-Z]{26}$/)
+    await expect(page.getByText(/Patient enregistré : dossier/)).toBeVisible()
+
+    const title = page.getByRole('heading', { level: 1 })
+    await expect(title).toContainText('MEEWOMBE ESSEMBE')
+    const card = title.locator('xpath=ancestor::div[contains(@class, "card")][1]')
+    const cardBox = await card.boundingBox()
+    const titleBox = await title.boundingBox()
+    expect(cardBox).not.toBeNull()
+    expect(titleBox).not.toBeNull()
+    expect(titleBox!.width).toBeGreaterThanOrEqual(250)
+    expect(titleBox!.height).toBeLessThanOrEqual(90)
+
+    for (const label of [
+      'Enregistrer une arrivée',
+      'Prendre un rendez-vous',
+      'Nouveau devis',
+      'Créer une facture',
+      'Modifier',
+    ]) {
+      const action = card.getByRole('link', { name: label })
+      await expect(action).toBeVisible()
+      const actionBox = await action.boundingBox()
+      expect(actionBox).not.toBeNull()
+      expect(actionBox!.x + actionBox!.width).toBeLessThanOrEqual(cardBox!.x + cardBox!.width + 1)
+    }
+    expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0)
+  })
 })
