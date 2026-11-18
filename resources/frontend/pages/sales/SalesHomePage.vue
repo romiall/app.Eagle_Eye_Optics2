@@ -93,6 +93,12 @@ const entries = computed<Entry[]>(() =>
       text: 'Disponibilités et stock initial (gérante).',
       visible: moduleOpenOnScreen('stock') && canOnScreen('stock.read'),
     },
+    {
+      name: 'workshop',
+      label: 'Atelier optique',
+      text: 'Suivi des montages de lunettes confiés au laboratoire optique après facturation.',
+      visible: moduleOpenOnScreen('workshop') && canOnScreen('workshop.manage'),
+    },
   ].filter((entry) => entry.visible),
 )
 </script>

@@ -121,13 +121,13 @@ const ages = computed<CountRow[]>(() =>
           label="Rendez-vous programmés"
           :value="report.appointments"
           icon="calendar"
-          unavailable-text="Non disponible dans cette version (agenda)"
+          unavailable-text="Consultable dans le module Agenda"
         />
         <StatTile
           label="Patients à revoir"
           :value="report.follow_ups_due"
           icon="history"
-          unavailable-text="Non disponible dans cette version (agenda)"
+          unavailable-text="Consultable dans Patients à rappeler"
         />
       </dl>
 

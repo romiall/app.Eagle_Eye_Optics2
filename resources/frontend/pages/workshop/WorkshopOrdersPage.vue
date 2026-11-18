@@ -5,9 +5,11 @@
  * financier n'apparaît ici.
  */
 import { computed, ref } from 'vue'
+import { RouterLink, useRoute } from 'vue-router'
 
 import { clinicTimeZone, formatInstantFr } from '@/app/clinicTime'
 import { listWorkshopOrders } from '@/app/services/workshop'
+import { canOnScreen, moduleOpenOnScreen } from '@/app/session'
 import StateMessage from '@/components/feedback/StateMessage.vue'
 import FreshnessNote from '@/components/feedback/FreshnessNote.vue'
 import CheckboxField from '@/components/form/CheckboxField.vue'
@@ -22,6 +24,7 @@ import PaginationControls from '@/components/ui/PaginationControls.vue'
 import { formatQuantity } from '@/documents/engine/format'
 import type { WorkshopOrdersStatus } from '@/domain/contracts/generated'
 import { patientDisplayName } from '@/domain/patients/identity'
+import { isUlid } from '@/domain/values/ulid'
 import { WORKSHOP_STATUS_LABELS } from '@/domain/workshop/orders'
 import { takeSalesFlash } from '@/pages/sales/flash'
 import SalesReadMessage from '@/pages/sales/SalesReadMessage.vue'
@@ -29,23 +32,34 @@ import { useServerRead } from '@/pages/today/useServerRead'
 
 import { WORKSHOP_STATUS_TONES } from './presentation'
 
+const route = useRoute()
 const timeZone = clinicTimeZone()
 const notice = ref<string | null>(takeSalesFlash())
 const statusFilter = ref<WorkshopOrdersStatus | null>(null)
 const overdueOnly = ref(false)
+const patientFilter = ref<string | null>(
+  typeof route.query['patient'] === 'string' && isUlid(route.query['patient'])
+    ? route.query['patient']
+    : null,
+)
 const page = ref(1)
+const canOpenPatient = computed(() => canOnScreen('patient.read') && moduleOpenOnScreen('patients'))
+const canOpenInvoice = computed(() => canOnScreen('invoice.read') && moduleOpenOnScreen('sales'))
 
 const STATUS_OPTIONS: readonly { value: WorkshopOrdersStatus; label: string }[] = (
   Object.entries(WORKSHOP_STATUS_LABELS) as [WorkshopOrdersStatus, string][]
 ).map(([value, label]) => ({ value, label }))
 
-const hasActiveFilters = computed(() => statusFilter.value !== null || overdueOnly.value)
+const hasActiveFilters = computed(
+  () => statusFilter.value !== null || overdueOnly.value || patientFilter.value !== null,
+)
 
 const read = useServerRead(
   () =>
     listWorkshopOrders({
       status: statusFilter.value,
       overdue: overdueOnly.value,
+      patientId: patientFilter.value,
       page: page.value,
     }),
   { isEmpty: (result) => result.data.length === 0 },
@@ -72,6 +86,7 @@ function updateOverdue(checked: boolean): void {
 function resetFilters(): void {
   statusFilter.value = null
   overdueOnly.value = false
+  patientFilter.value = null
   page.value = 1
   void read.reload()
 }
@@ -104,6 +119,19 @@ function reload(): void {
 
     <StateMessage v-if="notice" state="success" title="Commande enregistrée">
       {{ notice }}
+    </StateMessage>
+
+    <StateMessage state="empty" title="À quoi sert l’atelier optique ?">
+      L’atelier optique permet de suivre une paire de lunettes sur mesure étape par étape après la
+      facturation : envoi des mesures anonymisées au laboratoire verrier, réception des verres,
+      montage sur monture, contrôle qualité, puis disponibilité pour remise au client.
+    </StateMessage>
+
+    <StateMessage v-if="patientFilter" state="empty" title="Filtré sur un dossier patient">
+      Seules les commandes de ce patient s’affichent ici.
+      <template #action>
+        <AppButton variant="secondary" @click="resetFilters"> Voir toutes les commandes </AppButton>
+      </template>
     </StateMessage>
 
     <SectionCard title="Filtrer les commandes" title-id="titre-filtres-atelier">
@@ -190,16 +218,30 @@ function reload(): void {
               </div>
 
               <p class="text-base text-ink">
-                <strong>{{
+                <RouterLink
+                  v-if="canOpenPatient"
+                  :to="{ name: 'patient', params: { id: order.patient.id } }"
+                  class="font-semibold text-primary underline underline-offset-4 hover:decoration-gold"
+                  >{{
+                    patientDisplayName(order.patient.last_name, order.patient.first_names)
+                  }}</RouterLink
+                >
+                <strong v-else>{{
                   patientDisplayName(order.patient.last_name, order.patient.first_names)
                 }}</strong>
                 <span class="text-muted"> · Dossier {{ order.patient.record_number }}</span>
               </p>
 
               <p class="text-sm text-muted">
-                Facture {{ order.invoice_number }} · {{ order.invoice_line_description }} ({{
-                  formatQuantity(order.quantity)
-                }}) · Ordonnance v{{ order.prescription_version_no }}
+                <RouterLink
+                  v-if="canOpenInvoice"
+                  :to="{ name: 'facture', params: { id: order.invoice_id } }"
+                  class="font-semibold text-primary underline underline-offset-4 hover:decoration-gold"
+                  >Facture {{ order.invoice_number }}</RouterLink
+                >
+                <template v-else>Facture {{ order.invoice_number }}</template>
+                · {{ order.invoice_line_description }} ({{ formatQuantity(order.quantity) }}) ·
+                Ordonnance v{{ order.prescription_version_no }}
               </p>
 
               <p class="text-sm text-muted">

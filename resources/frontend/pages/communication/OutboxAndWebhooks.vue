@@ -214,6 +214,12 @@ async function triggerGlobalReconcile(): Promise<void> {
       </template>
     </PageHeader>
 
+    <StateMessage state="empty" title="À quoi sert cet écran ?">
+      Ce journal technique suit les échanges automatiques avec les services externes (Google Agenda,
+      Kommo, SMS, WhatsApp). Au quotidien, l’équipe du cabinet n’a rien à y faire ; en cas de retard
+      d’envoi, la gérante peut cliquer sur « Lancer le rattrapage global ».
+    </StateMessage>
+
     <StateMessage v-if="reconcileResult" state="success" title="Rattrapage global terminé">
       {{ reconcileResult.outbox_processed }} événement(s) outbox traité(s) ·
       {{ reconcileResult.webhooks_processed }} webhook(s) traité(s) ·

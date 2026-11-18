@@ -607,7 +607,7 @@ OPERATIONS_TABLE = [
        description='Créneau revérifié SOUS verrou (horaires, exceptions, indisponibilités, autres rendez-vous) : un créneau concurrent est refusé (409 SLOT_UNAVAILABLE). En ligne : confirmé à la réponse du serveur seulement.'),
     op('get', '/v1/appointments', 'ListAppointments', 'Rendez-vous d\'une période', 'Agenda et suivi',
        permission=['agenda.read'], response=SCHEDULING + 'AppointmentList', implemented=True, task='S01', errors=(422,),
-       params=(('query', 'from', 'Date civile de début (fuseau du cabinet).'), ('query', 'to', 'Date civile de fin (31 jours au plus).'),
+       params=(('query', 'from', 'Date civile de début (fuseau du cabinet).'), ('query', 'to', 'Date civile de fin (45 jours au plus).'),
                ('query', 'resource_id', 'Filtre facultatif par ressource.'), ('query', 'patient_id', 'Filtre facultatif par patient.'))),
     op('post', '/v1/appointments/{id}/reschedule', 'RescheduleAppointment', 'Déplacer un rendez-vous (réservation concurrente contrôlée)', 'Agenda et suivi',
        permission=['agenda.write'], request=REQUESTS + 'RescheduleAppointmentRequest', response=SCHEDULING + 'AppointmentResponse',

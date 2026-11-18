@@ -264,10 +264,14 @@ const CHANGE_TONES: Readonly<Record<ChangeKind, ChipTone>> = {
                 {{ formatInstantFr(revision.recorded_at) }}
               </p>
               <p class="break-words">Motif : {{ revision.reason }}</p>
-              <p class="mt-auto border-t border-line pt-2 text-sm text-muted">
-                Empreinte SHA-256 :
-                <span class="tabular-nums">{{ shortHash(revision.sha256) }}…</span>
-              </p>
+              <details class="mt-auto border-t border-line pt-2 text-sm text-muted">
+                <summary class="cursor-pointer font-medium hover:text-ink">
+                  Preuve technique d’intégrité
+                </summary>
+                <p class="mt-1 tabular-nums">
+                  Empreinte SHA-256 : {{ shortHash(revision.sha256) }}…
+                </p>
+              </details>
             </li>
           </ol>
         </div>

@@ -532,7 +532,7 @@ onMounted(() => {
             v-if="canOnScreen('finance.global.read')"
             :to="{ name: 'finance' }"
             variant="secondary"
-            >Finance et export Q13</LinkButton
+            >Finance et export comptable</LinkButton
           >
           <LinkButton :to="{ name: 'caisse-du-jour' }" variant="secondary"
             >Voir la caisse du jour</LinkButton

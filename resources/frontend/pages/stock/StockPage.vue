@@ -15,9 +15,8 @@ import { computed, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 
 import { clinicTimeZone } from '@/app/clinicTime'
-import { getStockAvailability, listStockLocations, searchCatalog } from '@/app/services/billing'
+import { getStockAvailability, listStockLocations } from '@/app/services/billing'
 import type { MutationOutcome } from '@/app/services/mutations'
-import type { ReadOutcome } from '@/app/services/reads'
 import { useMutation } from '@/app/services/useMutation'
 import { canOnScreen, revalidateSession } from '@/app/session'
 import { useUnsavedChangesGuard } from '@/app/unsavedChanges'
@@ -54,11 +53,9 @@ import { currentInstant } from '@/domain/patients/visits'
 import { newUlid } from '@/domain/values/ulid'
 import { quantityLabel } from '@/pages/sales/format'
 import { salesFailureView } from '@/pages/sales/failureView'
+import { loadAllCatalogItems } from '@/pages/purchasing/useCatalogItems'
 import SalesReadMessage from '@/pages/sales/SalesReadMessage.vue'
 import { useServerRead } from '@/pages/today/useServerRead'
-
-/** Pages du catalogue lues pour nommer les articles (25 par page) : au-delà, l'identifiant court. */
-const CATALOG_PAGES = 4
 
 const timeZone = clinicTimeZone()
 const page = ref(1)
@@ -69,19 +66,7 @@ const read = useServerRead<StockAvailabilityPage>(
   },
 )
 
-async function loadStockedItems(): Promise<ReadOutcome<CatalogItem[]>> {
-  const items: CatalogItem[] = []
-  let last = 1
-  let freshness: ReadOutcome<CatalogItem[]>['freshness'] = { serverAsOf: null, complete: false }
-  for (let current = 1; current <= Math.min(last, CATALOG_PAGES); current += 1) {
-    const result = await searchCatalog('', current)
-    items.push(...result.data.data)
-    last = result.data.meta.last_page
-    freshness = { serverAsOf: result.freshness.serverAsOf, complete: last <= CATALOG_PAGES }
-  }
-  return { data: items, freshness, live: true }
-}
-const catalog = useServerRead<CatalogItem[]>(loadStockedItems)
+const catalog = useServerRead<CatalogItem[]>(() => loadAllCatalogItems())
 
 const items = computed(() => new Map((catalog.data.value ?? []).map((item) => [item.id, item])))
 const stockedItems = computed(() =>
@@ -159,18 +144,6 @@ function setRef(key: string, element: unknown): void {
 const csvProblems = ref<ImportProblem[]>([])
 const csvReading = ref(false)
 
-/** Tous les articles du catalogue (pages successives) : chaque référence du fichier y est retrouvée. */
-async function allCatalogItems(): Promise<CatalogItem[]> {
-  const all: CatalogItem[] = []
-  let last = 1
-  for (let current = 1; current <= last; current += 1) {
-    const result = await searchCatalog('', current)
-    all.push(...result.data.data)
-    last = result.data.meta.last_page
-  }
-  return all
-}
-
 function downloadOpeningTemplate(): void {
   const blob = new Blob([`\u{FEFF}${openingTemplateCsv()}`], { type: 'text/csv;charset=utf-8' })
   const url = URL.createObjectURL(blob)
@@ -191,7 +164,7 @@ async function fillFromCsv(event: Event): Promise<void> {
   try {
     const parsed = readOpeningCsv(
       await file.text(),
-      await allCatalogItems(),
+      (await loadAllCatalogItems(Number.POSITIVE_INFINITY)).data,
       locationRead.data.value ?? [],
     )
     csvProblems.value = parsed.problems
@@ -475,7 +448,7 @@ async function onPasswordConfirmed(): Promise<void> {
       <p class="text-base text-muted">
         Comptage validé par la gérante : un mouvement d’ouverture par ligne. Le stock initial d’un
         article dans un emplacement ne s’enregistre qu’une fois (ensuite : réception, inventaire ou
-        ajustement approuvé). Données de démonstration FICTIVES seulement.
+        ajustement approuvé).
       </p>
 
       <SalesReadMessage
@@ -494,8 +467,8 @@ async function onPasswordConfirmed(): Promise<void> {
         state="empty"
         title="Aucun emplacement de stock"
       >
-        Le cabinet n’a aucun emplacement de stock actif : l’exploitant le crée à la mise en service
-        (commande « eeo:sales:bootstrap »). Aucun emplacement n’est deviné ici.
+        Le cabinet n’a aucun emplacement de stock actif : demandez à l’administrateur système de
+        finaliser l’initialisation des emplacements avant le premier comptage.
       </StateMessage>
 
       <form

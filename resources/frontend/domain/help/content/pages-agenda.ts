@@ -11,7 +11,7 @@ export const PAGES_AGENDA: readonly PageHelp[] = [
     module: 'agenda',
     anyPermission: ['agenda.read'],
     purpose:
-      'Voyez les rendez-vous du cabinet, un jour ou une semaine à la fois, avec leur statut. C’est ici que vous enregistrez l’arrivée d’un patient attendu, déplacez ou annulez un rendez-vous, et notez une absence.',
+      'Voyez les rendez-vous du cabinet par jour, semaine ou mois, avec leur statut. C’est ici que vous prenez un rendez-vous en un clic depuis le calendrier, enregistrez l’arrivée d’un patient attendu, déplacez ou annulez un rendez-vous, et notez une absence.',
     actions: [
       {
         label: 'Nouveau rendez-vous',
@@ -22,12 +22,12 @@ export const PAGES_AGENDA: readonly PageHelp[] = [
       {
         label: 'Jour',
         effect:
-          'Affiche un seul jour. « Semaine » affiche à la place les sept jours, du lundi au dimanche, qui contiennent le jour choisi.',
+          'Affiche un seul jour ; « Semaine » montre sept jours et « Mois » la grille du calendrier mensuel.',
       },
       {
         label: 'Jour suivant',
         effect:
-          'Avance d’un jour ; « Jour précédent » recule. En vue « Semaine », ils avancent ou reculent de sept jours.',
+          'Avance d’un jour, d’une semaine (« Semaine suivante ») ou d’un mois (« Mois suivant ») selon la vue choisie.',
       },
       {
         label: 'Afficher',
@@ -70,14 +70,14 @@ export const PAGES_AGENDA: readonly PageHelp[] = [
     tasks: [
       {
         id: 'consulter-un-jour-ou-une-semaine',
-        title: 'Consulter l’agenda d’un jour ou d’une semaine',
+        title: 'Consulter l’agenda par jour, semaine ou mois',
         steps: [
-          'Cliquez sur le bouton « Jour » pour voir une seule journée, ou sur « Semaine » pour voir sept jours, du lundi au dimanche.',
-          'Avancez avec « Jour suivant », reculez avec « Jour précédent » ; en vue « Semaine », ils s’appellent « Semaine suivante » et « Semaine précédente ».',
-          'Cliquez sur « Aujourd’hui » pour revenir au jour en cours.',
+          'Cliquez sur « Jour » pour une journée, « Semaine » pour sept jours, ou « Mois » pour la grille du calendrier.',
+          'Avancez ou reculez avec « Jour suivant », « Semaine suivante » ou « Mois suivant », et revenez vite avec « Aujourd’hui ».',
+          'En vue « Mois », cliquez sur un jour du calendrier pour voir ses rendez-vous en dessous, ou sur « Prendre RDV ce jour ».',
           'Pour une date précise, saisissez-la dans le champ « Jour » (JJ/MM/AAAA ou 8 chiffres, par exemple 26102026), puis cliquez sur « Afficher ».',
           'Pour ne voir qu’un professionnel ou une salle, choisissez-le dans « Ressource », puis cliquez sur « Afficher ».',
-          'Lisez chaque carte : l’heure, le patient et son numéro de dossier, la prestation, la ressource et le statut écrit en toutes lettres.',
+          'Sur une carte, cliquez sur « Fiche du patient » pour ouvrir le dossier, ou sur « Voir la file du jour » s’il est « Arrivé ».',
         ],
         result:
           'Les rendez-vous de chaque jour sont classés du plus tôt au plus tard. Un jour vide affiche « Aucun rendez-vous ce jour-là. »',
@@ -145,7 +145,7 @@ export const PAGES_AGENDA: readonly PageHelp[] = [
       'La caissière consulte l’agenda sans pouvoir le modifier : elle ne voit ni « Nouveau rendez-vous », ni « Déplacer », ni « Annuler », ni « Absent ».',
       'Le chiffre affiché à côté de chaque jour compte aussi les rendez-vous annulés ; la tuile « Rendez-vous » de l’accueil, elle, ne les compte pas.',
       'Sur téléphone ou tablette, les boutons qui reculent et avancent n’affichent qu’une flèche : celle de gauche recule, celle de droite avance.',
-      'Depuis l’accueil, le raccourci « Rendez-vous » ouvre « Nouveau rendez-vous » ; la tuile « Rendez-vous » mène à cet écran.',
+      'En vue « Mois », cliquez sur « Prendre RDV ce jour » ou sur le bouton + d’une case pour ouvrir la prise de rendez-vous à cette date.',
     ],
     problems: [
       {
@@ -215,6 +215,22 @@ export const PAGES_AGENDA: readonly PageHelp[] = [
         label: 'Autre rendez-vous',
         effect:
           'Après la confirmation, garde le patient, la prestation, la ressource et le jour pour choisir un autre créneau.',
+      },
+      {
+        label: 'Créer une fiche patient',
+        effect: 'Ouvre la création du dossier si le patient n’a pas encore de fiche.',
+        anyPermission: ['patient.create'],
+      },
+      {
+        label: 'Enregistrer l’arrivée',
+        effect:
+          'Après confirmation pour aujourd’hui, enregistre tout de suite l’arrivée du patient dans la file.',
+        anyPermission: ['visit.register'],
+      },
+      {
+        label: 'Ouvrir la fiche du patient',
+        effect: 'Après confirmation, ouvre directement le dossier du patient.',
+        anyPermission: ['patient.read'],
       },
     ],
     tasks: [
@@ -287,7 +303,7 @@ export const PAGES_AGENDA: readonly PageHelp[] = [
       },
     ],
     tips: [
-      'Depuis l’accueil, le raccourci « Rendez-vous » ouvre directement cet écran.',
+      'Depuis le calendrier ou la fiche du patient, le « Jour » ou le patient est déjà rempli ; une ressource unique est choisie d’office.',
       'Depuis « Patients à rappeler » ou depuis le panneau « Contrôle recommandé » d’un examen, le patient est déjà choisi.',
       'Quand une étape est remplie, son numéro se change en coche.',
       'Le champ « Jour » accepte JJ/MM/AAAA ou 8 chiffres, par exemple 26102026.',

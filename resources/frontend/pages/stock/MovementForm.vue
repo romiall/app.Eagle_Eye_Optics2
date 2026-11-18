@@ -14,8 +14,7 @@
  */
 import { computed, ref, watch } from 'vue'
 
-import { getStockAvailability, listStockLocations, searchCatalog } from '@/app/services/billing'
-import type { ReadOutcome } from '@/app/services/reads'
+import { getStockAvailability, listStockLocations } from '@/app/services/billing'
 import { canOnScreen, moduleOpenOnScreen } from '@/app/session'
 import { useUnsavedChangesGuard } from '@/app/unsavedChanges'
 import ApprovalRequestDialog from '@/components/approvals/ApprovalRequestDialog.vue'
@@ -47,27 +46,12 @@ import { centralAvailable } from '@/domain/inventory/stock'
 import { currentInstant } from '@/domain/patients/visits'
 import { Quantity } from '@/domain/values/decimal'
 import { newUlid } from '@/domain/values/ulid'
+import { loadAllCatalogItems } from '@/pages/purchasing/useCatalogItems'
 import { useServerRead } from '@/pages/today/useServerRead'
 
 import { useStockCommand } from './useStockCommand'
 
-/** Pages du catalogue lues pour choisir l'article (25 par page). */
-const CATALOG_PAGES = 4
-
-async function loadStockedItems(): Promise<ReadOutcome<CatalogItem[]>> {
-  const items: CatalogItem[] = []
-  let last = 1
-  let freshness: ReadOutcome<CatalogItem[]>['freshness'] = { serverAsOf: null, complete: false }
-  for (let current = 1; current <= Math.min(last, CATALOG_PAGES); current += 1) {
-    const result = await searchCatalog('', current)
-    items.push(...result.data.data)
-    last = result.data.meta.last_page
-    freshness = { serverAsOf: result.freshness.serverAsOf, complete: last <= CATALOG_PAGES }
-  }
-  return { data: items, freshness, live: true }
-}
-
-const catalog = useServerRead<CatalogItem[]>(loadStockedItems)
+const catalog = useServerRead<CatalogItem[]>(() => loadAllCatalogItems())
 const locationRead = useServerRead<StockLocation[]>(listStockLocations)
 
 const itemId = ref<string | null>(null)

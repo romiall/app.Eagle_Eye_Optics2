@@ -13,7 +13,7 @@ import type { RenderedDocument } from '@/app/services/documents'
 import type { MutationOutcome } from '@/app/services/mutations'
 import { getWorkshopOrder, workshopOrderAdvancePath } from '@/app/services/workshop'
 import { workshopOrderDocument } from '@/app/services/workshopDocuments'
-import { revalidateSession } from '@/app/session'
+import { canOnScreen, moduleOpenOnScreen, revalidateSession } from '@/app/session'
 import DocumentPreview from '@/components/documents/DocumentPreview.vue'
 import ConfirmDialog from '@/components/feedback/ConfirmDialog.vue'
 import ErrorSummary, { type FieldErrorItem } from '@/components/feedback/ErrorSummary.vue'
@@ -151,6 +151,22 @@ const REWORK_OPTIONS = [
 const nextAction = computed(() =>
   order.value === null ? null : nextForwardAction(order.value.status),
 )
+const prescriptionTarget = computed(() => {
+  const current = order.value
+  if (current === null) return null
+  if (current.prescription.origin === 'EXTERNAL') {
+    return canOnScreen('clinical.read') && moduleOpenOnScreen('consultations')
+      ? { name: 'patient-prescriptions' as const, params: { id: current.patient_id } }
+      : null
+  }
+  return canOnScreen('patient.read') && moduleOpenOnScreen('patients')
+    ? {
+        name: 'patient-activite' as const,
+        params: { id: current.patient_id },
+        query: { section: 'PRESCRIPTIONS' },
+      }
+    : null
+})
 
 function reload(): void {
   void read.reload()
@@ -526,6 +542,11 @@ async function retryAction(): Promise<void> {
         :description="`Issus de la version v${order.prescription_version_no} de l’ordonnance (validée le ${formatInstantFr(order.prescription.validated_at)}).`"
         flush
       >
+        <template v-if="prescriptionTarget" #actions>
+          <LinkButton :to="prescriptionTarget" variant="secondary">
+            Voir les ordonnances du patient
+          </LinkButton>
+        </template>
         <div class="overflow-x-auto px-4 py-3 sm:px-6">
           <table class="min-w-full border-collapse text-sm">
             <thead>

@@ -15,6 +15,7 @@ import PatientRecordHeader from '@/components/patients/PatientRecordHeader.vue'
 import type { Patient } from '@/domain/contracts/generated'
 
 import PatientActivityList from './PatientActivityList.vue'
+import PatientHeaderActions from './PatientHeaderActions.vue'
 import PatientRecordTabs from './PatientRecordTabs.vue'
 import ReadStateMessage from './ReadStateMessage.vue'
 import { usePatientRead } from './usePatientRead'
@@ -36,7 +37,11 @@ const patient = computed(() => (read.data.value?.id === id.value ? read.data.val
 <template>
   <section aria-labelledby="titre-fiche" class="page-stack max-w-5xl">
     <template v-if="patient">
-      <PatientRecordHeader :patient="patient" title-id="titre-fiche" :back="BACK" />
+      <PatientRecordHeader :patient="patient" title-id="titre-fiche" :back="BACK">
+        <template #actions>
+          <PatientHeaderActions :patient="patient" />
+        </template>
+      </PatientRecordHeader>
       <div class="space-y-6">
         <PatientRecordTabs :patient-id="patient.id" current="activite" />
         <PatientActivityList :key="patient.id" :patient-id="patient.id" />

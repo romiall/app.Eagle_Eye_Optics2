@@ -16,9 +16,10 @@
  * téléphone.
  */
 import { computed } from 'vue'
+import { RouterLink } from 'vue-router'
 
 import { formatInstantFr } from '@/app/clinicTime'
-import { session } from '@/app/session'
+import { canOnScreen, moduleOpenOnScreen, session } from '@/app/session'
 import PatientIdentityHeader from '@/components/patients/PatientIdentityHeader.vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
 import type { Consultation } from '@/domain/contracts/generated'
@@ -32,6 +33,8 @@ const patient = computed(() => ({
   archived: false,
   merged_into_patient_id: null,
 }))
+
+const canOpenPatient = computed(() => canOnScreen('patient.read') && moduleOpenOnScreen('patients'))
 
 const clinician = computed(() =>
   session.account !== null && session.account.id === props.consultation.clinician_id
@@ -85,6 +88,13 @@ const profession = computed(() => {
                 <strong class="font-semibold text-ink">{{ clinician }}</strong></span
               >
             </span>
+            <RouterLink
+              v-if="canOpenPatient"
+              :to="{ name: 'patient', params: { id: props.consultation.patient.id } }"
+              class="font-semibold text-primary underline underline-offset-4 hover:decoration-gold"
+            >
+              Ouvrir le dossier patient
+            </RouterLink>
           </p>
         </div>
       </div>

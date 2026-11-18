@@ -312,6 +312,92 @@ describe('agenda', () => {
     })
     unmount()
   })
+
+  it('en vue Mois, affiche la grille calendrier et permet le 1-clic vers /agenda/nouveau?jour= et la fiche patient', async () => {
+    const api = stubSettingsApi({
+      permissions: [...RECEPTION, 'clinical.read'],
+      handlers: {
+        'GET /api/v1/agenda/configuration': () => json(200, { data: configuration() }),
+        'GET /api/v1/appointments': () => json(200, { data: [appointment({ status: 'ARRIVED' })] }),
+      },
+    })
+    const { root, unmount } = await openApp('/agenda')
+    await settle()
+
+    // Carte Arrivé : liens vers fiche patient, file du jour et Consultations.
+    expect(root.querySelector(`a[href="/patients/${PATIENT}"]`)?.textContent).toContain(
+      'PATIENT FICTIF',
+    )
+    expect(root.querySelector(`a[href="/patients/${PATIENT}"]`)).not.toBeNull()
+    expect(
+      [...root.querySelectorAll('a')].some(
+        (anchor) =>
+          anchor.getAttribute('href') === `/patients/${PATIENT}` &&
+          anchor.textContent?.includes('Fiche du patient'),
+      ),
+    ).toBe(true)
+    expect(
+      [...root.querySelectorAll('a')].some(
+        (anchor) =>
+          anchor.getAttribute('href') === '/aujourdhui' &&
+          anchor.textContent?.includes('Voir la file du jour'),
+      ),
+    ).toBe(true)
+    expect(
+      [...root.querySelectorAll('a')].some(
+        (anchor) =>
+          anchor.getAttribute('href') === '/consultations' &&
+          anchor.textContent?.includes('Consultations'),
+      ),
+    ).toBe(true)
+
+    await click(buttonByName(root, 'Mois'))
+    expect(textOf(root)).toContain('octobre 2026')
+    const monthRead = callsTo(api, 'GET', /\/appointments$/).at(-1)
+    expect(monthRead?.query.get('from')).toBe('2026-09-28')
+    expect(monthRead?.query.get('to')).toBe('2026-11-01')
+
+    // Case du 28 octobre : clic sur le jour puis bouton 1-clic « Prendre RDV ce jour ».
+    expect(root.querySelector('a[href="/agenda/nouveau?jour=2026-10-28"]')).not.toBeNull()
+    await click(buttonByLabel(root, /^Voir le .*28 octobre/))
+    expect(
+      [...root.querySelectorAll('a')].some(
+        (anchor) =>
+          anchor.getAttribute('href') === '/agenda/nouveau?jour=2026-10-28' &&
+          anchor.textContent?.includes('Prendre RDV ce jour'),
+      ),
+    ).toBe(true)
+    unmount()
+    resetEverything()
+
+    // /agenda/nouveau?jour=2026-10-30 : présélectionne la ressource et la prestation uniques et charge les créneaux du 30/10.
+    const prefilledApi = stubSettingsApi({
+      permissions: [...RECEPTION, 'patient.create'],
+      handlers: {
+        'GET /api/v1/agenda/configuration': () => json(200, { data: configuration() }),
+        'GET /api/v1/agenda/slots': () =>
+          json(200, {
+            data: {
+              date: '2026-10-30',
+              resource_id: RESOURCE,
+              service_id: SERVICE,
+              duration_minutes: 30,
+              slots: [],
+            },
+          }),
+      },
+    })
+    const prefilled = await openApp('/agenda/nouveau?jour=2026-10-30')
+    await settle()
+    const slotsCall = callsTo(prefilledApi, 'GET', /\/agenda\/slots$/).at(-1)
+    expect(slotsCall?.query.get('date')).toBe('2026-10-30')
+    expect(slotsCall?.query.get('resource_id')).toBe(RESOURCE)
+    expect(slotsCall?.query.get('service_id')).toBe(SERVICE)
+    expect(prefilled.root.querySelector('a[href="/patients/nouveau"]')?.textContent).toContain(
+      'Créer une fiche patient',
+    )
+    prefilled.unmount()
+  })
 })
 
 describe('patients à rappeler', () => {

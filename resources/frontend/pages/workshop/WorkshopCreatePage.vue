@@ -5,12 +5,12 @@
  * souhaité, à une monture du catalogue. Le bon laboratoire reste anonymisé.
  */
 import { computed, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 
 import { clinicTimeZone, formatInstantFr } from '@/app/clinicTime'
 import type { MutationOutcome } from '@/app/services/mutations'
 import { getWorkshopEligibleLines } from '@/app/services/workshop'
-import { revalidateSession } from '@/app/session'
+import { canOnScreen, moduleOpenOnScreen, revalidateSession } from '@/app/session'
 import { useUnsavedChangesGuard } from '@/app/unsavedChanges'
 import MeasureField from '@/components/clinical/MeasureField.vue'
 import ErrorSummary, { type FieldErrorItem } from '@/components/feedback/ErrorSummary.vue'
@@ -33,6 +33,7 @@ import type {
   WorkshopOrderResponse,
 } from '@/domain/contracts/generated'
 import { patientDisplayName } from '@/domain/patients/identity'
+import { isUlid } from '@/domain/values/ulid'
 import {
   prescriptionLabel,
   prescriptionLensTypeDefault,
@@ -46,17 +47,40 @@ import { useServerRead } from '@/pages/today/useServerRead'
 
 import { prescriptionEyeDisplayRows } from './presentation'
 
+const route = useRoute()
 const router = useRouter()
 const timeZone = clinicTimeZone()
 const command = useStockCommand('')
 const { mutation } = command
 const saving = computed(() => mutation.state.value === 'saving')
 
-const searchQuery = ref('')
-const appliedQuery = ref('')
+const initialSearch =
+  typeof route.query['facture'] === 'string'
+    ? route.query['facture'].trim()
+    : typeof route.query['q'] === 'string'
+      ? route.query['q'].trim()
+      : ''
+const initialPatient =
+  typeof route.query['patient'] === 'string' && isUlid(route.query['patient'])
+    ? route.query['patient']
+    : null
+
+const searchQuery = ref(initialSearch)
+const appliedQuery = ref(initialSearch)
+const patientFilter = ref<string | null>(initialPatient)
+const hasInitialFilter = initialSearch !== '' || initialPatient !== null
+const autoSelectedOnce = ref(false)
+const canOpenPatientPrescriptions = computed(
+  () => canOnScreen('clinical.read') && moduleOpenOnScreen('consultations'),
+)
+const canOpenSuppliers = computed(() => canOnScreen('stock.receive') && moduleOpenOnScreen('stock'))
 
 const eligibleRead = useServerRead(
-  () => getWorkshopEligibleLines({ q: appliedQuery.value || null }),
+  () =>
+    getWorkshopEligibleLines({
+      q: appliedQuery.value || null,
+      patientId: patientFilter.value,
+    }),
   { isEmpty: () => false },
 )
 
@@ -207,6 +231,24 @@ watch(
   { immediate: true },
 )
 
+watch(
+  () => eligible.value?.lines,
+  (availableLines) => {
+    if (
+      !hasInitialFilter ||
+      autoSelectedOnce.value ||
+      selectedLineId.value !== null ||
+      availableLines === undefined ||
+      availableLines.length !== 1
+    ) {
+      return
+    }
+    autoSelectedOnce.value = true
+    selectedLineId.value = availableLines[0]!.invoice_line_id
+  },
+  { immediate: true },
+)
+
 function clearError(field: string): void {
   if (errors.value[field] === undefined) return
   const next = { ...errors.value }
@@ -222,6 +264,7 @@ function runSearch(): void {
 function resetSearch(): void {
   searchQuery.value = ''
   appliedQuery.value = ''
+  patientFilter.value = null
   void eligibleRead.reload()
 }
 
@@ -340,7 +383,11 @@ function reload(): void {
         </div>
         <div class="flex flex-wrap gap-2">
           <AppButton type="submit" variant="secondary">Rechercher</AppButton>
-          <AppButton v-if="appliedQuery !== ''" variant="ghost" @click="resetSearch">
+          <AppButton
+            v-if="appliedQuery !== '' || patientFilter !== null"
+            variant="ghost"
+            @click="resetSearch"
+          >
             Effacer
           </AppButton>
         </div>
@@ -434,6 +481,14 @@ function reload(): void {
         >
           Validez d’abord une prescription optique (interne ou externe) dans le dossier patient
           avant de commander les verres.
+          <template v-if="canOpenPatientPrescriptions && selectedLine" #action>
+            <LinkButton
+              :to="{ name: 'patient-prescriptions', params: { id: selectedLine.patient.id } }"
+              variant="secondary"
+            >
+              Ouvrir les ordonnances du patient
+            </LinkButton>
+          </template>
         </StateMessage>
 
         <fieldset v-else :id="FIELD_IDS.prescription_id" tabindex="-1" class="space-y-3">
@@ -514,6 +569,11 @@ function reload(): void {
         >
           Créez ou activez d’abord un fournisseur de type laboratoire optique dans la rubrique Stock
           &rsaquo; Fournisseurs.
+          <template v-if="canOpenSuppliers" #action>
+            <LinkButton :to="{ name: 'suppliers' }" variant="secondary">
+              Ouvrir les fournisseurs
+            </LinkButton>
+          </template>
         </StateMessage>
 
         <div class="grid gap-4 sm:grid-cols-2">

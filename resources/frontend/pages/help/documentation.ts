@@ -67,6 +67,8 @@ const SCREEN_GROUP_TITLES: readonly (readonly [module: string | null, title: str
   ['reports', 'Statistiques'],
   ['settings', 'Paramètres'],
   ['offline', 'Postes hors ligne'],
+  ['workshop', 'Atelier optique'],
+  ['communication', 'Communication et site public'],
   [null, 'Accès et général'],
 ]
 

@@ -1384,6 +1384,19 @@ describe('documentation.ts : règles pures', () => {
     expect(screenGroups([])).toEqual([])
   })
 
+  it('classe l’atelier optique et la communication dans leurs groupes dédiés', () => {
+    const groups = screenGroups([
+      page('accueil', 'Accueil'),
+      page('atelier', 'Atelier optique', { module: 'workshop' }),
+      page('communication', 'Communication', { module: 'communication' }),
+    ])
+    expect(groups.map((group) => group.title)).toEqual([
+      'Atelier optique',
+      'Communication et site public',
+      'Accès et général',
+    ])
+  })
+
   it('une rubrique et sa partie ; les voisines d’une rubrique', () => {
     const found = findTopic(PARTS, 'parcours-vente')
     expect(found?.part.id).toBe('parcours')

@@ -13,7 +13,7 @@ import { clinicTimeZone } from '@/app/clinicTime'
 import type { MutationOutcome } from '@/app/services/mutations'
 import { getQuote, quotePath } from '@/app/services/quotes'
 import { useMutation } from '@/app/services/useMutation'
-import { canOnScreen, revalidateSession } from '@/app/session'
+import { canOnScreen, moduleOpenOnScreen, revalidateSession } from '@/app/session'
 import ConfirmDialog from '@/components/feedback/ConfirmDialog.vue'
 import FreshnessNote from '@/components/feedback/FreshnessNote.vue'
 import StateMessage from '@/components/feedback/StateMessage.vue'
@@ -157,7 +157,20 @@ async function retryDecision(): Promise<void> {
             · révision {{ quote.current_revision }}</template
           >
         </p>
-        <p class="text-base break-words">Pour : {{ recipientLabel(quote.recipient) }}</p>
+        <p class="text-base break-words">
+          Pour :
+          <RouterLink
+            v-if="
+              quote.recipient.kind === 'PATIENT' &&
+              canOnScreen('patient.read') &&
+              moduleOpenOnScreen('patients')
+            "
+            :to="{ name: 'patient', params: { id: quote.recipient.patient_id } }"
+            class="font-semibold text-primary underline underline-offset-4 hover:decoration-gold"
+            >{{ recipientLabel(quote.recipient) }}</RouterLink
+          >
+          <template v-else>{{ recipientLabel(quote.recipient) }}</template>
+        </p>
         <p v-if="quote.valid_until" class="text-base">
           Valable jusqu’au {{ formatDateFr(quote.valid_until) }}
         </p>

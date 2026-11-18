@@ -21,6 +21,7 @@ import StateMessage from '@/components/feedback/StateMessage.vue'
 import EmptyState from '@/components/layout/EmptyState.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
+import LinkButton from '@/components/ui/LinkButton.vue'
 import { RX_IDS } from '@/domain/clinical/prescriptions'
 import DeletePrescriptionDraftDialog from '@/pages/consultations/DeletePrescriptionDraftDialog.vue'
 import { failureView } from '@/pages/consultations/failureView'
@@ -96,11 +97,23 @@ function bindSummary(element: unknown): void {
 
 <template>
   <section aria-labelledby="titre-ordonnances-externes" class="space-y-6">
-    <div class="space-y-1">
+    <div class="space-y-2">
       <h2 id="titre-ordonnances-externes" class="section-title">Ordonnances externes</h2>
       <p class="max-w-prose text-muted">
         Ordonnances rédigées par un autre prescripteur et apportées par le patient. Les
         prescriptions faites au cabinet se trouvent dans chaque consultation.
+      </p>
+      <p>
+        <LinkButton
+          :to="{
+            name: 'patient-activite',
+            params: { id: props.patientId },
+            query: { section: 'PRESCRIPTIONS' },
+          }"
+          variant="secondary"
+        >
+          Voir les ordonnances faites au cabinet
+        </LinkButton>
       </p>
     </div>
 

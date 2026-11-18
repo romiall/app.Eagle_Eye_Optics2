@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 import { ApiError, NetworkUnavailable } from '@/app/api'
-import { formatInstantFr } from '@/app/clinicTime'
+import { clinicToday, formatInstantFr } from '@/app/clinicTime'
+import { listContactTasks } from '@/app/services/agenda'
 import {
   approveMessageTemplateVersion,
   createMessageTemplate,
@@ -21,7 +22,7 @@ import {
   updateReminderPolicy,
 } from '@/app/services/communication'
 import { searchPatients } from '@/app/services/patients'
-import { canOnScreen } from '@/app/session'
+import { canOnScreen, moduleOpenOnScreen } from '@/app/session'
 import ReadNotice from '@/components/feedback/ReadNotice.vue'
 import StateMessage from '@/components/feedback/StateMessage.vue'
 import CheckboxField from '@/components/form/CheckboxField.vue'
@@ -62,6 +63,7 @@ import {
 import type {
   CommunicationConsentsChannel,
   CommunicationConsentsPurpose,
+  ContactTask,
   MessageAttemptsStatus,
   MessageTemplate,
   MessageTemplatesChannel,
@@ -71,6 +73,7 @@ import type {
   ReminderPoliciesPurpose,
   ReminderPolicy,
 } from '@/domain/contracts/generated'
+import { patientDisplayName } from '@/domain/patients/identity'
 import { isUlid } from '@/domain/values/ulid'
 import { useServerRead } from '@/pages/today/useServerRead'
 
@@ -226,6 +229,24 @@ async function submitConsent(mode: 'grant' | 'revoke'): Promise<void> {
 const templatesRead = useServerRead(() => listMessageTemplates())
 const templates = computed(() => templatesRead.data.value ?? [])
 const approvedVersions = computed(() => listApprovedTemplateVersions(templates.value))
+const todayTasks = ref<ContactTask[]>([])
+const contactTaskOptions = computed(() =>
+  todayTasks.value.map((task) => {
+    const label = task.patient
+      ? `${patientDisplayName(task.patient.last_name, task.patient.first_names)} (${task.patient.record_number})`
+      : 'Contact'
+    return { value: task.id, label: `${label} · ${task.source_type}` }
+  }),
+)
+
+onMounted(async () => {
+  if (!canOnScreen('agenda.read') || !moduleOpenOnScreen('agenda')) return
+  try {
+    todayTasks.value = (await listContactTasks(clinicToday().toString())).data
+  } catch {
+    todayTasks.value = []
+  }
+})
 
 const templateForm = reactive<{
   code: string
@@ -1170,6 +1191,14 @@ async function reconcileAttempt(attemptId: string): Promise<void> {
             Déclencher l’envoi d’une tâche de contact
           </h3>
           <div class="form-grid">
+            <SelectField
+              v-if="contactTaskOptions.length > 0"
+              label="Choisir une tâche de contact du jour (facultatif)"
+              :model-value="sendForm.taskId || null"
+              :options="contactTaskOptions"
+              placeholder="Sélectionner un patient à rappeler…"
+              @update:model-value="(val) => (sendForm.taskId = val ?? '')"
+            />
             <TextField
               v-model="sendForm.taskId"
               label="Identifiant ULID de la tâche de contact"

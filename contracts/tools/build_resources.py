@@ -1017,7 +1017,7 @@ def scheduling_resources():
                                        'visit_id : arrivée enregistrée pour ce rendez-vous, s\'il y en a une.'),
         'AppointmentResponse': data('Appointment'),
         'AppointmentList': obj({'data': array(local('Appointment'))},
-                               description='Rendez-vous d\'une période de jours civils du cabinet (31 jours au plus), du plus tôt au plus tard.'),
+                               description='Rendez-vous d\'une période de jours civils du cabinet (45 jours au plus), du plus tôt au plus tard.'),
         'ContactAttempt': obj({'id': ulid(), 'occurred_at': instant(), 'result': enum('contact_attempts.result'),
                                'actor_name': n_text(180), 'administrative_note': n_text()}),
         'ContactTask': obj({'id': ulid(), 'patient_id': n_ulid(), 'patient': nullable(local('SchedulingPatient')),

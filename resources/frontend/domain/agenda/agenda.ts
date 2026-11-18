@@ -108,14 +108,49 @@ export const PREFERRED_CHANNELS: readonly FollowUpPlansPreferredChannel[] = [
 
 // --- Semaine et jours ------------------------------------------------------------------------------
 
+/** Mode d'affichage de l'agenda interne : jour, semaine ou calendrier mensuel. */
+export type AgendaView = 'day' | 'week' | 'month'
+
+/** Cellule d'une grille mensuelle (du lundi au dimanche). */
+export interface CalendarCell {
+  readonly day: CivilDate
+  readonly inMonth: boolean
+}
+
 /** Lundi = 0 … dimanche = 6 (le 1970-01-01 était un jeudi). */
 export function weekdayIndex(day: CivilDate): number {
   return floorMod(day.dayNumber() + 3, 7)
 }
 
-/** Jours affichés : un jour, ou la semaine du lundi au dimanche qui le contient. */
-export function shownDays(day: CivilDate, view: 'day' | 'week'): CivilDate[] {
+/** Jours complets d'une grille mensuelle (du lundi de la 1re semaine au dimanche de la dernière). */
+export function monthGridDays(day: CivilDate): CivilDate[] {
+  const first = CivilDate.of(day.year, day.month, 1)
+  const start = first.addDays(-weekdayIndex(first))
+  const last = first.addMonths(1).addDays(-1)
+  const end = last.addDays(6 - weekdayIndex(last))
+  const total = end.dayNumber() - start.dayNumber() + 1
+  return Array.from({ length: total }, (_, offset) => start.addDays(offset))
+}
+
+/** Grille mensuelle découpée en semaines complètes de 7 jours (lundi à dimanche). */
+export function monthGridWeeks(day: CivilDate): CalendarCell[][] {
+  const days = monthGridDays(day)
+  const weeks: CalendarCell[][] = []
+  for (let index = 0; index < days.length; index += 7) {
+    weeks.push(
+      days.slice(index, index + 7).map((entry) => ({
+        day: entry,
+        inMonth: entry.year === day.year && entry.month === day.month,
+      })),
+    )
+  }
+  return weeks
+}
+
+/** Jours affichés : un jour, la semaine (lundi–dimanche) ou la grille du mois qui le contient. */
+export function shownDays(day: CivilDate, view: AgendaView): CivilDate[] {
   if (view === 'day') return [day]
+  if (view === 'month') return monthGridDays(day)
   const monday = day.addDays(-weekdayIndex(day))
   return [0, 1, 2, 3, 4, 5, 6].map((offset) => monday.addDays(offset))
 }

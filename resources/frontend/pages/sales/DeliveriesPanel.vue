@@ -90,6 +90,10 @@ async function stale(): Promise<void> {
     class="space-y-4"
   >
     <h2 id="titre-remises" class="text-lg font-semibold">Remise au patient</h2>
+    <p class="max-w-prose text-sm text-muted">
+      Livraison ou retrait physique des articles (monture, verres, collyres) au patient ; sort du
+      stock sans modifier les prix ni les remises commerciales de la facture.
+    </p>
 
     <StateMessage v-if="notice" state="success" :title="notice" />
 

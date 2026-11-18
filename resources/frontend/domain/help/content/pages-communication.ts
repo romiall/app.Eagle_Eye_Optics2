@@ -154,10 +154,33 @@ export const PAGES_COMMUNICATION: readonly PageHelp[] = [
         anyPermission: ['integration.manage'],
       },
     ],
-    tasks: [],
+    tasks: [
+      {
+        id: 'choisir-espace-communication',
+        title: 'Choisir le bon outil de communication',
+        steps: [
+          'Ouvrez « Réservations en ligne & Google Agenda » pour confirmer les demandes prises sur le site public.',
+          'Ouvrez « Site public : showroom & contenus » pour préparer les montures et textes affichés aux visiteurs.',
+          'Ouvrez « Boîte d’envoi & webhooks » ou « Intégrations et connecteurs » si la gérante doit débloquer un envoi externe.',
+        ],
+        result: 'Chaque espace n’apparaît que si votre profil dispose des droits nécessaires.',
+      },
+    ],
     rules: [
       'L’ensemble du module Communication exige une connexion active au serveur.',
       'Aucun envoi SMS ou WhatsApp ne part sans consentement accordé et modèle approuvé.',
+    ],
+    problems: [
+      {
+        symptom: 'Une tuile du menu Communication n’apparaît pas.',
+        remedy:
+          'Votre profil n’a pas l’autorisation correspondante ou le serveur est hors ligne : vérifiez la connexion puis demandez à la gérante.',
+      },
+      {
+        symptom: 'Les échanges avec un outil externe restent en attente.',
+        remedy:
+          'Vérifiez que les comptes des fournisseurs externes sont bien configurés dans « Intégrations et connecteurs ».',
+      },
     ],
     terms: [],
     next: [
@@ -582,9 +605,33 @@ export const PAGES_COMMUNICATION: readonly PageHelp[] = [
         effect: 'Ouvre l’écran des comptes connecteurs chiffrés.',
       },
     ],
-    tasks: [],
+    tasks: [
+      {
+        id: 'traiter-boite-envoi-webhooks',
+        title: 'Relancer les envois en attente ou en échec',
+        steps: [
+          'Filtrez le tableau avec « Statut outbox » pour voir les événements en attente ou en échec.',
+          'Ajustez si besoin « Taille du lot », puis cliquez sur « Traiter un lot outbox ».',
+          'Pour synchroniser tous les connecteurs en une fois, cliquez sur « Lancer le rattrapage global ».',
+        ],
+        result:
+          'Les événements traités changent de statut et le journal affiche le résultat du lot.',
+      },
+    ],
     rules: [
       'Les webhooks entrants ne sont traités qu’après vérification de leur signature et déduplication.',
+    ],
+    problems: [
+      {
+        symptom: '« Traitement de lot refusé » ou « Rattrapage global impossible »',
+        remedy:
+          'Un connecteur est peut-être mal configuré ou le serveur est injoignable. Cliquez sur « Configurer les connecteurs » pour contrôler les identifiants.',
+      },
+      {
+        symptom: 'Des événements restent bloqués en attente.',
+        remedy:
+          'Vérifiez d’abord que le fournisseur externe est actif dans les intégrations, puis relancez un lot borné.',
+      },
     ],
     terms: [],
     next: [

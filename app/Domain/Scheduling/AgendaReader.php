@@ -18,8 +18,8 @@ use stdClass;
  */
 final class AgendaReader
 {
-    /** Période la plus longue d'une liste de rendez-vous. */
-    public const MAX_APPOINTMENT_DAYS = 31;
+    /** Période la plus longue d'une liste de rendez-vous (couvre un calendrier mensuel de 6 semaines). */
+    public const MAX_APPOINTMENT_DAYS = 45;
 
     /** Période la plus longue d'une liste de patients à revoir. */
     public const MAX_FOLLOW_UP_DAYS = 366;

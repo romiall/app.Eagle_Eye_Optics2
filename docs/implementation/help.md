@@ -76,7 +76,7 @@ La partie « Mise en service » est réservée aux comptes qui gèrent le person
 
 **Vocabulaire clinique.** « Non renseigné », « Non » et « Aucun connu » sont trois choses différentes. OD (œil droit) avant OG (œil gauche), OU (les deux yeux) seulement pour l'acuité. Aucun conseil médical, aucun diagnostic : l'application enregistre, elle ne décide pas.
 
-**Honnêteté.** Ne décrire que ce que l'application fait aujourd'hui, vérifié dans le code. Ce qui est codé mais pas ouvert est marqué `validation`. Ce qui n'existe pas (travail sans Internet, envoi automatique de SMS ou de WhatsApp, atelier, exports comptables) n'est jamais présenté comme disponible : il figure, dit comme tel, dans « Ce que cette version ne fait pas encore ».
+**Honnêteté.** Ne décrire que ce que l'application fait aujourd'hui, vérifié dans le code. Ce qui est codé mais pas encore validé en exploitation (préparation des postes hors ligne) est marqué `validation`. Ce qui exige encore des clés externes (envoi automatique de SMS ou WhatsApp) ou n'est pas encore généralisé hors ligne figure comme tel dans « Ce que cette version ne fait pas encore ».
 
 **Qui fait quoi.** Nommer le profil quand le geste change : « la gérante », « la caissière », « l'accueil », « le professionnel ». Une action réservée porte `anyPermission` pour que les autres comptes ne la voient pas.
 
@@ -105,9 +105,9 @@ La partie « Mise en service » est réservée aux comptes qui gèrent le person
 
 Un écran modifié sans mise à jour de sa fiche est un défaut de livraison : l'aide trompe plus qu'elle n'aide quand elle est périmée.
 
-## Statut (2026-10-29)
+## Statut (2026-11-18)
 
-- **Couverture** : 51 fiches d'écran (toutes les routes nommées, dont `connexion` et `deverrouiller`) et 43 rubriques en 7 parties. Les écrans du travail sans Internet (`parametres-poste`, `conflits-synchronisation`, `deverrouiller`) sont en `maturity: 'validation'` : l'aide ne promet rien.
-- **Preuves** : gardes automatiques de `tests/frontend/help/` (libellés, routes, droits, liens, vocabulaire, promesses) et 18 parcours e2e (`help.spec.ts`, `manager-tools.spec.ts`, copie isolée du dépôt, 360 px compris) verts.
-- **Limites connues** : les libellés, routes et droits sont contrôlés automatiquement ; les gestes et règles décrits (qui peut quoi, ordre des étapes) ont été écrits d'après le code et les documents, sans seconde relecture. À corriger au fil de l'eau si un écran réel les contredit (la fiche de l'écran se met à jour avec l'écran).
+- **Couverture** : **75 fiches d'écran** (toutes les routes nommées, dont `connexion` et `deverrouiller`) et **42 rubriques en 7 parties**, groupées dans `documentation.ts` avec les sections dédiées `Atelier optique` (`workshop`) et `Communication et site public` (`communication`). Les fiches de `pages-agenda.ts`, `pages-communication.ts` et `pages-stock.ts` incluent les vues calendrier (`Mois` et ajout en 1 clic) ainsi que le dépannage complet. Les écrans du travail sans Internet (`parametres-poste`, `conflits-synchronisation`, `deverrouiller`) restent en `maturity: 'validation'` : l'aide ne promet rien.
+- **Preuves** : gardes automatiques de `tests/frontend/help/` (140 contrôles `content-guards.test.ts` verts sur libellés, routes, droits, liens, vocabulaire, promesses ; 16 avertissements historiques inchangés) et parcours e2e (`help.spec.ts`, `manager-tools.spec.ts`, 360 px compris).
+- **Limites connues** : les libellés, routes et droits sont contrôlés automatiquement ; les gestes et règles décrits sont alignés sur l'interface déployée et se mettent à jour en même temps que chaque écran.
 - **À faire plus tard** : feuille de style d'impression de la coquille (`App.vue`) pour imprimer une seule rubrique ; titre d'onglet de la route `aide` (« Aide ») aligné sur le titre de l'écran.

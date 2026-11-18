@@ -50,6 +50,8 @@ const canManage = computed(
   () =>
     canOnScreen('stock.adjust') || canOnScreen('stock.receive') || canOnScreen('stock.inventory'),
 )
+const canReceive = computed(() => canOnScreen('stock.receive'))
+const canAdjust = computed(() => canOnScreen('stock.adjust'))
 
 const read = useServerRead<StockAlertPage>(
   () =>
@@ -357,24 +359,46 @@ function shortfallLabel(alert: StockAlert): string | null {
               >
             </p>
 
-            <div v-if="canManage && alert.status !== 'RESOLVED'" class="flex flex-wrap gap-2">
-              <AppButton
-                v-if="alert.status === 'OPEN'"
-                variant="secondary"
-                :pending="saving && busyKey === `${alert.id}:ack`"
-                pending-label="Enregistrement…"
-                :disabled="saving"
-                @click="acknowledge(alert)"
-                >Prendre en compte</AppButton
-              >
-              <AppButton
+            <div class="flex flex-wrap gap-2">
+              <template v-if="canManage && alert.status !== 'RESOLVED'">
+                <AppButton
+                  v-if="alert.status === 'OPEN'"
+                  variant="secondary"
+                  :pending="saving && busyKey === `${alert.id}:ack`"
+                  pending-label="Enregistrement…"
+                  :disabled="saving"
+                  @click="acknowledge(alert)"
+                  >Prendre en compte</AppButton
+                >
+                <AppButton
+                  variant="ghost"
+                  :pending="saving && busyKey === `${alert.id}:resolve`"
+                  pending-label="Enregistrement…"
+                  :disabled="saving"
+                  @click="resolve(alert)"
+                  >Marquer résolue</AppButton
+                >
+              </template>
+              <LinkButton
+                :to="{ name: 'stock-history', query: { article: alert.item_id } }"
                 variant="ghost"
-                :pending="saving && busyKey === `${alert.id}:resolve`"
-                pending-label="Enregistrement…"
-                :disabled="saving"
-                @click="resolve(alert)"
-                >Marquer résolue</AppButton
               >
+                Historique des mouvements
+              </LinkButton>
+              <LinkButton
+                v-if="canReceive && alert.kind === 'LOW_STOCK'"
+                :to="{ name: 'goods-receipt-new' }"
+                variant="secondary"
+              >
+                Nouvelle réception
+              </LinkButton>
+              <LinkButton
+                v-if="canAdjust && alert.kind === 'EXPIRY'"
+                :to="{ name: 'stock-movement' }"
+                variant="secondary"
+              >
+                Casse ou ajustement
+              </LinkButton>
             </div>
           </li>
         </ul>

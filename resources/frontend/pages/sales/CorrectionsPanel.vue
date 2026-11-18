@@ -125,10 +125,29 @@ async function preview(kind: 'credit-note' | 'refund', id: string, title: string
   <section aria-labelledby="titre-corrections" class="space-y-4">
     <h2 id="titre-corrections" class="text-lg font-semibold">Corrections de la facture</h2>
     <p class="max-w-prose text-sm text-muted">
-      Une erreur d’encaissement se corrige par une contre-écriture ; une réduction de la vente par
-      un avoir ; l’argent rendu au patient par un remboursement. Le paiement, son reçu et la facture
-      restent toujours tels qu’émis.
+      Une facture émise et ses reçus ne sont jamais effacés : choisissez l’opération adaptée à votre
+      situation sans modifier l’historique.
     </p>
+    <div class="rounded-xl border border-line bg-canvas p-4 text-sm text-ink">
+      <p class="font-semibold">Quelle correction choisir selon votre situation ?</p>
+      <ul class="mt-2 list-disc space-y-1 pl-5 text-muted">
+        <li>
+          <strong class="text-ink">Erreur de saisie sur un encaissement</strong> (doublon, montant
+          ou mode erroné) → cliquez sur <strong class="text-ink">Contre-passer le paiement</strong>.
+        </li>
+        <li>
+          <strong class="text-ink"
+            >Annulation partielle, oubli de remise ou retour d’article</strong
+          >
+          (réduire le montant de la vente) → cliquez sur
+          <strong class="text-ink">Émettre un avoir</strong>.
+        </li>
+        <li>
+          <strong class="text-ink">Rendre de l’argent au patient</strong> suite à un avoir en sa
+          faveur → cliquez sur <strong class="text-ink">Rembourser</strong> sous l’avoir concerné.
+        </li>
+      </ul>
+    </div>
 
     <StateMessage v-if="notice" state="success" title="Correction enregistrée">{{
       notice

@@ -670,6 +670,11 @@ function lotLabel(line: GoodsReceipt['lines'][number]): string {
         title="Aucun fournisseur actif"
       >
         Créez d’abord un fournisseur (page « Fournisseurs ») pour enregistrer une réception.
+        <template #action>
+          <LinkButton :to="{ name: 'suppliers' }" variant="secondary">
+            Ouvrir les fournisseurs
+          </LinkButton>
+        </template>
       </StateMessage>
 
       <div class="grid gap-3 sm:grid-cols-2">

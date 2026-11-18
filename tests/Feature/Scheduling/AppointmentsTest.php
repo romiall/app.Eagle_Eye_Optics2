@@ -141,6 +141,9 @@ final class AppointmentsTest extends TestCase
 
         $week = $this->read($this->reception, '/api/v1/appointments?from=2026-10-19&to=2026-10-25')->assertOk();
         $this->assertCount(2, $week->json('data'));
+        // Grille mensuelle complète (42 jours) admise ; au-delà de 45 jours (46 jours) : 422.
+        $monthGrid = $this->read($this->reception, '/api/v1/appointments?from=2026-09-28&to=2026-11-08')->assertOk();
+        $this->assertCount(3, $monthGrid->json('data'));
         $this->read($this->reception, '/api/v1/appointments?from=2026-10-01&to=2026-11-15')->assertStatus(422);
         $this->read($this->reception, '/api/v1/appointments?from=2026-10-23')->assertStatus(422);
         $this->read($this->reception, '/api/v1/appointments?from=2026-10-23&to=2026-10-23&resource_id=abc')->assertStatus(422);

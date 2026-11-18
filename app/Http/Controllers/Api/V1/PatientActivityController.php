@@ -50,10 +50,12 @@ final class PatientActivityController extends Controller
 
         $page = $activity($actor->clinic_id, $id, $sections, $request->query('section'), $request->query('page'));
 
-        // Seuls les écrans qui existent et que le compte peut ouvrir reçoivent une adresse (consultation, prescriptions
-        // de la consultation : clinical.read, module « consultations »). Aucun écran de facture ni de reçu n'existe
-        // encore : leurs éléments n'ont pas d'adresse.
-        return new JsonResponse(PatientActivityPresenter::page($page, ['consultations' => $clinical]));
+        // Seuls les écrans qui existent et que le compte peut ouvrir reçoivent une adresse (consultation,
+        // prescriptions du dossier ou d'une consultation, factures).
+        return new JsonResponse(PatientActivityPresenter::page($page, [
+            'consultations' => $clinical,
+            'sales' => $financial,
+        ], $id));
     }
 
     private function actor(Request $request): User

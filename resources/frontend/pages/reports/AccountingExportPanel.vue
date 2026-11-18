@@ -51,11 +51,12 @@ async function loadPreview(): Promise<void> {
     <div class="flex flex-wrap items-start justify-between gap-3">
       <div class="space-y-1">
         <h2 id="titre-export-q13" class="text-lg font-semibold">
-          Restitution comptable Q13 (export structuré)
+          Synthèse et export comptable (Q13)
         </h2>
         <p class="text-sm text-muted">
-          Sépare strictement chiffre d’affaires net, encaissements, dépenses de caisse,
-          rapprochements par canal, créances à l’instant et valorisation du stock.
+          Prépare le récapitulatif structuré pour l’expert-comptable : sépare strictement chiffre
+          d’affaires net, encaissements, dépenses de caisse, rapprochements par canal, créances à
+          l’instant et valorisation du stock.
         </p>
       </div>
       <div class="flex flex-wrap gap-3">

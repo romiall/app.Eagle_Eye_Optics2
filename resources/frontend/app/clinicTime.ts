@@ -65,6 +65,18 @@ export function formatDayFr(day: CivilDate): string {
   }).format(new Date(noon))
 }
 
+/**
+ * Mois et année en toutes lettres : « novembre 2026 » (calendrier mensuel de l'agenda).
+ */
+export function formatMonthYearFr(day: CivilDate): string {
+  const noon = Date.UTC(day.year, day.month - 1, day.day, 12)
+  return new Intl.DateTimeFormat('fr-FR', {
+    timeZone: 'UTC',
+    month: 'long',
+    year: 'numeric',
+  }).format(new Date(noon))
+}
+
 /** Instant UTC affiché à l'heure du cabinet : « 15/10/2026 à 10h42 ». */
 export function formatInstantFr(instant: string): string {
   const stamp = (timeZone: string): string => {

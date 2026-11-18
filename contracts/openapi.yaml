@@ -6388,7 +6388,7 @@ paths:
         - name: "to"
           in: "query"
           required: false
-          description: "Date civile de fin (31 jours au plus)."
+          description: "Date civile de fin (45 jours au plus)."
           schema:
             type: "string"
         - name: "resource_id"

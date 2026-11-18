@@ -649,10 +649,17 @@ function applyCustom(): void {
         icon="info"
         :description="`Source : ${report.provenance.source} · Fuseau : ${report.provenance.period_timezone}`"
       >
-        <p class="mb-3 text-sm text-muted">
-          {{ report.provenance.previous_period_rule }} · Empreinte SHA-256 :
-          <code class="font-mono text-xs break-all">{{ report.provenance.dataset_sha256 }}</code>
+        <p class="mb-2 text-sm text-muted">
+          {{ report.provenance.previous_period_rule }}
         </p>
+        <details class="mb-3 text-sm text-muted">
+          <summary class="cursor-pointer font-medium hover:text-ink">
+            Preuve technique d’intégrité (Empreinte SHA-256)
+          </summary>
+          <p class="mt-1 break-all">
+            <code class="font-mono text-xs">{{ report.provenance.dataset_sha256 }}</code>
+          </p>
+        </details>
         <ul class="divide-y divide-line text-sm">
           <li v-for="def in report.definitions" :key="def.code" class="py-2 first:pt-0 last:pb-0">
             <p class="font-semibold">{{ def.label }}</p>

@@ -207,7 +207,7 @@ export const PAGES_PILOTAGE: readonly PageHelp[] = [
       },
     ],
     tips: [
-      'Tant que l’agenda n’est pas ouvert dans votre installation, « Rendez-vous programmés » et « Patients à revoir » affichent « Non disponible dans cette version (agenda) » : ce n’est pas un zéro.',
+      'Lorsque ces deux compteurs ne sont pas agrégés sur cette vue, ils affichent « Consultable dans le module Agenda » et « Consultable dans Patients à rappeler » : ce n’est pas un zéro.',
       'Les « Nouveaux patients » sont ceux dont la première visite connue du cabinet tombe dans la période ; la date de première visite d’un dossier repris de l’historique papier compte.',
       'Un patient sans date de naissance est compté dans « Âge non renseigné ». Les tranches d’âge sont proposées par le cahier des charges et restent à confirmer par le cabinet.',
       'Pour comparer deux périodes, affichez-les l’une après l’autre et notez les nombres : l’écran ne les met pas côte à côte.',

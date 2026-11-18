@@ -412,8 +412,8 @@ async function retryClose(): Promise<void> {
         state="error"
         title="Aucune caisse active dans ce cabinet"
       >
-        La caisse principale n’a pas été créée : l’exploitant lance la mise en service des ventes
-        (commande « eeo:sales:bootstrap ») avant toute ouverture.
+        La caisse principale n’a pas encore été créée : demandez à l’administrateur système de
+        finaliser l’initialisation des ventes avant toute ouverture.
       </StateMessage>
 
       <form

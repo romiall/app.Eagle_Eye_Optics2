@@ -92,6 +92,47 @@ const form = reactive<{
   publicConfigJson: '',
 })
 
+const PROVIDER_PRESETS: Readonly<
+  Record<IntegrationAccountsProvider, { credentials: string; publicConfig: string }>
+> = {
+  GOOGLE: {
+    credentials: '{\n  "access_token": "A_REMPLACER",\n  "refresh_token": "A_REMPLACER"\n}',
+    publicConfig: '{\n  "calendar_id": "primary",\n  "timezone": "Africa/Douala"\n}',
+  },
+  KOMMO: {
+    credentials: '{\n  "long_lived_token": "A_REMPLACER"\n}',
+    publicConfig: '{\n  "subdomain": "votre-compte-kommo",\n  "pipeline_id": ""\n}',
+  },
+  META_WHATSAPP: {
+    credentials: '{\n  "token": "A_REMPLACER"\n}',
+    publicConfig: '{\n  "phone_number_id": "A_REMPLACER",\n  "business_account_id": ""\n}',
+  },
+  META_MESSENGER: {
+    credentials: '{\n  "page_access_token": "A_REMPLACER"\n}',
+    publicConfig: '{\n  "page_id": "A_REMPLACER"\n}',
+  },
+  META_INSTAGRAM: {
+    credentials: '{\n  "page_access_token": "A_REMPLACER"\n}',
+    publicConfig: '{\n  "ig_account_id": "A_REMPLACER"\n}',
+  },
+  SMS: {
+    credentials: '{\n  "api_key": "A_REMPLACER"\n}',
+    publicConfig: '{\n  "sender_id": "EagleEye",\n  "country_prefix": "+237"\n}',
+  },
+  SMTP: {
+    credentials: '{\n  "username": "contact@eagleeyeoptic.com",\n  "password": "A_REMPLACER"\n}',
+    publicConfig:
+      '{\n  "host": "smtp.exemple.com",\n  "port": 587,\n  "from": "contact@eagleeyeoptic.com"\n}',
+  },
+}
+
+function applyProviderPreset(): void {
+  const provider = form.provider ?? 'GOOGLE'
+  const preset = PROVIDER_PRESETS[provider]
+  form.credentialsJson = preset.credentials
+  form.publicConfigJson = preset.publicConfig
+}
+
 const isEditing = computed(() => editingId.value !== null)
 
 function resetForm(): void {
@@ -476,6 +517,17 @@ async function runConnectionTest(account: IntegrationAccount): Promise<void> {
                 (v) => (form.status = (v as IntegrationAccountsStatus | null) ?? 'TEST')
               "
             />
+            <div
+              class="col-span-full flex flex-wrap items-center justify-between gap-2 rounded-lg border border-line bg-surface p-3 text-sm"
+            >
+              <span class="text-muted">
+                Besoin d’aide sur les champs attendus pour ce fournisseur ? Pré-remplissez un modèle
+                puis remplacez « A_REMPLACER ».
+              </span>
+              <AppButton variant="secondary" @click="applyProviderPreset">
+                Pré-remplir le modèle du fournisseur
+              </AppButton>
+            </div>
             <TextAreaField
               v-model="form.credentialsJson"
               class="col-span-full"

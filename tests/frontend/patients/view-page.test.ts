@@ -308,4 +308,43 @@ describe('fiche patient', () => {
     expect(callsTo(noRight, 'GET', /^\/api\/v1\/patients\/[^/]+$/)).toHaveLength(0)
     second.unmount()
   })
+
+  it('affiche « Accès directs du dossier » et les actions d’en-tête selon les droits, cachés au lecteur seul', async () => {
+    stubPatientsApi({
+      permissions: [
+        'patient.read',
+        'patient.update',
+        'visit.register',
+        'agenda.write',
+        'clinical.read',
+        'invoice.read',
+        'invoice.create',
+        'workshop.manage',
+      ],
+      handlers: { get: () => json(200, { data: patient() }) },
+    })
+    const manager = await openApp(`/patients/${ID_A}`)
+    expect(textOf(manager.root)).toContain('Accès directs du dossier')
+    expect(linkTo(manager.root, `/patients/${ID_A}/activite?section=EXAMS`)).not.toBeNull()
+    expect(linkTo(manager.root, `/patients/${ID_A}/activite?section=PRESCRIPTIONS`)).not.toBeNull()
+    expect(linkTo(manager.root, `/patients/${ID_A}/prescriptions`)).not.toBeNull()
+    expect(linkTo(manager.root, `/ventes/factures?patient=${ID_A}`)).not.toBeNull()
+    expect(linkTo(manager.root, `/ventes/devis?patient=${ID_A}`)).not.toBeNull()
+    expect(linkTo(manager.root, `/atelier?patient=${ID_A}`)).not.toBeNull()
+    expect(linkTo(manager.root, `/aujourdhui/arrivee?patient=${ID_A}`)).not.toBeNull()
+    expect(linkTo(manager.root, `/agenda/nouveau?patient=${ID_A}`)).not.toBeNull()
+    expect(linkTo(manager.root, `/ventes/factures/nouvelle?patient=${ID_A}`)).not.toBeNull()
+    expect(linkTo(manager.root, `/ventes/devis/nouveau?patient=${ID_A}`)).not.toBeNull()
+    manager.unmount()
+    resetEverything()
+
+    stubPatientsApi({
+      permissions: READER,
+      handlers: { get: () => json(200, { data: patient() }) },
+    })
+    const reader = await openApp(`/patients/${ID_A}`)
+    expect(textOf(reader.root)).not.toContain('Accès directs du dossier')
+    expect(linkTo(reader.root, `/atelier?patient=${ID_A}`)).toBeNull()
+    reader.unmount()
+  })
 })

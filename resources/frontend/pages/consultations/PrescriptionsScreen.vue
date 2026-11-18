@@ -22,6 +22,7 @@ import {
   printablePrescription,
 } from '@/app/services/clinicalDocuments'
 import { useUnsavedChangesGuard } from '@/app/unsavedChanges'
+import { canOnScreen, moduleOpenOnScreen } from '@/app/session'
 import ConfirmDialog from '@/components/feedback/ConfirmDialog.vue'
 import ErrorSummary from '@/components/feedback/ErrorSummary.vue'
 import SaveStatus from '@/components/feedback/SaveStatus.vue'
@@ -30,6 +31,7 @@ import SelectField from '@/components/form/SelectField.vue'
 import PageHeader from '@/components/layout/PageHeader.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
+import LinkButton from '@/components/ui/LinkButton.vue'
 import { STAGE_LABELS } from '@/domain/clinical/labels'
 import { RX_IDS } from '@/domain/clinical/prescriptions'
 import { REFRACTION_STAGES, type RefractionStage } from '@/domain/clinical/refraction'
@@ -99,6 +101,27 @@ const hasMeasures = computed(
 )
 const hasCentering = computed(
   () => (consultation.value?.steps.CENTERING.centering_id ?? null) !== null,
+)
+const canQuoteAfterRx = computed(
+  () =>
+    latest.value?.status === 'VALIDATED' &&
+    consultation.value !== null &&
+    canOnScreen('invoice.create') &&
+    moduleOpenOnScreen('sales'),
+)
+const canInvoiceAfterRx = computed(
+  () =>
+    latest.value?.status === 'VALIDATED' &&
+    consultation.value !== null &&
+    (canOnScreen('invoice.create') || canOnScreen('exam_fee.collect')) &&
+    moduleOpenOnScreen('sales'),
+)
+const canWorkshopAfterRx = computed(
+  () =>
+    latest.value?.status === 'VALIDATED' &&
+    consultation.value !== null &&
+    canOnScreen('workshop.manage') &&
+    moduleOpenOnScreen('workshop'),
 )
 
 /**
@@ -339,11 +362,41 @@ function confirmCopyCentering(): void {
             <div class="space-y-3">
               <h2 class="section-title">Dernière version</h2>
               <PrescriptionView :prescription="latest" />
-              <p v-if="latest.status === 'VALIDATED' && canAmend && canWrite">
-                <AppButton variant="secondary" @click="editor.startRevision"
+              <div class="flex flex-wrap gap-3">
+                <AppButton
+                  v-if="latest.status === 'VALIDATED' && canAmend && canWrite"
+                  variant="secondary"
+                  @click="editor.startRevision"
                   ><AppIcon name="edit" :size="18" />Créer une nouvelle version</AppButton
                 >
-              </p>
+                <LinkButton
+                  v-if="canQuoteAfterRx && consultation"
+                  :to="{ name: 'devis-nouveau', query: { patient: consultation.patient_id } }"
+                  variant="secondary"
+                >
+                  <AppIcon name="clipboard" :size="18" />
+                  Créer un devis
+                </LinkButton>
+                <LinkButton
+                  v-if="canInvoiceAfterRx && consultation"
+                  :to="{
+                    name: 'facture-nouvelle',
+                    query: { patient: consultation.patient_id, visite: consultation.visit_id },
+                  }"
+                  variant="secondary"
+                >
+                  <AppIcon name="file-plus" :size="18" />
+                  Créer une facture
+                </LinkButton>
+                <LinkButton
+                  v-if="canWorkshopAfterRx && consultation"
+                  :to="{ name: 'atelier-nouveau', query: { patient: consultation.patient_id } }"
+                  variant="secondary"
+                >
+                  <AppIcon name="workshop" :size="18" />
+                  Commander à l’atelier
+                </LinkButton>
+              </div>
             </div>
             <ClinicalPrintActions
               v-if="printable && printActions.length > 0"

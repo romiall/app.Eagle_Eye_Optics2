@@ -12,6 +12,7 @@
  * pas offerts (aucun panneau qui échouerait), l'écran le dit.
  */
 import { computed, onMounted, ref, shallowRef, watch } from 'vue'
+import { RouterLink } from 'vue-router'
 
 import { formatInstantFr } from '@/app/clinicTime'
 import { getCurrentCashSession } from '@/app/services/billing'
@@ -28,12 +29,13 @@ import {
 } from '@/app/services/localPayments'
 import { invoiceDocument } from '@/app/services/salesDocuments'
 import { vaultView } from '@/app/services/vault'
-import { canOnScreen, session as appSession } from '@/app/session'
+import { canOnScreen, moduleOpenOnScreen, session as appSession } from '@/app/session'
 import BalanceSummary from '@/components/billing/BalanceSummary.vue'
 import DocumentPreview from '@/components/documents/DocumentPreview.vue'
 import StateMessage from '@/components/feedback/StateMessage.vue'
 import SyncBadge from '@/components/feedback/SyncBadge.vue'
 import AppButton from '@/components/ui/AppButton.vue'
+import LinkButton from '@/components/ui/LinkButton.vue'
 import { heldByDevice } from '@/domain/billing/issueInvoice'
 import type { CashSession, Invoice, Receipt } from '@/domain/contracts/generated'
 import { patientDisplayName } from '@/domain/patients/identity'
@@ -56,6 +58,10 @@ const emit = defineEmits<{
 
 const canCollect = computed(() => canOnScreen('payment.collect') || canOnScreen('exam_fee.collect'))
 const canReadCash = computed(() => canOnScreen('cash.own_session'))
+const canOpenPatient = computed(() => canOnScreen('patient.read') && moduleOpenOnScreen('patients'))
+const canWorkshop = computed(
+  () => !props.local && canOnScreen('workshop.manage') && moduleOpenOnScreen('workshop'),
+)
 // Facture détenue par un poste préparé : encaissée sur CE poste seulement (coffre ouvert, O04, O05), jamais par la
 // route directe ; ailleurs, l'écran le dit et ne propose pas d'encaisser.
 const heldHere = computed(
@@ -229,7 +235,13 @@ async function previewInvoice(): Promise<void> {
       </p>
       <p v-if="patient" class="text-base break-words">
         Patient (identité figée à l’émission) :
-        <strong>{{ patientDisplayName(patient.last_name, patient.first_names) }}</strong
+        <RouterLink
+          v-if="canOpenPatient"
+          :to="{ name: 'patient', params: { id: props.invoice.patient_id } }"
+          class="font-semibold text-primary underline underline-offset-4 hover:decoration-gold"
+          >{{ patientDisplayName(patient.last_name, patient.first_names) }}</RouterLink
+        >
+        <strong v-else>{{ patientDisplayName(patient.last_name, patient.first_names) }}</strong
         >, dossier
         {{ patient.record_number }}
       </p>
@@ -410,6 +422,28 @@ async function previewInvoice(): Promise<void> {
       patient, les avoirs et les corrections se feront après l’envoi au serveur.
     </StateMessage>
     <template v-else>
+      <div
+        v-if="canWorkshop"
+        class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line bg-canvas p-4"
+      >
+        <p class="max-w-prose text-sm text-muted">
+          Des verres ou lunettes sur mesure figurent sur cette facture ? Lancez directement le suivi
+          de fabrication et de montage au laboratoire.
+        </p>
+        <LinkButton
+          :to="{
+            name: 'atelier-nouveau',
+            query: {
+              ...(props.invoice.number ? { facture: props.invoice.number } : {}),
+              patient: props.invoice.patient_id,
+            },
+          }"
+          variant="secondary"
+        >
+          Commander à l’atelier (lunettes)
+        </LinkButton>
+      </div>
+
       <DeliveriesPanel
         :key="`remises-${props.invoice.ledger_version ?? 0}`"
         :invoice="props.invoice"

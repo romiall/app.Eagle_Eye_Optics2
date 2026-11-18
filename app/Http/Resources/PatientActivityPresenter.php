@@ -23,10 +23,10 @@ use stdClass;
 final class PatientActivityPresenter
 {
     /**
-     * @param  array<string, bool>  $screens  écran ouvrable par le compte : `consultations` (C01 à C04)
+     * @param  array<string, bool>  $screens  écrans ouvrables par le compte : `consultations`, `sales`
      * @return array{data: list<array<string, mixed>>, meta: array<string, mixed>}
      */
-    public static function page(PatientActivityPage $page, array $screens): array
+    public static function page(PatientActivityPage $page, array $screens, ?string $patientId = null): array
     {
         $sections = [];
         foreach (PatientActivity::SECTIONS as $code) {
@@ -36,7 +36,7 @@ final class PatientActivityPresenter
         }
 
         return [
-            'data' => array_map(static fn (array $item): array => self::item($item, $screens), $page->items),
+            'data' => array_map(static fn (array $item): array => self::item($item, $screens, $patientId), $page->items),
             'meta' => [
                 'current_page' => $page->currentPage,
                 'last_page' => $page->lastPage(),
@@ -53,11 +53,12 @@ final class PatientActivityPresenter
      * @param  array<string, bool>  $screens
      * @return array<string, mixed>
      */
-    private static function item(array $item, array $screens): array
+    private static function item(array $item, array $screens, ?string $patientId): array
     {
         $row = $item['row'];
         $common = ['type' => $item['type'], 'id' => (string) $row->id, 'occurred_at' => self::instant($item['occurred_at'])];
         $consultations = ($screens['consultations'] ?? false) === true;
+        $sales = ($screens['sales'] ?? false) === true;
 
         return match ($item['type']) {
             PatientActivity::VISIT => $common + [
@@ -72,8 +73,11 @@ final class PatientActivityPresenter
                 'clinician_name' => (string) $row->clinician_name,
             ],
             PatientActivity::PRESCRIPTION => $common + [
-                // Une ordonnance externe n'a pas de consultation, donc pas d'écran pour l'instant.
-                'screen_path' => $consultations && $row->consultation_id !== null ? '/consultations/'.$row->consultation_id.'/prescriptions' : null,
+                'screen_path' => match (true) {
+                    $consultations && $row->consultation_id !== null => '/consultations/'.$row->consultation_id.'/prescriptions',
+                    $consultations && $patientId !== null => '/patients/'.$patientId.'/prescriptions',
+                    default => null,
+                },
                 'origin' => (string) $row->origin,
                 'status' => (string) $row->status,
                 'version_no' => (int) $row->version_no,
@@ -86,11 +90,10 @@ final class PatientActivityPresenter
                 'consultation_status' => (string) $row->status,
             ],
             PatientActivity::INVOICE => $common + [
-                // Aucun écran de facture n'existe encore côté interface.
-                'screen_path' => null,
+                'screen_path' => $sales ? '/ventes/factures/'.$row->id : null,
             ] + self::invoice($row),
             PatientActivity::RECEIPT => $common + [
-                'screen_path' => null,
+                'screen_path' => $sales ? '/ventes/factures/'.$row->invoice_id : null,
                 'number' => (string) $row->number,
                 'amount' => (int) $row->amount,
                 'method' => (string) $row->method,
@@ -99,14 +102,14 @@ final class PatientActivityPresenter
                 'invoice_number' => $row->invoice_number === null ? null : (string) $row->invoice_number,
             ],
             PatientActivity::CREDIT_NOTE => $common + [
-                'screen_path' => null,
+                'screen_path' => $sales ? '/ventes/factures/'.$row->invoice_id : null,
                 'number' => (string) $row->number,
                 'amount_gross' => (int) $row->amount_gross,
                 'invoice_id' => (string) $row->invoice_id,
                 'invoice_number' => $row->invoice_number === null ? null : (string) $row->invoice_number,
             ],
             PatientActivity::REFUND => $common + [
-                'screen_path' => null,
+                'screen_path' => $sales ? '/ventes/factures/'.$row->invoice_id : null,
                 'number' => (string) $row->number,
                 'amount' => (int) $row->amount,
                 'method' => (string) $row->method,

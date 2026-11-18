@@ -211,12 +211,21 @@ const salesOpen = computed(() => moduleOpenOnScreen('sales'))
 const canInvoice = computed(
   () => (canOnScreen('invoice.create') || canOnScreen('exam_fee.collect')) && salesOpen.value,
 )
+const canQuote = computed(() => canOnScreen('invoice.create') && salesOpen.value)
 const invoiceLink = computed(() =>
   baseline.value === null
     ? null
     : {
         name: 'facture-nouvelle',
         query: { patient: baseline.value.patient_id, visite: baseline.value.visit_id },
+      },
+)
+const quoteLink = computed(() =>
+  baseline.value === null
+    ? null
+    : {
+        name: 'devis-nouveau',
+        query: { patient: baseline.value.patient_id },
       },
 )
 
@@ -403,6 +412,9 @@ function stepBadge(step: DeliveredStep): string {
               variant="secondary"
               :accessible-name="`Transmettre à la caisse : créer la facture de ${baseline.patient.last_name}`"
               >Transmettre à la caisse</LinkButton
+            >
+            <LinkButton v-if="canQuote && quoteLink" :to="quoteLink" variant="secondary"
+              >Créer un devis</LinkButton
             >
             <AppButton v-if="canAmend" variant="primary" :disabled="busy" @click="editor.startAmend"
               >Corriger l’examen</AppButton

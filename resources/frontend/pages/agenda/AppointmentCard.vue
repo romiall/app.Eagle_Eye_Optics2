@@ -10,6 +10,7 @@
  * heures passent dans une colonne à gauche, le reste à droite. Créneaux du déplacement en pastilles.
  */
 import { computed, ref, useId } from 'vue'
+import { RouterLink } from 'vue-router'
 
 import { clinicTimeZone, clinicToday, formatTimeFr } from '@/app/clinicTime'
 import { listAvailableSlots } from '@/app/services/agenda'
@@ -73,6 +74,29 @@ const arrivalLink = computed(() => ({
   name: 'arrivee',
   query: { patient: props.appointment.patient_id ?? '', 'rendez-vous': props.appointment.id },
 }))
+const canOpenPatient = computed(
+  () =>
+    props.appointment.patient_id !== null &&
+    canOnScreen('patient.read') &&
+    moduleOpenOnScreen('patients'),
+)
+const patientLink = computed(() =>
+  props.appointment.patient_id === null
+    ? null
+    : { name: 'patient' as const, params: { id: props.appointment.patient_id } },
+)
+const queueLinkOffered = computed(
+  () =>
+    props.appointment.status === 'ARRIVED' &&
+    moduleOpenOnScreen('today') &&
+    (canOnScreen('visit.register') || canOnScreen('agenda.read')),
+)
+const consultationsLinkOffered = computed(
+  () =>
+    props.appointment.status === 'ARRIVED' &&
+    moduleOpenOnScreen('consultations') &&
+    canOnScreen('clinical.read'),
+)
 
 async function afterOutcome(outcome: MutationOutcome, done: string): Promise<boolean> {
   switch (outcome.kind) {
@@ -232,7 +256,16 @@ async function confirmMove(): Promise<void> {
             <span class="text-muted @lg:text-sm"> – {{ end }}</span>
           </span>
           <span class="sr-only"> · </span>
-          <span class="mt-1 block text-lg leading-snug font-semibold @lg:mt-0">{{ name }}</span>
+          <RouterLink
+            v-if="canOpenPatient && patientLink"
+            :to="patientLink"
+            class="mt-1 inline-flex min-h-11 items-center text-lg leading-snug font-semibold text-primary underline underline-offset-4 hover:decoration-gold hover:decoration-2 @lg:mt-0"
+          >
+            {{ name }}
+          </RouterLink>
+          <span v-else class="mt-1 block text-lg leading-snug font-semibold @lg:mt-0">{{
+            name
+          }}</span>
         </h3>
         <StatusChip as="p" :tone="look.tone" :icon="look.icon"
           ><span class="sr-only">Statut : </span
@@ -271,7 +304,14 @@ async function confirmMove(): Promise<void> {
       </p>
 
       <div
-        v-if="arrivalOffered || changeable || noShowOffered"
+        v-if="
+          arrivalOffered ||
+          changeable ||
+          noShowOffered ||
+          canOpenPatient ||
+          queueLinkOffered ||
+          consultationsLinkOffered
+        "
         class="flex flex-wrap gap-2 border-t border-line pt-3"
       >
         <LinkButton
@@ -282,6 +322,32 @@ async function confirmMove(): Promise<void> {
         >
           <AppIcon name="arrival" />
           Enregistrer l’arrivée
+        </LinkButton>
+        <LinkButton
+          v-if="queueLinkOffered"
+          :to="{ name: 'aujourdhui' }"
+          variant="primary"
+          :accessible-name="`Voir ${name} dans la file du jour`"
+        >
+          <AppIcon name="today" />
+          Voir la file du jour
+        </LinkButton>
+        <LinkButton
+          v-if="consultationsLinkOffered"
+          :to="{ name: 'consultations' }"
+          variant="secondary"
+        >
+          <AppIcon name="consultations" />
+          Consultations
+        </LinkButton>
+        <LinkButton
+          v-if="canOpenPatient && patientLink"
+          :to="patientLink"
+          variant="secondary"
+          :accessible-name="`Ouvrir la fiche de ${name}`"
+        >
+          <AppIcon name="user" />
+          Fiche du patient
         </LinkButton>
         <AppButton
           v-if="changeable && !moving"

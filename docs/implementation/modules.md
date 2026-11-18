@@ -72,22 +72,24 @@ Vide (valeur par défaut) : aucun module métier n'est exposé. Les routes d'acc
 `tests/Unit/Offline/SyncCommandModulesTest.php` et `tests/Feature/Offline/SyncPushTest.php`
 (`test_une_commande_d_un_module_ferme_est_conservee_en_conflit_puis_se_rejoue_une_fois_le_module_ouvert`).
 
-## État de la phase 1 (codé, vérification de fin de phase à faire)
+## État des modules livrés (code et déploiement, mis à jour le 2026-11-18)
 
-| Code | Écrans livrés (`delivered: true`) | Serveur |
-| --- | --- | --- |
-| `today` | File du jour, arrivée | `module:today` |
-| `patients` | Patients, fiche, activité | `module:patients` |
-| `consultations` | Liste des examens (`/consultations`), consultation, révisions, prescriptions | `module:consultations` (dont `GET /consultations`) |
-| `sales` | Ventes et caisse, factures, catalogue, taxes, aperçu des documents | `module:sales` |
-| `stock` | Stock (disponibilités, stock initial) — entrée de menu non livrée (I01) | `module:stock` |
-| `settings` | Paramètres (personnel, cabinet et documents) | aucune route de module : les routes de comptes et du cabinet (F05) restent ouvertes à la gérante même module fermé ; seul l'écran dépend de `settings` |
-| `offline` | « Préparer ce poste » (`/parametres/poste`) : coffre chiffré du poste, enrôlement, profils et grants signés (O01, O02), numéros réservés (O03), journal du poste (O04) et synchronisation (O05, push, pull, conflits : `/parametres/conflits-synchronisation`). Codé, non vérifié : à n'ouvrir en production qu'après G1 | `module:offline` (`/devices…`, `/offline-grants…`, `/offline/signing-keys`, `/sync/…`) |
+Les 11 codes définis dans `app/Support/Modules.php` et `resources/frontend/app/navigation.ts` sont tous ouverts sur la production (`https://app-eagleseye.com` via `EEO_ENABLED_MODULES`) :
 
-L'accueil affiche, sous les actions du dossier patient (fichier 04), des **raccourcis de travail** par activité
-(`WORK_SHORTCUTS` de `navigation.ts` : accueil des patients, examens, caisse et ventes, administration), soumis aux
-mêmes règles (livré, ouvert, autorisé). `eeo:preflight` signale un code inconnu dans `EEO_ENABLED_MODULES`, le module
-`settings` fermé alors que d'autres sont ouverts, une caisse ou une échelle d'acuité manquante pour un module ouvert,
-et un contrôle du paiement de l'examen incohérent (bloquant).
+| Code | Écrans livrés (`router.ts`) | Entrée menu / accès UI | Serveur |
+| --- | --- | --- | --- |
+| `today` | File du jour (`/aujourdhui`), Enregistrer une arrivée (`/aujourdhui/arrivee`) | `APP_MODULES` (`delivered: true`) | `module:today` |
+| `patients` | Patients, Nouveau patient, Fiche patient (avec accès directs multi-modules), Activité, Fusion doublons | `APP_MODULES` (`delivered: true`) | `module:patients` |
+| `consultations` | Consultations (`/consultations`), Examen clinique en 6 étapes, Historique des révisions, Ordonnances (`/patients/:id/prescriptions`, `/consultations/:id/prescriptions`), Comparaison optique | `APP_MODULES` (`delivered: true`) | `module:consultations` |
+| `agenda` | Agenda (`/agenda` : vues **Jour**, **Semaine**, **Mois** calendrier + ajout 1 clic), Nouveau rendez-vous (`/agenda/nouveau`), Configuration, Patients à rappeler (`/suivis`) | `APP_MODULES` (`delivered: true`) | `module:agenda` |
+| `sales` | Ventes et caisse (`/ventes`), Devis, Factures & corrections, Encaissements, Caisse, Caisse du jour, Finance du cabinet, Rapprochements par canal, Catalogue & Import CSV, Règles fiscales, Aperçu des documents | `APP_MODULES` (`delivered: true`) | `module:sales` |
+| `stock` | Stock (`/stock`), Casse ou ajustement, Fournisseurs, Réceptions fournisseur, Inventaires, Alertes et seuils (`/stock/alertes`), Historique des mouvements (`/stock/historique`) | `APP_MODULES` (`delivered: true`) | `module:stock` |
+| `workshop` | Atelier optique (`/atelier`, commande labo `/atelier/nouveau`, détail & bon labo anonymisé `/atelier/:id`) | `APP_MODULES` (`delivered: true`) + carte `Ventes` + liens depuis Facture/Ordonnance/Patient | `module:workshop` |
+| `communication` | Hub Communication (`/communication`), Site public (`/communication/site` + `/showroom` + `/rendez-vous`), Réservations publiques & Google Agenda, CRM Kommo, Base de connaissances, Assistant & reprises humaines, Consentements, Campagnes, Boîte d’envoi & webhooks | `APP_MODULES` (`delivered: true`) | `module:communication` |
+| `reports` | Statistiques (`/rapports/statistiques`), Rapports de gestion (`/rapports/gestion`) | `HOME_ACTIONS` (`Statistiques`, `delivered: true`) et liens dans `Paramètres` / `Rapprochements` (`APP_MODULES` garde `delivered: false` pour ne pas surcharger le menu principal) | `module:reports` |
+| `settings` | Paramètres (`/parametres`), Personnel, Cabinet et documents, Approbations, Exports contrôlés, Intégrations et connecteurs (`/parametres/integrations`) | `APP_MODULES` (`delivered: true`) ; routes `/auth` & `/settings` accessibles à la gérante | `module:settings` |
+| `offline` | Préparer ce poste (`/parametres/poste`), Conflits de synchronisation (`/parametres/conflits-synchronisation`) | Ouvert depuis `Paramètres` lorsque `offline` est actif (`APP_MODULES` sans entrée dédiée ; fiches en `maturity: 'validation'`) | `module:offline` (`/devices…`, `/offline-grants…`, `/offline/signing-keys`, `/sync/…`) |
+
+L'accueil affiche, sous les actions du dossier patient (`HOME_ACTIONS`), des **raccourcis de travail** par activité (`WORK_SHORTCUTS` de `navigation.ts` : accueil des patients, examens, caisse et ventes, administration), soumis aux mêmes règles (livré, ouvert, autorisé). `eeo:preflight` signale un code inconnu dans `EEO_ENABLED_MODULES`, le module `settings` fermé alors que d'autres sont ouverts, une caisse ou une échelle d'acuité manquante pour un module ouvert, et un contrôle du paiement de l'examen incohérent (bloquant).
 
 Ordre d'ouverture conseillé et prérequis : `deploiement.md`, étape 6.

@@ -9,7 +9,7 @@
  * Présentation : quatre étapes numérotées (patient, prestation et ressource, jour et créneau, note et
  * confirmation), la pastille d'une étape remplie devient une coche ; créneaux libres en pastilles.
  */
-import { computed, ref, shallowRef } from 'vue'
+import { computed, ref, shallowRef, watch } from 'vue'
 import { useRoute } from 'vue-router'
 
 import { clinicToday, formatDayFr, formatInstantFr, formatTimeFr } from '@/app/clinicTime'
@@ -17,7 +17,7 @@ import { getAgendaConfiguration, listAvailableSlots } from '@/app/services/agend
 import type { MutationOutcome } from '@/app/services/mutations'
 import { getPatient, searchPatients } from '@/app/services/patients'
 import { useMutation } from '@/app/services/useMutation'
-import { revalidateSession } from '@/app/session'
+import { canOnScreen, moduleOpenOnScreen, revalidateSession } from '@/app/session'
 import SlotOption from '@/components/agenda/SlotOption.vue'
 import StepCard from '@/components/agenda/StepCard.vue'
 import StateMessage from '@/components/feedback/StateMessage.vue'
@@ -48,7 +48,24 @@ const saving = computed(() => mutation.state.value === 'saving')
 
 const queryPatient = typeof route.query['patient'] === 'string' ? route.query['patient'] : null
 const queryFollowUp = typeof route.query['suivi'] === 'string' ? route.query['suivi'] : null
+const queryDay = typeof route.query['jour'] === 'string' ? route.query['jour'] : null
+const queryResource = typeof route.query['ressource'] === 'string' ? route.query['ressource'] : null
+const queryService =
+  typeof route.query['prestation'] === 'string' ? route.query['prestation'] : null
 const followUpId = queryFollowUp !== null && isUlid(queryFollowUp) ? queryFollowUp : null
+const requestedResourceId = queryResource !== null && isUlid(queryResource) ? queryResource : null
+const requestedServiceId = queryService !== null && isUlid(queryService) ? queryService : null
+const initialDay = ((): string => {
+  if (queryDay !== null) {
+    try {
+      const parsed = CivilDate.parse(queryDay)
+      if (parsed !== null) return parsed.toString()
+    } catch {
+      // Date invalide dans l'adresse ignorée au profit du jour civil du cabinet.
+    }
+  }
+  return clinicToday().toString()
+})()
 
 // --- Patient ---------------------------------------------------------------------------------------
 const patient = shallowRef<ChosenPatient | null>(null)
@@ -56,6 +73,13 @@ const patientError = ref<string | null>(null)
 const search = ref('')
 const results = shallowRef<ChosenPatient[]>([])
 const searching = ref(false)
+const canCreatePatient = computed(
+  () => canOnScreen('patient.create') && moduleOpenOnScreen('patients'),
+)
+const canOpenPatient = computed(() => canOnScreen('patient.read') && moduleOpenOnScreen('patients'))
+const canRegisterArrival = computed(
+  () => canOnScreen('visit.register') && moduleOpenOnScreen('today'),
+)
 
 if (queryPatient !== null && isUlid(queryPatient)) {
   void getPatient(queryPatient)
@@ -100,13 +124,18 @@ async function runSearch(): Promise<void> {
 const configuration = useServerRead<AgendaConfiguration>(() => getAgendaConfiguration())
 const serviceId = ref<string | null>(null)
 const resourceId = ref<string | null>(null)
-const day = ref<string | null>(clinicToday().toString())
+const day = ref<string | null>(initialDay)
 const slots = shallowRef<AvailableSlots | null>(null)
 const slotsState = ref<'idle' | 'loading' | 'ready' | 'failed'>('idle')
 const chosenSlot = ref<string | null>(null)
 const reason = ref('')
 const formError = ref<string | null>(null)
-const confirmed = ref<string | null>(null)
+const confirmed = ref<{
+  label: string
+  appointmentId: string
+  patientId: string
+  day: string
+} | null>(null)
 
 const serviceOptions = computed(() =>
   (configuration.data.value?.services ?? [])
@@ -132,6 +161,46 @@ const noConfiguration = computed(
     (serviceOptions.value.length === 0 || resourceOptions.value.length === 0),
 )
 
+watch(
+  () => configuration.data.value,
+  (loaded) => {
+    if (loaded === null) return
+    let autoChosen = false
+    if (serviceId.value === null) {
+      const fromUrl =
+        requestedServiceId !== null &&
+        serviceOptions.value.some((option) => option.value === requestedServiceId)
+          ? requestedServiceId
+          : null
+      if (fromUrl !== null) {
+        serviceId.value = fromUrl
+        autoChosen = true
+      } else if (serviceOptions.value.length === 1) {
+        serviceId.value = serviceOptions.value[0]!.value
+        autoChosen = true
+      }
+    }
+    if (resourceId.value === null) {
+      const fromUrl =
+        requestedResourceId !== null &&
+        resourceOptions.value.some((option) => option.value === requestedResourceId)
+          ? requestedResourceId
+          : null
+      if (fromUrl !== null) {
+        resourceId.value = fromUrl
+        autoChosen = true
+      } else if (resourceOptions.value.length === 1) {
+        resourceId.value = resourceOptions.value[0]!.value
+        autoChosen = true
+      }
+    }
+    if (autoChosen && serviceId.value !== null && resourceId.value !== null) {
+      void loadSlots()
+    }
+  },
+  { immediate: true },
+)
+
 async function loadSlots(): Promise<void> {
   slots.value = null
   chosenSlot.value = null
@@ -154,10 +223,13 @@ async function loadSlots(): Promise<void> {
   }
 }
 
-async function afterOutcome(outcome: MutationOutcome, label: string): Promise<void> {
+async function afterOutcome(
+  outcome: MutationOutcome,
+  details: { label: string; appointmentId: string; patientId: string; day: string },
+): Promise<void> {
   switch (outcome.kind) {
     case 'synced':
-      confirmed.value = label
+      confirmed.value = details
       return
     case 'refused':
       if (outcome.error.code === 'SLOT_UNAVAILABLE' || outcome.error.status === 409) {
@@ -192,11 +264,13 @@ async function submit(): Promise<void> {
   }
   const note = reason.value.trim()
   const label = `${patient.value.name}, ${formatInstantFr(slot.starts_at)}`
+  const appointmentId = mutation.effectId('appointment_id')
+  const chosenDay = slots.value?.date ?? day.value ?? clinicToday().toString()
   await afterOutcome(
     await mutation.submit({
       name: 'CreateAppointment',
       payload: {
-        appointment_id: mutation.effectId('appointment_id'),
+        appointment_id: appointmentId,
         patient_id: patient.value.id,
         prospect_contact_id: null,
         follow_up_id: followUpId,
@@ -207,7 +281,7 @@ async function submit(): Promise<void> {
         administrative_reason: note === '' ? null : note,
       },
     }),
-    label,
+    { label, appointmentId, patientId: patient.value.id, day: chosenDay },
   )
 }
 
@@ -227,19 +301,41 @@ function another(): void {
       title="Nouveau rendez-vous"
       icon="calendar-plus"
       subtitle="Choisissez le patient, la prestation et la ressource, puis un créneau libre lu sur le serveur."
-      :back="{ to: { name: 'agenda' }, label: 'Retour à l’agenda' }"
+      :back="{
+        to: { name: 'agenda', ...(day ? { query: { jour: day } } : {}) },
+        label: 'Retour à l’agenda',
+      }"
     />
 
     <StateMessage
       v-if="confirmed"
       state="success"
-      :title="`Rendez-vous confirmé par le serveur : ${confirmed}`"
+      :title="`Rendez-vous confirmé par le serveur : ${confirmed.label}`"
     >
       <template #action>
         <div class="flex flex-wrap gap-3">
-          <LinkButton :to="{ name: 'agenda' }" variant="primary">
+          <LinkButton :to="{ name: 'agenda', query: { jour: confirmed.day } }" variant="primary">
             <AppIcon name="agenda" />
             Voir l’agenda
+          </LinkButton>
+          <LinkButton
+            v-if="canRegisterArrival && confirmed.day === clinicToday().toString()"
+            :to="{
+              name: 'arrivee',
+              query: { patient: confirmed.patientId, 'rendez-vous': confirmed.appointmentId },
+            }"
+            variant="secondary"
+          >
+            <AppIcon name="arrival" />
+            Enregistrer l’arrivée
+          </LinkButton>
+          <LinkButton
+            v-if="canOpenPatient"
+            :to="{ name: 'patient', params: { id: confirmed.patientId } }"
+            variant="secondary"
+          >
+            <AppIcon name="user" />
+            Ouvrir la fiche du patient
           </LinkButton>
           <AppButton variant="secondary" @click="another">
             <AppIcon name="plus" />
@@ -317,6 +413,15 @@ function another(): void {
                 </AppButton>
               </li>
             </ul>
+            <div
+              v-if="canCreatePatient"
+              class="flex flex-wrap items-center gap-2 text-sm text-muted"
+            >
+              <span>Le patient n’a pas encore de dossier ?</span>
+              <LinkButton :to="{ name: 'patient-nouveau' }" variant="ghost">
+                Créer une fiche patient
+              </LinkButton>
+            </div>
           </template>
           <p
             v-if="patientError"

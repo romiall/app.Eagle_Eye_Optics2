@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { computed, reactive, ref, watch } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
 import { ApiError, NetworkUnavailable } from '@/app/api'
 import { formatInstantFr } from '@/app/clinicTime'
+import { getAgendaConfiguration } from '@/app/services/agenda'
 import {
   getCrmConversation,
   listAssistantRuns,
@@ -14,6 +15,7 @@ import {
   resumeConversationBot,
   runAssistantTurn,
 } from '@/app/services/communication'
+import { canOnScreen, moduleOpenOnScreen } from '@/app/session'
 import ReadNotice from '@/components/feedback/ReadNotice.vue'
 import StateMessage from '@/components/feedback/StateMessage.vue'
 import CheckboxField from '@/components/form/CheckboxField.vue'
@@ -63,6 +65,22 @@ const conversationsRead = useServerRead(
 const selectedConversation = ref<CrmConversation | null>(null)
 const handoffs = ref<ConversationHandoff[]>([])
 const assistantRuns = ref<AssistantRun[]>([])
+const agendaServiceOptions = ref<{ value: string; label: string }[]>([])
+
+onMounted(async () => {
+  if (!canOnScreen('agenda.read') || !moduleOpenOnScreen('agenda')) return
+  try {
+    const config = await getAgendaConfiguration()
+    agendaServiceOptions.value = config.data.services
+      .filter((service) => service.active)
+      .map((service) => ({
+        value: service.id,
+        label: `${service.name} (${service.duration_minutes} min)`,
+      }))
+  } catch {
+    agendaServiceOptions.value = []
+  }
+})
 const detailLoading = ref(false)
 const detailError = ref<string | null>(null)
 
@@ -423,7 +441,16 @@ async function submitResumeBot(): Promise<void> {
                 :rows="3"
                 required
               />
+              <SelectField
+                v-if="agendaServiceOptions.length > 0"
+                :model-value="turnForm.serviceId || null"
+                label="Prestation proposée (facultatif)"
+                placeholder="Aucune prestation précise"
+                :options="agendaServiceOptions"
+                @update:model-value="(val) => (turnForm.serviceId = val ?? '')"
+              />
               <TextField
+                v-else
                 v-model="turnForm.serviceId"
                 label="ULID de prestation (facultatif)"
                 placeholder="01J..."
@@ -570,9 +597,14 @@ async function submitResumeBot(): Promise<void> {
                         : 'aucune'
                     }}
                   </span>
-                  <code v-if="run.sanitized_tool_results.length > 0" class="block text-xs">
-                    {{ JSON.stringify(run.sanitized_tool_results) }}
-                  </code>
+                  <details v-if="run.sanitized_tool_results.length > 0" class="mt-1 text-xs">
+                    <summary class="cursor-pointer text-primary hover:underline">
+                      Détails techniques ({{ run.sanitized_tool_results.length }})
+                    </summary>
+                    <code class="mt-1 block break-all">
+                      {{ JSON.stringify(run.sanitized_tool_results) }}
+                    </code>
+                  </details>
                 </td>
                 <td>{{ run.input_tokens ?? 0 }} / {{ run.output_tokens ?? 0 }}</td>
               </tr>

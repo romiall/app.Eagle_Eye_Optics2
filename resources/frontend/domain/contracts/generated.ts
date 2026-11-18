@@ -11457,7 +11457,7 @@ export interface AppointmentResponse {
 data: Appointment
 }
 /**
- * Rendez-vous d'une période de jours civils du cabinet (31 jours au plus), du plus tôt au plus tard.
+ * Rendez-vous d'une période de jours civils du cabinet (45 jours au plus), du plus tôt au plus tard.
  */
 export interface AppointmentList {
 /**

@@ -134,12 +134,13 @@ final class PatientActivityTest extends TestCase
         $items = (array) $response->json('data');
         // Visite : motif et statut administratifs, aucun écran de visite.
         $this->assertSame(['type' => 'VISIT', 'id' => $ids['v2'], 'occurred_at' => '2026-10-15T10:00:00.000Z', 'screen_path' => null, 'reason' => 'PICKUP', 'status' => 'ARRIVED'], $items[0]);
-        // Prescription externe : pas de consultation, donc pas d'écran.
+        // Prescription externe : ouvre l'onglet Prescriptions du dossier patient.
         $this->assertSame('EXTERNAL', $items[1]['origin']);
         $this->assertSame('DRAFT', $items[1]['status']);
         $this->assertSame('2026-09-30', $items[1]['external_prescribed_on']);
-        $this->assertNull($items[1]['screen_path']);
+        $this->assertSame('/patients/'.$this->patientId.'/prescriptions', $items[1]['screen_path']);
         // Reçu : numéro, montant, mode, facture d'origine ; jamais la référence du paiement.
+        $this->assertSame('/ventes/factures/'.$ids['i1'], $items[2]['screen_path']);
         $this->assertSame($ids['r1_number'], $items[2]['number']);
         $this->assertSame(20000, $items[2]['amount']);
         $this->assertSame('MTN_MOMO', $items[2]['method']);
@@ -148,7 +149,7 @@ final class PatientActivityTest extends TestCase
         $this->assertSame($ids['i1_number'], $items[2]['invoice_number']);
         // Facture : solde issu de la projection, jamais un statut « payé ».
         $this->assertSame([
-            'type' => 'INVOICE', 'id' => $ids['i1'], 'occurred_at' => '2026-10-01T09:00:00.000Z', 'screen_path' => null,
+            'type' => 'INVOICE', 'id' => $ids['i1'], 'occurred_at' => '2026-10-01T09:00:00.000Z', 'screen_path' => '/ventes/factures/'.$ids['i1'],
             'number' => $ids['i1_number'], 'origin' => 'NATIVE', 'total_gross' => 50000, 'paid_net' => 20000,
             'balance_due' => 30000, 'credit_available' => 0, 'settlement' => 'PARTIALLY_PAID',
         ], $items[3]);

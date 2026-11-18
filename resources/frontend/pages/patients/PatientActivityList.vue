@@ -19,7 +19,7 @@
  * dans les détails.
  */
 import { computed, nextTick, ref, watch } from 'vue'
-import { RouterLink, useRouter } from 'vue-router'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 
 import { clinicTimeZone, formatInstantFr } from '@/app/clinicTime'
 import { type ActivitySectionCode, listPatientActivity } from '@/app/services/patients'
@@ -52,11 +52,28 @@ import { usePatientRead } from './usePatientRead'
 
 const props = defineProps<{ patientId: string }>()
 
+const route = useRoute()
 const router = useRouter()
 const timeZone = clinicTimeZone()
 
+function initialSection(): ActivitySectionCode | null {
+  const raw = route.query['section']
+  if (raw === 'VISITS') return 'VISITS'
+  if (
+    (raw === 'EXAMS' || raw === 'PRESCRIPTIONS') &&
+    canAny(['clinical.read']) &&
+    enabledModules.value.includes('consultations')
+  ) {
+    return raw
+  }
+  if (raw === 'FINANCIAL' && canAny(['invoice.read']) && enabledModules.value.includes('sales')) {
+    return raw
+  }
+  return null
+}
+
 /** Filtre affiché (null : toutes les sections visibles) et page demandée. */
-const section = ref<ActivitySectionCode | null>(null)
+const section = ref<ActivitySectionCode | null>(initialSection())
 const page = ref(1)
 const heading = ref<HTMLElement | null>(null)
 const focusOnLoad = ref(false)

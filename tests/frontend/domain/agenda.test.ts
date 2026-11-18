@@ -6,6 +6,7 @@ import {
   canRegisterArrival,
   groupByDay,
   isChangeable,
+  monthGridWeeks,
   NEXT_STATUSES,
   nextAttemptAllowed,
   nextAttemptRequired,
@@ -68,6 +69,19 @@ describe('jours affichés', () => {
     expect(shownDays(day('2026-10-22'), 'day').map((entry) => entry.toString())).toEqual([
       '2026-10-22',
     ])
+  })
+
+  it('le calendrier mensuel couvre des semaines complètes du lundi au dimanche', () => {
+    // Octobre 2026 commence un jeudi (1er = jeudi -> 28 sept.) et finit un samedi (31 = samedi -> 1er nov.).
+    const weeks = monthGridWeeks(day('2026-10-15'))
+    expect(weeks).toHaveLength(5)
+    expect(weeks[0]?.[0]?.day.toString()).toBe('2026-09-28')
+    expect(weeks[0]?.[0]?.inMonth).toBe(false)
+    expect(weeks[0]?.[3]?.day.toString()).toBe('2026-10-01')
+    expect(weeks[0]?.[3]?.inMonth).toBe(true)
+    expect(weeks[4]?.[6]?.day.toString()).toBe('2026-11-01')
+    expect(weeks[4]?.[6]?.inMonth).toBe(false)
+    expect(shownDays(day('2026-10-15'), 'month')).toHaveLength(35)
   })
 
   it('un rendez-vous appartient au jour civil du cabinet, pas au jour UTC', () => {

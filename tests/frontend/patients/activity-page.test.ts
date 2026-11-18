@@ -358,6 +358,70 @@ describe('onglet « Activité » du dossier patient', () => {
     cashier.unmount()
   })
 
+  it('applique le filtre initial ?section=EXAMS et ouvre les pièces financières et ordonnances externes selon screen_path', async () => {
+    const sections = sectionsOf({ VISITS: 1, EXAMS: 1, PRESCRIPTIONS: 1, FINANCIAL: 2 })
+    const externalPrescription = prescriptionItem({
+      origin: 'EXTERNAL',
+      screen_path: `/patients/${ID_A}/prescriptions`,
+      consultation_id: null,
+    })
+    const linkedInvoice = invoiceItem({
+      screen_path: '/ventes/factures/01J9ZXK4M2Q8R7S6T5V4W30601',
+    })
+    const linkedReceipt = receiptItem({
+      screen_path: '/ventes/factures/01J9ZXK4M2Q8R7S6T5V4W30601',
+    })
+
+    const api = stubPatientsApi({
+      permissions: MANAGER_READ,
+      handlers: {
+        get: () => json(200, { data: patient() }),
+        activity: (_id, section) =>
+          json(
+            200,
+            activityOf([consultationItem()], sections, {
+              section: section === 'EXAMS' ? 'EXAMS' : null,
+            }),
+          ),
+      },
+    })
+    const filtered = await openApp(`/patients/${ID_A}/activite?section=EXAMS`)
+    expect(callsTo(api, 'GET', ACTIVITY).at(-1)?.query.get('section')).toBe('EXAMS')
+    expect(chips(filtered.root).find((chip) => chip.pressed === 'true')?.text).toBe('Examens (1)')
+    filtered.unmount()
+    resetEverything()
+
+    stubPatientsApi({
+      permissions: MANAGER_READ,
+      handlers: {
+        get: () => json(200, { data: patient() }),
+        activity: () =>
+          json(200, activityOf([linkedReceipt, linkedInvoice, externalPrescription], sections)),
+      },
+    })
+    const opened = await openApp(`/patients/${ID_A}/activite`)
+    const invoiceLinks = opened.root.querySelectorAll(
+      'a[href="/ventes/factures/01J9ZXK4M2Q8R7S6T5V4W30601"]',
+    )
+    expect(invoiceLinks).toHaveLength(2)
+    expect(linkTo(opened.root, `/patients/${ID_A}/prescriptions`)).not.toBeNull()
+    opened.unmount()
+    resetEverything()
+
+    // Module « sales » fermé : la facture reste listée sans lien cliquable.
+    stubPatientsApi({
+      permissions: MANAGER_READ,
+      modules: ['patients', 'consultations'],
+      handlers: {
+        get: () => json(200, { data: patient() }),
+        activity: () => json(200, activityOf([linkedInvoice], sections)),
+      },
+    })
+    const noSales = await openApp(`/patients/${ID_A}/activite`)
+    expect(items(noSales.root)[0]?.querySelector('a')).toBeNull()
+    noSales.unmount()
+  })
+
   it('ne dit jamais « payé » : solde projeté, contre-passation et crédit à rembourser', async () => {
     stubPatientsApi({
       permissions: CASHIER_READ,

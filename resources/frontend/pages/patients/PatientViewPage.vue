@@ -32,6 +32,7 @@ import { formatAge, patientAge, sexLabel } from '@/domain/patients/identity'
 
 import ExportRecordButton from './ExportRecordButton.vue'
 import { takeFlash } from './flash'
+import PatientHeaderActions from './PatientHeaderActions.vue'
 import PatientRecordTabs from './PatientRecordTabs.vue'
 import ReadStateMessage from './ReadStateMessage.vue'
 import { usePatientRead } from './usePatientRead'
@@ -56,26 +57,6 @@ watch(id, () => void read.reload())
 
 /** Fiche lue pour CET identifiant : une lecture précédente ne s'affiche jamais à sa place. */
 const patient = computed(() => (read.data.value?.id === id.value ? read.data.value : null))
-const canEdit = computed(
-  () =>
-    can('patient.update') &&
-    patient.value !== null &&
-    !patient.value.archived &&
-    patient.value.merged_into_patient_id === null,
-)
-/**
- * « Enregistrer une arrivée » (P03) : avec le droit visit.register, quand le module « today » est
- * ouvert, et seulement pour une fiche vivante (ni archivée ni fusionnée : le serveur la refuserait).
- */
-const canRegisterArrival = computed(
-  () =>
-    !localSession.value &&
-    can('visit.register') &&
-    enabledModules.value.includes('today') &&
-    patient.value !== null &&
-    !patient.value.archived &&
-    patient.value.merged_into_patient_id === null,
-)
 
 /**
  * « Fusionner avec une autre fiche » (L1D08) : gérante (patient.merge), fiche vivante. Ouvre l'aperçu, rien
@@ -102,17 +83,29 @@ const canExportRecord = computed(
     patient.value !== null,
 )
 
-/**
- * « Créer une facture » (B02) : avec invoice.create ou exam_fee.collect, module « sales » ouvert, pour
- * une fiche vivante. Le patient est présélectionné par son identifiant opaque : rien n'est ressaisi.
- */
-const canInvoice = computed(
+const canClinicalLinks = computed(
   () =>
-    (can('invoice.create') || can('exam_fee.collect')) &&
+    !localSession.value &&
+    can('clinical.read') &&
+    enabledModules.value.includes('consultations') &&
+    patient.value !== null,
+)
+const canSalesLinks = computed(
+  () =>
+    !localSession.value &&
+    can('invoice.read') &&
     enabledModules.value.includes('sales') &&
-    patient.value !== null &&
-    !patient.value.archived &&
-    patient.value.merged_into_patient_id === null,
+    patient.value !== null,
+)
+const canWorkshopLinks = computed(
+  () =>
+    !localSession.value &&
+    can('workshop.manage') &&
+    enabledModules.value.includes('workshop') &&
+    patient.value !== null,
+)
+const hasQuickLinks = computed(
+  () => canClinicalLinks.value || canSalesLinks.value || canWorkshopLinks.value,
 )
 
 const age = computed(() =>
@@ -142,25 +135,8 @@ const STRONG = 'font-semibold tabular-nums'
 
     <template v-if="patient">
       <PatientRecordHeader :patient="patient" title-id="titre-fiche" :back="BACK">
-        <template v-if="canRegisterArrival || canInvoice || canEdit" #actions>
-          <LinkButton
-            v-if="canRegisterArrival"
-            :to="{ name: 'arrivee', query: { patient: patient.id } }"
-            variant="secondary"
-            ><AppIcon name="arrival" :size="18" />Enregistrer une arrivée</LinkButton
-          >
-          <LinkButton
-            v-if="canInvoice"
-            :to="{ name: 'facture-nouvelle', query: { patient: patient.id } }"
-            variant="secondary"
-            ><AppIcon name="file-plus" :size="18" />Créer une facture</LinkButton
-          >
-          <LinkButton
-            v-if="canEdit"
-            :to="{ name: 'patient-modifier', params: { id: patient.id } }"
-            variant="primary"
-            ><AppIcon name="edit" :size="18" />Modifier</LinkButton
-          >
+        <template #actions>
+          <PatientHeaderActions :patient="patient" />
         </template>
       </PatientRecordHeader>
 
@@ -305,6 +281,74 @@ const STRONG = 'font-semibold tabular-nums'
                 variant="ghost"
                 ><AppIcon name="merge" :size="18" />Fusionner avec une autre fiche</LinkButton
               >
+            </div>
+          </SectionCard>
+
+          <SectionCard
+            v-if="hasQuickLinks"
+            title="Accès directs du dossier"
+            title-id="fiche-acces-directs"
+            icon="history"
+            class="lg:col-span-2"
+            description="Consultez directement les étapes liées à ce patient sans repasser par le menu."
+          >
+            <div class="flex flex-wrap gap-3">
+              <LinkButton
+                v-if="canClinicalLinks"
+                :to="{
+                  name: 'patient-activite',
+                  params: { id: patient.id },
+                  query: { section: 'EXAMS' },
+                }"
+                variant="secondary"
+              >
+                <AppIcon name="eye" :size="18" />
+                Consultations récentes
+              </LinkButton>
+              <LinkButton
+                v-if="canClinicalLinks"
+                :to="{
+                  name: 'patient-activite',
+                  params: { id: patient.id },
+                  query: { section: 'PRESCRIPTIONS' },
+                }"
+                variant="secondary"
+              >
+                <AppIcon name="glasses" :size="18" />
+                Ordonnances du cabinet
+              </LinkButton>
+              <LinkButton
+                v-if="canClinicalLinks"
+                :to="{ name: 'patient-prescriptions', params: { id: patient.id } }"
+                variant="secondary"
+              >
+                <AppIcon name="clipboard" :size="18" />
+                Ordonnances externes
+              </LinkButton>
+              <LinkButton
+                v-if="canSalesLinks"
+                :to="{ name: 'factures', query: { patient: patient.id } }"
+                variant="secondary"
+              >
+                <AppIcon name="file" :size="18" />
+                Factures du patient
+              </LinkButton>
+              <LinkButton
+                v-if="canSalesLinks"
+                :to="{ name: 'devis', query: { patient: patient.id } }"
+                variant="secondary"
+              >
+                <AppIcon name="clipboard" :size="18" />
+                Devis du patient
+              </LinkButton>
+              <LinkButton
+                v-if="canWorkshopLinks"
+                :to="{ name: 'workshop', query: { patient: patient.id } }"
+                variant="secondary"
+              >
+                <AppIcon name="workshop" :size="18" />
+                Commandes atelier
+              </LinkButton>
             </div>
           </SectionCard>
         </div>

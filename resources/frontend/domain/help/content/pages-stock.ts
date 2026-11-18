@@ -395,6 +395,18 @@ export const PAGES_STOCK: readonly PageHelp[] = [
     tips: [
       'Décochez « Fournisseur actif (décochez pour le désactiver) » en modification si le partenariat s’arrête.',
     ],
+    problems: [
+      {
+        symptom: 'Le fournisseur n’apparaît pas lors d’une réception ou commande.',
+        remedy:
+          'Créez sa fiche sur cet écran ou cliquez sur « Réactiver » s’il avait été désactivé.',
+      },
+      {
+        symptom: 'Un fournisseur ne peut pas être supprimé.',
+        remedy:
+          'Un fournisseur déjà utilisé reste conservé pour l’historique : utilisez « Désactiver » pour ne plus le proposer.',
+      },
+    ],
     terms: ['Catalogue'],
   },
   {
@@ -451,6 +463,18 @@ export const PAGES_STOCK: readonly PageHelp[] = [
       },
     ],
     tips: ['Vous pouvez supprimer un brouillon tant qu’il n’est pas validé.'],
+    problems: [
+      {
+        symptom: 'Le fournisseur de la livraison manque dans le choix.',
+        remedy:
+          'Ouvrez d’abord « Fournisseurs » pour créer sa fiche, puis revenez cliquer sur « Nouvelle réception ».',
+      },
+      {
+        symptom: 'Une réception déjà validée contient une erreur.',
+        remedy:
+          'Une réception validée reste figée : passez par « Casse ou ajustement » ou par un inventaire pour corriger le stock.',
+      },
+    ],
     terms: ['Brouillon', 'Stock physique', 'Lot'],
   },
   {
@@ -512,6 +536,18 @@ export const PAGES_STOCK: readonly PageHelp[] = [
       },
     ],
     tips: ['Ajoutez « Remarques (facultatif) » pour noter un colis incomplet ou une réserve.'],
+    problems: [
+      {
+        symptom: 'Un article ou un fournisseur n’apparaît pas dans les listes.',
+        remedy:
+          'Seuls les fournisseurs actifs et les articles gérés en stock au catalogue sont proposés.',
+      },
+      {
+        symptom: 'Vous devez interrompre la saisie avant de valider.',
+        remedy:
+          'Cliquez sur « Enregistrer le brouillon » : rien n’entre encore en stock et vous reprendrez plus tard.',
+      },
+    ],
     terms: ['Brouillon', 'Stock physique', 'Lot'],
   },
   {
@@ -586,6 +622,18 @@ export const PAGES_STOCK: readonly PageHelp[] = [
     tips: [
       'En cas d’incident de saisie après validation, ajustez l’écart depuis « Casse ou ajustement » ou par inventaire.',
     ],
+    problems: [
+      {
+        symptom: 'La validation refuse d’enregistrer une ligne.',
+        remedy:
+          'Pour chaque article suivi par lots, remplissez « Numéro de lot » et « Date d’expiration » après « Passer à la validation ».',
+      },
+      {
+        symptom: 'La validation finale semble bloquée.',
+        remedy:
+          'Saisissez votre mot de passe si l’écran demande « Confirmer mon mot de passe », puis cliquez sur « Valider la réception ».',
+      },
+    ],
     terms: ['Brouillon', 'Stock physique', 'Lot'],
   },
   {
@@ -629,6 +677,18 @@ export const PAGES_STOCK: readonly PageHelp[] = [
       },
     ],
     tips: ['Donnez une référence datée claire à chaque inventaire pour le retrouver facilement.'],
+    problems: [
+      {
+        symptom: 'Vous venez de créer l’inventaire et ne voyez pas les lignes.',
+        remedy:
+          'Cliquez sur « Ouvrir l’inventaire » sur la ligne créée pour commencer le comptage.',
+      },
+      {
+        symptom: 'Un inventaire terminé ne met pas encore le stock à jour.',
+        remedy:
+          'Seule la gérante peut ouvrir l’inventaire terminé pour appliquer les écarts définitifs.',
+      },
+    ],
     terms: ['Stock physique', 'Stock disponible'],
   },
   {
@@ -698,6 +758,18 @@ export const PAGES_STOCK: readonly PageHelp[] = [
     tips: [
       'Confirmez votre mot de passe si l’écran vous invite à cliquer sur « Confirmer mon mot de passe ».',
     ],
+    problems: [
+      {
+        symptom: '« Terminer le comptage » est refusé.',
+        remedy:
+          'Chaque article dont la « Quantité trouvée » diffère de l’attendu exige un « Motif de l’écart » rempli.',
+      },
+      {
+        symptom: '« Valider l’inventaire » reste sans effet.',
+        remedy:
+          'La gérante doit renseigner « Motif de l’approbation » et, si demandé, « Confirmer mon mot de passe ».',
+      },
+    ],
     terms: ['Stock physique', 'Stock réservé', 'Approbation'],
   },
   {
@@ -763,6 +835,18 @@ export const PAGES_STOCK: readonly PageHelp[] = [
     tips: [
       'Les seuils de stock bas et les délais d’alerte de péremption se règlent sur chaque fiche article du catalogue.',
     ],
+    problems: [
+      {
+        symptom: 'Un article manque en rayon sans déclencher d’alerte.',
+        remedy:
+          'Réglez le seuil d’alerte de cet article dans le catalogue, puis cliquez sur « Actualiser les alertes ».',
+      },
+      {
+        symptom: 'Vous voulez comprendre pourquoi le stock a baissé.',
+        remedy:
+          'Cliquez sur le lien « Historique des mouvements » de l’alerte pour voir toutes les entrées et sorties de cet article.',
+      },
+    ],
     terms: ['Stock physique', 'Stock réservé', 'Stock disponible', 'Lot'],
   },
   {
@@ -822,6 +906,18 @@ export const PAGES_STOCK: readonly PageHelp[] = [
     ],
     tips: [
       'Depuis l’écran « Stock », « Historique des mouvements » ouvre directement l’article de la carte.',
+    ],
+    problems: [
+      {
+        symptom: 'Aucun mouvement n’apparaît pour l’article choisi.',
+        remedy:
+          'Réinitialisez les filtres « Type de mouvement » et « Emplacement » pour afficher tout l’historique de l’article.',
+      },
+      {
+        symptom: 'Le disponible diffère de ce qui est en rayon.',
+        remedy:
+          'Vérifiez s’il reste du stock réservé ou cliquez sur « Retour au stock » pour comparer les emplacements.',
+      },
     ],
     terms: ['Stock physique', 'Lot'],
   },

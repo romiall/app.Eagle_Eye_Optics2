@@ -518,6 +518,27 @@ function handleCampaignError(failure: unknown, title: string): void {
   }
   throw failure
 }
+
+const CRITERIA_LABELS: Readonly<Record<string, string>> = {
+  city_or_area: 'Ville / quartier',
+  origin: 'Origine',
+  has_upcoming_appointment: 'Avec rendez-vous à venir',
+  has_pending_quote: 'Avec devis en attente',
+  visit_after: 'Visite depuis le',
+  visit_before: 'Visite jusqu’au',
+}
+
+function formatSegmentCriteria(criteria: Record<string, unknown>): string[] {
+  const entries = Object.entries(criteria).filter(
+    ([, val]) => val !== null && val !== undefined && val !== '',
+  )
+  if (entries.length === 0) return ['Tous les contacts administratifs']
+  return entries.map(([key, val]) => {
+    const label = CRITERIA_LABELS[key] ?? key
+    const formatted = typeof val === 'boolean' ? (val ? 'Oui' : 'Non') : String(val)
+    return `${label} : ${formatted}`
+  })
+}
 </script>
 
 <template>
@@ -570,7 +591,11 @@ function handleCampaignError(failure: unknown, title: string): void {
               <tr v-for="segment in segments" :key="segment.id">
                 <th scope="row">{{ segment.name }}</th>
                 <td>
-                  <code>{{ JSON.stringify(segment.criteria) }}</code>
+                  <ul class="space-y-0.5 text-sm">
+                    <li v-for="line in formatSegmentCriteria(segment.criteria)" :key="line">
+                      {{ line }}
+                    </li>
+                  </ul>
                 </td>
                 <td>
                   {{ formatInstantFr(segment.updated_at) }}
