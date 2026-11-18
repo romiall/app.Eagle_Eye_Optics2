@@ -535,3 +535,76 @@ describe('poste préparé : relecture vérifiée et état d’enregistrement exa
     unmount()
   })
 })
+
+describe('sélecteur du catalogue dans la facture : liste au clic et déroulement complet', () => {
+  it('ouvre la liste des articles actifs dès le clic dans le champ vide (multi-pages inclus) et referme après sélection', async () => {
+    const page1 = Array.from({ length: 25 }, (_, i) =>
+      catalogItem({
+        id: `01ITEMPAGE10000000000000${String(i).padStart(2, '0')}`,
+        reference: `REF-${String(i + 1).padStart(2, '0')}`,
+        name: `Article ${String(i + 1).padStart(2, '0')}`,
+        sale_price: 3000 + i * 100,
+      }),
+    )
+    const consultItem = catalogItem({
+      id: '01ITEMCONSULT0000000000001',
+      reference: 'SRV-CONSULT',
+      name: 'Consultation',
+      category_code: 'SERVICE',
+      unit_code: 'SERVICE',
+      stock_mode: 'NONE',
+      sale_price: 3000,
+    })
+
+    const api = stubSalesApi({ permissions: CASHIER })
+    api.on('GET', /^\/api\/v1\/patients\/([^/]+)$/, () => json(200, { data: salesPatient() }))
+    api.on('GET', /^\/api\/v1\/catalog$/, (request) => {
+      const query = request.query.get('query')
+      const page = Number(request.query.get('page') ?? '1')
+      if (query !== null) {
+        return json(200, {
+          data: [consultItem],
+          meta: { current_page: 1, last_page: 1, per_page: 25, total: 1 },
+        })
+      }
+      if (page === 2) {
+        return json(200, {
+          data: [consultItem],
+          meta: { current_page: 2, last_page: 2, per_page: 25, total: 26 },
+        })
+      }
+      return json(200, {
+        data: page1,
+        meta: { current_page: 1, last_page: 2, per_page: 25, total: 26 },
+      })
+    })
+
+    const { root, unmount } = await openApp(`/ventes/factures/nouvelle?patient=${PATIENT_ID}`)
+    const picker = root.querySelector<HTMLInputElement>('#facture-catalogue')
+    if (picker === null) throw new Error('Champ catalogue introuvable.')
+
+    // Focus/clic avec 0 caractère : affiche aussitôt les 26 articles (pages 1 + 2), déroulables du début à la fin.
+    picker.focus()
+    picker.click()
+    await vi.waitFor(() => expect(root.querySelectorAll('[role="option"]').length).toBe(26))
+    expect(picker.getAttribute('aria-expanded')).toBe('true')
+    expect(root.textContent).toContain('Consultation')
+
+    // Sélection de Consultation (dernier élément de la liste) : ajoute la ligne et referme sans rouvrir aussitôt.
+    const options = [...root.querySelectorAll<HTMLElement>('[role="option"]')]
+    const consultOption = options.find((el) => el.textContent?.includes('Consultation'))
+    if (consultOption === undefined) throw new Error('Option Consultation introuvable.')
+    await click(consultOption)
+
+    expect(picker.value).toBe('')
+    expect(picker.getAttribute('aria-expanded')).toBe('false')
+    expect(textOf(root)).toContain('Consultation')
+    expect(textOf(root)).toContain('3 000 FCFA')
+
+    // Saisie de 2 caractères : filtre toujours par recherche-suggestion.
+    await searchCombobox(root, 'facture-catalogue', 'CO')
+    expect(root.querySelectorAll('[role="option"]').length).toBe(1)
+
+    unmount()
+  })
+})

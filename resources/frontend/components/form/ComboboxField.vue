@@ -51,6 +51,10 @@ const props = withDefaults(
     placeholder?: string | undefined
     controlId?: string | undefined
     unavailableText?: string
+    /** Ouvre la liste et lance `search('')` dès l’entrée dans le champ vide. */
+    browseOnEmpty?: boolean
+    /** Hauteur maximale du `<ul role="listbox">` (classe Tailwind). */
+    listMaxHeightClass?: string
   }>(),
   {
     selectedLabel: null,
@@ -63,6 +67,8 @@ const props = withDefaults(
     placeholder: undefined,
     controlId: undefined,
     unavailableText: 'Recherche indisponible : rien n’est conclu sur l’existence d’un résultat.',
+    browseOnEmpty: false,
+    listMaxHeightClass: 'max-h-72',
   },
 )
 
@@ -72,6 +78,7 @@ const emit = defineEmits<{
 }>()
 
 const listId = `${useId()}-liste`
+const inputRef = ref<HTMLInputElement | null>(null)
 const text = ref(props.selectedLabel ?? '')
 const options = ref<readonly ComboboxOption[]>([])
 const activeIndex = ref(-1)
@@ -80,6 +87,7 @@ const status = ref<SearchStatus>('idle')
 const notice = ref<string | null>(null)
 let timer: ReturnType<typeof setTimeout> | null = null
 let requestNumber = 0
+let suppressFocusOpen = false
 
 watch(
   () => props.selectedLabel,
@@ -98,17 +106,19 @@ const activeDescendant = computed(() =>
 
 const message = computed(() => {
   const query = text.value.trim()
-  if (query.length < props.minLength) return `Saisissez au moins ${props.minLength} caractères.`
+  if (query.length < props.minLength && !(props.browseOnEmpty && query.length === 0)) {
+    return `Saisissez au moins ${props.minLength} caractères.`
+  }
   if (status.value === 'loading') return 'Recherche en cours…'
   if (status.value === 'unavailable') return props.unavailableText
   if (status.value === 'ready') {
     const count = options.value.length
-    const found =
-      count === 0
-        ? notice.value === null
-          ? `Aucun résultat pour « ${query} ».`
-          : 'Aucun résultat sur ce poste.'
-        : `${count} résultat${count > 1 ? 's' : ''} : flèches haut et bas pour parcourir, Entrée pour choisir.`
+    if (count === 0) {
+      if (notice.value !== null) return `${notice.value} Aucun résultat sur ce poste.`
+      return query === '' ? 'Aucun élément disponible.' : `Aucun résultat pour « ${query} ».`
+    }
+    const filterHint = query === '' ? ` (saisissez ${props.minLength} caractères pour filtrer)` : ''
+    const found = `${count} résultat${count > 1 ? 's' : ''}${filterHint} : flèches haut et bas pour parcourir, Entrée pour choisir.`
     return notice.value === null ? found : `${notice.value} ${found}`
   }
   return ''
@@ -149,6 +159,39 @@ async function runSearch(query: string): Promise<void> {
   }
 }
 
+function openBrowse(): void {
+  clearTimer()
+  requestNumber += 1
+  activeIndex.value = -1
+  options.value = []
+  notice.value = null
+  status.value = 'loading'
+  open.value = true
+  void runSearch('')
+}
+
+function reset(opts: { focus?: boolean } = {}): void {
+  clearTimer()
+  requestNumber += 1
+  text.value = ''
+  options.value = []
+  notice.value = null
+  status.value = 'idle'
+  close()
+  if (opts.focus === true) {
+    const element = inputRef.value
+    if (element !== null && document.activeElement !== element) {
+      suppressFocusOpen = true
+      element.focus()
+      queueMicrotask(() => {
+        suppressFocusOpen = false
+      })
+    }
+  }
+}
+
+defineExpose({ reset })
+
 function scheduleSearch(): void {
   clearTimer()
   // Toute réponse encore attendue devient obsolète : seule la dernière saisie compte.
@@ -158,6 +201,12 @@ function scheduleSearch(): void {
   options.value = []
   notice.value = null
   const query = text.value.trim()
+  if (query.length === 0 && props.browseOnEmpty) {
+    status.value = 'loading'
+    open.value = true
+    timer = setTimeout(() => void runSearch(''), props.debounceMs)
+    return
+  }
   if (query.length < props.minLength) {
     status.value = 'idle'
     open.value = query.length > 0
@@ -174,6 +223,22 @@ watch(activeIndex, async (index) => {
   await nextTick()
   document.getElementById(optionId(index))?.scrollIntoView?.({ block: 'nearest' })
 })
+
+function onFocus(): void {
+  if (suppressFocusOpen) {
+    suppressFocusOpen = false
+    return
+  }
+  if (props.browseOnEmpty && !props.disabled && !open.value && text.value.trim() === '') {
+    openBrowse()
+  }
+}
+
+function onClick(): void {
+  if (props.browseOnEmpty && !props.disabled && !open.value && text.value.trim() === '') {
+    openBrowse()
+  }
+}
 
 function onInput(event: Event): void {
   text.value = (event.target as HTMLInputElement).value
@@ -199,9 +264,17 @@ function onKeydown(event: KeyboardEvent): void {
     case 'ArrowDown':
       event.preventDefault()
       if (!open.value) {
-        if (text.value.trim().length >= props.minLength) {
-          open.value = true
-          if (status.value === 'idle') scheduleSearch()
+        const query = text.value.trim()
+        if (query.length >= props.minLength || (props.browseOnEmpty && query.length === 0)) {
+          if (status.value === 'idle') {
+            if (props.browseOnEmpty && query.length === 0) openBrowse()
+            else {
+              open.value = true
+              scheduleSearch()
+            }
+          } else {
+            open.value = true
+          }
         }
         return
       }
@@ -233,6 +306,7 @@ function onKeydown(event: KeyboardEvent): void {
 onBeforeUnmount(() => {
   clearTimer()
   requestNumber += 1
+  suppressFocusOpen = false
 })
 </script>
 
@@ -248,6 +322,7 @@ onBeforeUnmount(() => {
     <div class="relative">
       <input
         :id="id"
+        ref="inputRef"
         :value="text"
         type="text"
         role="combobox"
@@ -262,6 +337,8 @@ onBeforeUnmount(() => {
         :required="props.required"
         :disabled="props.disabled"
         :class="controlClasses(invalid)"
+        @focus="onFocus"
+        @click="onClick"
         @input="onInput"
         @keydown="onKeydown"
         @blur="close"
@@ -270,7 +347,12 @@ onBeforeUnmount(() => {
         v-show="open"
         class="absolute inset-x-0 top-full z-30 mt-1 overflow-hidden rounded-xl border border-line bg-surface shadow-raised"
       >
-        <ul :id="listId" role="listbox" :aria-label="props.label" class="max-h-72 overflow-y-auto">
+        <ul
+          :id="listId"
+          role="listbox"
+          :aria-label="props.label"
+          :class="['overflow-y-auto', props.listMaxHeightClass]"
+        >
           <li
             v-for="(option, index) in options"
             :id="optionId(index)"

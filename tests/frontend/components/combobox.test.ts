@@ -248,3 +248,69 @@ describe('ComboboxField : sélection au clavier (fichier 04)', () => {
     expect(status).not.toContain('Aucun résultat pour')
   })
 })
+
+describe('liste déroulante au clic (browseOnEmpty)', () => {
+  it('ouvre immédiatement la liste complète au focus/clic, garde le filtre à 2 caractères, et reste fermée après reset', async () => {
+    const calls: string[] = []
+    const items: ComboboxOption[] = Array.from({ length: 12 }, (_, index) => ({
+      value: `item-${index}`,
+      label: `Article ${index + 1}`,
+      description: `REF-${index + 1}`,
+    }))
+    const wrapper = mount(ComboboxField, {
+      attachTo: document.body,
+      props: {
+        label: 'Catalogue',
+        modelValue: null,
+        browseOnEmpty: true,
+        listMaxHeightClass: 'max-h-[min(37.5rem,60vh)]',
+        search: async (query: string) => {
+          calls.push(query)
+          if (query === '') return items
+          return items.filter((item) => item.label.toLowerCase().includes(query.toLowerCase()))
+        },
+      },
+    })
+
+    const input = wrapper.get('input')
+    expect(wrapper.get('ul[role="listbox"]').classes()).toContain('max-h-[min(37.5rem,60vh)]')
+
+    // Clic / focus dans le champ vide : ouvre aussitôt sans attendre 200 ms.
+    await input.trigger('focus')
+    await input.trigger('click')
+    await flushPromises()
+    expect(calls).toEqual([''])
+    expect(input.attributes('aria-expanded')).toBe('true')
+    expect(wrapper.findAll('[role="option"]')).toHaveLength(12)
+
+    // 1 caractère : demande au moins 2 caractères et vide les options.
+    await input.setValue('a')
+    await flushPromises()
+    expect(wrapper.findAll('[role="option"]')).toHaveLength(0)
+    expect(wrapper.get('[role="status"]').text()).toContain('Saisissez au moins 2 caractères.')
+
+    // 2 caractères : recherche filtrée avec suggestions.
+    await input.setValue('Article 12')
+    vi.advanceTimersByTime(200)
+    await flushPromises()
+    expect(calls).toEqual(['', 'Article 12'])
+    expect(wrapper.findAll('[role="option"]')).toHaveLength(1)
+    expect(wrapper.get('[role="option"]').text()).toContain('Article 12')
+
+    // Échap ferme la liste ; clic quand le champ est vidé réouvre la liste.
+    await input.trigger('keydown', { key: 'Escape' })
+    expect(input.attributes('aria-expanded')).toBe('false')
+    wrapper.vm.reset({ focus: true })
+    await flushPromises()
+    expect(input.attributes('aria-expanded')).toBe('false')
+    expect(calls).toEqual(['', 'Article 12'])
+
+    await input.trigger('click')
+    await flushPromises()
+    expect(calls).toEqual(['', 'Article 12', ''])
+    expect(input.attributes('aria-expanded')).toBe('true')
+    expect(wrapper.findAll('[role="option"]')).toHaveLength(12)
+
+    wrapper.unmount()
+  })
+})

@@ -314,4 +314,35 @@ test.describe('facturation et encaissement (B02 à B05) sur la vraie application
     await page.goto('/ventes/caisse')
     await expect(page.getByText('Accès refusé').first()).toBeVisible()
   })
+
+  test('le champ produit de la facture déplie la liste au clic avant toute saisie puis filtre à 2 caractères', async ({
+    browser,
+  }) => {
+    const patientPath = await createPatient(browser, 'Menu Produits', '+237 600 00 05 99')
+
+    const context = await browser.newContext()
+    const page = await context.newPage()
+    await signIn(page, 'CASHIER')
+    await page.goto(patientPath)
+    await page.getByRole('link', { name: 'Créer une facture' }).click()
+    await expect(page).toHaveURL(/\/ventes\/factures\/nouvelle\?patient=/)
+
+    const picker = page.getByRole('combobox', { name: 'Ajouter un article du catalogue' })
+    await picker.click()
+    await expect(picker).toHaveAttribute('aria-expanded', 'true')
+    const options = page.getByRole('option')
+    await expect(options.first()).toBeVisible()
+    const initialCount = await options.count()
+    expect(initialCount).toBeGreaterThan(1)
+
+    // Filtrage à deux caractères toujours actif pendant la recherche suggestion.
+    await picker.fill('DEMO-EXA')
+    await expect(page.getByRole('option', { name: /Examen de vue \(fictif\)/ })).toBeVisible()
+    await page.getByRole('option', { name: /Examen de vue \(fictif\)/ }).click()
+    await expect(picker).toHaveAttribute('aria-expanded', 'false')
+    await expect(picker).toHaveValue('')
+    await expect(page.getByRole('main')).toContainText('Total TTC : 15 000 FCFA')
+
+    await context.close()
+  })
 })
