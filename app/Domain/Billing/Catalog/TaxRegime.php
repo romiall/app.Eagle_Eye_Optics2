@@ -39,4 +39,40 @@ final class TaxRegime
             ->keyBy('id')
             ->all();
     }
+
+    /**
+     * Règle fiscale exonérée (0 %) applicable par défaut à une ligne hors catalogue : active et validée par la gérante,
+     * avec priorité au code `EXO`, puis ordre déterministe (validation, identifiant). Aucune règle n'est inventée.
+     */
+    public static function defaultExempt(string $clinicId): ?stdClass
+    {
+        $row = DB::table('tax_rules')
+            ->where('clinic_id', $clinicId)
+            ->where('active', 1)
+            ->where('rate_percent', '0.0000')
+            ->whereNotNull('validated_by')
+            ->whereNotNull('validated_at')
+            ->orderByRaw("CASE WHEN code = 'EXO' THEN 0 ELSE 1 END")
+            ->orderBy('validated_at')
+            ->orderBy('id')
+            ->first();
+
+        return $row instanceof stdClass ? $row : null;
+    }
+
+    /**
+     * Règle exonérée par défaut chargée uniquement si la charge comporte au moins une ligne hors catalogue.
+     *
+     * @param  list<array<string, mixed>>  $payloadLines
+     */
+    public static function defaultExemptForLines(string $clinicId, array $payloadLines): ?stdClass
+    {
+        foreach ($payloadLines as $line) {
+            if (! is_string($line['catalog_item_id'] ?? null)) {
+                return self::defaultExempt($clinicId);
+            }
+        }
+
+        return null;
+    }
 }

@@ -114,6 +114,10 @@ defineExpose({ commit, fieldId })
         ><span aria-hidden="true">⚠ </span>{{ props.errors.description }}</span
       >
     </p>
+    <p v-if="freeLine" class="text-xs text-muted">
+      Produit hors catalogue : exonéré de TVA (0 %) par défaut lorsqu’une règle fiscale à 0 % est
+      validée.
+    </p>
     <p
       v-if="props.errors.catalogItemId"
       :id="fieldId('catalogItemId')"

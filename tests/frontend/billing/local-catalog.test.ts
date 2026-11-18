@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   applicableTaxRule,
   catalogItemOf,
+  defaultExemptTaxRule,
   type LocalCatalog,
   readLocalCatalog,
   searchLocalCatalog,
@@ -220,6 +221,44 @@ describe('recherche dans le catalogue du poste', () => {
     expect(refs('introuvable')).toEqual([])
     // Un article retiré du catalogue n’est plus proposé.
     expect(refs('retirée')).toEqual([])
+  })
+
+  it('retourne la règle EXO à 0 % active et validée par défaut pour le hors catalogue', () => {
+    const base = catalogOf([])
+    expect(defaultExemptTaxRule(base)).toBeNull()
+
+    const withCandidates = {
+      ...base,
+      taxRules: [
+        ...base.taxRules,
+        {
+          id: '01J9ZXK4M2Q8R7S6T5V4W3TX90',
+          code: 'EXO_INACTIVE',
+          rate_percent: '0.0000',
+          active: false,
+          validated_at: '2026-10-18T08:00:00Z',
+          version: 1,
+        },
+        {
+          id: '01J9ZXK4M2Q8R7S6T5V4W3TX91',
+          code: 'ZERO_ALT',
+          rate_percent: '0.0000',
+          active: true,
+          validated_at: '2026-10-19T08:00:00Z',
+          version: 1,
+        },
+        {
+          id: '01J9ZXK4M2Q8R7S6T5V4W3TX92',
+          code: 'EXO',
+          rate_percent: '0.0000',
+          active: true,
+          validated_at: '2026-10-20T08:00:00Z',
+          version: 1,
+        },
+      ],
+    }
+
+    expect(defaultExemptTaxRule(withCandidates)?.id).toBe('01J9ZXK4M2Q8R7S6T5V4W3TX92')
   })
 
   it('25 par page, avec le total des articles de ce poste', () => {

@@ -389,6 +389,51 @@ final class IssueInvoiceTest extends TestCase
             ->assertOk()->assertJsonPath('data.clinic_snapshot.test_document', false);
     }
 
+    public function test_une_ligne_hors_catalogue_est_exoneree_par_defaut_en_production_si_regle_0_validee(): void
+    {
+        config(['eeo.production_documents_enabled' => true]);
+        DB::table('clinics')->where('id', $this->clinicId)->update(['production_documents_enabled' => 1]);
+        // Une règle à 0 % non validée/inactive ne s'applique pas : la ligne reste bloquée en production.
+        $this->seedTaxRule('EXO_BROUILLON', '0.0000', false);
+        $makeFreeLine = static fn (): array => [
+            'line_id' => Ulid::generate(),
+            'position' => 1,
+            'catalog_item_id' => null,
+            'description' => 'Consultation hors catalogue',
+            'quantity' => '1',
+            'unit_price_gross' => 3000,
+            'discount_gross' => 0,
+            'prescription_id' => null,
+        ];
+        $created = $this->createDraft([$makeFreeLine()], $this->manager)->assertCreated();
+        $created->assertJsonPath('data.lines.0.tax_code_snapshot', 'NO_TAX_CONFIGURED');
+        $draftId = (string) $created->json('data.id');
+        $version = (int) $created->json('data.draft_version');
+
+        $this->write('POST', '/api/v1/invoices/'.$draftId.'/issue', $this->issueBody($draftId, $version, 3000), $this->manager)
+            ->assertStatus(422)
+            ->assertJsonStructure(['error' => ['fields' => ['lines.0.catalog_item_id']]]);
+
+        // Une fois la règle EXO (0 %) validée et active (prioritaire devant une autre règle à 0 %), le brouillon existant comme un nouveau s'émettent.
+        $this->seedTaxRule('ZERO_ALT', '0.0000', true);
+        $exoId = $this->seedTaxRule('EXO', '0.0000', true);
+
+        $this->write('POST', '/api/v1/invoices/'.$draftId.'/issue', $this->issueBody($draftId, $version, 3000), $this->manager)
+            ->assertOk()
+            ->assertJsonPath('data.clinic_snapshot.test_document', false)
+            ->assertJsonPath('data.lines.0.tax_code_snapshot', 'EXO')
+            ->assertJsonPath('data.lines.0.tax_rate_snapshot', '0.0000')
+            ->assertJsonPath('data.lines.0.tax_amount', 0)
+            ->assertJsonPath('data.tax_snapshot.regime', 'VALIDATED_RULES')
+            ->assertJsonPath('data.tax_snapshot.rules.0.tax_rule_id', $exoId);
+
+        $secondDraft = $this->createDraft([$makeFreeLine()], $this->manager)->assertCreated();
+        $secondDraft
+            ->assertJsonPath('data.lines.0.tax_code_snapshot', 'EXO')
+            ->assertJsonPath('data.lines.0.tax_rate_snapshot', '0.0000')
+            ->assertJsonPath('data.lines.0.tax_amount', 0);
+    }
+
     public function test_les_deux_interrupteurs_sont_necessaires_pour_un_document_de_production(): void
     {
         DB::table('clinics')->where('id', $this->clinicId)->update(['production_documents_enabled' => 1]);

@@ -8,7 +8,12 @@ import type {
 } from '../contracts/generated'
 import { Quantity, Rate } from '../values/decimal'
 import { computeLineAmounts, invoiceTotal, type LineAmounts } from './lineAmounts'
-import { applicableTaxRule, type LocalCatalog, type LocalCatalogItem } from './localCatalog'
+import {
+  applicableTaxRule,
+  defaultExemptTaxRule,
+  type LocalCatalog,
+  type LocalCatalogItem,
+} from './localCatalog'
 import type { LocalFactLike, LocalPaymentState } from './localPayments'
 import { isPaymentMethod } from './payment'
 
@@ -113,7 +118,14 @@ function builtLine(
     itemId === null || catalog === null
       ? null
       : (catalog.items.find((candidate) => candidate.id === itemId) ?? null)
-  const rule = item === null || catalog === null ? null : applicableTaxRule(catalog, item)
+  const rule =
+    catalog === null
+      ? null
+      : itemId === null
+        ? defaultExemptTaxRule(catalog)
+        : item === null
+          ? null
+          : applicableTaxRule(catalog, item)
   try {
     const decimal = Quantity.of(quantity)
     const amounts = computeLineAmounts(

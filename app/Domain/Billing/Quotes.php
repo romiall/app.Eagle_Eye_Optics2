@@ -89,7 +89,15 @@ final class Quotes
         $validation = new FieldErrors;
         $rights = new FieldErrors;
         // Une ligne de devis ne désigne aucune prescription : rien n'est lu du dossier clinique.
-        $lines = DraftLines::build($payloadLines, $items, TaxRegime::applicable($clinicId, $ruleIds), $policy, $validation, $rights);
+        $lines = DraftLines::build(
+            $payloadLines,
+            $items,
+            TaxRegime::applicable($clinicId, $ruleIds),
+            $policy,
+            $validation,
+            $rights,
+            TaxRegime::defaultExemptForLines($clinicId, $payloadLines),
+        );
 
         // Identifiants de ligne libres : clé primaire globale, un identifiant pris par un autre devis est un refus 422.
         if ($lineIds !== []) {

@@ -43,9 +43,10 @@ final class DraftLines
      * @param  list<array<string, mixed>>  $lines  lignes de la charge (`CreateInvoiceDraft.lines`)
      * @param  array<string, stdClass>  $items  articles du catalogue du cabinet, par identifiant
      * @param  array<string, stdClass>  $taxRules  règles fiscales applicables (actives et validées), par identifiant
+     * @param  stdClass|null  $defaultFreeLineRule  règle fiscale exonérée (0 %) par défaut pour les lignes hors catalogue
      * @return list<DraftLine> triées par position
      */
-    public static function build(array $lines, array $items, array $taxRules, DraftPolicy $policy, FieldErrors $validation, FieldErrors $rights): array
+    public static function build(array $lines, array $items, array $taxRules, DraftPolicy $policy, FieldErrors $validation, FieldErrors $rights, ?stdClass $defaultFreeLineRule = null): array
     {
         $built = [];
         $seenIds = [];
@@ -95,7 +96,9 @@ final class DraftLines
             }
 
             $integerOnly = $item === null ? true : (bool) $item->quantity_integer_only;
-            $rule = $item !== null && $item->tax_rule_id !== null ? ($taxRules[(string) $item->tax_rule_id] ?? null) : null;
+            $rule = $item === null
+                ? $defaultFreeLineRule
+                : ($item->tax_rule_id !== null ? ($taxRules[(string) $item->tax_rule_id] ?? null) : null);
             $taxRate = $rule === null ? null : Rate::of((string) $rule->rate_percent);
 
             try {

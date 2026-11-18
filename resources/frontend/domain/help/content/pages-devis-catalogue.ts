@@ -154,7 +154,7 @@ export const PAGES_DEVIS_CATALOGUE: readonly PageHelp[] = [
       },
       {
         label: 'Ajouter une ligne hors catalogue',
-        effect: 'Ajoute une ligne libre dont vous saisissez la désignation et le prix.',
+        effect: 'Ajoute une ligne libre à saisir, exonérée à 0 % si une règle à 0 % est validée.',
         anyPermission: ['catalog.manage'],
       },
       {

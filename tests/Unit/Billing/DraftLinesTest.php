@@ -307,4 +307,43 @@ final class DraftLinesTest extends TestCase
     {
         $this->assertSame('10.0000', Rate::of('10')->canonical());
     }
+
+    public function test_une_ligne_hors_catalogue_prend_la_regle_exoneree_par_defaut_si_fournie(): void
+    {
+        $validation = new FieldErrors;
+        $rights = new FieldErrors;
+        $exemptRuleId = '01J9ZXK4M2Q8R7S6T5V4W3TX02';
+        $exemptRule = (object) ['id' => $exemptRuleId, 'code' => 'EXO', 'rate_percent' => '0.0000'];
+
+        $freeLine = [
+            'line_id' => '01J9ZXK4M2Q8R7S6T5V4W40099',
+            'position' => 1,
+            'catalog_item_id' => null,
+            'description' => 'Consultation hors catalogue',
+            'quantity' => '1',
+            'unit_price_gross' => 3000,
+            'discount_gross' => 0,
+            'prescription_id' => null,
+        ];
+        $built = DraftLines::build(
+            [$freeLine, $this->line(self::ITEM_FRACTIONAL, [], 2)],
+            $this->catalog(),
+            $this->rules(),
+            $this->manager(),
+            $validation,
+            $rights,
+            $exemptRule,
+        );
+
+        $this->assertTrue($validation->isEmpty());
+        $this->assertTrue($rights->isEmpty());
+        $this->assertSame('EXO', $built[0]->taxCodeSnapshot);
+        $this->assertSame('0.0000', $built[0]->taxRate?->canonical());
+        $this->assertSame($exemptRuleId, $built[0]->taxRuleId);
+        $this->assertSame(0, $built[0]->amounts->taxAmount);
+        // Un article du catalogue sans règle fiscale reste sans règle : l'exonération ne s'applique qu'aux lignes hors catalogue.
+        $this->assertSame('NO_TAX_CONFIGURED', $built[1]->taxCodeSnapshot);
+        $this->assertNull($built[1]->taxRate);
+        $this->assertNull($built[1]->amounts->taxAmount);
+    }
 }

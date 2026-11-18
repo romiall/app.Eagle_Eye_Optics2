@@ -146,6 +146,29 @@ export function applicableTaxRule(
   return rule.active && rule.rate_percent !== null && rule.validated_at !== null ? rule : null
 }
 
+/**
+ * Règle fiscale exonérée (0 %) applicable par défaut à une ligne hors catalogue : active et validée par la gérante,
+ * avec priorité au code `EXO`, puis ordre déterministe (validation, identifiant). Aucune taxe n'est inventée.
+ */
+export function defaultExemptTaxRule(catalog: Pick<LocalCatalog, 'taxRules'>): LocalTaxRule | null {
+  const candidates = catalog.taxRules.filter(
+    (rule) =>
+      rule.active &&
+      rule.validated_at !== null &&
+      rule.rate_percent !== null &&
+      rule.rate_percent === '0.0000',
+  )
+  if (candidates.length === 0) return null
+  candidates.sort((left, right) => {
+    const exoOrder = Number(left.code !== 'EXO') - Number(right.code !== 'EXO')
+    if (exoOrder !== 0) return exoOrder
+    const dateOrder = (left.validated_at ?? '').localeCompare(right.validated_at ?? '')
+    if (dateOrder !== 0) return dateOrder
+    return left.id.localeCompare(right.id)
+  })
+  return candidates[0] ?? null
+}
+
 /** Article du catalogue du poste au format du serveur (sans marque, modèle, seuils ni coût d'achat). */
 export function catalogItemOf(item: LocalCatalogItem): CatalogItem {
   return {

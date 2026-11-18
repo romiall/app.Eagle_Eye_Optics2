@@ -321,4 +321,34 @@ final class QuotesTest extends TestCase
             ->assertJsonStructure(['error' => ['fields' => ['valid_until']]]);
         $this->assertSame(0, DB::table('quotes')->where('clinic_id', $this->clinicId)->count());
     }
+
+    public function test_une_ligne_hors_catalogue_sur_devis_prend_la_regle_exo_validee_par_defaut(): void
+    {
+        $exoId = $this->seedTaxRule('EXO', '0.0000', true);
+        $freeLine = [
+            'line_id' => Ulid::generate(),
+            'position' => 1,
+            'catalog_item_id' => null,
+            'description' => 'Consultation hors catalogue',
+            'quantity' => '1',
+            'unit_price_gross' => 3000,
+            'discount_gross' => 0,
+        ];
+
+        $created = $this->createQuote([$freeLine], [], $this->manager)->assertCreated();
+        $quoteId = (string) $created->json('data.id');
+
+        $issued = $this->write('POST', '/api/v1/quotes/'.$quoteId.'/issue', [
+            'expected_version' => 1,
+            'quote_id' => $quoteId,
+            'total_gross' => 3000,
+        ], $this->manager)->assertOk();
+
+        $issued
+            ->assertJsonPath('data.revisions.0.snapshot.lines.0.tax_code', 'EXO')
+            ->assertJsonPath('data.revisions.0.snapshot.lines.0.tax_rate_percent', '0.0000')
+            ->assertJsonPath('data.revisions.0.snapshot.lines.0.tax_amount', 0)
+            ->assertJsonPath('data.revisions.0.snapshot.tax.regime', 'VALIDATED_RULES')
+            ->assertJsonPath('data.revisions.0.snapshot.tax.rules.0.tax_rule_id', $exoId);
+    }
 }

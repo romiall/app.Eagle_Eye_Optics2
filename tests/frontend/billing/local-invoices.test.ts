@@ -273,6 +273,63 @@ describe('brouillon créé sur le poste', () => {
     })
   })
 
+  it('une ligne hors catalogue prend la règle EXO (0 %) validée si le catalogue du poste en porte une', () => {
+    const base = context()
+    const exoId = '01J9ZXK4M2Q8R7S6T5V4W3TX02'
+    const map = foldLocalInvoices(
+      [
+        draft([
+          line(LINE_1, 1, {
+            catalog_item_id: null,
+            description: 'Consultation hors catalogue',
+            quantity: '1.000',
+            unit_price_gross: 3000,
+          }),
+        ]),
+        issue('pending'),
+      ],
+      context({
+        catalog: {
+          items: base.catalog?.items ?? [],
+          taxRules: [
+            ...(base.catalog?.taxRules ?? []),
+            {
+              id: exoId,
+              code: 'EXO',
+              rate_percent: '0.0000',
+              active: true,
+              validated_at: '2026-10-20T08:00:00.000Z',
+              version: 1,
+            },
+          ],
+          catalogVersion: base.catalog?.catalogVersion ?? null,
+          snapshotSha256: base.catalog?.snapshotSha256 ?? null,
+        },
+      }),
+    )
+
+    expect(map.get(INVOICE)?.invoice.lines[0]).toMatchObject({
+      catalog_item_id: null,
+      tax_code_snapshot: 'EXO',
+      tax_rate_snapshot: '0.0000',
+      tax_amount: 0,
+      line_total_gross: 3000,
+    })
+    expect(map.get(INVOICE)?.invoice.tax_snapshot).toEqual({
+      regime: 'VALIDATED_RULES',
+      rules: [
+        {
+          tax_rule_id: exoId,
+          code: 'EXO',
+          label: 'EXO',
+          rate_percent: '0.0000',
+          validated_at: '2026-10-20T08:00:00.000Z',
+          legal_note: null,
+        },
+      ],
+    })
+  })
+
   it('remise déduite du net, lignes triées par position, total = somme des nets', () => {
     const map = foldLocalInvoices(
       [

@@ -79,10 +79,11 @@ final class InvoiceDrafts
             }
         }
         $taxRules = TaxRegime::applicable($clinicId, $ruleIds);
+        $defaultExempt = TaxRegime::defaultExemptForLines($clinicId, $payloadLines);
 
         $validation = new FieldErrors;
         $rights = new FieldErrors;
-        $lines = DraftLines::build($payloadLines, $items, $taxRules, $policy, $validation, $rights);
+        $lines = DraftLines::build($payloadLines, $items, $taxRules, $policy, $validation, $rights, $defaultExempt);
 
         if ($checkReferences) {
             $this->checkReferences($clinicId, $invoiceId, $patientId, $payloadLines, $validation);

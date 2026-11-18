@@ -309,7 +309,7 @@ export const PAGES_FACTURES: readonly PageHelp[] = [
       {
         label: 'Ajouter une ligne hors catalogue',
         effect:
-          'Ajoute une ligne libre dont vous saisissez la désignation et le prix. Réservé à la gérante.',
+          'Ajoute une ligne libre, exonérée à 0 % par défaut si une règle à 0 % est validée. Réservé à la gérante.',
         anyPermission: ['catalog.manage'],
       },
       {
