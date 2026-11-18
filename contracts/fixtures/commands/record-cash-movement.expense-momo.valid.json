@@ -1,0 +1,28 @@
+{
+  "schema": "commands/RecordCashMovement.v1.json",
+  "valid": true,
+  "description": "Dépense hors tiroir Mobile Money sans session de caisse ouverte",
+  "base": "commands/record-cash-movement.expense-drawer.valid.json",
+  "patch": [
+    {
+      "op": "replace",
+      "path": "/cash_session_id",
+      "value": null
+    },
+    {
+      "op": "replace",
+      "path": "/method",
+      "value": "MTN_MOMO"
+    },
+    {
+      "op": "replace",
+      "path": "/reason",
+      "value": "Achat fournitures bureau"
+    },
+    {
+      "op": "replace",
+      "path": "/reference",
+      "value": "FACT-MOMO-01"
+    }
+  ]
+}

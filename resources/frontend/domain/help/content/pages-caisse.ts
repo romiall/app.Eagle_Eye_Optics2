@@ -19,9 +19,14 @@ export const PAGES_CAISSE: readonly PageHelp[] = [
           'Ouvre votre session avec le fond de caisse saisi, puis affiche la session ouverte et ses espèces attendues.',
       },
       {
+        label: 'Enregistrer la dépense',
+        effect:
+          'Enregistre directement une dépense depuis le tiroir espèces sans approbation préalable (motif et référence facultatifs).',
+      },
+      {
         label: 'Enregistrer le mouvement',
         effect:
-          'Enregistre une dépense, un retrait, un dépôt ou une correction de l’ouverture. Chez la caissière, le bouton s’appelle d’abord « Demander l’autorisation ».',
+          'Enregistre une entrée motivée, une sortie motivée ou une correction de l’ouverture (motif obligatoire). Chez la caissière, le bouton s’appelle d’abord « Demander l’autorisation ».',
       },
       {
         label: 'Clôturer la caisse',
@@ -86,17 +91,16 @@ export const PAGES_CAISSE: readonly PageHelp[] = [
         id: 'enregistrer-un-mouvement',
         title: 'Enregistrer une dépense ou un mouvement d’espèces',
         steps: [
-          'Dans une session ouverte, descendez à « Dépenses et mouvements de caisse », puis au formulaire « Enregistrer un mouvement ».',
-          'Choisissez la « Nature » : la dépense (en tête de liste), « Retrait (versement, coffre) », « Dépôt (entrée d’espèces) » ou « Correction de l’ouverture ».',
+          'Dans une session ouverte, descendez à « Dépenses et mouvements de caisse », puis au formulaire « Enregistrer un mouvement au tiroir ».',
+          'Choisissez le type d’opération : « Dépense (tiroir) », « Entrée motivée », « Sortie motivée » ou « Correction d’ouverture ».',
           'Saisissez le « Montant (FCFA) », toujours positif. Pour une dépense, choisissez la « Catégorie de la dépense » ; pour une correction, le « Sens de la correction ».',
-          'Écrivez le « Motif » (3 caractères au moins) et, si vous l’avez, la « Référence du justificatif (facultatif) » (bon, facture du fournisseur ou bordereau de versement).',
-          'Gérante : cliquez sur « Enregistrer le mouvement » : il est enregistré directement, et la colonne « Autorisation » du tableau indique « Gérante (directe) ».',
-          'Caissière : cliquez sur « Demander l’autorisation », écrivez le « Motif de la demande », puis cliquez sur « Envoyer la demande à la gérante ».',
-          'Caissière : restez sur l’écran. Quand la gérante a accordé la demande dans « Approbations », cliquez sur « Enregistrer le mouvement » sans rien changer au formulaire.',
+          'Motif : facultatif pour une dépense (3 caractères minimum si précisé) ; obligatoire pour une entrée motivée, une sortie motivée ou une correction. Ajoutez si vous l’avez la « Référence du justificatif (facultatif) ».',
+          'Pour une dépense au tiroir : caissière comme gérante cliquent directement sur « Enregistrer la dépense » sans approbation préalable.',
+          'Pour une entrée ou sortie motivée : la gérante enregistre directement ; la caissière clique d’abord sur « Demander l’autorisation », puis sur « Enregistrer le mouvement » une fois accordée.',
           'Si l’écran demande « Confirmer votre mot de passe », saisissez-le puis cliquez sur « Confirmer et reprendre » : votre saisie est conservée.',
         ],
         result:
-          'Un message vert confirme le mouvement. Il apparaît dans le tableau (Heure, Nature, Motif, Autorisation, Montant) et les espèces attendues changent.',
+          'Un message vert confirme l’opération. Elle apparaît dans le tableau (Heure, Nature, Motif, Autorisation, Montant) et les espèces disponibles du tiroir changent.',
       },
       {
         id: 'cloturer-une-autre-session-et-revoir-un-ecart',
@@ -122,7 +126,7 @@ export const PAGES_CAISSE: readonly PageHelp[] = [
       'À la clôture, le serveur recalcule l’attendu. Si un encaissement en espèces est arrivé depuis l’affichage, il refuse, annonce le nouvel attendu et garde votre compté : vous recomptez puis clôturez de nouveau.',
       'L’écart (compté moins attendu) est dit sans jugement. S’il n’est pas nul, un motif est obligatoire, sinon la clôture ne part pas ; la gérante le relit à la revue de l’écart.',
       'Une session clôturée est figée : elle ne se modifie plus et n’admet ni encaissement en espèces ni mouvement. Une erreur se corrige dans une session ouverte, avec son motif.',
-      'Un mouvement hors vente n’est jamais un paiement de patient (ni facture, ni reçu). Une sortie ne dépasse jamais les espèces attendues. La caissière demande l’autorisation exacte de la gérante ; la gérante enregistre directement.',
+      'Un mouvement hors vente n’est jamais un paiement de patient (ni facture, ni reçu). Une sortie ne dépasse jamais les espèces attendues. Les dépenses sont saisies directement ; les entrées et sorties motivées de caisse exigent l’autorisation exacte de la gérante.',
     ],
     next: [
       {
@@ -188,6 +192,72 @@ export const PAGES_CAISSE: readonly PageHelp[] = [
       'Contre-écriture',
       'Approbation',
     ],
+  },
+  {
+    route: 'depenses',
+    title: 'Dépenses',
+    module: 'sales',
+    anyPermission: ['cash.own_session', 'cash.manage'],
+    purpose:
+      'Gérante et caissière y enregistrent directement les dépenses du cabinet (tiroir espèces si la caisse est ouverte, ou autre canal tel que Mobile Money, virement ou chèque sans ouvrir la caisse).',
+    actions: [
+      {
+        label: 'Enregistrer la dépense',
+        effect:
+          'Enregistre la dépense catégorisée avec ou sans motif et référence de justificatif.',
+      },
+      {
+        label: 'Filtrer',
+        effect:
+          'Affiche l’historique des dépenses selon la période, la catégorie ou le canal choisi.',
+      },
+      {
+        label: 'Caisse',
+        effect:
+          'Ouvre la caisse du jour si vous souhaitez ouvrir ou consulter une session espèces.',
+        anyPermission: ['cash.own_session'],
+      },
+      {
+        label: 'Catégories de dépenses',
+        effect: 'Gérante : ouvre la création et l’activation des catégories de dépenses.',
+        anyPermission: ['cash.manage'],
+      },
+    ],
+    tasks: [
+      {
+        id: 'saisir-une-depense',
+        title: 'Saisir une dépense depuis le menu',
+        steps: [
+          'Ouvrez « Dépenses » dans le menu (accessible directement sans ouvrir préalablement la caisse).',
+          'Saisissez le « Montant (FCFA) », choisissez la « Catégorie » puis le « Canal de règlement » (« Espèces (tiroir) » si votre caisse est ouverte, ou Mobile Money, Virement, Chèque…).',
+          'Renseignez si besoin un « Motif (facultatif) » ou une « Référence pièce justificative (facultatif) », puis cliquez sur « Enregistrer la dépense ».',
+        ],
+        result:
+          'La dépense est ajoutée immédiatement sans approbation préalable et déduite du disponible tiroir s’il s’agit d’espèces.',
+      },
+    ],
+    rules: [
+      'Une dépense hors espèces n’exige aucune session de caisse ouverte.',
+      'Le motif et la référence de justificatif sont facultatifs ; si un motif est saisi, il compte au moins 3 caractères.',
+      'L’historique reste filtrable par période, par catégorie et par canal de règlement.',
+    ],
+    next: [
+      {
+        route: 'caisse',
+        label: 'Caisse',
+        why: 'Pour ouvrir ou clôturer la session du tiroir espèces et enregistrer entrées et sorties motivées.',
+      },
+      {
+        route: 'categories-depenses',
+        label: 'Catégories de dépenses',
+        why: 'Gérante : pour gérer les catégories proposées dans le formulaire.',
+      },
+    ],
+    tips: [
+      'Si vous réglez en Mobile Money ou par virement, aucune caisse n’a besoin d’être ouverte.',
+    ],
+    problems: [],
+    terms: ['Session de caisse', 'Espèces attendues'],
   },
   {
     route: 'categories-depenses',

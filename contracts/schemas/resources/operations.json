@@ -1621,6 +1621,7 @@
         "receivables",
         "legacy_imported",
         "cash_sessions",
+        "expenses",
         "freshness",
         "generated_at"
       ],
@@ -2006,6 +2007,102 @@
             "open_count": {
               "type": "integer",
               "minimum": 0
+            }
+          }
+        },
+        "expenses": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "count",
+            "total",
+            "cash_drawer",
+            "other_methods",
+            "by_method",
+            "by_category"
+          ],
+          "properties": {
+            "count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "total": {
+              "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+            },
+            "cash_drawer": {
+              "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+            },
+            "other_methods": {
+              "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+            },
+            "by_method": {
+              "type": "array",
+              "minItems": 0,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "method",
+                  "count",
+                  "amount"
+                ],
+                "properties": {
+                  "method": {
+                    "$ref": "../../schemas/enums.json#/$defs/payments.method"
+                  },
+                  "count": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "amount": {
+                    "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+                  }
+                }
+              }
+            },
+            "by_category": {
+              "type": "array",
+              "minItems": 0,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "category_id",
+                  "code",
+                  "name",
+                  "count",
+                  "amount"
+                ],
+                "properties": {
+                  "category_id": {
+                    "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+                  },
+                  "code": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "minLength": 0,
+                        "maxLength": 40
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 180
+                  },
+                  "count": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "amount": {
+                    "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+                  }
+                }
+              }
             }
           }
         },

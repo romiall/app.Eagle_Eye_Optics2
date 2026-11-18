@@ -1,0 +1,13 @@
+{
+  "schema": "commands/RecordCashMovement.v1.json",
+  "valid": false,
+  "description": "Montant nul refusé",
+  "base": "commands/record-cash-movement.expense-drawer.valid.json",
+  "patch": [
+    {
+      "op": "replace",
+      "path": "/signed_amount",
+      "value": 0
+    }
+  ]
+}

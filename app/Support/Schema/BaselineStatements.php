@@ -22,8 +22,8 @@ final class BaselineStatements
     /** Compteurs de la baseline validée sur MySQL 8.4.9 (database/VALIDATION.md). */
     public const EXPECTED_COUNTS = [
         'tables' => 117,
-        'foreign_keys' => 464,
-        'checks' => 484,
+        'foreign_keys' => 466,
+        'checks' => 488,
         'views' => 10,
         'triggers' => 88,
         'reference_inserts' => 6,

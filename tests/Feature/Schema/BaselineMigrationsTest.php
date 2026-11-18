@@ -55,7 +55,7 @@ final class BaselineMigrationsTest extends TestCase
 
         $snapshot = SchemaInspector::for(DB::connection(self::CONNECTION))->snapshot();
         $this->assertSame(
-            ['business_tables' => 117, 'foreign_keys' => 464, 'checks' => 484, 'views' => 10, 'triggers' => 88],
+            ['business_tables' => 117, 'foreign_keys' => 466, 'checks' => 488, 'views' => 10, 'triggers' => 88],
             $snapshot['counts'],
         );
         $this->assertSame(4, $snapshot['reference_data']['roles']['rows']);

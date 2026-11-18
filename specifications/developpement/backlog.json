@@ -4,7 +4,7 @@
   "scope": "ENTIRE_APPLICATION",
   "application_implemented": false,
   "baseline_table_count": 117,
-  "baseline_catalog_sha256": "73bd5dc454c170f8b5caa2cd66c0e6b696525efb6ca94e5c81bec2046e2761eb",
+  "baseline_catalog_sha256": "58435d62f86b7ecc1c3d6aedb6f2f9d107193ecb7a58bd27459985a9d5744e8d",
   "task_statuses": [
     "NOT_STARTED",
     "IN_PROGRESS",

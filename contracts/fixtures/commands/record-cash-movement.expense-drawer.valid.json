@@ -1,0 +1,17 @@
+{
+  "schema": "commands/RecordCashMovement.v1.json",
+  "valid": true,
+  "description": "Dépense au tiroir espèces sans motif ni référence ni approbation préalable",
+  "data": {
+    "movement_id": "01J9ZXK4M2Q8R7S6T5V4W30051",
+    "cash_session_id": "01J9ZXK4M2Q8R7S6T5V4W3002Y",
+    "movement_kind": "EXPENSE",
+    "method": "CASH",
+    "signed_amount": -5000,
+    "expense_category_id": "01J9ZXK4M2Q8R7S6T5V4W3004A",
+    "reason": null,
+    "reference": null,
+    "approval_id": null,
+    "occurred_at": "2026-10-14T09:30:00.000Z"
+  }
+}

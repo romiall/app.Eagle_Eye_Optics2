@@ -52,6 +52,7 @@ test.describe('finance du cabinet (R01) sur la vraie application', () => {
       'Encaissements de la période',
       'Créances et crédits à rembourser',
       'Caisse',
+      'Dépenses de la période',
       'Par personne',
     ]) {
       expect(names).toContain(expected)
@@ -60,6 +61,7 @@ test.describe('finance du cabinet (R01) sur la vraie application', () => {
     await expect(main.locator('[data-montant="encaisse-net"]')).toBeVisible()
     await expect(main.locator('[data-montant="creances"]')).toBeVisible()
     await expect(main.locator('[data-montant="credits"]')).toBeVisible()
+    await expect(main.locator('[data-montant="depenses-total"]')).toBeVisible()
     await expect(main.locator('[data-fraicheur]')).toBeVisible()
 
     // Le mois en cours est lu par défaut ; « Aujourd’hui » resserre la période sur un jour.

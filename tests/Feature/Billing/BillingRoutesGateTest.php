@@ -91,6 +91,8 @@ final class BillingRoutesGateTest extends TestCase
             'GET cash-sessions/{id}/report' => ['GET', 'cash-sessions/{id}/report', $cash],
             // Dépenses et mouvements hors vente (L1D05) : la session de la caissière (cash.own_session) ; la revue de l'écart
             // d'une session clôturée exige cash.manage et la réauthentification, gérante seule.
+            'GET expenses' => ['GET', 'expenses', $cash],
+            'POST cash-movements' => ['POST', 'cash-movements', $cash],
             'GET cash-sessions/{id}/movements' => ['GET', 'cash-sessions/{id}/movements', $cash],
             'POST cash-sessions/{id}/movements' => ['POST', 'cash-sessions/{id}/movements', $cash],
             'POST cash-sessions/{id}/variance-review' => ['POST', 'cash-sessions/{id}/variance-review', ['manager']],
@@ -166,7 +168,7 @@ final class BillingRoutesGateTest extends TestCase
     {
         $prefixes = [
             'api.catalog.', 'api.tax-rules.', 'api.invoices.', 'api.quotes.', 'api.receipts.', 'api.payments.', 'api.credit-notes.', 'api.refunds.',
-            'api.cash-registers.', 'api.cash-sessions.', 'api.payment-reconciliations.', 'api.deliveries.', 'api.stock.',
+            'api.cash-registers.', 'api.cash-sessions.', 'api.cash-movements.', 'api.expenses.', 'api.payment-reconciliations.', 'api.deliveries.', 'api.stock.',
         ];
         $checked = 0;
 

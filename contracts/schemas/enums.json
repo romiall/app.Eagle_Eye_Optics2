@@ -119,6 +119,18 @@
       ],
       "description": " (catalogue : cash_movements.kind)"
     },
+    "cash_movements.method": {
+      "type": "string",
+      "enum": [
+        "CASH",
+        "MTN_MOMO",
+        "ORANGE_MONEY",
+        "BANK_TRANSFER",
+        "CHEQUE",
+        "OTHER"
+      ],
+      "description": " (catalogue : cash_movements.method)"
+    },
     "catalog_items.stock_mode": {
       "type": "string",
       "enum": [

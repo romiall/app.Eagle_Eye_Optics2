@@ -139,8 +139,8 @@ final class CatalogMetadataConsistencyTest extends TestCase
             $foreignKeys += count($expectedFks);
         }
 
-        $this->assertSame(484, $checks);
-        $this->assertSame(464, $foreignKeys);
+        $this->assertSame(488, $checks);
+        $this->assertSame(466, $foreignKeys);
     }
 
     public function test_chaque_table_append_only_ou_gardee_a_ses_triggers(): void

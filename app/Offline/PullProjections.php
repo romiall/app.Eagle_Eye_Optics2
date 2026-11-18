@@ -4,6 +4,7 @@ namespace App\Offline;
 
 use App\Domain\Billing\InvoiceLedger;
 use App\Domain\Billing\InvoiceReader;
+use App\Domain\Cash\CashMovements;
 use App\Domain\Patients\VisitQueue;
 use App\Http\Resources\CashPresenter;
 use App\Http\Resources\CatalogPresenter;
@@ -107,6 +108,10 @@ final class PullProjections
                 $row = self::row('cash_sessions', $clinicId, $entityId);
 
                 return $row === null ? null : CashPresenter::session($row);
+            case 'cash_movements':
+                $row = CashMovements::findForPresentation($clinicId, $entityId);
+
+                return $row === null ? null : CashPresenter::movement($row);
             case 'catalog_items':
                 $row = self::row('catalog_items', $clinicId, $entityId);
 

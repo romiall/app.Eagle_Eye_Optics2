@@ -7,6 +7,7 @@ import {
   APP_MODULES,
   type AppModule,
   HOME_ACTIONS,
+  moduleOf,
   type NavigationEntry,
   visibleHomeActions,
   visibleModules,
@@ -15,7 +16,7 @@ import {
 const ROOT = join(import.meta.dirname, '..', '..', '..')
 
 /** Modules ouverts par l'exploitant : tous (les tests de filtrage le restreignent). */
-const ALL_MODULES = APP_MODULES.map((module) => module.id)
+const ALL_MODULES = [...new Set(APP_MODULES.map(moduleOf))]
 
 /** Identifiants des tâches du backlog (plan d'exécution, jamais régénéré ici). */
 function backlogTaskIds(): Set<string> {
@@ -56,6 +57,7 @@ describe('navigation de la coquille (fichier 04)', () => {
       'Consultations',
       'Agenda',
       'Ventes et caisse',
+      'Dépenses',
       'Stock',
       'Atelier',
       'Communication',
@@ -104,6 +106,8 @@ describe('navigation de la coquille (fichier 04)', () => {
       'agenda:S01',
       // Ventes et caisse (B02 à B05, en ligne) : caisse, factures, encaissements, catalogue.
       'sales:B02',
+      // Entrée Dépenses visible pour gérante et caissière dans le menu principal (L1D05).
+      'expenses:L1D05',
       // Stock, achats fournisseurs et inventaires (R01, L1D01, L1D02).
       'stock:L1D01',
       // Atelier optique et bon laboratoire anonymisé (L1D04, en ligne).
@@ -129,6 +133,7 @@ describe('navigation de la coquille (fichier 04)', () => {
       'Consultations',
       'Agenda',
       'Ventes et caisse',
+      'Dépenses',
       'Stock',
       'Atelier',
       'Communication',
@@ -291,7 +296,7 @@ describe('mise en service progressive : un module livré reste caché tant qu’
   })
 
   it('chaque module d’action d’accueil existe dans la navigation', () => {
-    const codes = new Set(APP_MODULES.map((module) => module.id))
+    const codes = new Set([...APP_MODULES.map((module) => module.id), ...APP_MODULES.map(moduleOf)])
     for (const action of HOME_ACTIONS) {
       expect(codes.has(action.module ?? action.id), action.id).toBe(true)
     }
@@ -301,6 +306,19 @@ describe('mise en service progressive : un module livré reste caché tant qu’
     const php = readFileSync(join(ROOT, 'app', 'Support', 'Modules.php'), 'utf8')
     const block = php.slice(php.indexOf('public const CODES'), php.indexOf('];'))
     const server = [...block.matchAll(/'([a-z]+)'/g)].map((match) => match[1])
-    expect(server).toEqual(APP_MODULES.map((module) => module.id))
+    expect(server).toEqual(
+      APP_MODULES.filter((module) => module.module === undefined).map((module) => module.id),
+    )
+  })
+
+  it('Dépenses apparaît dans le menu pour la caissière et la gérante, jamais pour réception/clinicien', () => {
+    expect(visibleModules(['cash.own_session'], ALL_MODULES).map((m) => m.id)).toContain('expenses')
+    expect(visibleModules(['cash.manage'], ALL_MODULES).map((m) => m.id)).toContain('expenses')
+    expect(
+      visibleModules(['patient.read', 'visit.register'], ALL_MODULES).map((m) => m.id),
+    ).not.toContain('expenses')
+    expect(
+      visibleModules(['clinical.read', 'clinical.write'], ALL_MODULES).map((m) => m.id),
+    ).not.toContain('expenses')
   })
 })

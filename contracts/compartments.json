@@ -107,6 +107,7 @@
       "RefundCredit",
       "OpenCashSession",
       "CloseCashSession",
+      "RecordCashMovement",
       "ConfirmDelivery",
       "RegisterPhysicalReturn"
     ],

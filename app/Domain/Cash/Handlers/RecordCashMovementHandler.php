@@ -13,28 +13,25 @@ use App\Application\Locking\TransactionLocks;
 use App\Domain\Access\Approvals\ApprovalSubject;
 use App\Domain\Access\Approvals\ExactApprovals;
 use App\Domain\Billing\Guards\ActorRights;
+use App\Domain\Billing\Guards\AuthoredSource;
 use App\Domain\Cash\CashMovements;
 use App\Domain\Cash\CashSessions;
 use App\Domain\Shared\BusinessError;
 use App\Domain\Shared\CommandContext;
 use App\Domain\Shared\CommandSource;
 use App\Domain\Shared\RuleViolation;
+use App\Domain\Shared\ValueObjects\Instant;
 use App\Domain\Shared\ValueObjects\Text;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Mouvement d'espèces hors vente d'une session de caisse OUVERTE (L1D05) : dépense catégorisée, dépôt, retrait ou
- * correction de l'ouverture. Commande EN LIGNE seulement (la caisse hors-ligne principale n'enregistre pas de dépense
- * tant qu'O05 n'est pas vérifié). Jamais un paiement : ni facture, ni reçu, ni chiffre d'affaires.
+ * Dépense (tiroir espèces ou autre canal, saisie directe caissière ou gérante, motif et référence facultatifs,
+ * synchronisable depuis un poste préparé) ou mouvement d'espèces hors vente d'une session de caisse OUVERTE
+ * (L1D05) : dépôt, retrait ou correction de l'ouverture (motif et approbation exacte obligatoires, en ligne).
+ * Jamais un paiement : ni facture, ni reçu, ni chiffre d'affaires.
  *
- * Droits : la caissière dans SA session (`cash.own_session`) avec l'approbation exacte de la gérante (`CASH_MOVEMENT` :
- * même session, nature, montant signé et catégorie) ; la gérante (`cash.manage` et `approval.decide`) l'exécute
- * directement avec la même traçabilité (approbation écrite décidée et consommée sous l'identifiant fourni).
- *
- * Refus : session inconnue (404) ou clôturée (409 `STATE_TRANSITION_REFUSED`, `current_status` CLOSED : la clôture est
- * figée) ; session d'une autre caissière sans `cash.manage` (403) ; sortie supérieure aux espèces théoriques du tiroir
- * (422 sur `signed_amount`, avec le montant disponible) ; motif de 3 à 500 caractères. Verrous : session de caisse (70),
- * puis approbation (90).
+ * Verrous : session de caisse (70) si `cash_session_id` présent, puis approbation (90) si mouvement non dépense.
  */
 final class RecordCashMovementHandler implements CommandHandler
 {
@@ -49,86 +46,121 @@ final class RecordCashMovementHandler implements CommandHandler
 
     public function handle(Command $command, CommandContext $context, TransactionLocks $locks, ?string $idempotencyId): CommandOutcome
     {
-        if ($context->source !== CommandSource::Direct) {
-            throw BusinessError::forbidden('Les mouvements de caisse hors vente s\'enregistrent en ligne.');
-        }
+        AuthoredSource::assert($context, 'L\'enregistrement d\'un mouvement de caisse');
 
         $payload = $command->payload;
         $movementId = (string) $payload['movement_id'];
-        $sessionId = (string) $payload['cash_session_id'];
+        $sessionId = is_string($payload['cash_session_id'] ?? null) ? $payload['cash_session_id'] : null;
         $kind = (string) $payload['movement_kind'];
+        $method = is_string($payload['method'] ?? null) ? $payload['method'] : 'CASH';
         $signedAmount = is_int($payload['signed_amount'] ?? null) ? $payload['signed_amount'] : 0;
         $categoryId = is_string($payload['expense_category_id'] ?? null) ? $payload['expense_category_id'] : null;
-        $approvalId = (string) $payload['approval_id'];
+        $approvalId = is_string($payload['approval_id'] ?? null) ? $payload['approval_id'] : null;
 
+        if ($context->source === CommandSource::Sync && $kind !== 'EXPENSE') {
+            throw BusinessError::forbidden('Seules les dépenses peuvent être synchronisées depuis un poste ; les dépôts, retraits et corrections passent en ligne.');
+        }
+
+        $at = CarbonImmutable::now('UTC');
+        $occurredAt = $context->pieceInstant($at)->format('Y-m-d H:i:s.u');
         try {
-            CashMovements::assertShape($kind, $signedAmount, $categoryId);
+            CashMovements::assertShape($kind, $method, $sessionId, $signedAmount, $categoryId);
             $reason = Text::optional(is_string($payload['reason'] ?? null) ? $payload['reason'] : null, CashMovements::REASON_MAX, 'reason');
             $reference = Text::optional(is_string($payload['reference'] ?? null) ? $payload['reference'] : null, CashMovements::REFERENCE_MAX, 'reference');
+            if (is_string($payload['occurred_at'] ?? null)) {
+                $claimed = Instant::parse($payload['occurred_at'], 'occurred_at');
+                $skew = ((int) config('eeo.offline.max_clock_skew_seconds', 300)) * 1000;
+                if ($claimed !== null && $claimed->epochMilliseconds > ((int) $at->format('Uv')) + $skew) {
+                    throw RuleViolation::invalid('occurred_at', 'cash.future_instant', 'L\'horloge du poste est en avance sur celle du serveur : vérifiez l\'heure de l\'appareil.');
+                }
+            }
         } catch (RuleViolation $violation) {
             throw BusinessError::validation([$violation->field => [$violation->getMessage()]]);
         }
-        if ($reason === null || mb_strlen($reason) < CashMovements::REASON_MIN) {
+
+        if ($kind !== 'EXPENSE' && ($reason === null || mb_strlen($reason) < CashMovements::REASON_MIN)) {
             throw BusinessError::validation(['reason' => ['Indiquez le motif du mouvement (au moins '.CashMovements::REASON_MIN.' caractères).']]);
         }
+        if ($reason !== null && mb_strlen($reason) < CashMovements::REASON_MIN) {
+            throw BusinessError::validation(['reason' => ['Un motif renseigné comporte au moins '.CashMovements::REASON_MIN.' caractères.']]);
+        }
+        if ($kind !== 'EXPENSE' && $approvalId === null) {
+            throw BusinessError::validation(['approval_id' => ['L\'identifiant d\'autorisation est obligatoire pour ce mouvement.']]);
+        }
+        if (DB::table('cash_movements')->where('id', $movementId)->exists()) {
+            throw BusinessError::validation(['movement_id' => ['Cet identifiant de mouvement est déjà utilisé.']]);
+        }
 
-        $session = $locks->cashSession($sessionId);
-        if ($session === null) {
-            throw BusinessError::notFound('Session de caisse introuvable dans ce cabinet.');
+        if ($sessionId !== null) {
+            $session = $locks->cashSession($sessionId);
+            if ($session === null) {
+                throw BusinessError::notFound('Session de caisse introuvable dans ce cabinet.');
+            }
+            if ($session->closed_at !== null) {
+                throw BusinessError::stateRefused('Cette session de caisse est clôturée : elle est figée, aucun mouvement ne s\'y ajoute.', 'CLOSED');
+            }
+            if ((string) $session->cashier_id !== (string) $context->actorId && ! $this->rights->has($context, 'cash.manage')) {
+                throw BusinessError::forbidden('Cette session appartient à une autre caissière.');
+            }
+            $available = CashSessions::theoretical($session);
+            if ($signedAmount < 0 && $available + $signedAmount < 0) {
+                throw new BusinessError(
+                    'VALIDATION_FAILED',
+                    'Le tiroir ne contient en théorie que '.$available.' FCFA : une sortie ne peut pas dépasser les espèces présentes.',
+                    422,
+                    ['signed_amount' => ['Espèces théoriques disponibles : '.$available.' FCFA.']],
+                    null,
+                    [],
+                    ['available' => $available],
+                );
+            }
         }
-        if ($session->closed_at !== null) {
-            throw BusinessError::stateRefused('Cette session de caisse est clôturée : elle est figée, aucun mouvement ne s\'y ajoute.', 'CLOSED');
-        }
-        if ((string) $session->cashier_id !== (string) $context->actorId && ! $this->rights->has($context, 'cash.manage')) {
-            throw BusinessError::forbidden('Cette session appartient à une autre caissière.');
-        }
+
         if ($categoryId !== null && ! CashMovements::activeCategory($context->clinicId, $categoryId)) {
             throw BusinessError::validation(['expense_category_id' => ['Catégorie de dépense introuvable ou désactivée.']]);
         }
 
-        $available = CashSessions::theoretical($session);
-        if ($signedAmount < 0 && $available + $signedAmount < 0) {
-            throw new BusinessError(
-                'VALIDATION_FAILED',
-                'Le tiroir ne contient en théorie que '.$available.' FCFA : une sortie ne peut pas dépasser les espèces présentes.',
-                422,
-                ['signed_amount' => ['Espèces théoriques disponibles : '.$available.' FCFA.']],
-                null,
-                [],
-                ['available' => $available],
-            );
+        $recordedApprovalId = null;
+        $approvalMode = null;
+        if ($kind !== 'EXPENSE' && $sessionId !== null && $approvalId !== null) {
+            $authorization = $this->approvals->authorize($locks, $context, $approvalId, ApprovalSubject::cashMovement($sessionId, $kind, $signedAmount, $categoryId), (string) $reason);
+            $recordedApprovalId = $authorization['id'];
+            $approvalMode = $authorization['mode'];
         }
 
-        $authorization = $this->approvals->authorize($locks, $context, $approvalId, ApprovalSubject::cashMovement($sessionId, $kind, $signedAmount, $categoryId), $reason);
-
-        $stamp = $context->now->utc()->format('Y-m-d H:i:s.u');
+        $now = $at->format('Y-m-d H:i:s.u');
         DB::table('cash_movements')->insert([
             'id' => $movementId,
             'clinic_id' => $context->clinicId,
             'cash_session_id' => $sessionId,
             'kind' => $kind,
+            'method' => $method,
             'signed_amount' => $signedAmount,
             'reason' => $reason,
-            'approval_id' => $authorization['id'],
+            'approval_id' => $recordedApprovalId,
             'expense_category_id' => $categoryId,
             'reference' => $reference,
-            'occurred_at' => $stamp,
+            'occurred_at' => $occurredAt,
             'created_by' => (string) $context->actorId,
-            'created_at' => $stamp,
-            'updated_at' => $stamp,
+            'source_device_id' => $context->deviceId,
+            'sync_command_id' => $context->syncReferences?->commandId,
+            'created_at' => $now,
+            'updated_at' => $now,
         ]);
 
         return new CommandOutcome(
-            result: ['movement_id' => $movementId, 'cash_session_id' => $sessionId, 'signed_amount' => $signedAmount, 'approval_mode' => $authorization['mode']],
+            result: ['movement_id' => $movementId, 'cash_session_id' => $sessionId, 'method' => $method, 'signed_amount' => $signedAmount, 'approval_mode' => $approvalMode],
             resultType: 'cash_movements',
             resultId: $movementId,
             audit: [new AuditEntry('cash.movement_recorded', 'cash_movements', $movementId, $reason, [
                 'cash_session_id' => $sessionId,
                 'movement_kind' => $kind,
+                'method' => $method,
                 'signed_amount' => $signedAmount,
                 'expense_category_id' => $categoryId,
-                'approval_id' => $authorization['id'],
-                'approval_mode' => $authorization['mode'],
+                'approval_id' => $recordedApprovalId,
+                'approval_mode' => $approvalMode,
+                'source_device_id' => $context->deviceId,
             ])],
             changes: [new ChangeRecord('cash_movements', $movementId, 1, ChangeVisibility::Financial, ChangeKind::Created)],
         );

@@ -74,7 +74,10 @@ export function cashSessionReportData(
     })),
     movements: report.movements.map((movement) => ({
       at: movement.occurred_at,
-      label: `${cashMovementLabel(movement.kind)} : ${movement.reason}`,
+      label:
+        movement.reason === null || movement.reason === ''
+          ? cashMovementLabel(movement.kind)
+          : `${cashMovementLabel(movement.kind)} : ${movement.reason}`,
       amount: movement.signed_amount,
     })),
     receipts: report.payments

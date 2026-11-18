@@ -55,6 +55,7 @@ describe('routes et navigation des ventes', () => {
         ['invoice.read', 'payment.collect', 'cash.own_session', 'exam_fee.collect'],
       ],
       caisse: ['sales', ['cash.own_session']],
+      depenses: ['sales', ['cash.own_session', 'cash.manage']],
       // Catégories de dépenses de la caisse (L1D05) : gérante.
       'categories-depenses': ['sales', ['cash.manage']],
       'caisse-du-jour': ['sales', ['finance.global.read', 'cash.own_session']],
@@ -82,6 +83,7 @@ describe('routes et navigation des ventes', () => {
   it('« Ventes et caisse » apparaît pour la caisse quand le module est ouvert, jamais sinon', () => {
     expect(visibleModules(CASHIER, ['sales'], APP_MODULES).map((entry) => entry.id)).toEqual([
       'sales',
+      'expenses',
     ])
     expect(visibleModules(CASHIER, ['patients'], APP_MODULES).map((entry) => entry.id)).toEqual([
       'patients',

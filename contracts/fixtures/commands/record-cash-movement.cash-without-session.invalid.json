@@ -1,0 +1,13 @@
+{
+  "schema": "commands/RecordCashMovement.v1.json",
+  "valid": false,
+  "description": "Mouvement CASH sans session de caisse ouverte",
+  "base": "commands/record-cash-movement.expense-drawer.valid.json",
+  "patch": [
+    {
+      "op": "replace",
+      "path": "/cash_session_id",
+      "value": null
+    }
+  ]
+}

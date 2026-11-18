@@ -7,6 +7,8 @@ use App\Domain\Cash\CashMovements;
 use App\Domain\Cash\CashSessionDirectory;
 use App\Domain\Shared\BusinessError;
 use App\Http\Controllers\CommandController;
+use App\Http\Resources\CashPresenter;
+use App\Models\Clinic;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\AuthenticationException;
@@ -15,17 +17,43 @@ use Illuminate\Http\Request;
 use stdClass;
 
 /**
- * Mouvements de caisse hors vente et catégories de dépenses (L1D05), module `sales`.
+ * Dépenses et mouvements de caisse hors vente (L1D05), module `sales`.
  *
- *   GET  /cash-sessions/{id}/movements            mouvements de la session et revue de son écart (la sienne, ou toute
- *                                                session pour la gérante)
- *   POST /cash-sessions/{id}/movements            RecordCashMovement (approbation exacte ou exécution de la gérante)
+ *   GET  /expenses                                liste paginée des dépenses (tiroir ou autre canal)
+ *   POST /cash-movements                          RecordCashMovement (route canonique tiroir ou hors tiroir)
+ *   GET  /cash-sessions/{id}/movements            mouvements de la session et revue de son écart
+ *   POST /cash-sessions/{id}/movements            RecordCashMovement lié à la session (défaut method=CASH)
  *   POST /cash-sessions/{id}/variance-review      ReviewCashVariance (gérante, mot de passe confirmé)
  *   GET  /expense-categories                      catégories (actives seulement sans cash.manage)
  *   POST /expense-categories                      SaveExpenseCategory (gérante)
  */
 final class CashMovementController extends CommandController
 {
+    public function expenses(Request $request): JsonResponse
+    {
+        $actor = $this->actor($request);
+        $clinicId = (string) $actor->clinic_id;
+        $timezone = (string) (Clinic::query()->whereKey($clinicId)->value('timezone') ?? 'Africa/Douala');
+        $page = CashMovements::expenses($clinicId, $timezone !== '' ? $timezone : 'Africa/Douala', (string) $actor->getKey(), $actor->can('cash.manage'), [
+            'from' => $request->query('from'),
+            'to' => $request->query('to'),
+            'category_id' => $request->query('category_id'),
+            'method' => $request->query('method'),
+            'cash_session_id' => $request->query('cash_session_id'),
+            'page' => $request->query('page'),
+        ]);
+
+        return new JsonResponse([
+            'data' => array_map(CashPresenter::movement(...), $page->items()),
+            'meta' => [
+                'current_page' => $page->currentPage(),
+                'last_page' => $page->lastPage(),
+                'per_page' => $page->perPage(),
+                'total' => $page->total(),
+            ],
+        ]);
+    }
+
     public function index(Request $request, string $id): JsonResponse
     {
         $actor = $this->actor($request);
@@ -35,22 +63,44 @@ final class CashMovementController extends CommandController
         return new JsonResponse(['data' => [
             'cash_session_id' => $id,
             'closed' => $session->closed_at !== null,
-            'movements' => array_map(self::movement(...), CashMovements::forSession((string) $actor->clinic_id, $id)),
+            'movements' => array_map(CashPresenter::movement(...), CashMovements::forSession((string) $actor->clinic_id, $id)),
             'variance_review' => $review === null ? null : self::presentReview($review),
         ]]);
+    }
+
+    public function record(Request $request): JsonResponse
+    {
+        $payload = $this->body($request, null, null);
+        $movementId = is_string($payload['movement_id'] ?? null) ? $payload['movement_id'] : null;
+        $result = $this->dispatchCommand($request, new Command('RecordCashMovement', $payload, $movementId, null));
+        $actor = $this->actor($request);
+        $row = CashMovements::findForPresentation((string) $actor->clinic_id, (string) $result->resultId);
+        if ($row === null) {
+            throw BusinessError::notFound();
+        }
+
+        return new JsonResponse(['data' => CashPresenter::movement($row)], 201);
     }
 
     public function store(Request $request, string $id): JsonResponse
     {
         $payload = $this->body($request, 'cash_session_id', $id);
-        $result = $this->dispatchCommand($request, new Command('RecordCashMovement', $payload, $id, null));
-        $actor = $this->actor($request);
-        foreach (CashMovements::forSession((string) $actor->clinic_id, $id) as $row) {
-            if ((string) $row->id === (string) $result->resultId) {
-                return new JsonResponse(['data' => self::movement($row)], 201);
-            }
+        // Compatibilité avec les appels existants sur /cash-sessions/{id}/movements qui omettent method/occurred_at.
+        if (! array_key_exists('method', $payload)) {
+            $payload['method'] = 'CASH';
         }
-        throw BusinessError::notFound();
+        if (! array_key_exists('occurred_at', $payload)) {
+            $payload['occurred_at'] = CarbonImmutable::now('UTC')->format('Y-m-d\TH:i:s.v\Z');
+        }
+        $movementId = is_string($payload['movement_id'] ?? null) ? $payload['movement_id'] : null;
+        $result = $this->dispatchCommand($request, new Command('RecordCashMovement', $payload, $movementId, null));
+        $actor = $this->actor($request);
+        $row = CashMovements::findForPresentation((string) $actor->clinic_id, (string) $result->resultId);
+        if ($row === null) {
+            throw BusinessError::notFound();
+        }
+
+        return new JsonResponse(['data' => CashPresenter::movement($row)], 201);
     }
 
     public function review(Request $request, string $id): JsonResponse
@@ -125,32 +175,6 @@ final class CashMovementController extends CommandController
         }
 
         return $session;
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private static function movement(stdClass $row): array
-    {
-        return [
-            'id' => (string) $row->id,
-            'cash_session_id' => (string) $row->cash_session_id,
-            'kind' => (string) $row->kind,
-            'signed_amount' => (int) $row->signed_amount,
-            'reason' => (string) $row->reason,
-            'reference' => $row->reference,
-            'occurred_at' => self::instant((string) $row->occurred_at),
-            'expense_category' => $row->expense_category_id === null ? null : [
-                'id' => (string) $row->expense_category_id,
-                'code' => (string) $row->category_code,
-                'name' => (string) $row->category_name,
-            ],
-            'created_by' => (string) $row->created_by,
-            'created_by_name' => $row->created_by_name,
-            'approval_id' => (string) $row->approval_id,
-            // Exécution directe : la gérante a demandé et décidé elle-même.
-            'approval_mode' => (string) $row->approval_requested_by === (string) $row->approval_decided_by ? 'DIRECT' : 'APPROVED',
-        ];
     }
 
     /**

@@ -1,5 +1,10 @@
 import type { DocumentStore } from '../documents/store/port'
-import type { ClinicSummary, Preparation } from '../domain/contracts/generated'
+import type {
+  CashSession,
+  ClinicSummary,
+  ExpenseCategory,
+  Preparation,
+} from '../domain/contracts/generated'
 
 import { storePreparation } from './allocations/allocations'
 import { CommandJournal } from './command-journal/journal'
@@ -207,6 +212,14 @@ export interface OfflineVault {
    * administratif) : sa valeur brute, ou null s'il n'a jamais été remis. À lire avec `readLocalCatalog`.
    */
   catalogSnapshot(): Promise<unknown>
+  /** Catégories de dépenses mémorisées lors de la dernière lecture en ligne (compartiment financier). */
+  expenseCategoriesSnapshot(): Promise<ExpenseCategory[] | null>
+  /** Retient les catégories de dépenses lues en ligne lorsque le compartiment financier est ouvert. */
+  noteExpenseCategories(categories: readonly ExpenseCategory[]): Promise<void>
+  /** Session de caisse courante mémorisée lors de la dernière lecture en ligne (compartiment financier). */
+  currentCashSessionSnapshot(): Promise<{ session: CashSession | null } | null>
+  /** Retient la session de caisse courante lue en ligne lorsque le compartiment financier est ouvert. */
+  noteCurrentCashSession(session: CashSession | null): Promise<void>
   /**
    * Annuaire du poste (A2) : projections du serveur reçues par le pull pour un type d'entité (les `ids` donnés seulement, ou
    * toutes). Vide si le compartiment est fermé pour la session ; jamais le réseau.
@@ -345,6 +358,41 @@ export function openOfflineVault(options: OpenOfflineVaultOptions = {}): Offline
     localHeads: (headType) => localHeads(self(), headType),
     catalogSnapshot: async () =>
       (await self().getEntity<unknown>('catalog_snapshot', 'current'))?.value ?? null,
+    expenseCategoriesSnapshot: async () =>
+      (
+        await self().getEntity<{ categories: ExpenseCategory[] }>(
+          'expense_categories_snapshot',
+          'current',
+        )
+      )?.value.categories ?? null,
+    noteExpenseCategories: async (categories) => {
+      if (!self().session()?.compartments.includes('FINANCIAL')) return
+      const existing = await self()
+        .getEntity<{ categories: ExpenseCategory[] }>('expense_categories_snapshot', 'current')
+        .catch(() => null)
+      if (JSON.stringify(existing?.value.categories ?? null) === JSON.stringify(categories)) return
+      await self().putEntity(
+        'expense_categories_snapshot',
+        'current',
+        (existing?.version ?? 0) + 1,
+        {
+          categories: [...categories],
+        },
+      )
+    },
+    currentCashSessionSnapshot: async () =>
+      (await self().getEntity<{ session: CashSession | null }>('current_cash_session', 'current'))
+        ?.value ?? null,
+    noteCurrentCashSession: async (session) => {
+      if (!self().session()?.compartments.includes('FINANCIAL')) return
+      const existing = await self()
+        .getEntity<{ session: CashSession | null }>('current_cash_session', 'current')
+        .catch(() => null)
+      if (JSON.stringify(existing?.value.session ?? null) === JSON.stringify(session)) return
+      await self().putEntity('current_cash_session', 'current', (existing?.version ?? 0) + 1, {
+        session,
+      })
+    },
     pulledRecords: (compartment, entityType, ids) =>
       pulledRecords(self(), compartment, entityType, ids ?? null),
     lastPullAt: () => lastPullAt(self()),

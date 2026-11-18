@@ -51,8 +51,7 @@ export type OnlineCommandName =
   | 'CancelVisit'
   // Fusion manuelle de deux fiches (L1D08) : gérante, mot de passe confirmé, version de la fiche absorbée.
   | 'MergePatients'
-  // Caisse (L1D05) : dépenses et mouvements hors vente, catégories de dépenses, revue d'un écart de clôture.
-  | 'RecordCashMovement'
+  // Caisse (L1D05) : catégories de dépenses et revue d'un écart de clôture (mouvements non-dépenses restant en ligne via direct()).
   | 'SaveExpenseCategory'
   | 'ReviewCashVariance'
   // Devis versionnés (L1D07) : brouillon, émission, révision, réponse du client, conversion en brouillon de facture.

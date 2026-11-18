@@ -3,8 +3,10 @@
 namespace App\Domain\Billing\Reports;
 
 use App\Domain\Billing\Numbering\BillingNumbers;
+use App\Domain\Billing\Rules\PaymentRules;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Query\Builder;
+use Illuminate\Database\Query\JoinClause;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -64,6 +66,7 @@ final class FinancialReports
             'receivables' => self::receivables($clinicId),
             'legacy_imported' => self::legacyImported($clinicId, $period),
             'cash_sessions' => self::cashSessions($clinicId, $period),
+            'expenses' => self::expenses($clinicId, $period),
             'freshness' => self::freshness($clinicId, $period, $now),
             'generated_at' => $now->utc()->format('Y-m-d\TH:i:s.v\Z'),
         ];
@@ -279,6 +282,78 @@ final class FinancialReports
             'variance_total' => (int) ($closed->variance ?? 0),
             'post_closure_reversals' => (int) ($closed->post_closure ?? 0),
             'open_count' => (int) $open,
+        ];
+    }
+
+    /**
+     * Dépenses de la période (tiroir espèces et hors tiroir, hors mouvements internes dépôt/retrait/correction).
+     *
+     * @return array{count: int, total: int, cash_drawer: int, other_methods: int, by_method: list<array{method: string, count: int, amount: int}>, by_category: list<array{category_id: ?string, code: ?string, name: string, count: int, amount: int}>}
+     */
+    private static function expenses(string $clinicId, ReportPeriod $period): array
+    {
+        $rows = DB::table('cash_movements as m')
+            ->leftJoin('expense_categories as c', static function (JoinClause $join): void {
+                $join->on('c.clinic_id', '=', 'm.clinic_id')->on('c.id', '=', 'm.expense_category_id');
+            })
+            ->where('m.clinic_id', $clinicId)
+            ->where('m.kind', 'EXPENSE')
+            ->where('m.occurred_at', '>=', $period->start)
+            ->where('m.occurred_at', '<', $period->end)
+            ->get(['m.method', 'm.signed_amount', 'm.expense_category_id', 'c.code as category_code', 'c.name as category_name'])
+            ->all();
+
+        $count = 0;
+        $total = 0;
+        $cashDrawer = 0;
+        $otherMethods = 0;
+        /** @var array<string, array{method: string, count: int, amount: int}> $byMethod */
+        $byMethod = [];
+        /** @var array<string, array{category_id: ?string, code: ?string, name: string, count: int, amount: int}> $byCategory */
+        $byCategory = [];
+
+        foreach ($rows as $row) {
+            $amount = -(int) $row->signed_amount;
+            $method = (string) $row->method;
+            $count++;
+            $total += $amount;
+            if ($method === 'CASH') {
+                $cashDrawer += $amount;
+            } else {
+                $otherMethods += $amount;
+            }
+            $byMethod[$method] ??= ['method' => $method, 'count' => 0, 'amount' => 0];
+            $byMethod[$method]['count']++;
+            $byMethod[$method]['amount'] += $amount;
+
+            $categoryKey = $row->expense_category_id === null ? '' : (string) $row->expense_category_id;
+            $byCategory[$categoryKey] ??= [
+                'category_id' => $categoryKey === '' ? null : $categoryKey,
+                'code' => $row->category_code === null ? null : (string) $row->category_code,
+                'name' => $row->category_name === null ? 'Sans catégorie' : (string) $row->category_name,
+                'count' => 0,
+                'amount' => 0,
+            ];
+            $byCategory[$categoryKey]['count']++;
+            $byCategory[$categoryKey]['amount'] += $amount;
+        }
+
+        $orderedMethods = [];
+        foreach (PaymentRules::METHODS as $method) {
+            if (isset($byMethod[$method])) {
+                $orderedMethods[] = $byMethod[$method];
+            }
+        }
+        $categories = array_values($byCategory);
+        usort($categories, static fn (array $a, array $b): int => [$a['name'], (string) ($a['category_id'] ?? '')] <=> [$b['name'], (string) ($b['category_id'] ?? '')]);
+
+        return [
+            'count' => $count,
+            'total' => $total,
+            'cash_drawer' => $cashDrawer,
+            'other_methods' => $otherMethods,
+            'by_method' => $orderedMethods,
+            'by_category' => $categories,
         ];
     }
 

@@ -103,7 +103,7 @@ final class ApprovalTargets
     private function cashMovement(TransactionLocks $locks, CommandContext $context, string $sessionId, string $kind, int $signedAmount, ?string $categoryId): void
     {
         try {
-            CashMovements::assertShape($kind, $signedAmount, $categoryId, 'subject.');
+            CashMovements::assertShape($kind, 'CASH', $sessionId, $signedAmount, $categoryId, 'subject.');
         } catch (RuleViolation $violation) {
             throw BusinessError::validation([$violation->field => [$violation->getMessage()]]);
         }

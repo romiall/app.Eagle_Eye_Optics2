@@ -65,6 +65,36 @@ final class CashPresenter
     }
 
     /**
+     * Représentation API d'une dépense ou d'un mouvement de caisse (`CashMovement`).
+     *
+     * @return array<string, mixed>
+     */
+    public static function movement(stdClass $row): array
+    {
+        return [
+            'id' => (string) $row->id,
+            'cash_session_id' => $row->cash_session_id === null ? null : (string) $row->cash_session_id,
+            'kind' => (string) $row->kind,
+            'method' => (string) ($row->method ?? 'CASH'),
+            'signed_amount' => (int) $row->signed_amount,
+            'reason' => $row->reason === null ? null : (string) $row->reason,
+            'reference' => $row->reference === null ? null : (string) $row->reference,
+            'occurred_at' => self::instant((string) $row->occurred_at),
+            'expense_category' => $row->expense_category_id === null ? null : [
+                'id' => (string) $row->expense_category_id,
+                'code' => (string) $row->category_code,
+                'name' => (string) $row->category_name,
+            ],
+            'created_by' => (string) $row->created_by,
+            'created_by_name' => $row->created_by_name === null ? null : (string) $row->created_by_name,
+            'approval_id' => $row->approval_id === null ? null : (string) $row->approval_id,
+            'approval_mode' => $row->approval_id === null
+                ? null
+                : ((string) $row->approval_requested_by === (string) $row->approval_decided_by ? 'DIRECT' : 'APPROVED'),
+        ];
+    }
+
+    /**
      * Relevé d'une session (`CashSessionReport`) : tiroir espèces, mouvements, encaissements de la session et autres
      * modes de la caissière pendant la session. Données de l'écran et du PDF du relevé (produit sur le poste).
      *
@@ -84,7 +114,7 @@ final class CashPresenter
                 'id' => $movement->id,
                 'kind' => $movement->kind,
                 'signed_amount' => (int) $movement->signed_amount,
-                'reason' => (string) $movement->reason,
+                'reason' => $movement->reason === null ? null : (string) $movement->reason,
                 'occurred_at' => self::instant((string) $movement->occurred_at),
             ], $report['movements']),
             'payments' => array_map(static fn (stdClass $payment): array => [

@@ -2,22 +2,22 @@
     "provenance": {
         "source": "Import client mysql de database/eagle_eye_optics_complet.sql sur MySQL 8.4.9",
         "mysql_version": "8.4.9",
-        "baseline_catalog_sha256": "73bd5dc454c170f8b5caa2cd66c0e6b696525efb6ca94e5c81bec2046e2761eb",
+        "baseline_catalog_sha256": "58435d62f86b7ecc1c3d6aedb6f2f9d107193ecb7a58bd27459985a9d5744e8d",
         "sources_sha256": {
-            "schema_catalog.json": "73bd5dc454c170f8b5caa2cd66c0e6b696525efb6ca94e5c81bec2046e2761eb",
-            "01_schema.sql": "74f11cedd6326acf0af9bcf3e0cdafa30233022b15c3794bf09b5871a045dcfa",
+            "schema_catalog.json": "58435d62f86b7ecc1c3d6aedb6f2f9d107193ecb7a58bd27459985a9d5744e8d",
+            "01_schema.sql": "22b689cc53bcaddf953ceacea880b6c05e488974ff0558295bdbf416d5494191",
             "02_reference_data.sql": "df737c320e4678f5515c45ea6b235e4384a925d417f8ebfcc5003e47f69cb670",
-            "03_reporting_views.sql": "ce754eceb352c6368090ed4f6efcd842e487246a956ef5cebc1a2f678b6252e7",
+            "03_reporting_views.sql": "8051612a7bf70d3810c3f65966b671c27f34c0e59bf5598105102dd82d48a7e8",
             "04_history_guards.sql": "1d75d7d85802dfab4aef68830c5428582eff614acca4234c7f7e479231c95682",
-            "eagle_eye_optics_complet.sql": "62a2726c8c4a52a6adce8020708f52787c34dcbaf1ba8e81553e0ebf9896d589"
+            "eagle_eye_optics_complet.sql": "bb9adada82f22543272bcaab5039c5f9a8f4d21daad6c84b17db4d34a9c5de2d"
         },
         "generator": "php artisan eeo:schema:snapshot"
     },
     "snapshot": {
         "counts": {
             "business_tables": 117,
-            "foreign_keys": 464,
-            "checks": 484,
+            "foreign_keys": 466,
+            "checks": 488,
             "views": 10,
             "triggers": 88
         },
@@ -3835,7 +3835,7 @@
             "cash_movements": {
                 "engine": "InnoDB",
                 "collation": "utf8mb4_0900_ai_ci",
-                "comment": "Sorties/entrées espèces autorisées, sans duplication paiements/refunds",
+                "comment": "Dépenses et mouvements hors vente (tiroir espèces ou hors tiroir), sans duplication paiements/refunds",
                 "columns": {
                     "id": {
                         "position": 1,
@@ -3864,7 +3864,7 @@
                     "cash_session_id": {
                         "position": 3,
                         "type": "char(26)",
-                        "nullable": "NO",
+                        "nullable": "YES",
                         "default": null,
                         "extra": "",
                         "generation": "",
@@ -3885,8 +3885,20 @@
                         "comment": "",
                         "srs_id": null
                     },
-                    "signed_amount": {
+                    "method": {
                         "position": 5,
+                        "type": "varchar(40)",
+                        "nullable": "NO",
+                        "default": "CASH",
+                        "extra": "",
+                        "generation": "",
+                        "charset": "ascii",
+                        "collation": "ascii_bin",
+                        "comment": "",
+                        "srs_id": null
+                    },
+                    "signed_amount": {
+                        "position": 6,
                         "type": "bigint",
                         "nullable": "NO",
                         "default": null,
@@ -3898,30 +3910,18 @@
                         "srs_id": null
                     },
                     "reason": {
-                        "position": 6,
+                        "position": 7,
                         "type": "text",
-                        "nullable": "NO",
+                        "nullable": "YES",
                         "default": null,
                         "extra": "",
                         "generation": "",
                         "charset": "utf8mb4",
                         "collation": "utf8mb4_0900_ai_ci",
-                        "comment": "Motif obligatoire de l’opération",
+                        "comment": "Motif de l’opération (facultatif pour une dépense, obligatoire sinon)",
                         "srs_id": null
                     },
                     "approval_id": {
-                        "position": 7,
-                        "type": "char(26)",
-                        "nullable": "NO",
-                        "default": null,
-                        "extra": "",
-                        "generation": "",
-                        "charset": "ascii",
-                        "collation": "ascii_bin",
-                        "comment": "",
-                        "srs_id": null
-                    },
-                    "expense_category_id": {
                         "position": 8,
                         "type": "char(26)",
                         "nullable": "YES",
@@ -3933,8 +3933,20 @@
                         "comment": "",
                         "srs_id": null
                     },
-                    "reference": {
+                    "expense_category_id": {
                         "position": 9,
+                        "type": "char(26)",
+                        "nullable": "YES",
+                        "default": null,
+                        "extra": "",
+                        "generation": "",
+                        "charset": "ascii",
+                        "collation": "ascii_bin",
+                        "comment": "",
+                        "srs_id": null
+                    },
+                    "reference": {
+                        "position": 10,
                         "type": "varchar(180)",
                         "nullable": "YES",
                         "default": null,
@@ -3946,7 +3958,7 @@
                         "srs_id": null
                     },
                     "occurred_at": {
-                        "position": 10,
+                        "position": 11,
                         "type": "datetime(6)",
                         "nullable": "NO",
                         "default": null,
@@ -3958,7 +3970,7 @@
                         "srs_id": null
                     },
                     "created_by": {
-                        "position": 11,
+                        "position": 12,
                         "type": "char(26)",
                         "nullable": "NO",
                         "default": null,
@@ -3969,8 +3981,32 @@
                         "comment": "",
                         "srs_id": null
                     },
+                    "source_device_id": {
+                        "position": 13,
+                        "type": "char(26)",
+                        "nullable": "YES",
+                        "default": null,
+                        "extra": "",
+                        "generation": "",
+                        "charset": "ascii",
+                        "collation": "ascii_bin",
+                        "comment": "",
+                        "srs_id": null
+                    },
+                    "sync_command_id": {
+                        "position": 14,
+                        "type": "char(26)",
+                        "nullable": "YES",
+                        "default": null,
+                        "extra": "",
+                        "generation": "",
+                        "charset": "ascii",
+                        "collation": "ascii_bin",
+                        "comment": "",
+                        "srs_id": null
+                    },
                     "created_at": {
-                        "position": 12,
+                        "position": 15,
                         "type": "datetime(6)",
                         "nullable": "NO",
                         "default": "CURRENT_TIMESTAMP(6)",
@@ -3982,7 +4018,7 @@
                         "srs_id": null
                     },
                     "updated_at": {
-                        "position": 13,
+                        "position": 16,
                         "type": "datetime(6)",
                         "nullable": "NO",
                         "default": "CURRENT_TIMESTAMP(6)",
@@ -4022,7 +4058,13 @@
                                 "sub_part": null
                             },
                             {
-                                "column": "cash_session_id",
+                                "column": "occurred_at",
+                                "expression": null,
+                                "direction": "A",
+                                "sub_part": null
+                            },
+                            {
+                                "column": "kind",
                                 "expression": null,
                                 "direction": "A",
                                 "sub_part": null
@@ -4042,7 +4084,7 @@
                                 "sub_part": null
                             },
                             {
-                                "column": "approval_id",
+                                "column": "cash_session_id",
                                 "expression": null,
                                 "direction": "A",
                                 "sub_part": null
@@ -4062,7 +4104,7 @@
                                 "sub_part": null
                             },
                             {
-                                "column": "expense_category_id",
+                                "column": "approval_id",
                                 "expression": null,
                                 "direction": "A",
                                 "sub_part": null
@@ -4082,7 +4124,67 @@
                                 "sub_part": null
                             },
                             {
+                                "column": "expense_category_id",
+                                "expression": null,
+                                "direction": "A",
+                                "sub_part": null
+                            }
+                        ]
+                    },
+                    "ix_cash_movements_05": {
+                        "unique": false,
+                        "type": "BTREE",
+                        "visible": "YES",
+                        "comment": "",
+                        "columns": [
+                            {
+                                "column": "clinic_id",
+                                "expression": null,
+                                "direction": "A",
+                                "sub_part": null
+                            },
+                            {
                                 "column": "created_by",
+                                "expression": null,
+                                "direction": "A",
+                                "sub_part": null
+                            }
+                        ]
+                    },
+                    "ix_cash_movements_06": {
+                        "unique": false,
+                        "type": "BTREE",
+                        "visible": "YES",
+                        "comment": "",
+                        "columns": [
+                            {
+                                "column": "clinic_id",
+                                "expression": null,
+                                "direction": "A",
+                                "sub_part": null
+                            },
+                            {
+                                "column": "source_device_id",
+                                "expression": null,
+                                "direction": "A",
+                                "sub_part": null
+                            }
+                        ]
+                    },
+                    "ix_cash_movements_07": {
+                        "unique": false,
+                        "type": "BTREE",
+                        "visible": "YES",
+                        "comment": "",
+                        "columns": [
+                            {
+                                "column": "clinic_id",
+                                "expression": null,
+                                "direction": "A",
+                                "sub_part": null
+                            },
+                            {
+                                "column": "sync_command_id",
                                 "expression": null,
                                 "direction": "A",
                                 "sub_part": null
@@ -4128,10 +4230,26 @@
                         "enforced": "YES"
                     },
                     "ck_cash_movements_05": {
-                        "clause": "(`kind` in (_ascii\\'DEPOSIT\\',_ascii\\'WITHDRAWAL\\',_ascii\\'EXPENSE\\',_ascii\\'OPENING_CORRECTION\\'))",
+                        "clause": "((`kind` = _ascii\\'EXPENSE\\') or (`method` = _ascii\\'CASH\\'))",
                         "enforced": "YES"
                     },
                     "ck_cash_movements_06": {
+                        "clause": "(((`method` = _ascii\\'CASH\\') and (`cash_session_id` is not null)) or ((`method` <> _ascii\\'CASH\\') and (`cash_session_id` is null)))",
+                        "enforced": "YES"
+                    },
+                    "ck_cash_movements_07": {
+                        "clause": "((`kind` = _ascii\\'EXPENSE\\') or ((`reason` is not null) and (`approval_id` is not null)))",
+                        "enforced": "YES"
+                    },
+                    "ck_cash_movements_08": {
+                        "clause": "(`kind` in (_ascii\\'DEPOSIT\\',_ascii\\'WITHDRAWAL\\',_ascii\\'EXPENSE\\',_ascii\\'OPENING_CORRECTION\\'))",
+                        "enforced": "YES"
+                    },
+                    "ck_cash_movements_09": {
+                        "clause": "(`method` in (_ascii\\'CASH\\',_ascii\\'MTN_MOMO\\',_ascii\\'ORANGE_MONEY\\',_ascii\\'BANK_TRANSFER\\',_ascii\\'CHEQUE\\',_ascii\\'OTHER\\'))",
+                        "enforced": "YES"
+                    },
+                    "ck_cash_movements_10": {
                         "clause": "(`id` <> _ascii\\'00000000000000000000000000\\')",
                         "enforced": "YES"
                     }
@@ -4196,6 +4314,34 @@
                         "columns": [
                             "clinic_id",
                             "created_by"
+                        ],
+                        "target_columns": [
+                            "clinic_id",
+                            "id"
+                        ],
+                        "update_rule": "NO ACTION",
+                        "delete_rule": "NO ACTION",
+                        "match_option": "NONE"
+                    },
+                    "fk_cash_movements_06": {
+                        "target": "enrolled_devices",
+                        "columns": [
+                            "clinic_id",
+                            "source_device_id"
+                        ],
+                        "target_columns": [
+                            "clinic_id",
+                            "id"
+                        ],
+                        "update_rule": "NO ACTION",
+                        "delete_rule": "NO ACTION",
+                        "match_option": "NONE"
+                    },
+                    "fk_cash_movements_07": {
+                        "target": "sync_commands",
+                        "columns": [
+                            "clinic_id",
+                            "sync_command_id"
                         ],
                         "target_columns": [
                             "clinic_id",
@@ -41418,7 +41564,7 @@
                 "security_type": "INVOKER"
             },
             "vw_cash_session_totals": {
-                "definition": "select `s`.`clinic_id` AS `clinic_id`,`s`.`id` AS `cash_session_id`,`s`.`cash_register_id` AS `cash_register_id`,`s`.`cashier_id` AS `cashier_id`,`s`.`opened_at` AS `opened_at`,`s`.`closed_at` AS `closed_at`,`s`.`opening_amount` AS `opening_amount`,coalesce(`p`.`received`,0) AS `cash_received`,coalesce(`r`.`reversed`,0) AS `accounting_reversals`,coalesce(`f`.`refunded`,0) AS `cash_refunded`,coalesce(`m`.`moved`,0) AS `authorized_movements`,((((`s`.`opening_amount` + coalesce(`p`.`received`,0)) - coalesce(`r`.`reversed`,0)) - coalesce(`f`.`refunded`,0)) + coalesce(`m`.`moved`,0)) AS `recomputed_cash_amount`,`s`.`expected_amount` AS `frozen_closing_expected_amount`,`s`.`counted_amount` AS `counted_amount`,`s`.`variance` AS `variance`,coalesce(`pr`.`after_close`,0) AS `post_closure_accounting_reversals` from (((((`cash_sessions` `s` left join (select `payments`.`clinic_id` AS `clinic_id`,`payments`.`cash_session_id` AS `cash_session_id`,sum(`payments`.`amount`) AS `received` from `payments` where ((`payments`.`status` = 'CONFIRMED') and (`payments`.`method` = 'CASH')) group by `payments`.`clinic_id`,`payments`.`cash_session_id`) `p` on(((`p`.`clinic_id` = `s`.`clinic_id`) and (`p`.`cash_session_id` = `s`.`id`)))) left join (select `r`.`clinic_id` AS `clinic_id`,`p`.`cash_session_id` AS `cash_session_id`,sum(`r`.`amount`) AS `reversed` from (`payment_reversals` `r` join `payments` `p` on(((`p`.`clinic_id` = `r`.`clinic_id`) and (`p`.`id` = `r`.`payment_id`)))) where (`p`.`method` = 'CASH') group by `r`.`clinic_id`,`p`.`cash_session_id`) `r` on(((`r`.`clinic_id` = `s`.`clinic_id`) and (`r`.`cash_session_id` = `s`.`id`)))) left join (select `refunds`.`clinic_id` AS `clinic_id`,`refunds`.`cash_session_id` AS `cash_session_id`,sum(`refunds`.`amount`) AS `refunded` from `refunds` where (`refunds`.`method` = 'CASH') group by `refunds`.`clinic_id`,`refunds`.`cash_session_id`) `f` on(((`f`.`clinic_id` = `s`.`clinic_id`) and (`f`.`cash_session_id` = `s`.`id`)))) left join (select `cash_movements`.`clinic_id` AS `clinic_id`,`cash_movements`.`cash_session_id` AS `cash_session_id`,sum(`cash_movements`.`signed_amount`) AS `moved` from `cash_movements` group by `cash_movements`.`clinic_id`,`cash_movements`.`cash_session_id`) `m` on(((`m`.`clinic_id` = `s`.`clinic_id`) and (`m`.`cash_session_id` = `s`.`id`)))) left join (select `r`.`clinic_id` AS `clinic_id`,`p`.`cash_session_id` AS `cash_session_id`,sum(`r`.`amount`) AS `after_close` from ((`payment_reversals` `r` join `payments` `p` on(((`p`.`clinic_id` = `r`.`clinic_id`) and (`p`.`id` = `r`.`payment_id`)))) join `cash_sessions` `cs` on(((`cs`.`clinic_id` = `p`.`clinic_id`) and (`cs`.`id` = `p`.`cash_session_id`)))) where ((`p`.`method` = 'CASH') and (`cs`.`closed_at` is not null) and (`r`.`recorded_at` > `cs`.`closed_at`)) group by `r`.`clinic_id`,`p`.`cash_session_id`) `pr` on(((`pr`.`clinic_id` = `s`.`clinic_id`) and (`pr`.`cash_session_id` = `s`.`id`))))",
+                "definition": "select `s`.`clinic_id` AS `clinic_id`,`s`.`id` AS `cash_session_id`,`s`.`cash_register_id` AS `cash_register_id`,`s`.`cashier_id` AS `cashier_id`,`s`.`opened_at` AS `opened_at`,`s`.`closed_at` AS `closed_at`,`s`.`opening_amount` AS `opening_amount`,coalesce(`p`.`received`,0) AS `cash_received`,coalesce(`r`.`reversed`,0) AS `accounting_reversals`,coalesce(`f`.`refunded`,0) AS `cash_refunded`,coalesce(`m`.`moved`,0) AS `authorized_movements`,((((`s`.`opening_amount` + coalesce(`p`.`received`,0)) - coalesce(`r`.`reversed`,0)) - coalesce(`f`.`refunded`,0)) + coalesce(`m`.`moved`,0)) AS `recomputed_cash_amount`,`s`.`expected_amount` AS `frozen_closing_expected_amount`,`s`.`counted_amount` AS `counted_amount`,`s`.`variance` AS `variance`,coalesce(`pr`.`after_close`,0) AS `post_closure_accounting_reversals` from (((((`cash_sessions` `s` left join (select `payments`.`clinic_id` AS `clinic_id`,`payments`.`cash_session_id` AS `cash_session_id`,sum(`payments`.`amount`) AS `received` from `payments` where ((`payments`.`status` = 'CONFIRMED') and (`payments`.`method` = 'CASH')) group by `payments`.`clinic_id`,`payments`.`cash_session_id`) `p` on(((`p`.`clinic_id` = `s`.`clinic_id`) and (`p`.`cash_session_id` = `s`.`id`)))) left join (select `r`.`clinic_id` AS `clinic_id`,`p`.`cash_session_id` AS `cash_session_id`,sum(`r`.`amount`) AS `reversed` from (`payment_reversals` `r` join `payments` `p` on(((`p`.`clinic_id` = `r`.`clinic_id`) and (`p`.`id` = `r`.`payment_id`)))) where (`p`.`method` = 'CASH') group by `r`.`clinic_id`,`p`.`cash_session_id`) `r` on(((`r`.`clinic_id` = `s`.`clinic_id`) and (`r`.`cash_session_id` = `s`.`id`)))) left join (select `refunds`.`clinic_id` AS `clinic_id`,`refunds`.`cash_session_id` AS `cash_session_id`,sum(`refunds`.`amount`) AS `refunded` from `refunds` where (`refunds`.`method` = 'CASH') group by `refunds`.`clinic_id`,`refunds`.`cash_session_id`) `f` on(((`f`.`clinic_id` = `s`.`clinic_id`) and (`f`.`cash_session_id` = `s`.`id`)))) left join (select `cash_movements`.`clinic_id` AS `clinic_id`,`cash_movements`.`cash_session_id` AS `cash_session_id`,sum(`cash_movements`.`signed_amount`) AS `moved` from `cash_movements` where (`cash_movements`.`cash_session_id` is not null) group by `cash_movements`.`clinic_id`,`cash_movements`.`cash_session_id`) `m` on(((`m`.`clinic_id` = `s`.`clinic_id`) and (`m`.`cash_session_id` = `s`.`id`)))) left join (select `r`.`clinic_id` AS `clinic_id`,`p`.`cash_session_id` AS `cash_session_id`,sum(`r`.`amount`) AS `after_close` from ((`payment_reversals` `r` join `payments` `p` on(((`p`.`clinic_id` = `r`.`clinic_id`) and (`p`.`id` = `r`.`payment_id`)))) join `cash_sessions` `cs` on(((`cs`.`clinic_id` = `p`.`clinic_id`) and (`cs`.`id` = `p`.`cash_session_id`)))) where ((`p`.`method` = 'CASH') and (`cs`.`closed_at` is not null) and (`r`.`recorded_at` > `cs`.`closed_at`)) group by `r`.`clinic_id`,`p`.`cash_session_id`) `pr` on(((`pr`.`clinic_id` = `s`.`clinic_id`) and (`pr`.`cash_session_id` = `s`.`id`))))",
                 "check_option": "NONE",
                 "is_updatable": "NO",
                 "security_type": "INVOKER"

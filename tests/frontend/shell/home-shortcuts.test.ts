@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   APP_MODULES,
+  moduleOf,
   visibleWorkShortcuts,
   WORK_GROUP_LABELS,
   WORK_SHORTCUTS,
@@ -16,7 +17,7 @@ import {
  * module ouvert. Les comptes des profils seedés voient chacun leurs activités, jamais celles des autres.
  */
 const ROOT = join(import.meta.dirname, '..', '..', '..')
-const ALL = APP_MODULES.map((module) => module.id)
+const ALL = [...new Set(APP_MODULES.map(moduleOf))]
 
 function backlogTaskIds(): Set<string> {
   const backlog = JSON.parse(
@@ -77,6 +78,7 @@ describe('raccourcis de travail de l’accueil', () => {
 
     const cashier = visibleWorkShortcuts(rolePermissions('CASHIER'), ALL).map((s) => s.id)
     expect(cashier).toContain('cash-session')
+    expect(cashier).toContain('expenses')
     expect(cashier).toContain('invoices')
     expect(cashier).not.toContain('exams-today')
     expect(cashier).not.toContain('start-exam')

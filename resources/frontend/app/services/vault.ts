@@ -6,7 +6,14 @@ import { installDocumentStore } from '@/app/services/documents'
 import { moduleOpenOnScreen, session as appSession } from '@/app/session'
 import { MemoryDocumentStore } from '@/documents/store/memory'
 import { clinicTimeZone, DEFAULT_CLINIC_TIME_ZONE } from '@/app/clinicTime'
-import type { ClinicSummary, Me, Release, Replacement } from '@/domain/contracts/generated'
+import type {
+  CashSession,
+  ClinicSummary,
+  ExpenseCategory,
+  Me,
+  Release,
+  Replacement,
+} from '@/domain/contracts/generated'
 import {
   type DeviceSync,
   type ExportManifest,
@@ -170,6 +177,64 @@ export async function localCatalogSnapshot(): Promise<unknown> {
     return await instance.catalogSnapshot()
   } catch (error) {
     if (isVaultError(error)) return null
+    throw error
+  }
+}
+
+/** Catégories de dépenses mémorisées dans le coffre ouvert (compartiment financier). */
+export async function localExpenseCategoriesSnapshot(): Promise<ExpenseCategory[] | null> {
+  if (!offlineModuleOpen() || instance === null || state.value.session === null) return null
+  try {
+    return await (instance.expenseCategoriesSnapshot?.() ?? Promise.resolve(null))
+  } catch (error) {
+    if (isVaultError(error)) return null
+    throw error
+  }
+}
+
+export async function noteLocalExpenseCategories(
+  categories: readonly ExpenseCategory[],
+): Promise<void> {
+  if (
+    !offlineModuleOpen() ||
+    instance === null ||
+    state.value.session === null ||
+    identityDiverges()
+  )
+    return
+  try {
+    await instance.noteExpenseCategories?.(categories)
+  } catch (error) {
+    if (isVaultError(error)) return
+    throw error
+  }
+}
+
+/** Session de caisse courante mémorisée dans le coffre ouvert (compartiment financier). */
+export async function localCurrentCashSessionSnapshot(): Promise<{
+  session: CashSession | null
+} | null> {
+  if (!offlineModuleOpen() || instance === null || state.value.session === null) return null
+  try {
+    return await (instance.currentCashSessionSnapshot?.() ?? Promise.resolve(null))
+  } catch (error) {
+    if (isVaultError(error)) return null
+    throw error
+  }
+}
+
+export async function noteLocalCurrentCashSession(session: CashSession | null): Promise<void> {
+  if (
+    !offlineModuleOpen() ||
+    instance === null ||
+    state.value.session === null ||
+    identityDiverges()
+  )
+    return
+  try {
+    await instance.noteCurrentCashSession?.(session)
+  } catch (error) {
+    if (isVaultError(error)) return
     throw error
   }
 }

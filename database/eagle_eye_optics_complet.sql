@@ -1494,34 +1494,44 @@ CREATE TABLE `legacy_balance_imports` (
   CONSTRAINT `ck_legacy_balance_imports_05` CHECK (id <> '00000000000000000000000000')
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='Pièce papier originale et ancien acompte conservés sans CA nouveau';
 
--- Caisse et rapprochement : Sorties/entrées espèces autorisées, sans duplication paiements/refunds
+-- Caisse et rapprochement : Dépenses et mouvements hors vente (tiroir espèces ou hors tiroir), sans duplication paiements/refunds
 CREATE TABLE `cash_movements` (
   `id` CHAR(26) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
   `clinic_id` CHAR(26) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
-  `cash_session_id` CHAR(26) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  `cash_session_id` CHAR(26) CHARACTER SET ascii COLLATE ascii_bin NULL,
   `kind` VARCHAR(40) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  `method` VARCHAR(40) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT 'CASH',
   `signed_amount` BIGINT NOT NULL,
-  `reason` TEXT NOT NULL COMMENT 'Motif obligatoire de l’opération',
-  `approval_id` CHAR(26) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  `reason` TEXT NULL COMMENT 'Motif de l’opération (facultatif pour une dépense, obligatoire sinon)',
+  `approval_id` CHAR(26) CHARACTER SET ascii COLLATE ascii_bin NULL,
   `expense_category_id` CHAR(26) CHARACTER SET ascii COLLATE ascii_bin NULL,
   `reference` VARCHAR(180) NULL,
   `occurred_at` DATETIME(6) NOT NULL,
   `created_by` CHAR(26) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  `source_device_id` CHAR(26) CHARACTER SET ascii COLLATE ascii_bin NULL,
+  `sync_command_id` CHAR(26) CHARACTER SET ascii COLLATE ascii_bin NULL,
   `created_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
   `updated_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_cash_movements_01` (`clinic_id`, `id`),
-  KEY `ix_cash_movements_01` (`clinic_id`, `cash_session_id`),
-  KEY `ix_cash_movements_02` (`clinic_id`, `approval_id`),
-  KEY `ix_cash_movements_03` (`clinic_id`, `expense_category_id`),
-  KEY `ix_cash_movements_04` (`clinic_id`, `created_by`),
+  KEY `ix_cash_movements_01` (`clinic_id`, `occurred_at`, `kind`),
+  KEY `ix_cash_movements_02` (`clinic_id`, `cash_session_id`),
+  KEY `ix_cash_movements_03` (`clinic_id`, `approval_id`),
+  KEY `ix_cash_movements_04` (`clinic_id`, `expense_category_id`),
+  KEY `ix_cash_movements_05` (`clinic_id`, `created_by`),
+  KEY `ix_cash_movements_06` (`clinic_id`, `source_device_id`),
+  KEY `ix_cash_movements_07` (`clinic_id`, `sync_command_id`),
   CONSTRAINT `ck_cash_movements_01` CHECK (signed_amount <> 0),
   CONSTRAINT `ck_cash_movements_02` CHECK (kind <> 'DEPOSIT' OR signed_amount > 0),
   CONSTRAINT `ck_cash_movements_03` CHECK (kind NOT IN ('WITHDRAWAL','EXPENSE') OR signed_amount < 0),
   CONSTRAINT `ck_cash_movements_04` CHECK (kind <> 'EXPENSE' OR expense_category_id IS NOT NULL),
-  CONSTRAINT `ck_cash_movements_05` CHECK (`kind` IN ('DEPOSIT','WITHDRAWAL','EXPENSE','OPENING_CORRECTION')),
-  CONSTRAINT `ck_cash_movements_06` CHECK (id <> '00000000000000000000000000')
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='Sorties/entrées espèces autorisées, sans duplication paiements/refunds';
+  CONSTRAINT `ck_cash_movements_05` CHECK (kind = 'EXPENSE' OR method = 'CASH'),
+  CONSTRAINT `ck_cash_movements_06` CHECK ((method = 'CASH' AND cash_session_id IS NOT NULL) OR (method <> 'CASH' AND cash_session_id IS NULL)),
+  CONSTRAINT `ck_cash_movements_07` CHECK (kind = 'EXPENSE' OR (reason IS NOT NULL AND approval_id IS NOT NULL)),
+  CONSTRAINT `ck_cash_movements_08` CHECK (`kind` IN ('DEPOSIT','WITHDRAWAL','EXPENSE','OPENING_CORRECTION')),
+  CONSTRAINT `ck_cash_movements_09` CHECK (`method` IN ('CASH','MTN_MOMO','ORANGE_MONEY','BANK_TRANSFER','CHEQUE','OTHER')),
+  CONSTRAINT `ck_cash_movements_10` CHECK (id <> '00000000000000000000000000')
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='Dépenses et mouvements hors vente (tiroir espèces ou hors tiroir), sans duplication paiements/refunds';
 
 -- Caisse et rapprochement : Rapprochement d’un canal réel avec justificatifs
 CREATE TABLE `payment_reconciliations` (
@@ -3450,7 +3460,9 @@ ALTER TABLE `cash_movements`
   ADD CONSTRAINT `fk_cash_movements_02` FOREIGN KEY (`clinic_id`, `cash_session_id`) REFERENCES `cash_sessions` (`clinic_id`, `id`),
   ADD CONSTRAINT `fk_cash_movements_03` FOREIGN KEY (`clinic_id`, `approval_id`) REFERENCES `approvals` (`clinic_id`, `id`),
   ADD CONSTRAINT `fk_cash_movements_04` FOREIGN KEY (`clinic_id`, `expense_category_id`) REFERENCES `expense_categories` (`clinic_id`, `id`),
-  ADD CONSTRAINT `fk_cash_movements_05` FOREIGN KEY (`clinic_id`, `created_by`) REFERENCES `users` (`clinic_id`, `id`);
+  ADD CONSTRAINT `fk_cash_movements_05` FOREIGN KEY (`clinic_id`, `created_by`) REFERENCES `users` (`clinic_id`, `id`),
+  ADD CONSTRAINT `fk_cash_movements_06` FOREIGN KEY (`clinic_id`, `source_device_id`) REFERENCES `enrolled_devices` (`clinic_id`, `id`),
+  ADD CONSTRAINT `fk_cash_movements_07` FOREIGN KEY (`clinic_id`, `sync_command_id`) REFERENCES `sync_commands` (`clinic_id`, `id`);
 
 ALTER TABLE `payment_reconciliations`
   ADD CONSTRAINT `fk_payment_reconciliations_01` FOREIGN KEY (`clinic_id`) REFERENCES `clinics` (`id`),
@@ -4152,7 +4164,7 @@ LEFT JOIN (SELECT r.clinic_id,p.cash_session_id,SUM(r.amount) AS reversed FROM p
 LEFT JOIN (SELECT clinic_id,cash_session_id,SUM(amount) AS refunded FROM refunds WHERE method='CASH'
            GROUP BY clinic_id,cash_session_id) f ON f.clinic_id=s.clinic_id AND f.cash_session_id=s.id
 LEFT JOIN (SELECT clinic_id,cash_session_id,SUM(signed_amount) AS moved FROM cash_movements
-           GROUP BY clinic_id,cash_session_id) m ON m.clinic_id=s.clinic_id AND m.cash_session_id=s.id
+           WHERE cash_session_id IS NOT NULL GROUP BY clinic_id,cash_session_id) m ON m.clinic_id=s.clinic_id AND m.cash_session_id=s.id
 LEFT JOIN (SELECT r.clinic_id,p.cash_session_id,SUM(r.amount) AS after_close FROM payment_reversals r
            JOIN payments p ON p.clinic_id=r.clinic_id AND p.id=r.payment_id
            JOIN cash_sessions cs ON cs.clinic_id=p.clinic_id AND cs.id=p.cash_session_id

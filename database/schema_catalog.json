@@ -11135,7 +11135,7 @@
     {
       "name": "cash_movements",
       "domain": "Caisse et rapprochement",
-      "description": "Sorties/entrées espèces autorisées, sans duplication paiements/refunds",
+      "description": "Dépenses et mouvements hors vente (tiroir espèces ou hors tiroir), sans duplication paiements/refunds",
       "columns": [
         {
           "name": "id",
@@ -11158,7 +11158,7 @@
         {
           "name": "cash_session_id",
           "type": "CHAR(26) CHARACTER SET ascii COLLATE ascii_bin",
-          "nullable": false,
+          "nullable": true,
           "default": null,
           "description": "",
           "ref": "cash_sessions",
@@ -11180,6 +11180,23 @@
           ]
         },
         {
+          "name": "method",
+          "type": "VARCHAR(40) CHARACTER SET ascii COLLATE ascii_bin",
+          "nullable": false,
+          "default": "'CASH'",
+          "description": "",
+          "ref": null,
+          "generated": null,
+          "allowed_values": [
+            "CASH",
+            "MTN_MOMO",
+            "ORANGE_MONEY",
+            "BANK_TRANSFER",
+            "CHEQUE",
+            "OTHER"
+          ]
+        },
+        {
           "name": "signed_amount",
           "type": "BIGINT",
           "nullable": false,
@@ -11191,16 +11208,16 @@
         {
           "name": "reason",
           "type": "TEXT",
-          "nullable": false,
+          "nullable": true,
           "default": null,
-          "description": "Motif obligatoire de l’opération",
+          "description": "Motif de l’opération (facultatif pour une dépense, obligatoire sinon)",
           "ref": null,
           "generated": null
         },
         {
           "name": "approval_id",
           "type": "CHAR(26) CHARACTER SET ascii COLLATE ascii_bin",
-          "nullable": false,
+          "nullable": true,
           "default": null,
           "description": "",
           "ref": "approvals",
@@ -11243,6 +11260,24 @@
           "generated": null
         },
         {
+          "name": "source_device_id",
+          "type": "CHAR(26) CHARACTER SET ascii COLLATE ascii_bin",
+          "nullable": true,
+          "default": null,
+          "description": "",
+          "ref": "enrolled_devices",
+          "generated": null
+        },
+        {
+          "name": "sync_command_id",
+          "type": "CHAR(26) CHARACTER SET ascii COLLATE ascii_bin",
+          "nullable": true,
+          "default": null,
+          "description": "",
+          "ref": "sync_commands",
+          "generated": null
+        },
+        {
           "name": "created_at",
           "type": "DATETIME(6)",
           "nullable": false,
@@ -11273,6 +11308,11 @@
       "indexes": [
         [
           "clinic_id",
+          "occurred_at",
+          "kind"
+        ],
+        [
+          "clinic_id",
           "cash_session_id"
         ],
         [
@@ -11286,6 +11326,14 @@
         [
           "clinic_id",
           "created_by"
+        ],
+        [
+          "clinic_id",
+          "source_device_id"
+        ],
+        [
+          "clinic_id",
+          "sync_command_id"
         ]
       ],
       "checks": [
@@ -11293,7 +11341,11 @@
         "kind <> 'DEPOSIT' OR signed_amount > 0",
         "kind NOT IN ('WITHDRAWAL','EXPENSE') OR signed_amount < 0",
         "kind <> 'EXPENSE' OR expense_category_id IS NOT NULL",
+        "kind = 'EXPENSE' OR method = 'CASH'",
+        "(method = 'CASH' AND cash_session_id IS NOT NULL) OR (method <> 'CASH' AND cash_session_id IS NULL)",
+        "kind = 'EXPENSE' OR (reason IS NOT NULL AND approval_id IS NOT NULL)",
         "`kind` IN ('DEPOSIT','WITHDRAWAL','EXPENSE','OPENING_CORRECTION')",
+        "`method` IN ('CASH','MTN_MOMO','ORANGE_MONEY','BANK_TRANSFER','CHEQUE','OTHER')",
         "id <> '00000000000000000000000000'"
       ],
       "foreign": [
@@ -11345,6 +11397,28 @@
             "created_by"
           ],
           "target": "users",
+          "target_columns": [
+            "clinic_id",
+            "id"
+          ]
+        },
+        {
+          "columns": [
+            "clinic_id",
+            "source_device_id"
+          ],
+          "target": "enrolled_devices",
+          "target_columns": [
+            "clinic_id",
+            "id"
+          ]
+        },
+        {
+          "columns": [
+            "clinic_id",
+            "sync_command_id"
+          ],
+          "target": "sync_commands",
           "target_columns": [
             "clinic_id",
             "id"

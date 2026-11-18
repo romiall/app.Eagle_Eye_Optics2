@@ -184,6 +184,16 @@
       "direct_route": "POST /cash-sessions/{id}/close",
       "number_type": null
     },
+    "RecordCashMovement": {
+      "schema": "commands/RecordCashMovement.v1.json",
+      "schema_version": "1",
+      "entity_type": "cash_movements",
+      "entity_id_field": "movement_id",
+      "permission": "cash.own_session",
+      "expected_version": "none",
+      "direct_route": "POST /cash-movements",
+      "number_type": null
+    },
     "ConfirmDelivery": {
       "schema": "commands/ConfirmDelivery.v1.json",
       "schema_version": "1",

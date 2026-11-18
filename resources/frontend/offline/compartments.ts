@@ -89,6 +89,7 @@ export const COMMAND_COMPARTMENTS: Readonly<Record<string, Compartment>> = Objec
   RefundCredit: 'FINANCIAL',
   OpenCashSession: 'FINANCIAL',
   CloseCashSession: 'FINANCIAL',
+  RecordCashMovement: 'FINANCIAL',
   ConfirmDelivery: 'FINANCIAL',
   RegisterPhysicalReturn: 'FINANCIAL',
   RegisterStockMovement: 'MANAGER',
@@ -119,6 +120,9 @@ export const ENTITY_COMPARTMENTS: Readonly<Record<string, Compartment>> = Object
   payment: 'FINANCIAL',
   receipt: 'FINANCIAL',
   cash_session: 'FINANCIAL',
+  cash_movement: 'FINANCIAL',
+  expense_categories_snapshot: 'FINANCIAL',
+  current_cash_session: 'FINANCIAL',
   stock_quota: 'MANAGER',
   // O04 : projections locales des autres agrégats du journal (compartiment = celui de la commande qui les écrit) …
   appointment: 'ADMINISTRATIVE',

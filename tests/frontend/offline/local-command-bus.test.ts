@@ -505,4 +505,56 @@ describe('droits et propriété', () => {
       nextValue: 302,
     })
   })
+
+  it('journalise une dépense locale (EXPENSE) et refuse les mouvements à approbation locale (DEPOSIT)', async () => {
+    device = await prepared()
+    const engine = bus(device)
+    await engine.refresh()
+
+    const depositReq = {
+      name: 'RecordCashMovement',
+      payload: {
+        movement_id: '01J9ZXK4M2Q8R7S6T5V4W3MV01',
+        cash_session_id: '01J9ZXK4M2Q8R7S6T5V4W3S001',
+        movement_kind: 'DEPOSIT',
+        method: 'CASH',
+        signed_amount: 5000,
+        expense_category_id: null,
+        reason: 'Apport monnaie',
+        reference: null,
+        approval_id: null,
+        occurred_at: '2026-10-22T09:29:00.000Z',
+      },
+      expectedVersion: null,
+      idempotencyKey: 'cle-mv-deposit',
+    }
+    expect(engine.handles(depositReq)).toBe(false)
+
+    const expenseReq = {
+      name: 'RecordCashMovement',
+      payload: {
+        movement_id: '01J9ZXK4M2Q8R7S6T5V4W3MV02',
+        cash_session_id: null,
+        movement_kind: 'EXPENSE',
+        method: 'MTN_MOMO',
+        signed_amount: -4500,
+        expense_category_id: '01J9ZXK4M2Q8R7S6T5V4W3C001',
+        reason: null,
+        reference: null,
+        approval_id: null,
+        occurred_at: '2026-10-22T09:29:00.000Z',
+      },
+      expectedVersion: null,
+      idempotencyKey: 'cle-mv-expense',
+    }
+    expect(engine.handles(expenseReq)).toBe(true)
+
+    const result = await engine.commit(expenseReq)
+    expect(result.replayed).toBe(false)
+    expect(result.payload).toMatchObject({
+      movement_kind: 'EXPENSE',
+      method: 'MTN_MOMO',
+      signed_amount: -4500,
+    })
+  })
 })

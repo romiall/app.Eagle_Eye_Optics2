@@ -121,8 +121,14 @@ afterEach(() => {
 })
 
 describe('index des commandes lu depuis le contrat F06', () => {
-  it('contient les 26 commandes avec route directe, permission et version attendue', () => {
-    expect(commandNames()).toHaveLength(26)
+  it('contient les 27 commandes avec route directe, permission et version attendue', () => {
+    expect(commandNames()).toHaveLength(27)
+    expect(commandContract('RecordCashMovement')).toMatchObject({
+      method: 'POST',
+      path: '/api/v1/cash-movements',
+      permission: 'cash.own_session',
+      expectedVersion: 'none',
+    })
     expect(commandContract('RegisterPayment')).toMatchObject({
       method: 'POST',
       path: '/api/v1/invoices/{id}/payments',

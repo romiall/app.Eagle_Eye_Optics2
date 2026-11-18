@@ -106,6 +106,7 @@ export const TABLE_ENTITY_TYPES: Readonly<Record<string, string>> = {
   optical_prescriptions: 'prescription',
   invoices: 'invoice',
   cash_sessions: 'cash_session',
+  cash_movements: 'cash_movement',
   deliveries: 'delivery',
   physical_returns: 'physical_return',
   stock_movements: 'stock_movement',
@@ -269,6 +270,9 @@ export class LocalCommandBus {
       const invoiceId = request.payload[contract.entityIdField]
       if (typeof invoiceId !== 'string') return false
       if (!state.localInvoices.has(invoiceId) && !state.ownedInvoices.has(invoiceId)) return false
+    }
+    if (request.name === 'RecordCashMovement' && request.payload['movement_kind'] !== 'EXPENSE') {
+      return false
     }
     if (contract.numberType !== null && (state.remaining[contract.numberType] ?? 0) <= 0)
       return false

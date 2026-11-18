@@ -127,5 +127,13 @@ WHERE NOT (
  OR (d.document_type='ACCOUNT_STATEMENT' AND d.patient_id IS NOT NULL)
  OR (d.document_type='QUOTE' AND d.quote_id IS NOT NULL));
 
+-- I25: cash movements keep drawer method, session link, and non-expense reason/approval invariants.
+SELECT 'I25_CASH_MOVEMENT_DRAWER' AS issue,m.clinic_id,m.id FROM cash_movements m
+WHERE NOT (
+ (m.kind='EXPENSE' OR m.method='CASH')
+ AND ((m.method='CASH' AND m.cash_session_id IS NOT NULL) OR (m.method<>'CASH' AND m.cash_session_id IS NULL))
+ AND (m.kind='EXPENSE' OR (m.reason IS NOT NULL AND m.approval_id IS NOT NULL))
+);
+
 -- These diagnostics detect inconsistencies; they do not replace transactional admission checks,
 -- cryptographic verification, access policies, payload-hash approvals or local-device recovery.

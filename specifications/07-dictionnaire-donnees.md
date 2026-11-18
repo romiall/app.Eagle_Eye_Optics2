@@ -1318,21 +1318,24 @@ Catégories de dépenses validées, pas un plan comptable réglementaire.
 | `updated_at` | `DATETIME(6)` | Non | `CURRENT_TIMESTAMP(6)` |  |
 ### cash_movements
 
-Sorties/entrées espèces autorisées, sans duplication paiements/refunds.
+Dépenses et mouvements hors vente (tiroir espèces ou hors tiroir), sans duplication paiements/refunds.
 
 | Colonne | Type SQL | NULL | Défaut ou calcul | Sens ou relation |
 | --- | --- | --- | --- | --- |
 | `id` | `CHAR(26) CHARACTER SET ascii COLLATE ascii_bin` | Non | — |  |
 | `clinic_id` | `CHAR(26) CHARACTER SET ascii COLLATE ascii_bin` | Non | — | FK clinics |
-| `cash_session_id` | `CHAR(26) CHARACTER SET ascii COLLATE ascii_bin` | Non | — | FK cash_sessions |
+| `cash_session_id` | `CHAR(26) CHARACTER SET ascii COLLATE ascii_bin` | Oui | — | FK cash_sessions |
 | `kind` | `VARCHAR(40) CHARACTER SET ascii COLLATE ascii_bin` | Non | — |  Valeurs : DEPOSIT, WITHDRAWAL, EXPENSE, OPENING_CORRECTION |
+| `method` | `VARCHAR(40) CHARACTER SET ascii COLLATE ascii_bin` | Non | `'CASH'` |  Valeurs : CASH, MTN_MOMO, ORANGE_MONEY, BANK_TRANSFER, CHEQUE, OTHER |
 | `signed_amount` | `BIGINT` | Non | — |  |
-| `reason` | `TEXT` | Non | — | Motif obligatoire de l’opération |
-| `approval_id` | `CHAR(26) CHARACTER SET ascii COLLATE ascii_bin` | Non | — | FK approvals |
+| `reason` | `TEXT` | Oui | — | Motif de l’opération (facultatif pour une dépense, obligatoire sinon) |
+| `approval_id` | `CHAR(26) CHARACTER SET ascii COLLATE ascii_bin` | Oui | — | FK approvals |
 | `expense_category_id` | `CHAR(26) CHARACTER SET ascii COLLATE ascii_bin` | Oui | — | FK expense_categories |
 | `reference` | `VARCHAR(180)` | Oui | — |  |
 | `occurred_at` | `DATETIME(6)` | Non | — |  |
 | `created_by` | `CHAR(26) CHARACTER SET ascii COLLATE ascii_bin` | Non | — | FK users |
+| `source_device_id` | `CHAR(26) CHARACTER SET ascii COLLATE ascii_bin` | Oui | — | FK enrolled_devices |
+| `sync_command_id` | `CHAR(26) CHARACTER SET ascii COLLATE ascii_bin` | Oui | — | FK sync_commands |
 | `created_at` | `DATETIME(6)` | Non | `CURRENT_TIMESTAMP(6)` |  |
 | `updated_at` | `DATETIME(6)` | Non | `CURRENT_TIMESTAMP(6)` |  |
 ### payment_reconciliations

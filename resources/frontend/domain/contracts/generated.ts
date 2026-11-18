@@ -175,6 +175,10 @@ export type CampaignRecipientsStatus = ("PENDING" | "ELIGIBLE" | "EXCLUDED" | "S
  */
 export type CashMovementsKind = ("DEPOSIT" | "WITHDRAWAL" | "EXPENSE" | "OPENING_CORRECTION")
 /**
+ *  (catalogue : cash_movements.method)
+ */
+export type CashMovementsMethod = ("CASH" | "MTN_MOMO" | "ORANGE_MONEY" | "BANK_TRANSFER" | "CHEQUE" | "OTHER")
+/**
  *  (catalogue : catalog_items.stock_mode)
  */
 export type CatalogItemsStockMode = ("NONE" | "STOCKED" | "MADE_TO_ORDER")
@@ -545,7 +549,7 @@ error?: VectorRefusal
 /**
  * Commandes disponibles dans le journal local (actions du fichier 08 jouables hors-ligne).
  */
-export type CommandName = ("CreatePatient" | "UpdatePatient" | "RegisterVisit" | "StartConsultation" | "SaveClinicalStep" | "CompleteConsultation" | "AmendConsultation" | "CreatePrescription" | "ValidatePrescription" | "CreateInvoiceDraft" | "UpdateDraft" | "IssueInvoice" | "RegisterPayment" | "ReversePayment" | "IssueCreditNote" | "RefundCredit" | "OpenCashSession" | "CloseCashSession" | "ConfirmDelivery" | "RegisterPhysicalReturn" | "RegisterStockMovement" | "CreateFollowUp" | "CreateAppointment" | "RecordContactAttempt" | "RequestApproval" | "DecideApproval")
+export type CommandName = ("CreatePatient" | "UpdatePatient" | "RegisterVisit" | "StartConsultation" | "SaveClinicalStep" | "CompleteConsultation" | "AmendConsultation" | "CreatePrescription" | "ValidatePrescription" | "CreateInvoiceDraft" | "UpdateDraft" | "IssueInvoice" | "RegisterPayment" | "ReversePayment" | "IssueCreditNote" | "RefundCredit" | "OpenCashSession" | "CloseCashSession" | "RecordCashMovement" | "ConfirmDelivery" | "RegisterPhysicalReturn" | "RegisterStockMovement" | "CreateFollowUp" | "CreateAppointment" | "RecordContactAttempt" | "RequestApproval" | "DecideApproval")
 /**
  * Événements de la version 1 (fichier 08).
  */
@@ -600,6 +604,7 @@ SchemasEnumsJsonCalendarSyncStatesStatus?: CalendarSyncStatesStatus
 SchemasEnumsJsonCampaignDefinitionsStatus?: CampaignDefinitionsStatus
 SchemasEnumsJsonCampaignRecipientsStatus?: CampaignRecipientsStatus
 SchemasEnumsJsonCashMovementsKind?: CashMovementsKind
+SchemasEnumsJsonCashMovementsMethod?: CashMovementsMethod
 SchemasEnumsJsonCatalogItemsStockMode?: CatalogItemsStockMode
 SchemasEnumsJsonCatalogPublicationsStatus?: CatalogPublicationsStatus
 SchemasEnumsJsonCommunicationConsentsChannel?: CommunicationConsentsChannel
@@ -880,6 +885,7 @@ SchemasResourcesBillingJsonExpenseCategoryResponse?: ExpenseCategoryResponse
 SchemasResourcesBillingJsonExpenseCategoryList?: ExpenseCategoryList
 SchemasResourcesBillingJsonCashMovement?: CashMovement
 SchemasResourcesBillingJsonCashMovementResponse?: CashMovementResponse
+SchemasResourcesBillingJsonCashMovementPage?: CashMovementPage
 SchemasResourcesBillingJsonCashVarianceReview?: CashVarianceReview
 SchemasResourcesBillingJsonCashVarianceReviewResponse?: CashVarianceReviewResponse
 SchemasResourcesBillingJsonCashSessionMovements?: CashSessionMovements
@@ -1178,6 +1184,8 @@ IssueInvoicePayload?: IssueInvoicePayload
 CommandsIssueInvoiceV1JsonDirectRequest?: IssueInvoiceDirectRequest
 OpenCashSessionPayload?: OpenCashSessionPayload
 CommandsOpenCashSessionV1JsonDirectRequest?: OpenCashSessionDirectRequest
+RecordCashMovementPayload?: RecordCashMovementPayload
+CommandsRecordCashMovementV1JsonDirectRequest?: RecordCashMovementDirectRequest
 RecordContactAttemptPayload?: RecordContactAttemptPayload
 CommandsRecordContactAttemptV1JsonDirectRequest?: RecordContactAttemptDirectRequest
 RefundCreditPayload?: RefundCreditPayload
@@ -6510,18 +6518,20 @@ survivor_patient_id: Ulid
 reason: string
 }
 /**
- * Mouvement d'espèces hors vente d'une session OUVERTE (L1D05) : entrée positive, sortie négative ; catégorie obligatoire pour une dépense et seulement pour elle ; approval_id = approbation exacte CASH_MOVEMENT accordée, ou identifiant neuf pour l'exécution directe de la gérante.
+ * Dépense (tiroir espèces ou autre canal, motif/référence facultatifs, sans approbation requise) ou mouvement d'espèces d'une session OUVERTE (motif et approbation exacte obligatoires) ; sur /cash-sessions/{id}/movements, method vaut CASH par défaut et occurred_at l'instant serveur par défaut.
  */
 export interface RecordCashMovementRequest {
 expected_version: null
 movement_id: Ulid
-cash_session_id: Ulid
+cash_session_id: NullableUlid
 movement_kind: CashMovementsKind
+method?: PaymentsMethod
 signed_amount: number
 expense_category_id: NullableUlid
-reason: string
+reason: (string | null)
 reference: (string | null)
-approval_id: Ulid
+approval_id: NullableUlid
+occurred_at?: Instant
 }
 /**
  * Création (identifiant neuf, code obligatoire) ou modification (nom, activation ; le code ne change pas) d'une catégorie de dépenses par la gérante.
@@ -8902,7 +8912,7 @@ movements: {
 id: Ulid
 kind: CashMovementsKind
 signed_amount: SignedMoneyXaf
-reason: string
+reason: (string | null)
 occurred_at: Instant
 }[]
 /**
@@ -8951,14 +8961,15 @@ export interface ExpenseCategoryList {
 data: ExpenseCategory[]
 }
 /**
- * Mouvement d'espèces hors vente (L1D05) : dépense catégorisée, dépôt, retrait ou correction de l'ouverture ; jamais un paiement (ni facture, ni reçu). approval_mode : demande accordée par la gérante, ou exécution directe de la gérante. Immuable.
+ * Dépense (tiroir espèces ou autre canal) ou mouvement hors vente ; jamais un paiement (ni facture, ni reçu). approval_mode : APPROVED ou DIRECT pour dépôt, retrait ou correction ; null pour une dépense saisie sans approbation. Immuable.
  */
 export interface CashMovement {
 id: Ulid
-cash_session_id: Ulid
+cash_session_id: NullableUlid
 kind: CashMovementsKind
+method: PaymentsMethod
 signed_amount: SignedMoneyXaf
-reason: string
+reason: (string | null)
 reference: (string | null)
 occurred_at: Instant
 expense_category: ({
@@ -8968,11 +8979,18 @@ name: string
 } | null)
 created_by: Ulid
 created_by_name: (string | null)
-approval_id: Ulid
-approval_mode: ("APPROVED" | "DIRECT")
+approval_id: NullableUlid
+approval_mode: (("APPROVED" | "DIRECT") | null)
 }
 export interface CashMovementResponse {
 data: CashMovement
+}
+export interface CashMovementPage {
+/**
+ * @minItems 0
+ */
+data: CashMovement[]
+meta: Pagination
 }
 /**
  * Revue de l'écart d'une session clôturée par la gérante : fait d'audit, la session figée n'est pas réécrite.
@@ -10381,6 +10399,30 @@ counted_total: SignedMoneyXaf
 variance_total: SignedMoneyXaf
 post_closure_reversals: MoneyXaf
 open_count: number
+}
+expenses: {
+count: number
+total: MoneyXaf
+cash_drawer: MoneyXaf
+other_methods: MoneyXaf
+/**
+ * @minItems 0
+ */
+by_method: {
+method: PaymentsMethod
+count: number
+amount: MoneyXaf
+}[]
+/**
+ * @minItems 0
+ */
+by_category: {
+category_id: NullableUlid
+code: (string | null)
+name: string
+count: number
+amount: MoneyXaf
+}[]
 }
 freshness: {
 complete: boolean
@@ -15035,6 +15077,34 @@ cash_session_id: Ulid
 cash_register_id: Ulid
 opening_amount: MoneyXaf
 opened_at: Instant
+}
+export interface RecordCashMovementPayload {
+movement_id: Ulid
+cash_session_id: NullableUlid
+movement_kind: CashMovementsKind
+method: PaymentsMethod
+signed_amount: number
+expense_category_id: NullableUlid
+reason: (string | null)
+reference: (string | null)
+approval_id: NullableUlid
+occurred_at: Instant
+}
+/**
+ * Corps de la route directe POST /cash-movements : même charge + expected_version (Création : expected_version vaut null.) ; en-tête Idempotency-Key obligatoire.
+ */
+export interface RecordCashMovementDirectRequest {
+expected_version: null
+movement_id: Ulid
+cash_session_id: NullableUlid
+movement_kind: CashMovementsKind
+method: PaymentsMethod
+signed_amount: number
+expense_category_id: NullableUlid
+reason: (string | null)
+reference: (string | null)
+approval_id: NullableUlid
+occurred_at: Instant
 }
 export interface RecordContactAttemptPayload {
 attempt_id: Ulid

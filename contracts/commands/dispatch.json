@@ -572,6 +572,37 @@
       "if": {
         "properties": {
           "command_name": {
+            "const": "RecordCashMovement"
+          }
+        },
+        "required": [
+          "command_name"
+        ]
+      },
+      "then": {
+        "properties": {
+          "schema_version": {
+            "const": "1"
+          },
+          "entity_type": {
+            "const": "cash_movements"
+          },
+          "expected_version": {
+            "type": "null"
+          },
+          "number_allocation_id": {
+            "type": "null"
+          },
+          "payload": {
+            "$ref": "RecordCashMovement.v1.json"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "command_name": {
             "const": "ConfirmDelivery"
           }
         },
@@ -840,6 +871,7 @@
         "RefundCredit",
         "OpenCashSession",
         "CloseCashSession",
+        "RecordCashMovement",
         "ConfirmDelivery",
         "RegisterPhysicalReturn",
         "RegisterStockMovement",

@@ -15,4 +15,5 @@ export const SYNC_APPLICABLE_COMMANDS: ReadonlySet<string> = new Set([
   'IssueInvoice',
   'RegisterPayment',
   'OpenCashSession',
+  'RecordCashMovement',
 ])

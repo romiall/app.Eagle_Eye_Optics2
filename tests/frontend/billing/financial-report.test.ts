@@ -138,6 +138,25 @@ function report(overrides: Partial<FinancialReport> = {}): FinancialReport {
       post_closure_reversals: 5000,
       open_count: 1,
     },
+    expenses: {
+      count: 2,
+      total: 12000,
+      cash_drawer: 5000,
+      other_methods: 7000,
+      by_method: [
+        { method: 'CASH', count: 1, amount: 5000 },
+        { method: 'MTN_MOMO', count: 1, amount: 7000 },
+      ],
+      by_category: [
+        {
+          category_id: '01J9ZXK4M2Q8R7S6T5V4W30CAT',
+          code: 'FOURNITURES',
+          name: 'Fournitures bureau',
+          count: 2,
+          amount: 12000,
+        },
+      ],
+    },
     freshness: { complete: true, silence_hours: 24, devices: [device()] },
     generated_at: '2026-10-15T09:00:00.000Z',
     ...overrides,
@@ -230,6 +249,9 @@ describe('finance du cabinet : écran', () => {
     expect(money(root, '[data-montant="creances"]')).toContain('55 000')
     expect(money(root, '[data-montant="credits"]')).toContain('4 000')
     expect(money(root, '[data-montant="ecart-caisse"]')).toContain('-500')
+    expect(text).toContain('Dépenses de la période')
+    expect(money(root, '[data-montant="depenses-total"]')).toContain('12 000')
+    expect(text).toContain('Fournitures bureau')
     // Le chiffre d'affaires et les encaissements ne sont pas confondus.
     expect(money(root, '[data-montant="ca-net"]')).not.toBe(
       money(root, '[data-montant="encaisse-net"]'),

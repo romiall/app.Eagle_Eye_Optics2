@@ -10,6 +10,7 @@ const ICONS: Readonly<Record<string, string>> = {
   consultations: 'consultations',
   agenda: 'agenda',
   sales: 'sales',
+  expenses: 'cash',
   stock: 'stock',
   workshop: 'workshop',
   communication: 'communication',

@@ -26,6 +26,12 @@ const entries = computed<Entry[]>(() =>
       visible: canOnScreen('cash.own_session'),
     },
     {
+      name: 'depenses',
+      label: 'Dépenses',
+      text: 'Enregistrer une dépense (tiroir espèces ou autre canal), sans ouverture de caisse exigée hors espèces.',
+      visible: canOnScreen('cash.own_session') || canOnScreen('cash.manage'),
+    },
+    {
       name: 'caisse-du-jour',
       label: 'Caisse du jour',
       text: canOnScreen('finance.global.read')

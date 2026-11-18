@@ -466,4 +466,74 @@ final class SyncPushTest extends TestCase
 
         $this->assertSame('OPEN', DB::table('sync_conflicts')->where('id', $conflictId)->value('status'));
     }
+
+    public function test_les_depenses_hors_ligne_tiroir_et_hors_tiroir_se_synchronisent_et_signale_un_conflit_si_session_close(): void
+    {
+        $categoryId = Ulid::generate();
+        $this->write('POST', '/api/v1/expense-categories', [
+            'expected_version' => null, 'category_id' => $categoryId, 'code' => 'TRANSPORT', 'name' => 'Transport (fictif)', 'active' => true,
+        ], $this->manager)->assertOk();
+        $sessionId = $this->openedSession($this->cashier, 20000);
+
+        $cashExpenseId = Ulid::generate();
+        $momoExpenseId = Ulid::generate();
+        $cashPayload = [
+            'movement_id' => $cashExpenseId,
+            'cash_session_id' => $sessionId,
+            'movement_kind' => 'EXPENSE',
+            'method' => 'CASH',
+            'signed_amount' => -4000,
+            'expense_category_id' => $categoryId,
+            'reason' => null,
+            'reference' => null,
+            'approval_id' => null,
+            'occurred_at' => '2026-10-22T09:10:00.000Z',
+        ];
+        $momoPayload = [
+            'movement_id' => $momoExpenseId,
+            'cash_session_id' => null,
+            'movement_kind' => 'EXPENSE',
+            'method' => 'MTN_MOMO',
+            'signed_amount' => -6000,
+            'expense_category_id' => $categoryId,
+            'reason' => 'Facture internet (fictif)',
+            'reference' => 'MOMO-889',
+            'approval_id' => null,
+            'occurred_at' => '2026-10-22T09:12:00.000Z',
+        ];
+
+        $push = $this->push([
+            $this->signed('RecordCashMovement', $cashPayload, 'cash_movements', $cashExpenseId, $this->cashier, $this->cashierGrant, null, null, [], '2026-10-22T09:10:00.000Z'),
+            $this->signed('RecordCashMovement', $momoPayload, 'cash_movements', $momoExpenseId, $this->cashier, $this->cashierGrant, null, null, [], '2026-10-22T09:12:00.000Z'),
+        ], $this->cashier)->assertOk();
+        $this->assertSame(['ACCEPTED', 'ACCEPTED'], array_column($push->json('results'), 'status'));
+
+        $stored = DB::table('cash_movements')->where('id', $cashExpenseId)->first();
+        $this->assertNotNull($stored);
+        $this->assertSame($this->syncDevice, $stored->source_device_id);
+        $this->assertSame('CASH', $stored->method);
+        $this->assertNull($stored->reason);
+        $this->assertNull($stored->approval_id);
+
+        // Si la session a été clôturée avant la synchro suivante, la dépense espèces passe en conflit durable.
+        $this->write('POST', '/api/v1/cash-sessions/'.$sessionId.'/close', $this->closeSessionBody($sessionId, 16000, 16000), $this->manager)->assertOk();
+        $lateExpenseId = Ulid::generate();
+        $latePayload = [
+            'movement_id' => $lateExpenseId,
+            'cash_session_id' => $sessionId,
+            'movement_kind' => 'EXPENSE',
+            'method' => 'CASH',
+            'signed_amount' => -2000,
+            'expense_category_id' => $categoryId,
+            'reason' => null,
+            'reference' => null,
+            'approval_id' => null,
+            'occurred_at' => '2026-10-22T09:20:00.000Z',
+        ];
+        $latePush = $this->push([
+            $this->signed('RecordCashMovement', $latePayload, 'cash_movements', $lateExpenseId, $this->cashier, $this->cashierGrant, null, null, [], '2026-10-22T09:20:00.000Z'),
+        ], $this->cashier)->assertOk();
+        $this->assertSame('CONFLICT_REQUIRES_REVIEW', $latePush->json('results.0.status'));
+        $this->assertSame(0, DB::table('cash_movements')->where('id', $lateExpenseId)->count());
+    }
 }

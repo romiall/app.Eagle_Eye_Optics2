@@ -1,0 +1,200 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eeo.invalid/contracts/commands/RecordCashMovement.v1.json",
+  "title": "RecordCashMovement (charge v1)",
+  "description": "Dépense (tiroir espèces ou hors tiroir, saisie directe caissière ou gérante, motif et référence facultatifs) ou mouvement autorisé de tiroir (dépôt, retrait, correction d'ouverture à motif obligatoire). Généré par contracts/tools/build_commands.py : ne pas modifier à la main.",
+  "x-entity-type": "cash_movements",
+  "x-entity-id-field": "movement_id",
+  "x-permission": "cash.own_session",
+  "x-expected-version": "none",
+  "x-direct-route": "POST /cash-movements",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "movement_id",
+    "cash_session_id",
+    "movement_kind",
+    "method",
+    "signed_amount",
+    "expense_category_id",
+    "reason",
+    "reference",
+    "approval_id",
+    "occurred_at"
+  ],
+  "properties": {
+    "movement_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    },
+    "cash_session_id": {
+      "$ref": "../schemas/common.json#/$defs/NullableUlid"
+    },
+    "movement_kind": {
+      "$ref": "../schemas/enums.json#/$defs/cash_movements.kind"
+    },
+    "method": {
+      "$ref": "../schemas/enums.json#/$defs/payments.method"
+    },
+    "signed_amount": {
+      "type": "integer",
+      "minimum": -1000000000000,
+      "maximum": 1000000000000,
+      "not": {
+        "const": 0
+      }
+    },
+    "expense_category_id": {
+      "$ref": "../schemas/common.json#/$defs/NullableUlid"
+    },
+    "reason": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 500
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "reference": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "approval_id": {
+      "$ref": "../schemas/common.json#/$defs/NullableUlid"
+    },
+    "occurred_at": {
+      "$ref": "../schemas/common.json#/$defs/Instant"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "method": {
+            "const": "CASH"
+          }
+        },
+        "required": [
+          "method"
+        ]
+      },
+      "then": {
+        "properties": {
+          "cash_session_id": {
+            "$ref": "../schemas/common.json#/$defs/Ulid"
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "DirectRequest": {
+      "description": "Corps de la route directe POST /cash-movements : même charge + expected_version (Création : expected_version vaut null.) ; en-tête Idempotency-Key obligatoire.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_version",
+        "movement_id",
+        "cash_session_id",
+        "movement_kind",
+        "method",
+        "signed_amount",
+        "expense_category_id",
+        "reason",
+        "reference",
+        "approval_id",
+        "occurred_at"
+      ],
+      "properties": {
+        "expected_version": {
+          "type": "null"
+        },
+        "movement_id": {
+          "$ref": "../schemas/common.json#/$defs/Ulid"
+        },
+        "cash_session_id": {
+          "$ref": "../schemas/common.json#/$defs/NullableUlid"
+        },
+        "movement_kind": {
+          "$ref": "../schemas/enums.json#/$defs/cash_movements.kind"
+        },
+        "method": {
+          "$ref": "../schemas/enums.json#/$defs/payments.method"
+        },
+        "signed_amount": {
+          "type": "integer",
+          "minimum": -1000000000000,
+          "maximum": 1000000000000,
+          "not": {
+            "const": 0
+          }
+        },
+        "expense_category_id": {
+          "$ref": "../schemas/common.json#/$defs/NullableUlid"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 3,
+              "maxLength": 500
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reference": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 180
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "approval_id": {
+          "$ref": "../schemas/common.json#/$defs/NullableUlid"
+        },
+        "occurred_at": {
+          "$ref": "../schemas/common.json#/$defs/Instant"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "method": {
+                "const": "CASH"
+              }
+            },
+            "required": [
+              "method"
+            ]
+          },
+          "then": {
+            "properties": {
+              "cash_session_id": {
+                "$ref": "../schemas/common.json#/$defs/Ulid"
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

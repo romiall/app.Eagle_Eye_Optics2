@@ -1263,9 +1263,9 @@ Catégories de dépenses validées, pas un plan comptable réglementaire.
 **Contrôles CHECK** : 2 ; expressions exactes dans le SQL et le catalogue.
 ### cash_movements
 
-Sorties/entrées espèces autorisées, sans duplication paiements/refunds.
+Dépenses et mouvements hors vente (tiroir espèces ou hors tiroir), sans duplication paiements/refunds.
 
-**Attributs** : `id`, `clinic_id`, `cash_session_id`, `kind`, `signed_amount`, `reason`, `approval_id`, `expense_category_id` ?, `reference` ?, `occurred_at`, `created_by`, `created_at`, `updated_at`.
+**Attributs** : `id`, `clinic_id`, `cash_session_id` ?, `kind`, `method`, `signed_amount`, `reason` ?, `approval_id` ?, `expense_category_id` ?, `reference` ?, `occurred_at`, `created_by`, `source_device_id` ?, `sync_command_id` ?, `created_at`, `updated_at`.
 
 **PK** : `id`.
 
@@ -1278,8 +1278,10 @@ Sorties/entrées espèces autorisées, sans duplication paiements/refunds.
 | `(clinic_id,approval_id)` | `approvals(clinic_id,id)` |
 | `(clinic_id,expense_category_id)` | `expense_categories(clinic_id,id)` |
 | `(clinic_id,created_by)` | `users(clinic_id,id)` |
+| `(clinic_id,source_device_id)` | `enrolled_devices(clinic_id,id)` |
+| `(clinic_id,sync_command_id)` | `sync_commands(clinic_id,id)` |
 
-**Contrôles CHECK** : 6 ; expressions exactes dans le SQL et le catalogue.
+**Contrôles CHECK** : 10 ; expressions exactes dans le SQL et le catalogue.
 
 **Historique** : append-only, UPDATE/DELETE refusés par le script 04.
 ### payment_reconciliations

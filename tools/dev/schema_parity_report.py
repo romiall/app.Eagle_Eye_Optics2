@@ -79,8 +79,8 @@ check('Tables hors baseline de la base migrée : exactement migrations et les 6 
 check('database/baseline/metadata.json identique à la photographie de l’import SQL',
       snap_sql is not None and baseline_meta['snapshot'] == snap_sql['snapshot'],
       {'metadata_sha256': sha256(ROOT / 'database/baseline/metadata.json')})
-expected_counts = {'business_tables': 117, 'foreign_keys': 464, 'checks': 484, 'views': 10, 'triggers': 88}
-check('Compteurs de la base migrée = 117 tables, 464 FK, 484 CHECK, 10 vues, 88 guards',
+expected_counts = {'business_tables': 117, 'foreign_keys': 466, 'checks': 488, 'views': 10, 'triggers': 88}
+check('Compteurs de la base migrée = 117 tables, 466 FK, 488 CHECK, 10 vues, 88 guards',
       snap_mig is not None and snap_mig['snapshot']['counts'] == expected_counts,
       snap_mig and snap_mig['snapshot']['counts'])
 refs = snap_mig['snapshot']['reference_data'] if snap_mig else {}

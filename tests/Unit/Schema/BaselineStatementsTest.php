@@ -32,8 +32,8 @@ final class BaselineStatementsTest extends TestCase
         $this->assertCount(88, $baseline->triggers());
         $this->assertCount(10, $baseline->views());
         $this->assertSame(BaselineStatements::REFERENCE_TABLES, array_column($baseline->entries('03_reference_data'), 'table'));
-        $this->assertSame(464, array_sum(array_column($baseline->entries('02_foreign_keys'), 'foreign_keys')));
-        $this->assertSame(484, $baseline->counts()['checks']);
+        $this->assertSame(466, array_sum(array_column($baseline->entries('02_foreign_keys'), 'foreign_keys')));
+        $this->assertSame(488, $baseline->counts()['checks']);
         $this->assertContains('patient_records', $baseline->businessTables());
         $this->assertContains('invoices', $baseline->businessTables());
         $this->assertContains('sync_command_results', $baseline->businessTables());

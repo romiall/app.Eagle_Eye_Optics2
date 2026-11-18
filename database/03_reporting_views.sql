@@ -76,7 +76,7 @@ LEFT JOIN (SELECT r.clinic_id,p.cash_session_id,SUM(r.amount) AS reversed FROM p
 LEFT JOIN (SELECT clinic_id,cash_session_id,SUM(amount) AS refunded FROM refunds WHERE method='CASH'
            GROUP BY clinic_id,cash_session_id) f ON f.clinic_id=s.clinic_id AND f.cash_session_id=s.id
 LEFT JOIN (SELECT clinic_id,cash_session_id,SUM(signed_amount) AS moved FROM cash_movements
-           GROUP BY clinic_id,cash_session_id) m ON m.clinic_id=s.clinic_id AND m.cash_session_id=s.id
+           WHERE cash_session_id IS NOT NULL GROUP BY clinic_id,cash_session_id) m ON m.clinic_id=s.clinic_id AND m.cash_session_id=s.id
 LEFT JOIN (SELECT r.clinic_id,p.cash_session_id,SUM(r.amount) AS after_close FROM payment_reversals r
            JOIN payments p ON p.clinic_id=r.clinic_id AND p.id=r.payment_id
            JOIN cash_sessions cs ON cs.clinic_id=p.clinic_id AND cs.id=p.cash_session_id

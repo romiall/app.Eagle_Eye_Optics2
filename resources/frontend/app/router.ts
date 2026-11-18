@@ -34,6 +34,7 @@ import DevicePreparationPage from '@/pages/settings/DevicePreparationPage.vue'
 import CashDayPage from '@/pages/cash/CashDayPage.vue'
 import CashSessionPage from '@/pages/cash/CashSessionPage.vue'
 import ExpenseCategoriesPage from '@/pages/cash/ExpenseCategories.vue'
+import ExpensesPage from '@/pages/cash/ExpensesPage.vue'
 import ReconciliationPage from '@/pages/cash/ReconciliationPage.vue'
 import FinancialPage from '@/pages/reports/Financial.vue'
 import CatalogPage from '@/pages/sales/CatalogPage.vue'
@@ -314,6 +315,17 @@ export function createEeoRouter(history: RouterHistory = createWebHistory()): Ro
         name: 'caisse',
         component: CashSessionPage,
         meta: { title: 'Caisse', permissions: ['cash.own_session'], module: 'sales' },
+      },
+      {
+        path: '/ventes/depenses',
+        name: 'depenses',
+        component: ExpensesPage,
+        meta: {
+          title: 'Dépenses',
+          permissions: ['cash.own_session', 'cash.manage'],
+          module: 'sales',
+          offlineCapable: true,
+        },
       },
       {
         // Catégories de dépenses de la caisse (L1D05) : gérante.

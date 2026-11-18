@@ -283,4 +283,40 @@ final class FinancialReportTest extends TestCase
         $this->finance('?from=2025-01-01&to=2026-10-22')->assertStatus(422)->assertJsonStructure(['error' => ['fields' => ['to']]]);
         $this->finance('?from=2025-10-22&to=2026-10-22')->assertOk();
     }
+
+    public function test_les_depenses_de_la_periode_distinguent_tiroir_et_autres_canaux_sans_les_mouvements_internes(): void
+    {
+        $catId = Ulid::generate();
+        $this->write('POST', '/api/v1/expense-categories', [
+            'expected_version' => null, 'category_id' => $catId, 'code' => 'CHARGES', 'name' => 'Charges (fictif)', 'active' => true,
+        ], $this->manager)->assertOk();
+        $session = $this->openedSession($this->manager, 50000);
+        // Dépense tiroir (4 000), dépôt interne (3 000 : exclu des dépenses), dépense MoMo (7 500).
+        $this->write('POST', '/api/v1/cash-movements', [
+            'expected_version' => null, 'movement_id' => Ulid::generate(), 'cash_session_id' => $session,
+            'movement_kind' => 'EXPENSE', 'method' => 'CASH', 'signed_amount' => -4000,
+            'expense_category_id' => $catId, 'reason' => null, 'reference' => null,
+            'approval_id' => null, 'occurred_at' => '2026-10-22T09:10:00.000Z',
+        ], $this->manager)->assertCreated();
+        $this->write('POST', '/api/v1/cash-movements', [
+            'expected_version' => null, 'movement_id' => Ulid::generate(), 'cash_session_id' => $session,
+            'movement_kind' => 'DEPOSIT', 'method' => 'CASH', 'signed_amount' => 3000,
+            'expense_category_id' => null, 'reason' => 'Appoint tiroir', 'reference' => null,
+            'approval_id' => Ulid::generate(), 'occurred_at' => '2026-10-22T09:11:00.000Z',
+        ], $this->manager)->assertCreated();
+        $this->write('POST', '/api/v1/cash-movements', [
+            'expected_version' => null, 'movement_id' => Ulid::generate(), 'cash_session_id' => null,
+            'movement_kind' => 'EXPENSE', 'method' => 'MTN_MOMO', 'signed_amount' => -7500,
+            'expense_category_id' => $catId, 'reason' => 'Eau et électricité', 'reference' => 'MM-1',
+            'approval_id' => null, 'occurred_at' => '2026-10-22T09:12:00.000Z',
+        ], $this->cashier)->assertCreated();
+
+        $report = $this->data($this->finance('?from=2026-10-22&to=2026-10-22')->assertOk());
+        $this->assertSame(2, $report['expenses']['count']);
+        $this->assertSame(11500, $report['expenses']['total']);
+        $this->assertSame(4000, $report['expenses']['cash_drawer']);
+        $this->assertSame(7500, $report['expenses']['other_methods']);
+        $this->assertSame([['method' => 'CASH', 'count' => 1, 'amount' => 4000], ['method' => 'MTN_MOMO', 'count' => 1, 'amount' => 7500]], $report['expenses']['by_method']);
+        $this->assertSame([['category_id' => $catId, 'code' => 'CHARGES', 'name' => 'Charges (fictif)', 'count' => 2, 'amount' => 11500]], $report['expenses']['by_category']);
+    }
 }

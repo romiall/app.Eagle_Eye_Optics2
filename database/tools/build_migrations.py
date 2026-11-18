@@ -281,7 +281,7 @@ def build():
         'views': len(views),
         'triggers': len(guards),
     }
-    expected = {'tables': 117, 'foreign_keys': 464, 'checks': 484, 'views': 10, 'triggers': 88}
+    expected = {'tables': 117, 'foreign_keys': 466, 'checks': 488, 'views': 10, 'triggers': 88}
     for key, value in expected.items():
         if counts[key] != value:
             fail(f'compteur {key} = {counts[key]}, attendu {value}')

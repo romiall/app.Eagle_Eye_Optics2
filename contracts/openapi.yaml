@@ -3685,11 +3685,11 @@ paths:
       x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "L1D05"
     post:
-      operationId: "RecordCashMovement"
-      summary: "Dépense, dépôt, retrait ou correction d'ouverture"
+      operationId: "RecordCashSessionMovement"
+      summary: "Dépense ou mouvement hors vente sur une session ouverte"
       tags:
         - "Caisse"
-      description: "Module sales, en ligne seulement. Session ouverte (clôturée : 409 STATE_TRANSITION_REFUSED, current_status CLOSED). Une caissière dans SA session avec l'approbation exacte CASH_MOVEMENT de la gérante (422 APPROVAL_REQUIRED_OR_EXPIRED sinon) ; la gérante l'exécute directement. Une sortie ne dépasse jamais les espèces théoriques du tiroir (422, details.available). Jamais un paiement : ni facture, ni reçu, ni chiffre d'affaires."
+      description: "Module sales : alias lié à la session {id} (method=CASH par défaut) appelant RecordCashMovement. Session ouverte exigée (clôturée : 409 STATE_TRANSITION_REFUSED, current_status CLOSED)."
       security:
         - sessionCookie: []
           xsrfToken: []
@@ -3730,6 +3730,120 @@ paths:
         - "cash.own_session"
       x-reauthentication: false
       x-idempotency: "required"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "L1D05"
+  /v1/expenses:
+    get:
+      operationId: "ListExpenses"
+      summary: "Dépenses du cabinet (tiroir espèces ou autre canal)"
+      tags:
+        - "Caisse"
+      description: "Module sales. Liste paginée des dépenses enregistrées (les plus récentes d'abord) : toutes pour la gérante (cash.manage), ou ses propres dépenses pour la caissière (cash.own_session)."
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: "from"
+          in: "query"
+          required: false
+          description: "Premier jour civil AAAA-MM-JJ (inclus)."
+          schema:
+            type: "string"
+        - name: "to"
+          in: "query"
+          required: false
+          description: "Dernier jour civil AAAA-MM-JJ (inclus)."
+          schema:
+            type: "string"
+        - name: "category_id"
+          in: "query"
+          required: false
+          description: "Filtrer par catégorie de dépenses."
+          schema:
+            type: "string"
+        - name: "method"
+          in: "query"
+          required: false
+          description: "Filtrer par canal (CASH, MTN_MOMO, ORANGE_MONEY, BANK_TRANSFER, CHEQUE, OTHER)."
+          schema:
+            type: "string"
+        - name: "cash_session_id"
+          in: "query"
+          required: false
+          description: "Filtrer par session de caisse."
+          schema:
+            type: "string"
+        - name: "page"
+          in: "query"
+          required: false
+          description: "Page (pagination, 1 par défaut)."
+          schema:
+            type: "integer"
+            minimum: 1
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/billing.json#/$defs/CashMovementPage"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "cash.own_session"
+      x-reauthentication: false
+      x-idempotency: "none"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "L1D05"
+  /v1/cash-movements:
+    post:
+      operationId: "RecordCashMovement"
+      summary: "Enregistrer une dépense ou un mouvement de caisse"
+      tags:
+        - "Caisse"
+      description: "Module sales, disponible en ligne et hors-ligne (poste préparé) pour les dépenses. Dépense (EXPENSE) : catégorie obligatoire, motif et référence facultatifs, saisie directe par la gérante ou la caissière ; si method=CASH, rattachée à une session ouverte et bornée au tiroir, sinon hors tiroir (cash_session_id null) même sans caisse ouverte. Dépôt, retrait et correction d'ouverture : en ligne, motif et approbation exacte obligatoires, tiroir espèces ouvert."
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./commands/RecordCashMovement.v1.json#/$defs/DirectRequest"
+      responses:
+        "201":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/billing.json#/$defs/CashMovementResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "cash.own_session"
+      x-reauthentication: false
+      x-idempotency: "required"
+      x-offline-command: "RecordCashMovement"
       x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "L1D05"
   /v1/cash-sessions/{id}/variance-review:

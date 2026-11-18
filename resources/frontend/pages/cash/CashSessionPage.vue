@@ -47,6 +47,7 @@ import SalesReadMessage from '@/pages/sales/SalesReadMessage.vue'
 import { useServerRead } from '@/pages/today/useServerRead'
 
 import CashSessionsManager from './CashSessionsManager.vue'
+import { loadLocalDrawerDelta } from '@/app/services/localCash'
 import Expenses from './Expenses.vue'
 import SessionReportButton from './SessionReportButton.vue'
 
@@ -78,8 +79,22 @@ const closeMutation = useMutation()
 
 const registers = computed(() => read.data.value?.registers ?? [])
 const session = computed(() => read.data.value?.session ?? null)
+const localDrawerDelta = ref(0)
+const adjustedAvailable = computed(() =>
+  Math.max(0, (session.value?.theoretical_cash ?? 0) + localDrawerDelta.value),
+)
 const ready = computed(() => read.data.value !== null)
 const isManager = computed(() => canOnScreen('cash.manage'))
+
+async function refreshLocalDelta(): Promise<void> {
+  localDrawerDelta.value = await loadLocalDrawerDelta(session.value?.id ?? null)
+}
+
+watch(
+  () => session.value?.id,
+  () => void refreshLocalDelta(),
+  { immediate: true },
+)
 
 /** Session close rendue par le serveur à la clôture : photographie figée. */
 const closed = shallowRef<CashSession | null>(null)
@@ -523,8 +538,13 @@ async function retryClose(): Promise<void> {
       <Expenses
         :session-id="session.id"
         :open="true"
-        :available="session.theoretical_cash"
-        @changed="read.reload()"
+        :available="adjustedAvailable"
+        @changed="
+          () => {
+            void read.reload()
+            void refreshLocalDelta()
+          }
+        "
       />
 
       <StateMessage

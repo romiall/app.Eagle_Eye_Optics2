@@ -64,6 +64,26 @@ final class CashMovementsTest extends TestCase
         ], $overrides), $as ?? $this->manager, $key);
     }
 
+    /**
+     * @param  array<string, mixed>  $overrides
+     */
+    private function directMovement(array $overrides = [], ?User $as = null, ?string $key = null): TestResponse
+    {
+        return $this->write('POST', '/api/v1/cash-movements', array_merge([
+            'expected_version' => null,
+            'movement_id' => Ulid::generate(),
+            'cash_session_id' => null,
+            'movement_kind' => 'EXPENSE',
+            'method' => 'MTN_MOMO',
+            'signed_amount' => -5000,
+            'expense_category_id' => null,
+            'reason' => null,
+            'reference' => null,
+            'approval_id' => null,
+            'occurred_at' => '2026-10-14T10:15:00.000Z',
+        ], $overrides), $as ?? $this->manager, $key);
+    }
+
     private function theoretical(User $as): int
     {
         return (int) $this->read('/api/v1/cash-sessions/current', $as)->assertOk()->json('data.theoretical_cash');
@@ -77,17 +97,15 @@ final class CashMovementsTest extends TestCase
         $response = $this->movement($session, ['expense_category_id' => $category])->assertCreated();
         $this->assertMatchesContract($response, 'schemas/resources/billing.json#/$defs/CashMovementResponse');
         $response->assertJsonPath('data.kind', 'EXPENSE')
+            ->assertJsonPath('data.method', 'CASH')
             ->assertJsonPath('data.signed_amount', -5000)
-            ->assertJsonPath('data.approval_mode', 'DIRECT')
+            ->assertJsonPath('data.approval_id', null)
+            ->assertJsonPath('data.approval_mode', null)
             ->assertJsonPath('data.expense_category.code', 'TRANSPORT');
 
         $this->assertSame(20000, $this->theoretical($this->manager), 'les espèces attendues baissent de la dépense');
         $this->assertSame(0, DB::table('payments')->where('clinic_id', $this->clinicId)->count(), 'aucun paiement simulé');
         $this->assertSame(0, DB::table('receipts')->where('clinic_id', $this->clinicId)->count(), 'aucun reçu');
-        $approval = DB::table('approvals')->where('id', $response->json('data.approval_id'))->first();
-        $this->assertNotNull($approval);
-        $this->assertSame('CONSUMED', $approval->status);
-        $this->assertSame('cash.manage', $approval->action_code);
         $this->assertSame(1, DB::table('audit_events')->where('action', 'cash.movement_recorded')->count());
 
         $list = $this->read('/api/v1/cash-sessions/'.$session.'/movements', $this->manager)->assertOk();
@@ -95,25 +113,62 @@ final class CashMovementsTest extends TestCase
         $list->assertJsonCount(1, 'data.movements')->assertJsonPath('data.closed', false);
     }
 
-    public function test_la_caissiere_a_besoin_de_l_approbation_exacte_consommee_une_seule_fois(): void
+    public function test_la_caissiere_saisit_une_depense_sans_approbation_ni_motif_ni_reference_et_hors_tiroir_caisse_fermee(): void
     {
         $category = $this->category();
+
+        // Aucune session de caisse ouverte : une dépense Mobile Money s'enregistre librement (motif et référence facultatifs).
+        $momo = $this->directMovement(['expense_category_id' => $category, 'method' => 'MTN_MOMO', 'signed_amount' => -3500], $this->cashier)
+            ->assertCreated();
+        $this->assertMatchesContract($momo, 'schemas/resources/billing.json#/$defs/CashMovementResponse');
+        $momo->assertJsonPath('data.cash_session_id', null)
+            ->assertJsonPath('data.method', 'MTN_MOMO')
+            ->assertJsonPath('data.reason', null)
+            ->assertJsonPath('data.reference', null)
+            ->assertJsonPath('data.approval_id', null);
+
+        // Espèces sans session ouverte : refusé (422).
+        $this->directMovement(['expense_category_id' => $category, 'method' => 'CASH', 'cash_session_id' => null], $this->cashier)
+            ->assertStatus(422);
+
+        // Session ouverte : la caissière enregistre une dépense espèces directement sans approbation.
+        $session = $this->openedSession($this->cashier, 30000);
+        $this->directMovement([
+            'expense_category_id' => $category,
+            'method' => 'CASH',
+            'cash_session_id' => $session,
+            'signed_amount' => -5000,
+        ], $this->cashier)->assertCreated()->assertJsonPath('data.approval_mode', null);
+        $this->assertSame(25000, $this->theoretical($this->cashier));
+
+        $expensesList = $this->read('/api/v1/expenses', $this->cashier)->assertOk();
+        $this->assertMatchesContract($expensesList, 'schemas/resources/billing.json#/$defs/CashMovementPage');
+        $expensesList->assertJsonCount(2, 'data');
+
+        // La caissière voit ses propres dépenses, la gérante voit toutes celles du cabinet.
+        $this->directMovement(['expense_category_id' => $category, 'method' => 'ORANGE_MONEY', 'signed_amount' => -2000], $this->manager)->assertCreated();
+        $this->read('/api/v1/expenses', $this->cashier)->assertOk()->assertJsonCount(2, 'data');
+        $this->read('/api/v1/expenses', $this->manager)->assertOk()->assertJsonCount(3, 'data');
+    }
+
+    public function test_la_caissiere_a_besoin_de_l_approbation_exacte_consommee_une_seule_fois_pour_retrait_ou_depot(): void
+    {
         $session = $this->openedSession($this->cashier, 30000);
 
-        $this->movement($session, ['expense_category_id' => $category], $this->cashier)
+        $this->movement($session, ['movement_kind' => 'WITHDRAWAL', 'signed_amount' => -5000, 'reason' => 'Mise en coffre (fictif)'], $this->cashier)
             ->assertStatus(422)->assertJsonPath('error.code', 'APPROVAL_REQUIRED_OR_EXPIRED');
         $this->assertSame(0, DB::table('cash_movements')->where('clinic_id', $this->clinicId)->count());
 
-        $approval = $this->approved(ApprovalSubject::cashMovement($session, 'EXPENSE', -5000, $category)->toArray(), $this->cashier);
-        $this->movement($session, ['expense_category_id' => $category, 'approval_id' => $approval], $this->cashier)
+        $approval = $this->approved(ApprovalSubject::cashMovement($session, 'WITHDRAWAL', -5000, null)->toArray(), $this->cashier);
+        $this->movement($session, ['movement_kind' => 'WITHDRAWAL', 'signed_amount' => -5000, 'reason' => 'Mise en coffre (fictif)', 'approval_id' => $approval], $this->cashier)
             ->assertCreated()->assertJsonPath('data.approval_mode', 'APPROVED');
         $this->assertSame(25000, $this->theoretical($this->cashier));
 
         // Même approbation pour un autre mouvement : refus (consommée), et un montant différent n'est jamais couvert.
-        $this->movement($session, ['expense_category_id' => $category, 'approval_id' => $approval], $this->cashier)
+        $this->movement($session, ['movement_kind' => 'WITHDRAWAL', 'signed_amount' => -5000, 'reason' => 'Mise en coffre (fictif)', 'approval_id' => $approval], $this->cashier)
             ->assertStatus(422);
-        $other = $this->approved(ApprovalSubject::cashMovement($session, 'EXPENSE', -5000, $category)->toArray(), $this->cashier);
-        $this->movement($session, ['expense_category_id' => $category, 'approval_id' => $other, 'signed_amount' => -6000], $this->cashier)
+        $other = $this->approved(ApprovalSubject::cashMovement($session, 'WITHDRAWAL', -5000, null)->toArray(), $this->cashier);
+        $this->movement($session, ['movement_kind' => 'WITHDRAWAL', 'signed_amount' => -6000, 'reason' => 'Mise en coffre (fictif)', 'approval_id' => $other], $this->cashier)
             ->assertStatus(422);
         $this->assertSame(1, DB::table('cash_movements')->where('clinic_id', $this->clinicId)->count());
     }
@@ -132,12 +187,20 @@ final class CashMovementsTest extends TestCase
         $this->movement($session, ['movement_kind' => 'WITHDRAWAL', 'signed_amount' => -100, 'expense_category_id' => $category])
             ->assertStatus(422)->assertJsonStructure(['error' => ['fields' => ['expense_category_id']]]);
         $this->movement($session, ['expense_category_id' => $category, 'reason' => 'x'])->assertStatus(422);
+        $this->movement($session, ['movement_kind' => 'DEPOSIT', 'signed_amount' => 1000, 'expense_category_id' => null, 'reason' => null])
+            ->assertStatus(422)->assertJsonStructure(['error' => ['fields' => ['reason']]]);
+        $this->movement($session, ['movement_kind' => 'WITHDRAWAL', 'signed_amount' => -1000, 'expense_category_id' => null, 'reason' => null])
+            ->assertStatus(422)->assertJsonStructure(['error' => ['fields' => ['reason']]]);
+
+        // Dépense avec motif et référence facultatifs (null) : acceptée.
+        $this->movement($session, ['expense_category_id' => $category, 'reason' => null, 'reference' => null, 'signed_amount' => -2000])
+            ->assertCreated()->assertJsonPath('data.reason', null)->assertJsonPath('data.reference', null);
 
         // Correction de l'ouverture : signe libre, ce n'est pas une sortie réelle.
         $this->movement($session, ['movement_kind' => 'OPENING_CORRECTION', 'signed_amount' => 2000, 'expense_category_id' => null])
             ->assertCreated();
         $this->movement($session, ['movement_kind' => 'DEPOSIT', 'signed_amount' => 3000, 'expense_category_id' => null])->assertCreated();
-        $this->assertSame(15000, $this->theoretical($this->manager));
+        $this->assertSame(13000, $this->theoretical($this->manager));
     }
 
     public function test_une_depense_apres_cloture_est_refusee_la_cloture_est_figee(): void
@@ -156,9 +219,8 @@ final class CashMovementsTest extends TestCase
     {
         $category = $this->category();
         $session = $this->openedSession($this->manager, 25000);
-        $approval = $this->approved(ApprovalSubject::cashMovement($session, 'EXPENSE', -5000, $category)->toArray(), $this->cashier);
 
-        $this->movement($session, ['expense_category_id' => $category, 'approval_id' => $approval], $this->cashier)->assertForbidden();
+        $this->movement($session, ['expense_category_id' => $category], $this->cashier)->assertForbidden();
         $this->read('/api/v1/cash-sessions/'.$session.'/movements', $this->cashier)->assertForbidden();
         $this->movement($session, [], $this->clinician)->assertForbidden();
     }

@@ -57,8 +57,8 @@ function acceptedPayloads(name: string): { file: string; data: Record<string, un
 const ajv = contractValidator()
 
 describe('corps des routes directes : conformes au DirectRequest du contrat', () => {
-  it('couvre les 26 commandes', () => {
-    expect(commandNames()).toHaveLength(26)
+  it('couvre les 27 commandes', () => {
+    expect(commandNames()).toHaveLength(27)
   })
 
   it.each(commandNames())('%s : charge acceptée → corps accepté', (name) => {

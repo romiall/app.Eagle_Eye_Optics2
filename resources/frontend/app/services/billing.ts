@@ -3,6 +3,7 @@ import { sha256Hex } from '@/documents/engine/hash'
 import type {
   CashDayReport,
   CashDayReportResponse,
+  CashMovementPage,
   CashRegister,
   CashRegisterList,
   CashSession,
@@ -23,6 +24,7 @@ import type {
   InvoicePage,
   InvoiceResponse,
   InvoicesStatus,
+  PaymentsMethod,
   Receipt,
   ReceiptResponse,
   Refund,
@@ -219,7 +221,49 @@ export async function displayedLinesSha256(invoice: Invoice): Promise<string> {
   return sha256Hex(new TextEncoder().encode(displayedLinesFingerprint(invoice)))
 }
 
-// --- Caisse -----------------------------------------------------------------------------------------
+// --- Caisse et dépenses -----------------------------------------------------------------------------
+
+export interface ExpenseFilters {
+  from?: string
+  to?: string
+  categoryId?: string
+  method?: PaymentsMethod
+  cashSessionId?: string
+  page?: number
+}
+
+/** Dépenses enregistrées (tiroir espèces ou hors tiroir), filtrables et paginées (L1D05). */
+export async function listExpenses(
+  filters: ExpenseFilters = {},
+): Promise<ReadOutcome<CashMovementPage>> {
+  const parameters = new URLSearchParams()
+  if (filters.from !== undefined && filters.from !== '') {
+    assertCivilDate(filters.from, 'date de début')
+    parameters.set('from', filters.from)
+  }
+  if (filters.to !== undefined && filters.to !== '') {
+    assertCivilDate(filters.to, 'date de fin')
+    parameters.set('to', filters.to)
+  }
+  if (filters.categoryId !== undefined && filters.categoryId !== '') {
+    assertId(filters.categoryId, 'catégorie de dépense')
+    parameters.set('category_id', filters.categoryId)
+  }
+  if (filters.method !== undefined) {
+    parameters.set('method', filters.method)
+  }
+  if (filters.cashSessionId !== undefined && filters.cashSessionId !== '') {
+    assertId(filters.cashSessionId, 'session de caisse')
+    parameters.set('cash_session_id', filters.cashSessionId)
+  }
+  if (filters.page !== undefined) {
+    assertPage(filters.page)
+    parameters.set('page', String(filters.page))
+  }
+  const query = parameters.toString()
+  const path = query === '' ? '/api/v1/expenses' : `/api/v1/expenses?${query}`
+  return answered(await apiRequest<CashMovementPage>('GET', path))
+}
 
 export async function listCashRegisters(): Promise<ReadOutcome<CashRegister[]>> {
   const response = await apiRequest<CashRegisterList>('GET', '/api/v1/cash-registers')

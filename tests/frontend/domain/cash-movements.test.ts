@@ -27,12 +27,56 @@ describe('mouvements de caisse hors vente (L1D05)', () => {
       ok: true,
       movement: {
         kind: 'EXPENSE',
+        method: 'CASH',
         signedAmount: -5000,
         categoryId: base.categoryId,
         reason: 'Course de taxi (fictif)',
         reference: null,
       },
     })
+  })
+
+  it('autorise une dépense avec motif et référence vides, ou hors tiroir même sans caisse ouverte', () => {
+    const cashNoReason = checkMovement({ ...base, reason: '   ', reference: '' }, 20000)
+    expect(cashNoReason).toEqual({
+      ok: true,
+      movement: {
+        kind: 'EXPENSE',
+        method: 'CASH',
+        signedAmount: -5000,
+        categoryId: base.categoryId,
+        reason: null,
+        reference: null,
+      },
+    })
+
+    const momoClosed = checkMovement(
+      { ...base, method: 'MTN_MOMO', amount: 80000, reason: '', reference: '' },
+      null,
+      false,
+    )
+    expect(momoClosed).toEqual({
+      ok: true,
+      movement: {
+        kind: 'EXPENSE',
+        method: 'MTN_MOMO',
+        signedAmount: -80000,
+        categoryId: base.categoryId,
+        reason: null,
+        reference: null,
+      },
+    })
+
+    expect(checkMovement({ ...base, method: 'CASH' }, null, false)).toMatchObject({
+      ok: false,
+      errors: { method: expect.any(String) },
+    })
+    expect(
+      checkMovement({ ...base, kind: 'DEPOSIT', categoryId: null, reason: '' }, 0),
+    ).toMatchObject({ ok: false, errors: { reason: expect.any(String) } })
+    expect(
+      checkMovement({ ...base, kind: 'WITHDRAWAL', method: 'MTN_MOMO', categoryId: null }, 20000),
+    ).toMatchObject({ ok: false, errors: { method: expect.any(String) } })
   })
 
   it('refuse une sortie qui dépasse les espèces attendues, une dépense sans catégorie, un motif trop court', () => {

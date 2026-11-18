@@ -390,6 +390,70 @@ function count(value: number, singular: string, pluralForm: string = `${singular
         </div>
       </section>
 
+      <section aria-labelledby="titre-depenses-periode" class="space-y-3">
+        <div class="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 id="titre-depenses-periode" class="text-lg font-semibold">Dépenses de la période</h2>
+          <LinkButton :to="{ name: 'depenses' }" variant="ghost">Voir les dépenses</LinkButton>
+        </div>
+        <dl
+          class="grid gap-x-6 gap-y-3 rounded-xl border border-line bg-surface p-4 shadow-card sm:grid-cols-2 lg:grid-cols-4"
+        >
+          <div>
+            <dt class="text-sm text-muted">Nombre de dépenses</dt>
+            <dd class="tabular-nums">{{ report.expenses.count }}</dd>
+          </div>
+          <div>
+            <dt class="text-sm text-muted">Depuis le tiroir espèces</dt>
+            <dd class="tabular-nums">{{ formatMoney(report.expenses.cash_drawer) }}</dd>
+          </div>
+          <div>
+            <dt class="text-sm text-muted">Hors tiroir (autres canaux)</dt>
+            <dd class="tabular-nums">{{ formatMoney(report.expenses.other_methods) }}</dd>
+          </div>
+          <div>
+            <dt class="text-base font-semibold">Total des dépenses</dt>
+            <dd class="text-xl font-bold tabular-nums" data-montant="depenses-total">
+              {{ formatMoney(report.expenses.total) }}
+            </dd>
+          </div>
+        </dl>
+        <div
+          v-if="report.expenses.by_category.length > 0 || report.expenses.by_method.length > 0"
+          class="grid gap-3 sm:grid-cols-2"
+        >
+          <div class="space-y-2 rounded-xl border border-line bg-surface p-4 shadow-card">
+            <h3 class="font-semibold">Par catégorie</h3>
+            <ul class="space-y-1 text-sm">
+              <li
+                v-for="cat in report.expenses.by_category"
+                :key="cat.category_id ?? cat.name"
+                class="flex flex-wrap items-baseline justify-between gap-x-3"
+              >
+                <span class="break-words">{{ cat.name }} ({{ cat.count }})</span>
+                <span class="font-semibold tabular-nums">{{ formatMoney(cat.amount) }}</span>
+              </li>
+            </ul>
+          </div>
+          <div class="space-y-2 rounded-xl border border-line bg-surface p-4 shadow-card">
+            <h3 class="font-semibold">Par canal</h3>
+            <ul class="space-y-1 text-sm">
+              <li
+                v-for="row in report.expenses.by_method"
+                :key="row.method"
+                class="flex flex-wrap items-baseline justify-between gap-x-3"
+              >
+                <span>{{ paymentMethodLabel(row.method) }} ({{ row.count }})</span>
+                <span class="font-semibold tabular-nums">{{ formatMoney(row.amount) }}</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+        <p class="text-sm text-muted">
+          Inclut uniquement les dépenses catégorisées (tiroir espèces et autres canaux), sans
+          compter les transferts internes de caisse (dépôts, retraits, corrections d’ouverture).
+        </p>
+      </section>
+
       <AccountingExportPanel :from="shown.from" :to="shown.to" />
 
       <section aria-labelledby="titre-auteurs" class="space-y-3">

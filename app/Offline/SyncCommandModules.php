@@ -52,6 +52,7 @@ final class SyncCommandModules
         'ConfirmDelivery' => 'sales',
         'OpenCashSession' => 'sales',
         'CloseCashSession' => 'sales',
+        'RecordCashMovement' => 'sales',
         // Stock.
         'RegisterStockMovement' => 'stock',
         'RegisterPhysicalReturn' => 'stock',

@@ -46,15 +46,14 @@ final class CashCommands
                 true,
                 'commands/CloseCashSession.v1.json#/$defs/DirectRequest',
             ),
-            // Dépenses et mouvements hors vente, catégories, revue d'écart (L1D05) : en ligne seulement, corps de la
-            // route directe validé contre sa requête HTTP.
+            // Dépenses (en ligne ou synchronisées depuis un poste préparé) et mouvements hors vente du tiroir (L1D05).
             new CommandDefinition(
                 RecordCashMovementHandler::COMMAND,
                 RecordCashMovementHandler::class,
-                [CommandSource::Direct],
-                null,
+                $both,
+                'commands/RecordCashMovement.v1.json',
                 true,
-                'schemas/requests/http.json#/$defs/RecordCashMovementRequest',
+                'commands/RecordCashMovement.v1.json#/$defs/DirectRequest',
             ),
             new CommandDefinition(
                 SaveExpenseCategoryHandler::COMMAND,

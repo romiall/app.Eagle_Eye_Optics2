@@ -356,8 +356,13 @@ Route::prefix('v1')->group(function (): void {
             Route::get('reports/financial', [FinancialReportController::class, 'show'])
                 ->middleware('can:finance.global.read')
                 ->name('api.reports.financial');
-            // Dépenses et mouvements hors vente d'une session ouverte (L1D05) : approbation exacte de la gérante ou son
-            // exécution directe ; catégories de dépenses (gérante) ; revue de l'écart d'une session clôturée.
+            // Dépenses (tiroir espèces ou autre canal) et mouvements hors vente d'une session ouverte (L1D05).
+            Route::get('expenses', [CashMovementController::class, 'expenses'])
+                ->middleware('can:cash.own_session')
+                ->name('api.expenses.index');
+            Route::post('cash-movements', [CashMovementController::class, 'record'])
+                ->middleware('can:cash.own_session')
+                ->name('api.cash-movements.store');
             Route::get('cash-sessions/{id}/movements', [CashMovementController::class, 'index'])
                 ->middleware('can:cash.own_session')
                 ->whereUlid('id')
