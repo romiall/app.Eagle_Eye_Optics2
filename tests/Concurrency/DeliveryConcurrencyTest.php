@@ -121,9 +121,9 @@ final class DeliveryConcurrencyTest extends TestCase
     private function lastFrameSold(): array
     {
         $position = $this->seedPosition($this->item['frame'], '1');
+        $this->ensureOpenCashSession($this->manager);
         [$id, $sum, $version] = $this->draft([$this->line($this->item['frame'], '1', 1, 40000)], $this->manager);
         $this->write('POST', '/api/v1/invoices/'.$id.'/issue', $this->issueBody($id, $version, $sum, ['issued_at' => $this->instant(-120)]), $this->manager)->assertOk();
-        $this->pay($id, 1, $sum, 'MTN_MOMO', ['effective_at' => $this->instant(-90)], $this->manager)->assertCreated();
 
         return [$id, $this->invoiceLine($id), $position];
     }

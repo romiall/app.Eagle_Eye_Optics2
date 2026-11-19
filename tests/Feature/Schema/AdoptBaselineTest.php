@@ -80,7 +80,12 @@ final class AdoptBaselineTest extends TestCase
         [$status, $output] = $this->runArtisan('migrate', ['--database' => self::CONNECTION, '--force' => true]);
         $this->assertSame(0, $status, $output);
         $this->assertSame(
-            [...ExpectedSchema::BASELINE_MIGRATIONS, '2026_10_14_000000_create_framework_tables', '2026_11_18_000001_update_cash_movements_for_expenses_and_sync'],
+            [
+                ...ExpectedSchema::BASELINE_MIGRATIONS,
+                '2026_10_14_000000_create_framework_tables',
+                '2026_11_18_000001_update_cash_movements_for_expenses_and_sync',
+                '2026_11_18_000002_auto_collect_existing_issued_invoices',
+            ],
             $this->recordedMigrations(),
         );
 

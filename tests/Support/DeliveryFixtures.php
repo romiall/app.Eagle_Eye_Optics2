@@ -117,7 +117,6 @@ trait DeliveryFixtures
     protected function settledInvoice(array $lines): array
     {
         [$invoice, $total] = $this->issuedInvoice($lines, $this->manager);
-        $this->pay($invoice, 1, $total, 'MTN_MOMO', [], $this->manager)->assertCreated();
 
         return [$invoice, $total];
     }

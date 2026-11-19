@@ -43,7 +43,7 @@ final class ReversePaymentTest extends TestCase
      */
     private function paid(int $amount = 30000): array
     {
-        [$invoice] = $this->issuedInvoice([$this->line($this->item['lens'], '1', 1, 50000)], $this->manager);
+        [$invoice] = $this->issuedUncollectedInvoice([$this->line($this->item['lens'], '1', 1, 50000)], $this->manager);
         $receipt = (string) $this->pay($invoice, 1, $amount)->assertCreated()->json('data.receipt_number');
 
         return [$invoice, $this->firstPayment($invoice), $receipt];
@@ -175,7 +175,7 @@ final class ReversePaymentTest extends TestCase
 
     public function test_une_contre_ecriture_especes_d_une_session_close_ne_la_reecrit_pas(): void
     {
-        [$invoice] = $this->issuedInvoice([$this->line($this->item['lens'], '1', 1, 50000)], $this->manager);
+        [$invoice] = $this->issuedUncollectedInvoice([$this->line($this->item['lens'], '1', 1, 50000)], $this->manager);
         $session = $this->openedSession($this->cashier, 10000);
         $this->pay($invoice, 1, 30000, 'CASH', ['cash_session_id' => $session])->assertCreated();
         $this->write('POST', '/api/v1/cash-sessions/'.$session.'/close', $this->closeSessionBody($session, 40000, 40000, null, ['closed_at' => self::NOW]), $this->cashier)->assertOk();

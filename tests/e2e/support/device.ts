@@ -239,7 +239,33 @@ export async function issueInvoiceForDevice(
     /** Article facturé (défaut : un examen de vue fictif) et sa quantité. */
     item?: { search: string; option: RegExp; quantity?: number }
   },
-): Promise<{ invoicePath: string; invoiceId: string }> {
+): Promise<{ invoicePath: string; invoiceId: string; initialReceipt: string | null }> {
+  const { request: preRequest, headers: preHeaders } = await api(page)
+  const openSessionsResponse = await preRequest.get('/api/v1/cash-sessions?state=open', {
+    headers: preHeaders,
+  })
+  if (openSessionsResponse.status() === 200) {
+    const openSessions =
+      ((await openSessionsResponse.json()) as { data?: { id: string }[] }).data ?? []
+    if (openSessions.length === 0) {
+      await page.goto('/ventes/caisse')
+      const cashMain = page.getByRole('main')
+      await expect(
+        cashMain.getByText(/Session ouverte|Aucune session de caisse ouverte/).first(),
+      ).toBeVisible()
+      if (await cashMain.getByText('Aucune session de caisse ouverte').isVisible()) {
+        await page.getByLabel('Fond de caisse').fill('10 000')
+        await page.getByRole('button', { name: 'Ouvrir la caisse' }).click()
+      }
+      await expect(
+        cashMain
+          .getByRole('heading', { level: 2, name: /^Session ouverte/ })
+          .or(cashMain.getByText('Une session était déjà ouverte'))
+          .first(),
+      ).toBeVisible()
+    }
+  }
+
   await page.goto('/patients/nouveau')
   await page.getByLabel('Nom (obligatoire)').fill(input.patientName)
   await page.getByLabel('Prénom(s)').fill('Test')
@@ -270,7 +296,36 @@ export async function issueInvoiceForDevice(
     page.getByRole('heading', { level: 1, name: /^Facture TEST-FAC-\d{4}-\d{6}$/ }),
   ).toBeVisible()
 
+  // L'émission directe auto-encaisse 100 % espèces (A1) : contre-passe ce règlement initial pour confier
+  // une facture au reste intégralement ouvert au poste préparé.
   const { request, headers } = await api(page)
+  const detailResponse = await request.get(`/api/v1/invoices/${invoiceId}`, { headers })
+  expect(detailResponse.status(), await detailResponse.text()).toBe(200)
+  const detail = (
+    (await detailResponse.json()) as {
+      data: {
+        payments: {
+          amount: number
+          reversed_amount: number
+          receipt_number: string | null
+        }[]
+      }
+    }
+  ).data
+  const autoPayment = detail.payments.find((p) => p.reversed_amount < p.amount)
+  const initialReceipt = autoPayment?.receipt_number ?? null
+  if (autoPayment !== undefined) {
+    const main = page.getByRole('main')
+    await page.getByRole('button', { name: /Contre-passer le paiement/ }).click()
+    await page.getByLabel('Montant à contre-passer').fill(String(autoPayment.amount))
+    await page.getByLabel('Montant à contre-passer').blur()
+    await page
+      .getByLabel('Motif (obligatoire)')
+      .fill('Mise en attente encaissement hors ligne (e2e)')
+    await page.getByRole('button', { name: 'Enregistrer la contre-écriture' }).click()
+    await confirmPasswordIfAsked(page, main.getByText('Correction enregistrée'))
+  }
+
   const meResponse = await request.get('/api/v1/auth/me', { headers })
   expect(meResponse.status(), await meResponse.text()).toBe(200)
   const me = (await meResponse.json()) as { data: { id: string } }
@@ -279,7 +334,7 @@ export async function issueInvoiceForDevice(
     data: { expected_version: null, profiles: [me.data.id], invoice_ids: [invoiceId] },
   })
   expect(attributed.status(), await attributed.text()).toBe(200)
-  return { invoicePath, invoiceId }
+  return { invoicePath, invoiceId, initialReceipt }
 }
 
 /** Valide un encaissement mobile money saisi : « enregistré sur ce poste » seulement, jamais « sur le serveur ». */
@@ -315,13 +370,27 @@ export async function payAmountOffline(
 export async function invoicePayments(
   page: Page,
   invoiceId: string,
-): Promise<{ reference: string | null; receipt_number: string | null }[]> {
+): Promise<
+  {
+    reference: string | null
+    receipt_number: string | null
+    amount: number
+    reversed_amount: number
+  }[]
+> {
   const { request, headers } = await api(page)
   const response = await request.get(`/api/v1/invoices/${invoiceId}`, { headers })
   expect(response.status(), await response.text()).toBe(200)
   return (
     (await response.json()) as {
-      data: { payments: { reference: string | null; receipt_number: string | null }[] }
+      data: {
+        payments: {
+          reference: string | null
+          receipt_number: string | null
+          amount: number
+          reversed_amount: number
+        }[]
+      }
     }
   ).data.payments
 }

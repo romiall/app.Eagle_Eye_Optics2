@@ -47,7 +47,7 @@ final class CreditNoteTest extends TestCase
     public function test_l_exemple_du_fichier_03_avoir_puis_annulation_totale_fait_apparaitre_le_credit(): void
     {
         // Facture 80 000 ; acompte 30 000 ; paiement 20 000 ; avoir 10 000 → reste 20 000 ; avoir 70 000 → 50 000 à rembourser.
-        [$invoice] = $this->issuedInvoice([$this->line($this->item['lens'], '1', 1, 80000)], $this->manager);
+        [$invoice] = $this->issuedUncollectedInvoice([$this->line($this->item['lens'], '1', 1, 80000)], $this->manager);
         $this->pay($invoice, 1, 30000)->assertCreated();
         $this->pay($invoice, 2, 20000)->assertCreated();
         $line = $this->firstLine($invoice);
@@ -99,7 +99,7 @@ final class CreditNoteTest extends TestCase
         $before = DB::table('stock_positions')->where('id', $position)->first();
         $movements = DB::table('stock_movements')->count();
 
-        $this->credit($invoice, 1, [$this->creditLine($this->firstLine($invoice), 40000, '1')])->assertCreated();
+        $this->credit($invoice, 2, [$this->creditLine($this->firstLine($invoice), 40000, '1')])->assertCreated();
 
         $this->assertEquals($before, DB::table('stock_positions')->where('id', $position)->first(), 'Un avoir financier sans retour physique ne modifie pas le stock.');
         $this->assertSame($movements, DB::table('stock_movements')->count());
@@ -112,14 +112,14 @@ final class CreditNoteTest extends TestCase
             $this->line($this->item['exam'], '1', 2),
         ], $this->manager);
         $lens = (string) DB::table('invoice_lines')->where('invoice_id', $invoice)->where('position', 1)->value('id');
-        $this->credit($invoice, 1, [$this->creditLine($lens, 30000, '1')])->assertCreated();
-
-        $this->credit($invoice, 2, [$this->creditLine($lens, 30001, '1')])->assertStatus(422)->assertJsonPath('error.details.creditable', 30000);
-        $this->credit($invoice, 2, [$this->creditLine($lens, 1000, '1.5')])->assertStatus(422)->assertJsonPath('error.details.creditable_quantity', '1.000');
-        $this->credit($invoice, 2, [$this->creditLine($lens, 1000), $this->creditLine($lens, 1000)])->assertStatus(422);
-        $this->credit($invoice, 2, [$this->creditLine(Ulid::generate(), 1000)])->assertStatus(422);
-        $this->credit($invoice, 2, [$this->creditLine($lens, 1000)], ['amount_gross' => 2000])->assertStatus(422);
         $this->credit($invoice, 2, [$this->creditLine($lens, 30000, '1')])->assertCreated();
+
+        $this->credit($invoice, 3, [$this->creditLine($lens, 30001, '1')])->assertStatus(422)->assertJsonPath('error.details.creditable', 30000);
+        $this->credit($invoice, 3, [$this->creditLine($lens, 1000, '1.5')])->assertStatus(422)->assertJsonPath('error.details.creditable_quantity', '1.000');
+        $this->credit($invoice, 3, [$this->creditLine($lens, 1000), $this->creditLine($lens, 1000)])->assertStatus(422);
+        $this->credit($invoice, 3, [$this->creditLine(Ulid::generate(), 1000)])->assertStatus(422);
+        $this->credit($invoice, 3, [$this->creditLine($lens, 1000)], ['amount_gross' => 2000])->assertStatus(422);
+        $this->credit($invoice, 3, [$this->creditLine($lens, 30000, '1')])->assertCreated();
         $this->assertSame(2, DB::table('credit_notes')->where('invoice_id', $invoice)->count());
     }
 
@@ -132,8 +132,8 @@ final class CreditNoteTest extends TestCase
         $this->assertNotNull($line);
         $this->assertSame(1000, (int) $line->tax_amount);
 
-        $this->credit($invoice, 1, [$this->creditLine((string) $line->id, 3333)])->assertCreated();
-        $this->credit($invoice, 2, [$this->creditLine((string) $line->id, 7667)])->assertCreated();
+        $this->credit($invoice, 2, [$this->creditLine((string) $line->id, 3333)])->assertCreated();
+        $this->credit($invoice, 3, [$this->creditLine((string) $line->id, 7667)])->assertCreated();
 
         $this->assertSame(1000, (int) DB::table('credit_note_lines')->where('invoice_line_id', $line->id)->sum('tax_amount'));
     }
@@ -142,7 +142,7 @@ final class CreditNoteTest extends TestCase
     {
         [$invoice] = $this->issuedInvoice([$this->line($this->item['lens'], '1', 1, 50000)], $this->manager);
         $this->allowPermission($this->cashier, 'credit_note.issue');
-        $body = $this->creditNoteBody($invoice, 1, [$this->creditLine($this->firstLine($invoice), 5000)]);
+        $body = $this->creditNoteBody($invoice, 2, [$this->creditLine($this->firstLine($invoice), 5000)]);
 
         $this->writeReauthenticated('POST', '/api/v1/invoices/'.$invoice.'/credit-notes', $body, $this->cashier)
             ->assertStatus(422)->assertJsonPath('error.code', 'APPROVAL_REQUIRED_OR_EXPIRED');
@@ -168,8 +168,8 @@ final class CreditNoteTest extends TestCase
         $draftLine = $this->firstLine($draft);
 
         $this->credit($draft, 1, [$this->creditLine($draftLine, 1000)])->assertStatus(409)->assertJsonPath('error.code', 'STATE_TRANSITION_REFUSED');
-        $this->credit($invoice, 2, [$this->creditLine($this->firstLine($invoice), 1000)])->assertStatus(409)->assertJsonPath('error.code', 'VERSION_CONFLICT');
-        $this->credit($invoice, 1, [$this->creditLine($this->firstLine($invoice), 1000)], ['reason' => ''])->assertStatus(422);
+        $this->credit($invoice, 1, [$this->creditLine($this->firstLine($invoice), 1000)])->assertStatus(409)->assertJsonPath('error.code', 'VERSION_CONFLICT');
+        $this->credit($invoice, 2, [$this->creditLine($this->firstLine($invoice), 1000)], ['reason' => ''])->assertStatus(422);
 
         $this->assertSame(0, (int) DB::table('document_sequences')->where('clinic_id', $this->clinicId)->where('document_type', 'CREDIT_NOTE')->value('last_value'));
         $this->assertSame(0, DB::table('credit_notes')->count());
@@ -178,7 +178,7 @@ final class CreditNoteTest extends TestCase
     public function test_un_avoir_emis_ne_se_modifie_ni_ne_se_supprime(): void
     {
         [$invoice] = $this->issuedInvoice([$this->line($this->item['lens'], '1', 1, 50000)], $this->manager);
-        $id = (string) $this->credit($invoice, 1, [$this->creditLine($this->firstLine($invoice), 5000)])->assertCreated()->json('data.credit_note_id');
+        $id = (string) $this->credit($invoice, 2, [$this->creditLine($this->firstLine($invoice), 5000)])->assertCreated()->json('data.credit_note_id');
 
         $this->expectExceptionMessage('Finalized record is immutable');
         DB::table('credit_notes')->where('id', $id)->update(['amount_gross' => 1]);

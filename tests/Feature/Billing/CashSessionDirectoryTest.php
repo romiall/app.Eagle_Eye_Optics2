@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Billing;
 
+use App\Domain\Shared\Ulid;
 use Illuminate\Support\Facades\DB;
 use Tests\Support\BillingFixtures;
 use Tests\Support\MigratedDatabase;
@@ -70,7 +71,7 @@ final class CashSessionDirectoryTest extends TestCase
     public function test_le_releve_separe_le_tiroir_especes_des_autres_modes(): void
     {
         $session = $this->openedSession($this->cashier, 10000);
-        [$invoice] = $this->issuedInvoice([$this->line($this->item['lens'], '1', 1, 80000)], $this->manager);
+        [$invoice] = $this->issuedUncollectedInvoice([$this->line($this->item['lens'], '1', 1, 80000)], $this->manager);
         $this->pay($invoice, 1, 30000, 'CASH', ['cash_session_id' => $session], $this->cashier)->assertCreated();
         $this->pay($invoice, 2, 20000, 'MTN_MOMO', [], $this->cashier)->assertCreated();
         // Encaissement d'une autre personne : hors du relevé de cette caissière.
@@ -123,5 +124,53 @@ final class CashSessionDirectoryTest extends TestCase
 
         $this->read('/api/v1/cash-sessions', $this->manager)->assertNotFound();
         $this->read('/api/v1/cash-sessions/'.$session.'/report', $this->cashier)->assertNotFound();
+    }
+
+    public function test_le_journal_chronologique_fusionne_factures_encaissees_depenses_et_contre_ecritures(): void
+    {
+        $session = $this->openedSession($this->cashier, 10000);
+        $catId = Ulid::generate();
+        $this->write('POST', '/api/v1/expense-categories', [
+            'expected_version' => null, 'category_id' => $catId, 'code' => 'PAPETERIE', 'name' => 'Papeterie', 'active' => true,
+        ], $this->manager)->assertOk();
+
+        // 09:29 UTC : émission auto-encaissée 15 000 FCFA
+        [$invoiceId, , $invoiceNumber] = $this->issuedInvoice([$this->line($this->item['exam'])], $this->cashier);
+        $paymentId = (string) DB::table('payments')->where('invoice_id', $invoiceId)->value('id');
+
+        // 09:30 UTC (NOW) : dépense tiroir 2 500 FCFA puis contre-écriture 5 000 FCFA
+        $this->write('POST', '/api/v1/cash-movements', [
+            'expected_version' => null,
+            'movement_id' => Ulid::generate(),
+            'cash_session_id' => $session,
+            'movement_kind' => 'EXPENSE',
+            'method' => 'CASH',
+            'signed_amount' => -2500,
+            'expense_category_id' => $catId,
+            'reason' => 'Ramettes A4',
+            'reference' => 'BON-01',
+            'approval_id' => null,
+            'occurred_at' => self::NOW,
+        ], $this->cashier)->assertCreated();
+
+        $this->actingAsReauthenticated($this->manager)
+            ->withHeaders(['Idempotency-Key' => Ulid::generate()])
+            ->postJson('/api/v1/payments/'.$paymentId.'/reversals', [
+                'expected_version' => 2,
+                'invoice_id' => $invoiceId,
+                'payment_id' => $paymentId,
+                'reversal_id' => Ulid::generate(),
+                'amount' => 5000,
+                'reason' => 'Erreur de caisse',
+                'approval_id' => Ulid::generate(),
+            ])->assertCreated();
+
+        $report = $this->read('/api/v1/cash-sessions/'.$session.'/report', $this->cashier)->assertOk();
+        $journal = $report->json('data.journal');
+        $this->assertCount(3, $journal);
+        $this->assertSame(['PAYMENT', 'CASH_MOVEMENT', 'PAYMENT_REVERSAL'], array_column($journal, 'entry_type'));
+        $this->assertSame([15000, -2500, -5000], array_column($journal, 'signed_amount'));
+        $this->assertSame($invoiceNumber, $journal[0]['invoice_number']);
+        $this->assertSame('BON-01', $journal[1]['reference']);
     }
 }

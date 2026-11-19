@@ -19,6 +19,42 @@ async function signIn(page: Page, role: string): Promise<void> {
   await expect(page.getByRole('heading', { level: 1, name: /^Bonjour / })).toBeVisible()
 }
 
+async function ensureCashOpen(page: Page): Promise<void> {
+  await page.goto('/ventes/caisse')
+  const main = page.getByRole('main')
+  await expect(
+    main.getByText(/Session ouverte|Aucune session de caisse ouverte/).first(),
+  ).toBeVisible()
+  if (await main.getByText('Aucune session de caisse ouverte').isVisible()) {
+    await page.getByLabel('Fond de caisse').fill('10 000')
+    await page.getByRole('button', { name: 'Ouvrir la caisse' }).click()
+  }
+  await expect(
+    main
+      .getByRole('heading', { level: 2, name: /^Session ouverte/ })
+      .or(main.getByText('Une session était déjà ouverte'))
+      .first(),
+  ).toBeVisible()
+}
+
+async function reverseAutoCash(page: Page, amountFormatted: string): Promise<void> {
+  const main = page.getByRole('main')
+  await page.getByRole('button', { name: /Contre-passer le paiement/ }).click()
+  await page.getByLabel('Montant à contre-passer').fill(amountFormatted)
+  await page.getByLabel('Montant à contre-passer').blur()
+  await page.getByLabel('Motif (obligatoire)').fill('Ajustement autre mode de règlement (fictif)')
+  await page.getByRole('button', { name: 'Enregistrer la contre-écriture' }).click()
+  const dialog = page.getByRole('dialog', { name: 'Confirmer votre mot de passe' })
+  const success = main.getByText('Correction enregistrée')
+  await expect(dialog.or(success).first()).toBeVisible()
+  if (await dialog.isVisible()) {
+    await dialog.getByLabel('Mot de passe').fill(demoAccount('MANAGER').password)
+    await dialog.getByRole('button', { name: 'Confirmer et reprendre' }).click()
+  }
+  await expect(success.first()).toBeVisible()
+  await expect(main).toContainText(`Reste à encaisser : ${amountFormatted} FCFA`)
+}
+
 /**
  * U01 — usage sur appareils ciblés, AUTOMATISÉ (fiche 24, U01 ; AT28, AT29 ; EE043, EE044) dans un vrai navigateur :
  *
@@ -296,6 +332,7 @@ test.describe('usage : parcours de l’opérateur, tailles d’écran et clavier
     const firstNames = 'Marie-Claire Françoise'
     const operator = new Operator()
     await signIn(page, 'MANAGER')
+    await ensureCashOpen(page)
     const main = page.getByRole('main')
 
     await operator.phase('Créer le patient', async () => {
@@ -351,10 +388,11 @@ test.describe('usage : parcours de l’opérateur, tailles d’écran et clavier
       await expect(
         page.getByRole('heading', { level: 1, name: /^Facture TEST-FAC-\d{4}-\d{6}$/ }),
       ).toBeVisible()
-      await expect(main).toContainText('Reste à encaisser : 55 000 FCFA')
+      await expect(main).toContainText(/Total encaissé\s*55\s*000\s*FCFA/)
       await expect(main).toContainText(`${name} ${firstNames}`)
     })
     shared.invoicePath = new URL(page.url()).pathname
+    await reverseAutoCash(page, '55 000')
 
     await operator.phase('Encaisser un acompte de 20 000 et obtenir le reçu', async () => {
       await operator.fill(page.getByLabel('Montant encaissé'), '20 000')
@@ -426,7 +464,7 @@ test.describe('usage : parcours de l’opérateur, tailles d’écran et clavier
     await expect(
       page.getByRole('heading', { level: 1, name: /^Facture TEST-FAC-\d{4}-\d{6}$/ }),
     ).toBeVisible()
-    await expect(main).toContainText('Reste à encaisser : 1 500 000 FCFA')
+    await reverseAutoCash(page, '1 500 000')
     await page.getByLabel('Montant encaissé').fill('500 000')
     await page.getByLabel('Montant encaissé').blur()
     await page.getByLabel('Mode de règlement').selectOption({ label: 'Mobile money MTN' })
@@ -717,7 +755,7 @@ test.describe('usage : parcours de l’opérateur, tailles d’écran et clavier
     await expect(
       page.getByRole('heading', { level: 1, name: /^Facture TEST-FAC-\d{4}-\d{6}$/ }),
     ).toBeVisible()
-    await expect(page.getByRole('main')).toContainText('Reste à encaisser : 15 000 FCFA')
+    await reverseAutoCash(page, '15 000')
     await page.getByRole('button', { name: /^Encaisser le reste/ }).focus()
     await page.keyboard.press('Enter')
     await expect(page.getByLabel('Montant encaissé')).toHaveValue(/15\s?000/)

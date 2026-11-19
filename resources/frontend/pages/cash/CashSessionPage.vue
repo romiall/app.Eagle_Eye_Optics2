@@ -46,8 +46,10 @@ import { salesFailureView } from '@/pages/sales/failureView'
 import SalesReadMessage from '@/pages/sales/SalesReadMessage.vue'
 import { useServerRead } from '@/pages/today/useServerRead'
 
-import CashSessionsManager from './CashSessionsManager.vue'
 import { loadLocalDrawerDelta } from '@/app/services/localCash'
+
+import CashSessionJournal from './CashSessionJournal.vue'
+import CashSessionsManager from './CashSessionsManager.vue'
 import Expenses from './Expenses.vue'
 import SessionReportButton from './SessionReportButton.vue'
 
@@ -55,6 +57,8 @@ interface CashView {
   registers: CashRegister[]
   session: CashSession | null
 }
+
+const journalVersion = ref(0)
 
 const FIELD_IDS = {
   register: 'caisse-poste',
@@ -541,11 +545,14 @@ async function retryClose(): Promise<void> {
         :available="adjustedAvailable"
         @changed="
           () => {
+            journalVersion += 1
             void read.reload()
             void refreshLocalDelta()
           }
         "
       />
+
+      <CashSessionJournal :session-id="session.id" :refresh-key="journalVersion" />
 
       <StateMessage
         v-if="expectedChanged"

@@ -558,4 +558,41 @@ describe('relevé de caisse et clôture', () => {
   it('reste en A4 même si un autre format est demandé', () => {
     expect(buildCashSessionReport(demoCashSession(true), { format: 'TICKET_80' }).format).toBe('A4')
   })
+
+  it('imprime le journal chronologique unifié (factures encaissées et dépenses) lorsque fourni', () => {
+    const text = printedText(
+      layout(
+        buildCashSessionReport({
+          ...demoCashSession(false),
+          journal: [
+            {
+              at: '2026-10-16T08:15:00.000Z',
+              entryType: 'PAYMENT',
+              label: 'Facture TEST-FAC-000001',
+              detail: 'Reçu TEST-REC-000001',
+              method: 'CASH',
+              amount: 25000,
+            },
+            {
+              at: '2026-10-16T09:10:00.000Z',
+              entryType: 'CASH_MOVEMENT',
+              label: 'Dépense',
+              detail: 'Fournitures · Papier A4',
+              method: 'CASH',
+              amount: -3500,
+            },
+          ],
+        }),
+      ),
+    )
+
+    expect(text).toContain('Journal chronologique de la caisse')
+    expect(text).toContain('Date et heure | Opération | Patient / détail | Mode | Montant (FCFA)')
+    expect(text).toContain(
+      '16/10/2026 à 09h15 | Facture TEST-FAC-000001 | Reçu TEST-REC-000001 | Espèces | 25\u00a0000',
+    )
+    expect(text).toContain(
+      '16/10/2026 à 10h10 | Dépense | Fournitures · Papier A4 | Espèces | -3\u00a0500',
+    )
+  })
 })

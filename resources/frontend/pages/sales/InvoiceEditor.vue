@@ -25,10 +25,12 @@
  * (« Enregistré sur ce poste », jamais « sur le serveur ») ; la facture est alors relue dans le coffre, avec le numéro de
  * la plage du poste, et l'abandon (qui demande le serveur) n'est pas offert pour un brouillon que le serveur ignore.
  */
-import { computed, onBeforeUnmount, ref, shallowRef } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
 
 import { clinicTimeZone } from '@/app/clinicTime'
-import { displayedLinesSha256, getInvoice } from '@/app/services/billing'
+import { useNetworkStatus } from '@/app/network'
+import { displayedLinesSha256, getInvoice, listCashSessions } from '@/app/services/billing'
+import { loadCurrentCashSessionWithFallback } from '@/app/services/localCash'
 import type { MutationOutcome } from '@/app/services/mutations'
 import { useMutation } from '@/app/services/useMutation'
 import { canOnScreen, moduleOpenOnScreen, revalidateSession } from '@/app/session'
@@ -43,6 +45,7 @@ import PatientIdentityHeader, {
   type HeaderPatient,
 } from '@/components/patients/PatientIdentityHeader.vue'
 import AppButton from '@/components/ui/AppButton.vue'
+import LinkButton from '@/components/ui/LinkButton.vue'
 import {
   buildCreateDraftPayload,
   buildUpdateDraftPayload,
@@ -59,6 +62,7 @@ import {
   validateDraftLines,
 } from '@/domain/billing/draft'
 import { buildIssuePayload, heldByDevice, issueBlockers } from '@/domain/billing/issueInvoice'
+import { buildPaymentPayload } from '@/domain/billing/payment'
 import { draftLineRightsSubject } from '@/domain/approvals/approvals'
 import type {
   Approval,
@@ -107,7 +111,9 @@ const CATALOG_ID = 'facture-catalogue'
 const timeZone = clinicTimeZone()
 const draftMutation = useMutation()
 const issueMutation = useMutation()
+const autoPaymentMutation = useMutation()
 const abandonMutation = useMutation()
+const { serverReachable } = useNetworkStatus()
 
 const priceAuthority = computed(() => canOnScreen('catalog.manage'))
 /** Plafond de remise EFFECTIF de ce compte (lu sur le serveur) : dit à côté de chaque remise. */
@@ -116,7 +122,53 @@ const discountCap = computed(() => salesSettings.value?.discount_cap_percent ?? 
 const canIssue = computed(() => canOnScreen('invoice.issue') || canOnScreen('exam_fee.collect'))
 /** Mêmes droits que la modification du brouillon ; le serveur réserve l'abandon au créateur et à la gérante. */
 const canAbandon = computed(() => canOnScreen('invoice.create') || canOnScreen('exam_fee.collect'))
+const canReadCash = computed(() => canOnScreen('cash.own_session') || canOnScreen('cash.manage'))
+const canManageCash = computed(() => canOnScreen('cash.manage'))
 const showStock = computed(() => moduleOpenOnScreen('stock') && canOnScreen('stock.read'))
+
+/** Session de caisse ouverte détectée pour prévenir avant l'émission ou encaisser sur un poste préparé. */
+const openCashSessionState = ref<'unknown' | 'open' | 'missing'>('unknown')
+const resolvedCashSessionId = ref<string | null>(null)
+
+async function probeOpenCashSession(): Promise<void> {
+  if (!canReadCash.value) {
+    openCashSessionState.value = 'unknown'
+    resolvedCashSessionId.value = null
+    return
+  }
+  try {
+    const current = await loadCurrentCashSessionWithFallback()
+    if (current.session !== null) {
+      resolvedCashSessionId.value = current.session.id
+      openCashSessionState.value = 'open'
+      return
+    }
+    if (current.localPending !== null) {
+      resolvedCashSessionId.value = current.localPending.cashSessionId
+      openCashSessionState.value = 'open'
+      return
+    }
+    if (canManageCash.value && serverReachable.value) {
+      const openList = await listCashSessions({ state: 'open' })
+      const firstOpen = openList.data.data[0] ?? null
+      if (firstOpen !== null) {
+        resolvedCashSessionId.value = firstOpen.id
+        openCashSessionState.value = 'open'
+        return
+      }
+    }
+    resolvedCashSessionId.value = null
+    openCashSessionState.value = 'missing'
+  } catch {
+    openCashSessionState.value = 'unknown'
+  }
+}
+
+onMounted(() => void probeOpenCashSession())
+watch(
+  () => [canReadCash.value, canManageCash.value, serverReachable.value],
+  () => void probeOpenCashSession(),
+)
 
 const baseline = shallowRef<Invoice | null>(props.initial)
 const lines = ref<DraftLineForm[]>(props.initial === null ? [] : linesFromInvoice(props.initial))
@@ -489,6 +541,14 @@ let issueRequestedAt: string | null = null
 const issueNotice = ref<string | null>(null)
 
 const held = computed(() => baseline.value !== null && heldByDevice(baseline.value))
+const showCashWarning = computed(
+  () =>
+    !props.local &&
+    !held.value &&
+    serverReachable.value &&
+    openCashSessionState.value === 'missing' &&
+    (totals.value.total ?? 0) > 0,
+)
 /** Raisons connues de ne pas émettre, dites sous le bouton (le serveur revérifie tout). */
 const issueHints = computed(() => {
   const base = baseline.value
@@ -526,9 +586,21 @@ async function afterIssue(result: MutationOutcome): Promise<void> {
     case 'synced': {
       const invoice = (result.result as InvoiceResponse).data
       savedLines.value = lines.value.map((line) => ({ ...line }))
-      setSalesFlash(
-        invoice.number === null ? 'Facture émise.' : `Facture émise : numéro ${invoice.number}.`,
-      )
+      const confirmed = invoice.payments.filter((payment) => payment.status === 'CONFIRMED')
+      const lastReceipt = confirmed[confirmed.length - 1]?.receipt_number ?? null
+      if (invoice.number === null) {
+        setSalesFlash('Facture émise.')
+      } else if (
+        invoice.balance.balance_due === 0 &&
+        confirmed.length > 0 &&
+        invoice.balance.paid_net > 0
+      ) {
+        setSalesFlash(
+          `Facture émise : numéro ${invoice.number}. Encaissement immédiat : ${formatMoney(invoice.balance.paid_net)} en espèces${lastReceipt !== null ? ` (reçu ${lastReceipt})` : ''}.`,
+        )
+      } else {
+        setSalesFlash(`Facture émise : numéro ${invoice.number}.`)
+      }
       emit('issued', invoice, false)
       return
     }
@@ -544,10 +616,36 @@ async function afterIssue(result: MutationOutcome): Promise<void> {
         return
       }
       savedLines.value = lines.value.map((line) => ({ ...line }))
+      let autoCollectedOffline = false
+      if (resolvedCashSessionId.value !== null && invoice.total_gross > 0) {
+        const paymentResult = await autoPaymentMutation.submit({
+          name: 'RegisterPayment',
+          path: { id: invoice.id },
+          payload: buildPaymentPayload({
+            invoiceId: invoice.id,
+            amount: invoice.total_gross,
+            method: 'CASH',
+            reference: null,
+            effectiveAt: invoice.issued_at ?? currentInstant(),
+            cashSessionId: resolvedCashSessionId.value,
+            effects: {
+              paymentId: autoPaymentMutation.effectId('payment_id'),
+              receiptId: autoPaymentMutation.effectId('receipt_id'),
+              receiptNumberUsageId: autoPaymentMutation.effectId('receipt_number_usage_id'),
+              receiptDocumentId: autoPaymentMutation.effectId('receipt_document_id'),
+            },
+          }),
+          expectedVersion: invoice.ledger_version ?? 1,
+        })
+        autoCollectedOffline =
+          paymentResult.kind === 'saved-local' || paymentResult.kind === 'synced'
+      }
       setSalesFlash(
         invoice.number === null
           ? 'Facture émise sur ce poste, en attente de synchronisation.'
-          : `Facture émise sur ce poste : numéro ${invoice.number}, en attente de synchronisation.`,
+          : autoCollectedOffline
+            ? `Facture émise sur ce poste : numéro ${invoice.number}, encaissée 100 % en espèces, en attente de synchronisation.`
+            : `Facture émise sur ce poste : numéro ${invoice.number}, en attente de synchronisation.`,
       )
       emit('issued', invoice, true)
       return
@@ -558,6 +656,13 @@ async function afterIssue(result: MutationOutcome): Promise<void> {
     case 'refused': {
       const error = result.error
       if (error.code === 'STATE_TRANSITION_REFUSED') {
+        if (error.details['current_status'] === 'CASH_SESSION_REQUIRED') {
+          openCashSessionState.value = 'missing'
+          resolvedCashSessionId.value = null
+          applyServerRefusal(error.fields, error.message)
+          await summaryBox.value?.focus()
+          return
+        }
         emit('stale')
         return
       }
@@ -727,6 +832,18 @@ const saveStatus = computed(() => {
 
     <StateMessage v-if="held" state="conflict" title="Facture détenue par un poste préparé">
       Un poste préparé détient cette facture : elle ne se modifie ni ne s’émet depuis cet écran.
+    </StateMessage>
+
+    <StateMessage
+      v-if="showCashWarning"
+      state="conflict"
+      title="Session de caisse requise pour émettre"
+    >
+      Toute facture émise encaisse immédiatement 100 % en espèces. Ouvrez une session de caisse
+      avant d’émettre.
+      <template #action>
+        <LinkButton :to="{ name: 'caisse' }" variant="secondary">Ouvrir la caisse</LinkButton>
+      </template>
     </StateMessage>
 
     <div :id="GENERAL_ID" tabindex="-1">
@@ -928,8 +1045,9 @@ const saveStatus = computed(() => {
       <p class="mt-2">
         <strong>La facture émise ne pourra plus être modifiée.</strong> Elle reçoit un numéro
         définitif (attribué par le serveur ; sur un poste préparé sans connexion, pris dans la plage
-        de ce poste et jamais renuméroté) et le stock des articles stockés est réservé ; une erreur
-        se corrigera par un avoir.
+        de ce poste et jamais renuméroté), le stock des articles stockés est réservé et en ligne
+        l’encaissement de 100 % en espèces est enregistré immédiatement en caisse ; une erreur se
+        corrigera par un avoir ou une contre-écriture.
       </p>
     </ConfirmDialog>
 

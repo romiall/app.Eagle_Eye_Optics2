@@ -92,17 +92,29 @@ test.describe('rapprochements par canal et export comptable Q13 (L1D06)', () => 
     await expect(
       cashier.getByRole('heading', { level: 1, name: /^Facture TEST-FAC-/ }),
     ).toBeVisible()
-    await cashier.getByRole('button', { name: /^Encaisser le reste/ }).click()
-    await cashier.getByLabel('Mode de règlement').selectOption({ label: 'Mobile money MTN' })
-    await cashier.getByLabel('Référence de l’opération').fill(momoRef)
-    await cashier.getByRole('button', { name: /^Encaisser \d/ }).click()
-    await expect(cashier.getByRole('main')).toContainText('Reste à encaisser maintenant : 0 FCFA')
+    const invoicePath = new URL(cashier.url()).pathname
+    await expect(cashier.getByRole('main')).toContainText(/Total encaissé\s*15\s*000\s*FCFA/)
     await cashierCtx.close()
 
-    // 2. Gérante : rapprochement du canal Mobile money MTN
+    // 2. Gérante : contre-passe l'encaissement espèces pour ré-encaisser par Mobile money MTN, puis rapprochement.
     const context = await browser.newContext()
     const page = await context.newPage()
     await signIn(page, 'MANAGER')
+    await page.goto(invoicePath)
+    const invMain = page.getByRole('main')
+    await invMain.getByRole('button', { name: /Contre-passer le paiement/ }).click()
+    await invMain.getByLabel('Montant à contre-passer').fill('15 000')
+    await invMain.getByLabel('Montant à contre-passer').blur()
+    await invMain.getByLabel('Motif (obligatoire)').fill('Ajustement vers Mobile Money (fictif)')
+    await invMain.getByRole('button', { name: 'Enregistrer la contre-écriture' }).click()
+    await confirmPasswordIfAsked(page, invMain.getByText('Correction enregistrée'))
+    await expect(invMain).toContainText(/Reste à encaisser\s*15\s*000\s*FCFA/)
+    await invMain.getByRole('button', { name: /^Encaisser le reste/ }).click()
+    await invMain.getByLabel('Mode de règlement').selectOption({ label: 'Mobile money MTN' })
+    await invMain.getByLabel('Référence de l’opération').fill(momoRef)
+    await invMain.getByRole('button', { name: /^Encaisser \d/ }).click()
+    await expect(invMain).toContainText('Reste à encaisser maintenant : 0 FCFA')
+
     await page.goto('/ventes')
     await page.getByRole('link', { name: 'Rapprochements par canal' }).click()
     await expect(page).toHaveURL(/\/ventes\/rapprochement$/)

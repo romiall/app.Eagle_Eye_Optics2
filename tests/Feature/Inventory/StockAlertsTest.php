@@ -159,9 +159,8 @@ final class StockAlertsTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.status', 'ACKNOWLEDGED');
 
-        // 2026-10-22 : facture émise et encaissée avant expiration (lot vendable réservé).
-        [$invoiceId, $total] = $this->issuedInvoice([$this->line($this->item['drops'], '1')], $this->manager);
-        $this->pay($invoiceId, $this->ledgerVersion($invoiceId), $total, 'MTN_MOMO', [], $this->manager)->assertCreated();
+        // 2026-10-22 : facture émise et encaissée automatiquement en espèces (A1) avant expiration (lot vendable réservé).
+        [$invoiceId] = $this->issuedInvoice([$this->line($this->item['drops'], '1')], $this->manager);
         $lineId = (string) DB::table('invoice_lines')->where('invoice_id', $invoiceId)->value('id');
 
         // 2026-10-26 : le lot vient de dépasser sa date de péremption (2026-10-25) => réouvre une seule fois en OPEN, zéro mouvement.

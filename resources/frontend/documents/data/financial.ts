@@ -235,6 +235,15 @@ export interface CashMethodTotal {
   amount: number
 }
 
+export interface CashSessionJournalRow {
+  at: string
+  entryType: 'PAYMENT' | 'CASH_MOVEMENT' | 'PAYMENT_REVERSAL' | 'REFUND'
+  label: string
+  detail: string | null
+  method: PaymentsMethod
+  amount: number
+}
+
 export interface CashSessionReportData {
   templateVersion: string
   sessionId: string
@@ -255,6 +264,7 @@ export interface CashSessionReportData {
   otherMethods: readonly CashMethodTotal[]
   movements: readonly CashMovementRow[]
   receipts: readonly StatementPaymentRow[]
+  journal?: readonly CashSessionJournalRow[]
   clinic: DocumentClinic
 }
 

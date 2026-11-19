@@ -140,7 +140,7 @@ test.describe('G1 : tranche urgente persistante et rejouable (AT36 à AT38)', ()
       })
       enrolled = true
       const deviceId = await deviceIdByCode(page, deviceCode)
-      const { invoicePath, invoiceId } = await issueInvoiceForDevice(page, {
+      const { invoicePath, invoiceId, initialReceipt } = await issueInvoiceForDevice(page, {
         deviceId,
         patientName: `PATIENT G1 ${run}`,
         phone: phone(1),
@@ -177,7 +177,7 @@ test.describe('G1 : tranche urgente persistante et rejouable (AT36 à AT38)', ()
       await expect(main.locator('[data-montant="due"]')).toContainText('50 000 FCFA')
       await expect(main).toContainText(/en attente de synchronisation/i)
       await expect(main).not.toContainText('Consolidé sur le serveur')
-      const [receipt1] = receiptNumbers(await main.innerText())
+      const [receipt1] = receiptNumbers(await main.innerText()).filter((r) => r !== initialReceipt)
       expect(receipt1).toMatch(/^TEST-REC-\d{4}-\d{6}$/)
 
       await page.getByRole('button', { name: 'Nouvel encaissement' }).click()
@@ -185,7 +185,9 @@ test.describe('G1 : tranche urgente persistante et rejouable (AT36 à AT38)', ()
       await expect(main).toContainText('Reste à encaisser maintenant : 0 FCFA')
       await expect(main.locator('[data-montant="due"]')).toContainText('0 FCFA')
       await expect(main.locator('[data-montant="collected"]')).toContainText('80 000 FCFA')
-      const [first, receipt2] = receiptNumbers(await main.innerText())
+      const [first, receipt2] = receiptNumbers(await main.innerText()).filter(
+        (r) => r !== initialReceipt,
+      )
       expect(first).toBe(receipt1)
       expect(receipt2).toMatch(/^TEST-REC-\d{4}-\d{6}$/)
       expect(receipt2).not.toBe(receipt1)
@@ -257,14 +259,18 @@ test.describe('G1 : tranche urgente persistante et rejouable (AT36 à AT38)', ()
       page = await context.newPage()
       await ensureSignedIn(page)
       // Coffre fermé : rien ne peut être envoyé, et le serveur ne connaît aucun des deux encaissements.
-      expect(await invoicePayments(page, invoiceId)).toHaveLength(0)
+      expect(
+        (await invoicePayments(page, invoiceId)).filter((p) => p.reversed_amount < p.amount),
+      ).toHaveLength(0)
       await page.goto('/parametres/poste')
       await unlockVault(page, VAULT_SECRET)
       // Persistance : les trois pièces sont retrouvées dans le coffre, aucune n'est consolidée.
       await expectUnacknowledged(page)
 
       // Les pièces viennent du coffre du poste (le serveur n'en sait rien) : mêmes numéros, mêmes PDF.
-      expect(await invoicePayments(page, invoiceId)).toHaveLength(0)
+      expect(
+        (await invoicePayments(page, invoiceId)).filter((p) => p.reversed_amount < p.amount),
+      ).toHaveLength(0)
       await navigateInApp(page, invoicePath)
       await expect(
         page.getByRole('heading', { level: 1, name: `Facture ${invoiceNumber}` }),
@@ -284,7 +290,9 @@ test.describe('G1 : tranche urgente persistante et rejouable (AT36 à AT38)', ()
       expect(ackLostHandled, 'le lot a bien atteint le serveur avant la perte d’ACK').toBe(true)
       expect(ackLostStatus).toBe(200)
 
-      const afterLoss = await invoicePayments(page, invoiceId)
+      const afterLoss = (await invoicePayments(page, invoiceId)).filter(
+        (p) => p.reversed_amount < p.amount,
+      )
       expect(afterLoss.map((payment) => payment.reference).sort()).toEqual(
         [reference1, reference2].sort(),
       )
@@ -312,7 +320,12 @@ test.describe('G1 : tranche urgente persistante et rejouable (AT36 à AT38)', ()
           data: {
             number: string
             balance: { total_gross: number; paid_net: number; balance_due: number }
-            payments: { reference: string | null; receipt_number: string | null; amount: number }[]
+            payments: {
+              reference: string | null
+              receipt_number: string | null
+              amount: number
+              reversed_amount: number
+            }[]
           }
         }
       ).data
@@ -322,8 +335,9 @@ test.describe('G1 : tranche urgente persistante et rejouable (AT36 à AT38)', ()
         paid_net: 80_000,
         balance_due: 0,
       })
-      expect(invoice.payments).toHaveLength(2)
-      const byReference = new Map(invoice.payments.map((payment) => [payment.reference, payment]))
+      const activePayments = invoice.payments.filter((p) => p.reversed_amount < p.amount)
+      expect(activePayments).toHaveLength(2)
+      const byReference = new Map(activePayments.map((payment) => [payment.reference, payment]))
       expect(byReference.get(reference1)).toMatchObject({
         amount: 30_000,
         receipt_number: receipt1,

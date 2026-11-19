@@ -41,7 +41,7 @@ final class CorrectionReadsTest extends TestCase
      */
     private function corrected(): array
     {
-        [$invoice] = $this->issuedInvoice([$this->line($this->item['lens'], '1', 1, 80000)], $this->manager);
+        [$invoice] = $this->issuedUncollectedInvoice([$this->line($this->item['lens'], '1', 1, 80000)], $this->manager);
         $this->pay($invoice, 1, 50000)->assertCreated();
         $this->pay($invoice, 2, 30000)->assertCreated();
         $payments = DB::table('payments')->where('invoice_id', $invoice)->orderBy('effective_at')->orderBy('created_at')->pluck('id')->all();

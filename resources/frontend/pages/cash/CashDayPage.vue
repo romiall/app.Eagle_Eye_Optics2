@@ -26,6 +26,7 @@ import { formatMoney, paymentMethodLabel } from '@/pages/sales/format'
 import SalesReadMessage from '@/pages/sales/SalesReadMessage.vue'
 import { useServerRead } from '@/pages/today/useServerRead'
 
+import CashSessionJournal from './CashSessionJournal.vue'
 import SessionReportButton from './SessionReportButton.vue'
 
 const timeZone = clinicTimeZone()
@@ -61,6 +62,14 @@ function today(): void {
 /** Écart de caisse dit avec son signe (« +500 FCFA » : compté supérieur à l'attendu). */
 function signedVariance(amount: number): string {
   return amount > 0 ? `+${formatMoney(amount)}` : formatMoney(amount)
+}
+
+const openedJournals = ref<string[]>([])
+
+function toggleJournal(sessionId: string): void {
+  openedJournals.value = openedJournals.value.includes(sessionId)
+    ? openedJournals.value.filter((item) => item !== sessionId)
+    : [...openedJournals.value, sessionId]
 }
 </script>
 
@@ -241,10 +250,21 @@ function signedVariance(amount: number): string {
                 }}</strong></template
               >
             </p>
-            <SessionReportButton
+            <div class="flex flex-wrap gap-2">
+              <SessionReportButton
+                :session-id="session.id"
+                label="Relevé (PDF)"
+                :context="`de ${accountLabel(session.cashier_name, session.cashier_id)}`"
+              />
+              <AppButton variant="secondary" @click="toggleJournal(session.id)">{{
+                openedJournals.includes(session.id)
+                  ? 'Masquer le journal'
+                  : 'Voir le journal de caisse'
+              }}</AppButton>
+            </div>
+            <CashSessionJournal
+              v-if="openedJournals.includes(session.id)"
               :session-id="session.id"
-              label="Relevé (PDF)"
-              :context="`de ${accountLabel(session.cashier_name, session.cashier_id)}`"
             />
           </li>
         </ul>

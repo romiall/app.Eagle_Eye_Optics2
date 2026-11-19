@@ -878,6 +878,7 @@ SchemasResourcesBillingJsonInvoiceDeliveries?: InvoiceDeliveries
 SchemasResourcesBillingJsonInvoiceDeliveriesResponse?: InvoiceDeliveriesResponse
 SchemasResourcesBillingJsonCashSessionEntry?: CashSessionEntry
 SchemasResourcesBillingJsonCashSessionPage?: CashSessionPage
+SchemasResourcesBillingJsonCashSessionJournalEntry?: CashSessionJournalEntry
 SchemasResourcesBillingJsonCashSessionReport?: CashSessionReport
 SchemasResourcesBillingJsonCashSessionReportResponse?: CashSessionReportResponse
 SchemasResourcesBillingJsonExpenseCategory?: ExpenseCategory
@@ -8896,7 +8897,25 @@ data: CashSessionEntry[]
 meta: Pagination
 }
 /**
- * Relevé d'une session : tiroir espèces (encaissés, contre-écritures, remboursés, mouvements), encaissements de la session et, hors tiroir, les autres modes encaissés par la même caissière pendant la session. Session ouverte : relevé provisoire. Source du PDF produit sur le poste.
+ * Ligne chronologique du journal de caisse : encaissement de facture, dépense/mouvement manuel, contre-écriture ou remboursement.
+ */
+export interface CashSessionJournalEntry {
+id: Ulid
+entry_type: ("PAYMENT" | "CASH_MOVEMENT" | "PAYMENT_REVERSAL" | "REFUND")
+occurred_at: Instant
+signed_amount: SignedMoneyXaf
+method: PaymentsMethod
+label: string
+detail: (string | null)
+invoice_id: NullableUlid
+invoice_number: (string | null)
+receipt_number: (string | null)
+patient_name: (string | null)
+movement_kind: (CashMovementsKind | null)
+reference: (string | null)
+}
+/**
+ * Relevé d'une session : tiroir espèces (encaissés, contre-écritures, remboursés, mouvements), encaissements de la session, journal chronologique unifié et, hors tiroir, les autres modes encaissés par la même caissière pendant la session. Session ouverte : relevé provisoire. Source du PDF produit sur le poste.
  */
 export interface CashSessionReport {
 session: CashSessionEntry
@@ -8937,6 +8956,10 @@ method: PaymentsMethod
 count: number
 amount: SignedMoneyXaf
 }[]
+/**
+ * @minItems 0
+ */
+journal: CashSessionJournalEntry[]
 generated_at: Instant
 }
 export interface CashSessionReportResponse {

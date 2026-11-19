@@ -26,6 +26,34 @@ final class CashSessions
         return $row instanceof stdClass ? $row : null;
     }
 
+    /**
+     * Session ouverte recevant l'encaissement automatique à l'émission d'une facture : d'abord celle de
+     * l'auteur si elle est ouverte avant `$atDb`, sinon la plus ancienne session ouverte active du cabinet.
+     */
+    public static function resolveOpenForCollection(string $clinicId, string $actorId, string $atDb): ?stdClass
+    {
+        $own = DB::table('cash_sessions')
+            ->where('clinic_id', $clinicId)
+            ->where('cashier_id', $actorId)
+            ->whereNull('closed_at')
+            ->where('opened_at', '<=', $atDb)
+            ->first();
+
+        if ($own instanceof stdClass) {
+            return $own;
+        }
+
+        $clinicSession = DB::table('cash_sessions')
+            ->where('clinic_id', $clinicId)
+            ->whereNull('closed_at')
+            ->where('opened_at', '<=', $atDb)
+            ->orderBy('opened_at')
+            ->orderBy('id')
+            ->first();
+
+        return $clinicSession instanceof stdClass ? $clinicSession : null;
+    }
+
     public static function find(string $clinicId, string $sessionId): ?stdClass
     {
         $row = DB::table('cash_sessions')->where('clinic_id', $clinicId)->where('id', $sessionId)->first();

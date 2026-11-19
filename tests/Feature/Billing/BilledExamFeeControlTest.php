@@ -77,14 +77,22 @@ final class BilledExamFeeControlTest extends TestCase
      */
     private function invoiceFor(string $visitId, ?array $lines = null, ?int $paid = null, bool $issue = true): string
     {
-        $draft = $this->createDraft($lines ?? [$this->line($this->item['exam'])], $this->cashier, ['visit_id' => $visitId])->assertCreated();
+        $targetLines = $lines ?? [$this->line($this->item['exam'])];
+        if (! $issue) {
+            $draft = $this->createDraft($targetLines, $this->cashier, ['visit_id' => $visitId])->assertCreated();
+
+            return (string) $draft->json('data.id');
+        }
+        if ($paid === null) {
+            [$id] = $this->issuedUncollectedInvoice($targetLines, $this->cashier, ['visit_id' => $visitId]);
+
+            return $id;
+        }
+        $this->ensureOpenCashSession($this->cashier);
+        $draft = $this->createDraft($targetLines, $this->cashier, ['visit_id' => $visitId])->assertCreated();
         $id = (string) $draft->json('data.id');
-        if ($issue) {
-            $this->write('POST', '/api/v1/invoices/'.$id.'/issue', $this->issueBody($id, (int) $draft->json('data.draft_version'), (int) $draft->json('data.total_gross')), $this->cashier)->assertOk();
-        }
-        if ($paid !== null) {
-            $this->pay($id, 1, $paid)->assertCreated();
-        }
+        $total = (int) $draft->json('data.total_gross');
+        $this->write('POST', '/api/v1/invoices/'.$id.'/issue', $this->issueBody($id, (int) $draft->json('data.draft_version'), $total), $this->cashier)->assertOk();
 
         return $id;
     }

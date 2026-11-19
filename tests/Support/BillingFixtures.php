@@ -2,8 +2,24 @@
 
 namespace Tests\Support;
 
+use App\Application\Locking\TransactionLocks;
+use App\Application\TransactionRunner;
 use App\Domain\Access\EffectivePermissions;
+use App\Domain\Billing\Catalog\TaxRegime;
+use App\Domain\Billing\Documents\PendingDocuments;
+use App\Domain\Billing\InvoiceDrafts;
+use App\Domain\Billing\Numbering\BillingNumbers;
+use App\Domain\Billing\Numbering\NumberUsages;
+use App\Domain\Billing\Rules\DraftLine;
+use App\Domain\Billing\Rules\DraftLines;
+use App\Domain\Billing\Rules\DraftPolicy;
+use App\Domain\Billing\Snapshots\InvoiceSnapshots;
+use App\Domain\Cash\CashSessions;
+use App\Domain\Inventory\ReservationRequest;
+use App\Domain\Inventory\ReservationService;
+use App\Domain\Shared\CommandContext;
 use App\Domain\Shared\Ulid;
+use App\Domain\Shared\ValueObjects\Instant;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
@@ -428,27 +444,118 @@ trait BillingFixtures
      * @param  list<array<string, mixed>>|null  $lines
      * @return array{0: string, 1: int, 2: int} identifiant, total, version du brouillon
      */
-    protected function draft(?array $lines = null, ?User $as = null): array
+    protected function draft(?array $lines = null, ?User $as = null, array $overrides = []): array
     {
-        $response = $this->createDraft($lines, $as);
+        $response = $this->createDraft($lines, $as, $overrides);
         $response->assertCreated();
 
         return [(string) $response->json('data.id'), (int) $response->json('data.total_gross'), (int) $response->json('data.draft_version')];
     }
 
     /**
-     * Facture créée ET émise par l'API : [identifiant, total, numéro].
+     * Garantit qu'une session de caisse ouverte existe avant l'émission d'une facture (règle A1).
+     */
+    protected function ensureOpenCashSession(?User $as = null): string
+    {
+        $now = CarbonImmutable::now('UTC');
+        $actor = $as ?? $this->cashier;
+        $existing = CashSessions::resolveOpenForCollection($this->clinicId, (string) $actor->getKey(), $now->format('Y-m-d H:i:s.u'));
+        if ($existing !== null) {
+            return (string) $existing->id;
+        }
+
+        $openedAt = $now->subMinutes(30)->toIso8601ZuluString('millisecond');
+        $body = $this->openSessionBody(25000, ['opened_at' => $openedAt]);
+        $this->write('POST', '/api/v1/cash-sessions', $body, $this->cashier)->assertCreated();
+
+        return (string) $body['cash_session_id'];
+    }
+
+    /**
+     * Facture créée ET émise par l'API (avec ouverture de caisse préalable, règle A1) : [identifiant, total, numéro].
      *
      * @param  list<array<string, mixed>>|null  $lines
      * @return array{0: string, 1: int, 2: string} identifiant, total, numéro
      */
     protected function issuedInvoice(?array $lines = null, ?User $as = null): array
     {
+        $this->ensureOpenCashSession($as);
         [$id, $total, $version] = $this->draft($lines, $as);
         $response = $this->write('POST', '/api/v1/invoices/'.$id.'/issue', $this->issueBody($id, $version, $total), $as);
         $response->assertOk();
 
         return [$id, $total, (string) $response->json('data.number')];
+    }
+
+    /**
+     * Facture NATIVE émise SANS encaissement initial (`ledger_version = 1`, `balance_due = total`, équivalent
+     * d'une pièce émise hors ligne avant encaissement) pour les tests d'acompte/solde et de modes hors espèces.
+     *
+     * @param  list<array<string, mixed>>|null  $lines
+     * @return array{0: string, 1: int, 2: string} identifiant, total, numéro
+     */
+    protected function issuedUncollectedInvoice(?array $lines = null, ?User $as = null, array $draftOverrides = []): array
+    {
+        $actor = $as ?? $this->cashier;
+        [$id, $total] = $this->draft($lines, $actor, $draftOverrides);
+
+        /** @var array{0: string, 1: int, 2: string} */
+        return $this->app->make(TransactionRunner::class)->run(function () use ($id, $total, $actor): array {
+            $now = CarbonImmutable::now('UTC');
+            $pieceAt = $now->subMinute();
+            $context = CommandContext::direct($actor, 'test-uncollected-issue-'.$id, $now);
+            $locks = new TransactionLocks($this->clinicId);
+            $clinic = $locks->clinic();
+            $timezone = (string) ($clinic->timezone ?? 'Africa/Douala');
+
+            $number = BillingNumbers::allocate($locks, $context, BillingNumbers::INVOICE, $timezone, $pieceAt);
+            $invoiceRow = DB::table('invoices')->where('clinic_id', $this->clinicId)->where('id', $id)->first();
+            if ($invoiceRow === null) {
+                throw new \RuntimeException('Draft introuvable.');
+            }
+            $patient = $locks->patient((string) $invoiceRow->patient_id);
+            $locks->invoice($id);
+
+            $storedRows = array_values(DB::table('invoice_lines')->where('clinic_id', $this->clinicId)->where('invoice_id', $id)->orderBy('position')->get()->all());
+            $drafts = app(InvoiceDrafts::class);
+            $draftLines = $drafts->validated($this->clinicId, $id, (string) $invoiceRow->patient_id, DraftLines::fromStored($storedRows), DraftPolicy::trusted(), false);
+
+            $requests = [];
+            foreach ($draftLines as $line) {
+                if ($line->stocked && $line->catalogItemId !== null) {
+                    $requests[] = new ReservationRequest($line->id, $line->catalogItemId, $line->quantity, $line->requiresExpiry);
+                }
+            }
+            if ($requests !== []) {
+                $localDate = Instant::fromEpochMilliseconds((int) $pieceAt->format('Uv'))->civilDate($timezone);
+                app(ReservationService::class)->reserveCentral($this->clinicId, $locks, $localDate, $requests, $now);
+            }
+
+            $usageId = Ulid::generate();
+            $documentId = Ulid::generate();
+            NumberUsages::record($context, $usageId, BillingNumbers::INVOICE, $number, 'invoices', $id, $now);
+
+            $ruleIds = array_values(array_filter(array_map(static fn (DraftLine $line): ?string => $line->taxRuleId, $draftLines)));
+            $usedRules = TaxRegime::applicable($this->clinicId, $ruleIds);
+            $nowDb = $now->format('Y-m-d H:i:s.u');
+            $issuedDb = $pieceAt->format('Y-m-d H:i:s.u');
+
+            DB::table('invoices')->where('clinic_id', $this->clinicId)->where('id', $id)->update([
+                'number' => $number['rendered'],
+                'issued_at' => $issuedDb,
+                'issued_by' => $actor->id,
+                'number_usage_id' => $usageId,
+                'status' => 'ISSUED',
+                'total_gross' => $total,
+                'patient_snapshot' => json_encode(InvoiceSnapshots::patient($patient), JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE),
+                'clinic_snapshot' => json_encode(InvoiceSnapshots::clinic($clinic), JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE),
+                'tax_snapshot' => json_encode(InvoiceSnapshots::tax($usedRules), JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE),
+                'updated_at' => $nowDb,
+            ]);
+            PendingDocuments::forInvoice($context, $documentId, $id, $now);
+
+            return [$id, $total, $number['rendered']];
+        });
     }
 
     /**

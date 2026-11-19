@@ -36,7 +36,7 @@ final class ReleaseResourcesTest extends TestCase
         $this->device = $this->seedDevice('Caisse principale (fictive)');
         $this->seedGrant($this->device, $this->cashier);
         $this->position = $this->seedPosition($this->item['frame'], '5.000');
-        [$this->invoice] = $this->issuedInvoice();
+        [$this->invoice] = $this->issuedUncollectedInvoice();
         $this->prepareDevice($this->device, [
             'profiles' => [$this->cashier->id],
             'number_ranges' => [['document_type' => 'RECEIPT', 'quantity' => 10]],

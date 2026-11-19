@@ -104,7 +104,7 @@ final class InvoiceListFiltersTest extends TestCase
 
     public function test_la_facture_porte_le_nom_actuel_de_l_emetteur_et_de_qui_a_encaisse(): void
     {
-        [$id, $total] = $this->issuedInvoice(null, $this->cashier);
+        [$id, $total] = $this->issuedUncollectedInvoice(null, $this->cashier);
         $this->pay($id, 1, $total, 'MTN_MOMO', [], $this->cashier)->assertCreated();
 
         $response = $this->read('/api/v1/invoices/'.$id, $this->cashier)->assertOk();

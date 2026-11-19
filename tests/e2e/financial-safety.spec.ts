@@ -391,9 +391,12 @@ test.describe('G2 : facture détenue par un poste et deux onglets du même poste
       const afterRefusal = await cashierRequest.get(`/api/v1/invoices/${invoiceId}`, {
         headers: cashierHeaders,
       })
-      expect(
-        ((await afterRefusal.json()) as { data: { payments: unknown[] } }).data.payments,
-      ).toHaveLength(0)
+      const afterRefusalPayments = (
+        (await afterRefusal.json()) as {
+          data: { payments: { amount: number; reversed_amount: number }[] }
+        }
+      ).data.payments
+      expect(afterRefusalPayments.filter((p) => p.reversed_amount < p.amount)).toHaveLength(0)
 
       // --- 3. AT41 : deux onglets du MÊME poste. Une seule session de coffre écrit à la fois (D11) : le dernier ------------
       //        déverrouillage reprend la main ; le premier onglet devient périmé et ses commits sont refusés.
@@ -483,11 +486,16 @@ test.describe('G2 : facture détenue par un poste et deux onglets du même poste
       const invoiceResponse = await request.get(`/api/v1/invoices/${invoiceId}`, { headers })
       const invoice = (await invoiceResponse.json()) as {
         data: {
-          payments: { reference: string | null; receipt_number: string | null }[]
+          payments: {
+            reference: string | null
+            receipt_number: string | null
+            amount: number
+            reversed_amount: number
+          }[]
           balance: { paid_net: number; balance_due: number; settlement: string }
         }
       }
-      const payments = invoice.data.payments
+      const payments = invoice.data.payments.filter((p) => p.reversed_amount < p.amount)
       expect(payments).toHaveLength(1)
       expect(payments[0]?.reference).toBe(references[1])
       // Jamais de reste négatif : une seule fois 60 000, soldé par UN encaissement.

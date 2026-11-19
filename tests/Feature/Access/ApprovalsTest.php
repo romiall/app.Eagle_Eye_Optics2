@@ -43,7 +43,7 @@ final class ApprovalsTest extends TestCase
      */
     private function paidInvoice(int $amount = 40000): array
     {
-        [$invoice] = $this->issuedInvoice([$this->line($this->item['lens'], '1', 1, $amount)], $this->manager);
+        [$invoice] = $this->issuedUncollectedInvoice([$this->line($this->item['lens'], '1', 1, $amount)], $this->manager);
         $this->pay($invoice, 1, $amount)->assertCreated();
 
         return [$invoice, $this->firstPayment($invoice)];

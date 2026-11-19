@@ -121,8 +121,7 @@ final class CorrectionsConcurrencyTest extends TestCase
      */
     private function paidInvoice(int $total = 50000): array
     {
-        [$id, $sum, $version] = $this->draft([$this->line($this->item['lens'], '1', 1, $total)], $this->manager);
-        $this->write('POST', '/api/v1/invoices/'.$id.'/issue', $this->issueBody($id, $version, $sum, ['issued_at' => $this->instant(-120)]), $this->manager)->assertOk();
+        [$id] = $this->issuedUncollectedInvoice([$this->line($this->item['lens'], '1', 1, $total)], $this->manager);
         $this->pay($id, 1, $total, 'MTN_MOMO', ['effective_at' => $this->instant(-90)], $this->manager)->assertCreated();
 
         return [$id, $this->firstPayment($id)];

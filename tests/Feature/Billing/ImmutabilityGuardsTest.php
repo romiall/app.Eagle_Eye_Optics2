@@ -73,7 +73,7 @@ final class ImmutabilityGuardsTest extends TestCase
 
     public function test_un_paiement_confirme_et_son_recu_ne_se_modifient_ni_ne_se_suppriment(): void
     {
-        [$invoice] = $this->issuedInvoice();
+        [$invoice] = $this->issuedUncollectedInvoice();
         $payment = $this->pay($invoice, 1, 15000)->assertCreated();
         $paymentId = $payment->json('data.payment_id');
         $receiptId = $payment->json('data.receipt_id');
@@ -101,7 +101,7 @@ final class ImmutabilityGuardsTest extends TestCase
 
     public function test_un_recu_exige_un_paiement_confirme(): void
     {
-        [$invoice] = $this->issuedInvoice();
+        [$invoice] = $this->issuedUncollectedInvoice();
         $pending = $this->paymentRow($invoice, ['status' => 'PENDING', 'confirmed_at' => null]);
         DB::table('payments')->insert($pending);
         $usage = Ulid::generate();
@@ -122,7 +122,7 @@ final class ImmutabilityGuardsTest extends TestCase
 
     public function test_un_encaissement_especes_dans_une_session_close_est_refuse_par_le_schema(): void
     {
-        [$invoice] = $this->issuedInvoice();
+        [$invoice] = $this->issuedUncollectedInvoice();
         $session = $this->openedSession($this->cashier, 25000);
         $this->write('POST', '/api/v1/cash-sessions/'.$session.'/close', $this->closeSessionBody($session, 25000, 25000), $this->cashier)->assertOk();
 
@@ -136,7 +136,7 @@ final class ImmutabilityGuardsTest extends TestCase
 
     public function test_un_paiement_en_especes_sans_session_est_refuse_par_le_schema(): void
     {
-        [$invoice] = $this->issuedInvoice();
+        [$invoice] = $this->issuedUncollectedInvoice();
 
         $this->assertRefused(
             fn () => DB::table('payments')->insert($this->paymentRow($invoice, ['method' => 'CASH', 'cash_session_id' => null, 'reference' => null])),

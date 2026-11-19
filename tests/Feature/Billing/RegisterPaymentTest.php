@@ -48,7 +48,7 @@ final class RegisterPaymentTest extends TestCase
      */
     private function invoiceOf(int $amount = 80000): string
     {
-        [$id] = $this->issuedInvoice([$this->line($this->item['lens'], '1', 1, $amount)], $this->manager);
+        [$id] = $this->issuedUncollectedInvoice([$this->line($this->item['lens'], '1', 1, $amount)], $this->manager);
 
         return $id;
     }
@@ -460,8 +460,8 @@ final class RegisterPaymentTest extends TestCase
     public function test_le_profil_frais_d_examen_n_encaisse_que_les_factures_de_frais_d_examen(): void
     {
         $this->allowPermission($this->reception, 'exam_fee.collect');
-        [$exam] = $this->issuedInvoice([$this->line($this->item['exam'])], $this->reception);
-        [$mixed] = $this->issuedInvoice([$this->line($this->item['exam']), $this->line($this->item['lens'], '1', 2)], $this->manager);
+        [$exam] = $this->issuedUncollectedInvoice([$this->line($this->item['exam'])], $this->reception);
+        [$mixed] = $this->issuedUncollectedInvoice([$this->line($this->item['exam']), $this->line($this->item['lens'], '1', 2)], $this->manager);
 
         $this->pay($mixed, 1, 1000, 'MTN_MOMO', [], $this->reception)->assertForbidden();
         $this->pay($exam, 1, 15000, 'MTN_MOMO', [], $this->reception)->assertCreated()->assertJsonPath('data.balance.settlement', 'SETTLED');

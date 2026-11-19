@@ -16,17 +16,21 @@ use App\Domain\Billing\Catalog\CatalogSnapshot;
 use App\Domain\Billing\Catalog\TaxRegime;
 use App\Domain\Billing\Documents\PendingDocuments;
 use App\Domain\Billing\ExamFeeScope;
+use App\Domain\Billing\ExamFeeVisits;
 use App\Domain\Billing\Guards\AuthoredSource;
 use App\Domain\Billing\InvoiceDrafts;
 use App\Domain\Billing\InvoiceLedger;
 use App\Domain\Billing\Numbering\BillingNumbers;
 use App\Domain\Billing\Numbering\NumberUsages;
+use App\Domain\Billing\ReceiptRecorder;
 use App\Domain\Billing\Rules\DraftLine;
 use App\Domain\Billing\Rules\DraftLines;
 use App\Domain\Billing\Rules\DraftPolicy;
 use App\Domain\Billing\Rules\FieldErrors;
 use App\Domain\Billing\Rules\LedgerBalance;
+use App\Domain\Billing\Rules\PaymentRules;
 use App\Domain\Billing\Snapshots\InvoiceSnapshots;
+use App\Domain\Cash\CashSessions;
 use App\Domain\Inventory\ReservationRefused;
 use App\Domain\Inventory\ReservationRequest;
 use App\Domain\Inventory\ReservationService;
@@ -35,11 +39,13 @@ use App\Domain\Shared\CommandContext;
 use App\Domain\Shared\CommandSource;
 use App\Domain\Shared\DeviceNumbers;
 use App\Domain\Shared\RuleViolation;
+use App\Domain\Shared\Ulid;
 use App\Domain\Shared\ValueObjects\FixedDecimal;
 use App\Domain\Shared\ValueObjects\Instant;
 use App\Domain\Shared\ValueObjects\Quantity;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
+use LogicException;
 
 /**
  * Émission d'une facture IMMUABLE (B03, EE021, EE023, EE045, AT08, AT09, AT37). Dans UNE transaction, sous le verrou du
@@ -78,6 +84,7 @@ final class IssueInvoiceHandler implements CommandHandler
         private readonly InvoiceDrafts $drafts,
         private readonly ReservationService $reservations,
         private readonly ExamFeeScope $examFee,
+        private readonly ExamFeeVisits $visits,
     ) {}
 
     public function permissions(): array
@@ -133,27 +140,48 @@ final class IssueInvoiceHandler implements CommandHandler
         }
         $errors->throwIfAny();
 
-        // 1. Numéro définitif : séquence (rang 40), ou numéro de la plage du poste. Un échec plus loin annule tout.
+        // Lecture préalable sans verrou pour vérifier l'existence de la facture et connaître son patient avant le rang 40.
+        $peek = DB::table('invoices')->where('clinic_id', $context->clinicId)->where('id', $invoiceId)->first();
+        if ($peek === null) {
+            throw BusinessError::notFound('Facture introuvable dans ce cabinet.');
+        }
+
+        $autoCollect = ! $sync && (int) ($payload['total_gross'] ?? 0) > 0;
+        $sessionCandidate = null;
+        if ($autoCollect) {
+            if ($idempotencyId === null || $context->actorId === null) {
+                throw new LogicException('L\'encaissement automatique à l\'émission exige une clé d\'idempotence et un auteur identifié.');
+            }
+            $sessionCandidate = CashSessions::resolveOpenForCollection($context->clinicId, $context->actorId, $pieceAt->format('Y-m-d H:i:s.u'));
+            if ($sessionCandidate === null) {
+                throw BusinessError::stateRefused(
+                    'Ouvrez une session de caisse avant d\'émettre une facture : toute facture émise encaisse immédiatement 100 % en espèces.',
+                    'CASH_SESSION_REQUIRED',
+                );
+            }
+        }
+
+        // 1. Numéros définitifs : facture, puis reçu si encaissement direct (rang 40, trié INVOICE < RECEIPT).
         $allocationId = null;
+        $receiptNumber = null;
         if ($sync) {
             $consumed = DeviceNumbers::consume($context, BillingNumbers::INVOICE, $payload['number'] ?? null, BillingNumbers::render(...));
             $number = ['value' => $consumed['value'], 'rendered' => $consumed['rendered'], 'year' => $consumed['year']];
             $allocationId = $consumed['allocation_id'];
         } else {
             $number = BillingNumbers::allocate($locks, $context, BillingNumbers::INVOICE, $timezone, $at);
+            if ($autoCollect) {
+                $receiptNumber = BillingNumbers::allocate($locks, $context, BillingNumbers::RECEIPT, $timezone, $at);
+            }
         }
 
-        // 2. Patient (45), propriété (50) et facture (60), dans l'ordre du contrat. Lecture préalable sans verrou
-        //    pour connaître le patient : le cabinet est verrouillé, rien ne peut changer entre les deux lectures.
-        $peek = DB::table('invoices')->where('clinic_id', $context->clinicId)->where('id', $invoiceId)->first();
-        if ($peek === null) {
-            throw BusinessError::notFound('Facture introuvable dans ce cabinet.');
-        }
+        // 2. Patient (45), visite éventuelle (46), propriété (50) et facture (60), dans l'ordre du contrat.
         $patientId = (string) $peek->patient_id;
         $patient = $locks->patient($patientId);
         if ($patient === null) {
             throw BusinessError::notFound('Patient introuvable dans ce cabinet.');
         }
+        $visit = $autoCollect ? $this->visits->lockForInvoice($locks, $context->clinicId, $invoiceId) : null;
         $owners = $locks->invoiceOwners($invoiceId);
         $ownedHere = false;
         foreach ($owners as $owner) {
@@ -221,6 +249,17 @@ final class IssueInvoiceHandler implements CommandHandler
 
         $this->drafts->write($context->clinicId, $invoiceId, $patientId, $lines, $at, true);
 
+        $cashSession = null;
+        if ($sessionCandidate !== null) {
+            $cashSession = $locks->cashSession((string) $sessionCandidate->id);
+            if ($cashSession === null || $cashSession->closed_at !== null) {
+                throw BusinessError::stateRefused(
+                    'La session de caisse vient d\'être clôturée : ouvrez-en une nouvelle pour émettre la facture.',
+                    'CASH_SESSION_REQUIRED',
+                );
+            }
+        }
+
         // 4. Réserve du stock (positions 80, lots 81), atomique pour toutes les lignes.
         $requests = [];
         $lineIndex = [];
@@ -263,6 +302,7 @@ final class IssueInvoiceHandler implements CommandHandler
             $importedOwner = ['owner_id' => $ownerId, 'epoch' => $epoch];
         }
 
+        $patientSnapshotJson = self::json(InvoiceSnapshots::patient($patient));
         DB::table('invoices')->where('clinic_id', $context->clinicId)->where('id', $invoiceId)->update([
             'number' => $number['rendered'],
             'issued_at' => $issuedDb,
@@ -270,7 +310,7 @@ final class IssueInvoiceHandler implements CommandHandler
             'number_usage_id' => $usageId,
             'status' => 'ISSUED',
             'total_gross' => $total,
-            'patient_snapshot' => self::json(InvoiceSnapshots::patient($patient)),
+            'patient_snapshot' => $patientSnapshotJson,
             'clinic_snapshot' => self::json(InvoiceSnapshots::clinic($clinic)),
             'tax_snapshot' => self::json(InvoiceSnapshots::tax($usedRules)),
             'updated_at' => $nowDb,
@@ -279,11 +319,110 @@ final class IssueInvoiceHandler implements CommandHandler
 
         $ledger = LedgerBalance::of($total, [], [], [], []);
         $draftVersion = (int) $invoice->version;
-        $publicationVersion = InvoiceLedger::publicationVersion($draftVersion, $ledger->ledgerVersion);
         $issuedAt = $pieceAt->format('Y-m-d\TH:i:s.v\Z');
-        $changes = [new ChangeRecord('invoices', $invoiceId, $publicationVersion, ChangeVisibility::Financial, ChangeKind::Updated)];
+
+        $auditEntries = [new AuditEntry('invoice.issued', 'invoices', $invoiceId, null, [
+            'number' => $number['rendered'],
+            'patient_id' => $patientId,
+            'total_gross' => $total,
+            'lines' => count($lines),
+            'reservations' => count($reserved),
+            'test_document' => $testDocument,
+            'tax_regime' => InvoiceSnapshots::tax($usedRules)['regime'],
+            'catalog_snapshot_sha256' => $catalog['sha256'],
+            'client_catalog_snapshot_sha256' => (string) $payload['catalog_snapshot_sha256'],
+            'client_issued_at' => (string) $payload['issued_at'],
+            'source_device_id' => $context->deviceId,
+            'write_owner' => $importedOwner,
+        ])];
+
+        $collectedPayment = null;
+        $extraChanges = [];
+        if ($receiptNumber !== null && $total > 0) {
+            $paymentId = Ulid::generate();
+            $receiptId = Ulid::generate();
+            $receiptUsageId = Ulid::generate();
+            $receiptDocumentId = Ulid::generate();
+            $issuedRow = (object) [
+                'id' => $invoiceId,
+                'number' => $number['rendered'],
+                'issued_at' => $issuedDb,
+                'total_gross' => $total,
+                'currency' => (string) $invoice->currency,
+                'patient_snapshot' => $patientSnapshotJson,
+            ];
+            $effective = Instant::fromEpochMilliseconds((int) $pieceAt->format('Uv'));
+            $ledger = ReceiptRecorder::record(
+                $context,
+                $clinic,
+                $issuedRow,
+                $ledger,
+                $paymentId,
+                $receiptId,
+                $receiptUsageId,
+                $receiptDocumentId,
+                $total,
+                PaymentRules::CASH,
+                null,
+                (string) $cashSession->id,
+                $receiptNumber,
+                $effective,
+                $pieceAt,
+                $at,
+                $idempotencyId,
+            );
+            $visitChange = $this->visits->refresh($context, $visit);
+            $extraChanges[] = new ChangeRecord('payments', $paymentId, 1, ChangeVisibility::Financial, ChangeKind::Created);
+            $extraChanges[] = new ChangeRecord('receipts', $receiptId, 1, ChangeVisibility::Financial, ChangeKind::Created);
+            if ($visitChange !== null) {
+                $extraChanges[] = $visitChange;
+            }
+            $auditEntries[] = new AuditEntry('payment.confirmed', 'payments', $paymentId, null, [
+                'invoice_id' => $invoiceId,
+                'amount' => $total,
+                'method' => PaymentRules::CASH,
+                'receipt_number' => $receiptNumber['rendered'],
+                'ledger_version_before' => 1,
+                'ledger_version_after' => $ledger->ledgerVersion,
+                'balance_after' => $ledger->signedBalance(),
+                'cash_session_id' => (string) $cashSession->id,
+                'receipt_kind' => PaymentRules::receiptKind($ledger->signedBalance()),
+                'auto_collected_on_issue' => true,
+            ]);
+            $collectedPayment = [
+                'payment_id' => $paymentId,
+                'receipt_id' => $receiptId,
+                'receipt_number' => $receiptNumber['rendered'],
+                'effective' => $effective->toString(),
+            ];
+        }
+
+        $publicationVersion = InvoiceLedger::publicationVersion($draftVersion, $ledger->ledgerVersion);
+        $changes = [new ChangeRecord('invoices', $invoiceId, $publicationVersion, ChangeVisibility::Financial, ChangeKind::Updated), ...$extraChanges];
         if ($importedOwner !== null) {
             $changes[] = new ChangeRecord('invoice_write_owners', $importedOwner['owner_id'], 1, ChangeVisibility::Manager, ChangeKind::Created);
+        }
+
+        $events = [new OutboxEvent('InvoiceIssued', 1, 'invoices', $invoiceId, $publicationVersion, [
+            'invoice_id' => $invoiceId,
+            'patient_id' => $patientId,
+            'number' => $number['rendered'],
+            'issued_at' => $issuedAt,
+            'total_gross' => $total,
+            'currency' => (string) $invoice->currency,
+            'source_device_id' => $context->deviceId,
+        ])];
+        if ($collectedPayment !== null) {
+            $events[] = new OutboxEvent('PaymentConfirmed', 1, 'invoices', $invoiceId, $publicationVersion, [
+                'payment_id' => $collectedPayment['payment_id'],
+                'invoice_id' => $invoiceId,
+                'receipt_id' => $collectedPayment['receipt_id'],
+                'receipt_number' => $collectedPayment['receipt_number'],
+                'amount' => $total,
+                'currency' => (string) $invoice->currency,
+                'method' => PaymentRules::CASH,
+                'effective_at' => $collectedPayment['effective'],
+            ]);
         }
 
         return new CommandOutcome(
@@ -298,29 +437,8 @@ final class IssueInvoiceHandler implements CommandHandler
             ],
             resultType: 'invoices',
             resultId: $invoiceId,
-            audit: [new AuditEntry('invoice.issued', 'invoices', $invoiceId, null, [
-                'number' => $number['rendered'],
-                'patient_id' => $patientId,
-                'total_gross' => $total,
-                'lines' => count($lines),
-                'reservations' => count($reserved),
-                'test_document' => $testDocument,
-                'tax_regime' => InvoiceSnapshots::tax($usedRules)['regime'],
-                'catalog_snapshot_sha256' => $catalog['sha256'],
-                'client_catalog_snapshot_sha256' => (string) $payload['catalog_snapshot_sha256'],
-                'client_issued_at' => (string) $payload['issued_at'],
-                'source_device_id' => $context->deviceId,
-                'write_owner' => $importedOwner,
-            ])],
-            events: [new OutboxEvent('InvoiceIssued', 1, 'invoices', $invoiceId, $publicationVersion, [
-                'invoice_id' => $invoiceId,
-                'patient_id' => $patientId,
-                'number' => $number['rendered'],
-                'issued_at' => $issuedAt,
-                'total_gross' => $total,
-                'currency' => (string) $invoice->currency,
-                'source_device_id' => $context->deviceId,
-            ])],
+            audit: $auditEntries,
+            events: $events,
             changes: $changes,
         );
     }

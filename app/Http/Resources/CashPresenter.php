@@ -95,10 +95,21 @@ final class CashPresenter
     }
 
     /**
-     * Relevé d'une session (`CashSessionReport`) : tiroir espèces, mouvements, encaissements de la session et autres
-     * modes de la caissière pendant la session. Données de l'écran et du PDF du relevé (produit sur le poste).
+     * Relevé d'une session (`CashSessionReport`) : tiroir espèces, mouvements, encaissements de la session, journal
+     * chronologique unifié et autres modes de la caissière pendant la session.
      *
-     * @param  array{session: stdClass, cash_received: int, cash_reversed: int, cash_refunded: int, movements_in: int, movements_out: int, movements: list<stdClass>, payments: list<stdClass>, other_methods: list<array{method: string, count: int, amount: int}>}  $report
+     * @param  array{
+     *     session: stdClass,
+     *     cash_received: int,
+     *     cash_reversed: int,
+     *     cash_refunded: int,
+     *     movements_in: int,
+     *     movements_out: int,
+     *     movements: list<stdClass>,
+     *     payments: list<stdClass>,
+     *     other_methods: list<array{method: string, count: int, amount: int}>,
+     *     journal: list<array{id: string, entry_type: string, occurred_at: string, signed_amount: int, method: string, label: string, detail: ?string, invoice_id: ?string, invoice_number: ?string, receipt_number: ?string, patient_name: ?string, movement_kind: ?string, reference: ?string}>
+     * }  $report
      * @return array<string, mixed>
      */
     public static function report(array $report, CarbonImmutable $generatedAt): array
@@ -129,6 +140,21 @@ final class CashPresenter
                 'effective_at' => self::instant((string) $payment->effective_at),
             ], $report['payments']),
             'other_methods' => $report['other_methods'],
+            'journal' => array_map(static fn (array $entry): array => [
+                'id' => $entry['id'],
+                'entry_type' => $entry['entry_type'],
+                'occurred_at' => self::instant($entry['occurred_at']),
+                'signed_amount' => $entry['signed_amount'],
+                'method' => $entry['method'],
+                'label' => $entry['label'],
+                'detail' => $entry['detail'],
+                'invoice_id' => $entry['invoice_id'],
+                'invoice_number' => $entry['invoice_number'],
+                'receipt_number' => $entry['receipt_number'],
+                'patient_name' => $entry['patient_name'],
+                'movement_kind' => $entry['movement_kind'],
+                'reference' => $entry['reference'],
+            ], $report['journal']),
             'generated_at' => $generatedAt->utc()->format('Y-m-d\TH:i:s.v\Z'),
         ];
     }

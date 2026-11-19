@@ -47,7 +47,7 @@ final class CashSessionTest extends TestCase
      */
     private function cashPayment(string $sessionId, int $amount): string
     {
-        [$invoice] = $this->issuedInvoice([$this->line($this->item['lens'], '1', 1, 80000)], $this->manager);
+        [$invoice] = $this->issuedUncollectedInvoice([$this->line($this->item['lens'], '1', 1, 80000)], $this->manager);
         $this->pay($invoice, 1, $amount, 'CASH', ['cash_session_id' => $sessionId])->assertCreated();
 
         return $invoice;

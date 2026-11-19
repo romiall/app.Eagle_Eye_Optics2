@@ -140,12 +140,8 @@ test.describe('atelier optique et bon laboratoire anonymisé (L1D04) sur la vrai
       .replace(/^Facture\s+/, '')
       .trim()
     const invoicePath = new URL(cashierPage.url()).pathname
-
-    await cashierPage.getByRole('button', { name: /^Encaisser le reste/ }).click()
-    await cashierPage.getByLabel('Mode de règlement').selectOption({ label: 'Mobile money MTN' })
-    await cashierPage.getByLabel('Référence de l’opération').fill('REFERENCE-FICTIVE-ATELIER')
-    await cashierPage.getByRole('button', { name: /^Encaisser \d/ }).click()
-    await expect(cashierMain).toContainText('Reste à encaisser maintenant : 0 FCFA')
+    await expect(cashierMain).toContainText(/Total encaissé\s*60\s*000\s*FCFA/)
+    await expect(cashierMain).toContainText(/Reste à encaisser\s*0\s*FCFA/)
     await cashierContext.close()
 
     // 3. La gérante déclare un laboratoire optique actif, puis crée la commande atelier.

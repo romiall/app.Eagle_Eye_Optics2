@@ -62,11 +62,9 @@ final class ExamFeeQueueTest extends TestCase
      */
     private function examInvoice(string $visitId): array
     {
-        $draft = $this->createDraft([$this->line($this->item['exam'])], $this->cashier, ['visit_id' => $visitId])->assertCreated();
-        $id = (string) $draft->json('data.id');
-        $this->write('POST', '/api/v1/invoices/'.$id.'/issue', $this->issueBody($id, (int) $draft->json('data.draft_version'), (int) $draft->json('data.total_gross')), $this->cashier)->assertOk();
+        [$id, $total] = $this->issuedUncollectedInvoice([$this->line($this->item['exam'])], $this->cashier, ['visit_id' => $visitId]);
 
-        return [$id, (int) $draft->json('data.total_gross')];
+        return [$id, $total];
     }
 
     private function queue(?User $as = null): TestResponse
@@ -156,14 +154,30 @@ final class ExamFeeQueueTest extends TestCase
     {
         $this->billed();
         $this->seedPosition($this->item['frame'], '5');
+        $this->ensureOpenCashSession($this->cashier);
         $visit = $this->arrive();
         $draft = $this->createDraft([$this->line($this->item['frame'])], $this->cashier, ['visit_id' => $visit])->assertCreated();
         $id = (string) $draft->json('data.id');
         $this->write('POST', '/api/v1/invoices/'.$id.'/issue', $this->issueBody($id, 1, 40000), $this->cashier)->assertOk();
-        $this->pay($id, 1, 40000)->assertCreated();
 
         $this->assertSame('AWAITING_EXAM_FEE', DB::table('visits')->where('id', $visit)->value('status'));
         $this->assertSame('UNPAID', $this->queued($visit)['exam_fee_control']);
+    }
+
+    public function test_l_emission_de_la_facture_d_examen_rend_aussitot_la_visite_prete_avec_recu(): void
+    {
+        $this->billed();
+        $this->ensureOpenCashSession($this->cashier);
+        $visit = $this->arrive();
+        $draft = $this->createDraft([$this->line($this->item['exam'])], $this->cashier, ['visit_id' => $visit])->assertCreated();
+        $id = (string) $draft->json('data.id');
+
+        $issued = $this->write('POST', '/api/v1/invoices/'.$id.'/issue', $this->issueBody($id, 1, 15000), $this->cashier)->assertOk();
+        $receipt = (string) $issued->json('data.payments.0.receipt_number');
+        $this->assertSame('READY_FOR_EXAM', DB::table('visits')->where('id', $visit)->value('status'));
+        $queued = $this->queued($visit);
+        $this->assertSame(['READY_FOR_EXAM', 'PAID', $receipt], [$queued['status'], $queued['exam_fee_control'], $queued['exam_fee_receipt_number']]);
+        $this->start($visit)->assertCreated();
     }
 
     public function test_une_contre_ecriture_du_reglement_ramene_la_visite_en_attente(): void

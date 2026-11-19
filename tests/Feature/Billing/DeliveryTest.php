@@ -161,7 +161,7 @@ final class DeliveryTest extends TestCase
     public function test_une_facture_non_soldee_exige_l_approbation_exacte_de_la_gerante(): void
     {
         $position = $this->seedPosition($this->item['frame'], '3');
-        [$invoice] = $this->issuedInvoice([$this->line($this->item['frame'], '2', 1, 40000)], $this->manager);
+        [$invoice] = $this->issuedUncollectedInvoice([$this->line($this->item['frame'], '2', 1, 40000)], $this->manager);
         $line = $this->invoiceLine($invoice);
 
         $this->deliver($invoice, [$this->deliveryLine($line, $this->item['frame'])])
@@ -194,7 +194,7 @@ final class DeliveryTest extends TestCase
     public function test_un_encaissement_entre_la_demande_et_la_remise_exige_une_nouvelle_approbation(): void
     {
         $this->seedPosition($this->item['frame'], '3');
-        [$invoice] = $this->issuedInvoice([$this->line($this->item['frame'], '1', 1, 40000)], $this->manager);
+        [$invoice] = $this->issuedUncollectedInvoice([$this->line($this->item['frame'], '1', 1, 40000)], $this->manager);
         $line = $this->invoiceLine($invoice);
         $approval = $this->approved(ApprovalSubject::creditDelivery($invoice, 40000, [['invoice_line_id' => $line, 'quantity' => '1']])->toArray(), $this->cashier);
         $this->pay($invoice, 1, 10000)->assertCreated();
@@ -207,7 +207,7 @@ final class DeliveryTest extends TestCase
     public function test_la_gerante_remet_a_credit_directement_avec_la_meme_tracabilite(): void
     {
         $this->seedPosition($this->item['frame'], '3');
-        [$invoice] = $this->issuedInvoice([$this->line($this->item['frame'], '1', 1, 40000)], $this->manager);
+        [$invoice] = $this->issuedUncollectedInvoice([$this->line($this->item['frame'], '1', 1, 40000)], $this->manager);
         $approval = Ulid::generate();
 
         $this->deliver($invoice, [$this->deliveryLine($this->invoiceLine($invoice), $this->item['frame'])], ['credit_delivery_approval_id' => $approval], $this->manager)

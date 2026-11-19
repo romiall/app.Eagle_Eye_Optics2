@@ -134,12 +134,13 @@ final class BillingConcurrencyTest extends TestCase
      */
     private function invoice(?array $lines = null, bool $issue = true, ?User $as = null): array
     {
-        [$id, $total, $version] = $this->draft($lines ?? [$this->line($this->item['lens'], '1', 1, 80000)], $as ?? $this->manager);
         if ($issue) {
-            $this->write('POST', '/api/v1/invoices/'.$id.'/issue', $this->issueBody($id, $version, $total, ['issued_at' => $this->instant(-60)]), $as ?? $this->manager)->assertOk();
+            [$id, $total] = $this->issuedUncollectedInvoice($lines ?? [$this->line($this->item['lens'], '1', 1, 80000)], $as ?? $this->manager);
+
+            return [$id, $total, 1];
         }
 
-        return [$id, $total, $version];
+        return $this->draft($lines ?? [$this->line($this->item['lens'], '1', 1, 80000)], $as ?? $this->manager);
     }
 
     /**
@@ -309,6 +310,7 @@ final class BillingConcurrencyTest extends TestCase
 
     public function test_deux_emissions_simultanees_de_la_meme_facture_ne_consomment_qu_un_numero(): void
     {
+        $this->ensureOpenCashSession($this->cashier);
         [$invoice, $total, $version] = $this->invoice([$this->line($this->item['exam'])], false);
         $this->holdClinicLock($this->clinicId);
         $children = [
@@ -331,6 +333,7 @@ final class BillingConcurrencyTest extends TestCase
     public function test_cinq_emissions_simultanees_recoivent_cinq_numeros_distincts_et_consecutifs(): void
     {
         // AT08 : numéros attribués sous le verrou du cabinet puis de la série, sans doublon ni trou.
+        $this->ensureOpenCashSession($this->cashier);
         $drafts = [];
         for ($index = 0; $index < 5; $index++) {
             $drafts[] = $this->invoice([$this->line($this->item['exam'])], false);
@@ -360,6 +363,7 @@ final class BillingConcurrencyTest extends TestCase
 
     public function test_la_derniere_unite_de_stock_n_est_vendue_qu_une_fois_et_le_refus_ne_brule_pas_de_numero(): void
     {
+        $this->ensureOpenCashSession($this->cashier);
         $position = $this->seedPosition($this->item['frame'], '1');
         $first = $this->invoice([$this->line($this->item['frame'])], false);
         $second = $this->invoice([$this->line($this->item['frame'])], false);

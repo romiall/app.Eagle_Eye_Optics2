@@ -61,6 +61,38 @@
           "amount": 20000
         }
       ],
+      "journal": [
+        {
+          "id": "01J9ZXK4M2Q8R7S6T5V4W3002T",
+          "entry_type": "PAYMENT",
+          "occurred_at": "2026-10-14T09:30:00.000Z",
+          "signed_amount": 80000,
+          "method": "CASH",
+          "label": "Facture TEST-FAC-2026-000001",
+          "detail": "Reçu TEST-REC-2026-000001",
+          "invoice_id": "01J9ZXK4M2Q8R7S6T5V4W30026",
+          "invoice_number": "TEST-FAC-2026-000001",
+          "receipt_number": "TEST-REC-2026-000001",
+          "patient_name": null,
+          "movement_kind": null,
+          "reference": null
+        },
+        {
+          "id": "01J9ZXK4M2Q8R7S6T5V4W3002W",
+          "entry_type": "PAYMENT",
+          "occurred_at": "2026-10-14T10:00:00.000Z",
+          "signed_amount": 20000,
+          "method": "MTN_MOMO",
+          "label": "Facture TEST-FAC-2026-000001",
+          "detail": "Reçu TEST-REC-2026-000002",
+          "invoice_id": "01J9ZXK4M2Q8R7S6T5V4W30026",
+          "invoice_number": "TEST-FAC-2026-000001",
+          "receipt_number": "TEST-REC-2026-000002",
+          "patient_name": null,
+          "movement_kind": null,
+          "reference": null
+        }
+      ],
       "generated_at": "2026-10-14T12:00:00.000Z"
     }
   }

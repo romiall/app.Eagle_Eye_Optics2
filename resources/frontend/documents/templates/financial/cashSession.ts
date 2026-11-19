@@ -199,6 +199,32 @@ export function buildCashSessionReport(
     )
   }
 
+  if (data.journal && data.journal.length > 0) {
+    body.push(
+      heading('Journal chronologique de la caisse', 2),
+      table(
+        'Journal chronologique',
+        [
+          column('date', 'Date et heure', { mm: 34 }, 'left'),
+          column('label', 'Opération', { mm: 42 }, 'left'),
+          column('detail', 'Patient / détail', { fr: 1 }, 'left'),
+          column('method', 'Mode', { mm: 28 }, 'left'),
+          column('amount', 'Montant (FCFA)', { mm: 30 }, 'right'),
+        ],
+        data.journal.map((entry) =>
+          row([
+            formatDateTimeFr(entry.at, timeZone),
+            entry.label,
+            entry.detail ?? '—',
+            paymentMethodLabel(entry.method),
+            formatNumberFr(entry.amount, 'amount'),
+          ]),
+        ),
+        { sizePt: 8.5 },
+      ),
+    )
+  }
+
   body.push(
     signature([
       { label: 'Caissier(ère)', heightMm: 20 },

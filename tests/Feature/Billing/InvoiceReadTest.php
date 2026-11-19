@@ -47,11 +47,10 @@ final class InvoiceReadTest extends TestCase
     public function test_la_liste_donne_le_solde_projete_de_chaque_facture(): void
     {
         [$draft] = $this->draft([$this->line($this->item['exam'])]);
-        [$unpaid] = $this->issuedInvoice([$this->line($this->item['exam'])]);
-        [$partial] = $this->issuedInvoice([$this->line($this->item['lens'], '1', 1, 80000)], $this->manager);
+        [$unpaid] = $this->issuedUncollectedInvoice([$this->line($this->item['exam'])]);
+        [$partial] = $this->issuedUncollectedInvoice([$this->line($this->item['lens'], '1', 1, 80000)], $this->manager);
         $this->pay($partial, 1, 30000)->assertCreated();
         [$settled] = $this->issuedInvoice([$this->line($this->item['exam'])]);
-        $this->pay($settled, 1, 15000)->assertCreated();
 
         $response = $this->read('/api/v1/invoices', $this->cashier)->assertOk();
 
@@ -127,7 +126,7 @@ final class InvoiceReadTest extends TestCase
 
     public function test_le_detail_d_une_facture_emise_porte_snapshots_document_et_encaissements(): void
     {
-        [$id] = $this->issuedInvoice([$this->line($this->item['lens'], '1', 1, 80000)], $this->manager);
+        [$id] = $this->issuedUncollectedInvoice([$this->line($this->item['lens'], '1', 1, 80000)], $this->manager);
         $payment = $this->pay($id, 1, 30000)->assertCreated();
 
         $response = $this->read('/api/v1/invoices/'.$id, $this->cashier)->assertOk();
@@ -199,7 +198,7 @@ final class InvoiceReadTest extends TestCase
 
     public function test_un_recu_d_un_autre_cabinet_est_introuvable(): void
     {
-        [$id] = $this->issuedInvoice();
+        [$id] = $this->issuedUncollectedInvoice();
         $receiptId = $this->pay($id, 1, 15000)->assertCreated()->json('data.receipt_id');
         $other = $this->makeClinic('TEST CABINET B');
         $manager = $this->makeStaff($other, 'MANAGER', 'gerante.b');
@@ -210,7 +209,7 @@ final class InvoiceReadTest extends TestCase
 
     public function test_seuls_les_comptes_avec_la_lecture_des_factures_les_consultent(): void
     {
-        [$id] = $this->issuedInvoice();
+        [$id] = $this->issuedUncollectedInvoice();
         $receiptId = $this->pay($id, 1, 15000)->assertCreated()->json('data.receipt_id');
         $this->allowPermission($this->reception, 'exam_fee.collect');
 

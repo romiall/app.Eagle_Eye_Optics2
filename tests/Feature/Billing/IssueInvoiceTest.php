@@ -36,6 +36,7 @@ final class IssueInvoiceTest extends TestCase
     {
         parent::setUp();
         $this->bootBilling();
+        $this->ensureOpenCashSession($this->cashier);
     }
 
     protected function tearDown(): void
@@ -57,11 +58,11 @@ final class IssueInvoiceTest extends TestCase
             ->assertJsonPath('data.issued_at', '2026-10-22T09:30:00.000Z')
             ->assertJsonPath('data.issued_by', $this->cashier->id)
             ->assertJsonPath('data.draft_version', 1)
-            ->assertJsonPath('data.ledger_version', 1)
+            ->assertJsonPath('data.ledger_version', 2)
             ->assertJsonPath('data.total_gross', 75000)
-            ->assertJsonPath('data.balance.settlement', 'UNPAID')
-            ->assertJsonPath('data.balance.balance_due', 75000)
-            ->assertJsonPath('data.balance.paid_net', 0)
+            ->assertJsonPath('data.balance.settlement', 'SETTLED')
+            ->assertJsonPath('data.balance.balance_due', 0)
+            ->assertJsonPath('data.balance.paid_net', 75000)
             ->assertJsonPath('data.document.document_id', $body['document_id'])
             ->assertJsonPath('data.document.document_status', 'PENDING')
             ->assertJsonPath('data.patient_snapshot.record_number', 'EE-2026-0001')
@@ -565,9 +566,23 @@ final class IssueInvoiceTest extends TestCase
     public function test_les_verrous_sont_pris_dans_l_ordre_du_contrat(): void
     {
         $position = $this->seedPosition($this->item['frame'], '5');
+        $sessionId = $this->ensureOpenCashSession($this->cashier);
         [$id, $total, $version] = $this->draft([$this->line($this->item['frame'])]);
         $payload = $this->issueBody($id, $version, $total);
         unset($payload['expected_version']);
+        $idempotencyId = Ulid::generate();
+        $nowDb = CarbonImmutable::now('UTC')->format('Y-m-d H:i:s.u');
+        DB::table('idempotency_requests')->insert([
+            'id' => $idempotencyId,
+            'clinic_id' => $this->clinicId,
+            'namespace' => 'test',
+            'command_name' => 'IssueInvoice',
+            'request_key' => 'LOCK-ORDER-'.$id,
+            'payload_hash' => hash('sha256', $id),
+            'status' => 'RECEIVED',
+            'created_at' => $nowDb,
+            'updated_at' => $nowDb,
+        ]);
         $locks = new TransactionLocks($this->clinicId);
         $locks->clinic();
 
@@ -575,14 +590,55 @@ final class IssueInvoiceTest extends TestCase
             new Command('IssueInvoice', $payload, $id, $version),
             CommandContext::direct($this->cashier, 'corr-test-0001'),
             $locks,
-            null,
+            $idempotencyId,
         );
 
         $this->assertSame(
-            ['10:'.$this->clinicId, '40:INVOICE:2026', '45:'.$this->patientId, '50:'.$id, '60:'.$id, '80:'.$position],
+            ['10:'.$this->clinicId, '40:INVOICE:2026', '40:RECEIPT:2026', '45:'.$this->patientId, '50:'.$id, '60:'.$id, '70:'.$sessionId, '80:'.$position],
             $locks->acquired(),
-            'Cabinet, séquence (40), dossier patient (45), propriété (50), facture (60), position de stock (80).',
+            'Cabinet, séquences (40), dossier patient (45), propriété (50), facture (60), session de caisse (70), position de stock (80).',
         );
+    }
+
+    public function test_l_emission_encaisse_immediatement_100_pour_cent_en_especes_avec_recu_et_journal_de_caisse(): void
+    {
+        $sessionId = $this->ensureOpenCashSession($this->cashier);
+        [$id, $total, $version] = $this->draft([$this->line($this->item['exam'])]);
+        $response = $this->write('POST', '/api/v1/invoices/'.$id.'/issue', $this->issueBody($id, $version, $total), $this->cashier)->assertOk();
+
+        $response->assertJsonPath('data.balance.total_gross', 15000)
+            ->assertJsonPath('data.balance.paid_net', 15000)
+            ->assertJsonPath('data.balance.balance_due', 0)
+            ->assertJsonPath('data.balance.settlement', 'SETTLED')
+            ->assertJsonPath('data.ledger_version', 2)
+            ->assertJsonPath('data.payments.0.method', 'CASH')
+            ->assertJsonPath('data.payments.0.status', 'CONFIRMED')
+            ->assertJsonPath('data.payments.0.amount', 15000)
+            ->assertJsonPath('data.payments.0.receipt_number', 'TEST-REC-2026-000001');
+
+        $payment = DB::table('payments')->where('invoice_id', $id)->first();
+        $this->assertNotNull($payment);
+        $this->assertSame($sessionId, $payment->cash_session_id);
+        $this->assertSame(DB::table('invoices')->where('id', $id)->value('issued_at'), $payment->effective_at);
+
+        $report = $this->read('/api/v1/cash-sessions/'.$sessionId.'/report', $this->cashier)->assertOk();
+        $this->assertSame(15000, $report->json('data.cash_received'));
+        $this->assertSame('PAYMENT', $report->json('data.journal.0.entry_type'));
+        $this->assertSame($response->json('data.number'), $report->json('data.journal.0.invoice_number'));
+    }
+
+    public function test_l_emission_est_refusee_sans_session_de_caisse_ouverte_et_ne_brule_pas_de_numero(): void
+    {
+        DB::table('cash_sessions')->where('clinic_id', $this->clinicId)->delete();
+        [$id, $total, $version] = $this->draft([$this->line($this->item['exam'])]);
+
+        $this->write('POST', '/api/v1/invoices/'.$id.'/issue', $this->issueBody($id, $version, $total), $this->cashier)
+            ->assertStatus(409)
+            ->assertJsonPath('error.code', 'STATE_TRANSITION_REFUSED')
+            ->assertJsonPath('error.details.current_status', 'CASH_SESSION_REQUIRED');
+
+        $this->assertSame('DRAFT', DB::table('invoices')->where('id', $id)->value('status'));
+        $this->assertSame(0, DB::table('document_sequences')->where('clinic_id', $this->clinicId)->count());
     }
 
     // ------------------------------------------------------------------------------------------------------------

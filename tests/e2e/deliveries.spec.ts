@@ -91,11 +91,8 @@ test.describe('remise au patient et retour (I01, I02) sur la vraie application',
       page.getByRole('heading', { level: 1, name: /^Facture TEST-FAC-\d{4}-\d{6}$/ }),
     ).toBeVisible()
     const invoicePath = new URL(page.url()).pathname
-    await page.getByRole('button', { name: /^Encaisser le reste/ }).click()
-    await page.getByLabel('Mode de règlement').selectOption({ label: 'Mobile money MTN' })
-    await page.getByLabel('Référence de l’opération').fill('REFERENCE-FICTIVE-REMISE')
-    await page.getByRole('button', { name: /^Encaisser \d/ }).click()
-    await expect(main).toContainText('Reste à encaisser maintenant : 0 FCFA')
+    await expect(main).toContainText(/Total encaissé\s*80\s*000\s*FCFA/)
+    await expect(main).toContainText(/Reste à encaisser\s*0\s*FCFA/)
 
     // 2. Remise partielle : une monture sur deux.
     const section = main.locator('section[aria-labelledby="titre-remises"]')

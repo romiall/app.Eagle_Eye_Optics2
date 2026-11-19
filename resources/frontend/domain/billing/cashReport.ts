@@ -92,6 +92,21 @@ export function cashSessionReportData(
         amount: payment.amount,
         invoiceNumber: payment.invoice_number ?? '—',
       })),
+    journal: report.journal.map((entry) => {
+      const extras = [
+        entry.patient_name,
+        entry.detail,
+        entry.reference ? `Réf. ${entry.reference}` : null,
+      ].filter((value): value is string => value !== null && value !== '')
+      return {
+        at: entry.occurred_at,
+        entryType: entry.entry_type,
+        label: entry.label,
+        detail: extras.length > 0 ? extras.join(' · ') : null,
+        method: entry.method,
+        amount: entry.signed_amount,
+      }
+    }),
     clinic,
   }
 }

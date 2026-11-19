@@ -34,6 +34,7 @@ import { offlineRefusal } from '@/app/services/localIdentity'
 import { currentPermissions, enabledModules, session } from '@/app/session'
 import logoUrl from '@/assets/brand/eeo-logo.svg'
 import StateMessage from '@/components/feedback/StateMessage.vue'
+import HomeDashboard from '@/components/home/HomeDashboard.vue'
 import TodaySummary from '@/components/home/TodaySummary.vue'
 import EmptyState from '@/components/layout/EmptyState.vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
@@ -118,6 +119,7 @@ const workGroups = computed<{ group: WorkGroup; label: string; shortcuts: WorkSh
     </div>
 
     <TodaySummary v-if="session.status === 'authenticated'" />
+    <HomeDashboard v-if="session.status === 'authenticated'" />
 
     <StateMessage v-if="localMode" state="offline" title="Poste hors serveur : profil local">
       Vous travaillez avec le profil de ce poste : le serveur n’est pas joint (ou n’a pas de session

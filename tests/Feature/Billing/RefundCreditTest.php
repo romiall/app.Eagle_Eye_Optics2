@@ -43,7 +43,7 @@ final class RefundCreditTest extends TestCase
      */
     private function inCredit(int $credit = 30000): array
     {
-        [$invoice] = $this->issuedInvoice([$this->line($this->item['lens'], '1', 1, 80000)], $this->manager);
+        [$invoice] = $this->issuedUncollectedInvoice([$this->line($this->item['lens'], '1', 1, 80000)], $this->manager);
         $this->pay($invoice, 1, 80000)->assertCreated();
         $note = $this->writeReauthenticated('POST', '/api/v1/invoices/'.$invoice.'/credit-notes', $this->creditNoteBody($invoice, 2, [$this->creditLine($this->firstLine($invoice), $credit)]), $this->manager)->assertCreated();
 

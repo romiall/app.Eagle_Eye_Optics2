@@ -68,11 +68,11 @@ final class PaymentReconciliationsTest extends TestCase
     public function test_candidats_attendus_et_frais_sans_doublon_entre_rapprochements(): void
     {
         $item = $this->seedItem($this->clinicId, ['sale_price' => 15000]);
-        [$inv1Id] = $this->issuedInvoice([$this->line($item, '2', 1, 15000)]); // 30 000
+        [$inv1Id] = $this->issuedUncollectedInvoice([$this->line($item, '2', 1, 15000)]); // 30 000
         $pay1 = $this->pay($inv1Id, 1, 18000, 'MTN_MOMO', ['reference' => 'MOMO-TX-001'])->assertCreated();
         $pay1Id = (string) $pay1->json('data.payment_id');
 
-        [$inv2Id] = $this->issuedInvoice([$this->line($item, '1', 1, 12000)], $this->manager); // 12 000
+        [$inv2Id] = $this->issuedUncollectedInvoice([$this->line($item, '1', 1, 12000)], $this->manager); // 12 000
         $pay2 = $this->pay($inv2Id, 1, 12000, 'MTN_MOMO', ['reference' => 'MOMO-TX-002'])->assertCreated();
         $pay2Id = (string) $pay2->json('data.payment_id');
 
@@ -219,7 +219,7 @@ final class PaymentReconciliationsTest extends TestCase
     public function test_validation_fige_rapprochement_et_exige_motif_sur_ecart(): void
     {
         $item = $this->seedItem($this->clinicId, ['sale_price' => 10000]);
-        [$invId] = $this->issuedInvoice([$this->line($item, '1', 1, 10000)]);
+        [$invId] = $this->issuedUncollectedInvoice([$this->line($item, '1', 1, 10000)]);
         $pay = $this->pay($invId, 1, 10000, 'ORANGE_MONEY', ['reference' => 'OM-999'])->assertCreated();
 
         $start = CarbonImmutable::now('UTC')->subHour()->format('Y-m-d\TH:i:s.v\Z');
@@ -308,7 +308,7 @@ final class PaymentReconciliationsTest extends TestCase
         DB::table('stock_lots')->where('clinic_id', $this->clinicId)->where('id', $lot)->update(['unit_cost' => 4500]);
 
         // Vente native : facture 20 000, avoir 5 000 => CA net = 15 000. Encaissement CASH 10 000 -> reste dû natif = 5 000.
-        [$invId] = $this->issuedInvoice([$this->line($item, '1', 1, 20000)]);
+        [$invId] = $this->issuedUncollectedInvoice([$this->line($item, '1', 1, 20000)]);
         $invLineId = (string) DB::table('invoice_lines')->where('clinic_id', $this->clinicId)->where('invoice_id', $invId)->value('id');
         $sessionId = $this->openedSession($this->manager, 50000);
         $this->pay($invId, 1, 10000, 'CASH', ['cash_session_id' => $sessionId], $this->manager)->assertCreated();

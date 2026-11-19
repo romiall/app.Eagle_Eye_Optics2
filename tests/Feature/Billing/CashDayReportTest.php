@@ -36,7 +36,7 @@ final class CashDayReportTest extends TestCase
     private function dayOfSales(): string
     {
         $session = $this->openedSession($this->cashier, 10000);
-        [$invoice] = $this->issuedInvoice([$this->line($this->item['lens'], '1', 1, 80000)], $this->manager);
+        [$invoice] = $this->issuedUncollectedInvoice([$this->line($this->item['lens'], '1', 1, 80000)], $this->manager);
         $this->pay($invoice, 1, 30000, 'CASH', ['cash_session_id' => $session], $this->cashier)->assertCreated();
         $this->pay($invoice, 2, 20000, 'MTN_MOMO', [], $this->cashier)->assertCreated();
         $this->pay($invoice, 3, 5000, 'ORANGE_MONEY', [], $this->manager)->assertCreated();

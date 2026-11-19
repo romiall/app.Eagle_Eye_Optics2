@@ -114,7 +114,7 @@ test.describe('facturation et encaissement (B02 à B05) sur la vraie application
     await expect(main).toContainText('Brouillon de facture enregistré sur le serveur.')
     await expect(main).not.toContainText('TEST-FAC-')
 
-    // Émission : confirmation explicite, numéro définitif après la réponse du serveur.
+    // Émission : confirmation explicite, numéro définitif et encaissement immédiat 100 % espèces (A1).
     await page.getByRole('button', { name: 'Émettre la facture' }).click()
     const dialog = page.getByRole('dialog', { name: 'Émettre la facture ?' })
     await expect(dialog).toContainText('La facture émise ne pourra plus être modifiée.')
@@ -122,39 +122,31 @@ test.describe('facturation et encaissement (B02 à B05) sur la vraie application
     await expect(
       page.getByRole('heading', { level: 1, name: /^Facture TEST-FAC-\d{4}-\d{6}$/ }),
     ).toBeVisible()
-    await expect(main).toContainText('Reste à encaisser : 55 000 FCFA')
-
-    // Acompte en espèces (session ouverte).
-    await page.getByLabel('Montant encaissé').fill('20 000')
-    // Le montant est validé en quittant le champ (comme au clavier ou à la souris) : le bouton le dit ensuite.
-    await page.getByLabel('Montant encaissé').blur()
-    await page.getByLabel('Mode de règlement').selectOption({ label: 'Espèces' })
-    await page.getByRole('button', { name: /^Encaisser \d/ }).click()
-    await expect(main).toContainText('Encaissement enregistré sur le serveur')
-    await expect(main).toContainText('Reste à encaisser maintenant : 35 000 FCFA')
-    await expect(main).toContainText('Acompte')
-
-    // Solde en mobile money, avec sa référence (fictive).
-    await page.getByRole('button', { name: 'Nouvel encaissement' }).click()
-    await page.getByRole('button', { name: /^Encaisser le reste/ }).click()
-    await page.getByLabel('Mode de règlement').selectOption({ label: 'Mobile money MTN' })
-    await page.getByLabel('Référence de l’opération').fill('REFERENCE-FICTIVE-E2E')
-    await page.getByRole('button', { name: /^Encaisser \d/ }).click()
-    await expect(main).toContainText('Reste à encaisser maintenant : 0 FCFA')
-    await expect(main).toContainText('Règlement du solde')
+    const invoiceHeading = await page
+      .getByRole('heading', { level: 1, name: /^Facture TEST-FAC-\d{4}-\d{6}$/ })
+      .innerText()
+    const invoiceNumber = (invoiceHeading.match(/TEST-FAC-\d{4}-\d{6}/) ?? [''])[0]
+    await expect(main).toContainText(/Total encaissé\s*55\s*000\s*FCFA/)
+    await expect(main).toContainText(/Reste à encaisser\s*0\s*FCFA/)
 
     const numbers = receiptNumbers(await main.innerText())
-    expect(numbers).toHaveLength(2)
+    expect(numbers).toHaveLength(1)
 
-    // Rechargement : la facture, ses deux reçus et le reste nul viennent du serveur.
+    // Rechargement : la facture, son reçu et le reste nul viennent du serveur.
     await page.reload()
     await expect(page.getByRole('heading', { level: 1, name: /^Facture TEST-FAC-/ })).toBeVisible()
-    for (const number of numbers) await expect(main).toContainText(`Reçu ${number}`)
+    await expect(main).toContainText(`Reçu ${numbers[0]}`)
     await expect(page.getByRole('form', { name: 'Encaisser' })).toHaveCount(0)
     const text = (await main.innerText()).toLowerCase()
     for (const word of FORBIDDEN) expect(text, word).not.toContain(word)
 
-    // Téléphone 360 px : la fiche de la facture ne déborde pas.
+    // Journal chronologique de la caisse : la facture émise y figure à son heure exacte.
+    await page.goto('/ventes/caisse')
+    await expect(main).toContainText('Journal chronologique de la caisse')
+    await expect(main).toContainText(`Facture ${invoiceNumber}`)
+    await expect(main).toContainText('+55 000 FCFA')
+
+    // Téléphone 360 px : le journal et la fiche ne débordent pas.
     await page.setViewportSize({ width: 360, height: 740 })
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth),
@@ -189,10 +181,8 @@ test.describe('facturation et encaissement (B02 à B05) sur la vraie application
     const heading = page.getByRole('heading', { level: 1, name: /^Facture TEST-FAC-\d{4}-\d{6}$/ })
     await expect(heading).toBeVisible()
     const number = ((await heading.innerText()).match(/TEST-FAC-\d{4}-\d{6}/) ?? [''])[0]
-    await page.getByRole('button', { name: /^Encaisser le reste/ }).click()
-    await page.getByLabel('Mode de règlement').selectOption({ label: 'Espèces' })
-    await page.getByRole('button', { name: /^Encaisser \d/ }).click()
-    await expect(main).toContainText('Reste à encaisser maintenant : 0 FCFA')
+    await expect(main).toContainText(/Total encaissé\s*15\s*000\s*FCFA/)
+    await expect(main).toContainText(/Reste à encaisser\s*0\s*FCFA/)
 
     // Liste : patient affiché, filtre du jour appliqué par le serveur (aujourd'hui au fuseau du cabinet).
     await page.goto('/ventes/factures')
@@ -251,6 +241,18 @@ test.describe('facturation et encaissement (B02 à B05) sur la vraie application
     await signIn(page, 'MANAGER')
     const main = page.getByRole('main')
 
+    // Contre-écriture partielle du règlement espèces auto-encaissé, puis ré-encaissement du solde par Mobile Money.
+    await page.goto('/ventes/caisse')
+    if (
+      await page
+        .getByRole('main')
+        .getByText('Aucune session de caisse ouverte')
+        .isVisible()
+        .catch(() => false)
+    ) {
+      await ensureCashOpen(page)
+    }
+
     await page.goto(patientPath)
     await page.getByRole('link', { name: 'Créer une facture' }).click()
     await addCatalogLine(page, 'DEMO-MON', /Monture fictive/)
@@ -262,24 +264,27 @@ test.describe('facturation et encaissement (B02 à B05) sur la vraie application
       .getByRole('button', { name: 'Émettre la facture' })
       .click()
     await expect(page.getByRole('heading', { level: 1, name: /^Facture TEST-FAC-/ })).toBeVisible()
-    await page.getByRole('button', { name: /^Encaisser le reste/ }).click()
-    await page.getByLabel('Mode de règlement').selectOption({ label: 'Mobile money MTN' })
-    await page.getByLabel('Référence de l’opération').fill('REFERENCE-FICTIVE-CORR')
-    await page.getByRole('button', { name: /^Encaisser \d/ }).click()
-    await expect(main).toContainText('Encaissement enregistré sur le serveur')
+    await expect(main).toContainText(/Total encaissé\s*40\s*000\s*FCFA/)
     const receipt = receiptNumbers(await main.innerText())[0] ?? ''
 
     // Contre-écriture : motif obligatoire, mot de passe confirmé, le reçu d'origine reste tel qu'émis.
     await page.getByRole('button', { name: /Contre-passer le paiement/ }).click()
-    await page.getByLabel('Montant à contre-passer').fill('5 000')
+    await page.getByLabel('Montant à contre-passer').fill('15 000')
     await page.getByLabel('Montant à contre-passer').blur()
-    await page.getByLabel('Motif (obligatoire)').fill('Montant saisi en trop (fictif)')
+    await page.getByLabel('Motif (obligatoire)').fill('Ajustement mode règlement (fictif)')
     await page.getByRole('button', { name: 'Enregistrer la contre-écriture' }).click()
     await confirmPasswordIfAsked(page, main.getByText('Correction enregistrée'))
     await expect(main).toContainText('Correction enregistrée')
     await expect(main).toContainText('Contre-écritures')
 
-    // Avoir sur la ligne d'origine, puis remboursement en espèces d'une partie du crédit.
+    // Ré-encaissement du reste par Mobile money MTN après contre-écriture.
+    await page.getByRole('button', { name: /^Encaisser le reste/ }).click()
+    await page.getByLabel('Mode de règlement').selectOption({ label: 'Mobile money MTN' })
+    await page.getByLabel('Référence de l’opération').fill('REFERENCE-FICTIVE-CORR')
+    await page.getByRole('button', { name: /^Encaisser \d/ }).click()
+    await expect(main).toContainText('Encaissement enregistré sur le serveur')
+
+    // Avoir sur la ligne d'origine, puis remboursement d'une partie du crédit.
     await page.getByRole('button', { name: 'Émettre un avoir' }).click()
     await page.getByLabel(/Montant à créditer sur « Monture/).fill('10 000')
     await page.getByLabel(/Montant à créditer sur « Monture/).blur()
@@ -302,6 +307,18 @@ test.describe('facturation et encaissement (B02 à B05) sur la vraie application
     await expect(main).toContainText(`Reçu ${receipt}`)
     await expect(main).toContainText(/Avoir TEST-AV-/)
     await expect(main).toContainText(/Remboursement TEST-RMB-/)
+
+    // Accueil gérante : tableau de bord de fin de journée et statistiques intégrées visibles sans erreur.
+    await page.goto('/')
+    await expect(
+      main.getByRole('heading', { level: 2, name: 'Tableau de bord et statistiques' }),
+    ).toBeVisible()
+    await expect(main).toContainText('Chiffre d’affaires net')
+    await expect(main).toContainText('Visites totales')
+    await expect(main).toContainText('Consultations')
+    await expect(main).toContainText('Activité de l’accueil')
+    await expect(main).toContainText('Examens')
+
     const text = (await main.innerText()).toLowerCase()
     for (const word of FORBIDDEN) expect(text, word).not.toContain(word)
 

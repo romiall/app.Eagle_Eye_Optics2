@@ -124,6 +124,8 @@ test.describe('dépenses et caisse enrichie sur la vraie application', () => {
     await page.getByRole('button', { name: 'Enregistrer la dépense' }).click()
     await expect(main).toContainText('Dépense enregistrée depuis le tiroir')
     await expect(main).toContainText('Dépenses au tiroir')
+    await expect(main).toContainText('Journal chronologique de la caisse')
+    await expect(main).toContainText('−2 000 FCFA')
 
     // Entrée ou sortie motivée : motif obligatoire avant demande d'autorisation.
     await page.getByRole('button', { name: 'Sortie motivée' }).click()

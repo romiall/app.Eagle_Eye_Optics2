@@ -45,8 +45,8 @@ final class PrepareResourcesTest extends TestCase
     public function test_les_plages_sont_disjointes_et_la_sequence_centrale_monte_a_leur_fin(): void
     {
         // Deux factures déjà numérotées au central : la plage commence après elles.
-        $this->issuedInvoice();
-        $this->issuedInvoice();
+        $this->issuedUncollectedInvoice();
+        $this->issuedUncollectedInvoice();
 
         $response = $this->prepareDevice($this->device, [
             'profiles' => [$this->cashier->id, $this->reception->id],
@@ -155,7 +155,7 @@ final class PrepareResourcesTest extends TestCase
 
     public function test_une_facture_emise_attribuee_au_poste_n_est_plus_encaissee_par_l_api_centrale(): void
     {
-        [$invoice] = $this->issuedInvoice();
+        [$invoice] = $this->issuedUncollectedInvoice();
 
         $response = $this->prepareDevice($this->device, ['profiles' => [$this->cashier->id], 'invoice_ids' => [$invoice]])->assertOk();
 

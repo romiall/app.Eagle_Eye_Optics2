@@ -4339,8 +4339,129 @@
         }
       }
     },
+    "CashSessionJournalEntry": {
+      "description": "Ligne chronologique du journal de caisse : encaissement de facture, dépense/mouvement manuel, contre-écriture ou remboursement.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "entry_type",
+        "occurred_at",
+        "signed_amount",
+        "method",
+        "label",
+        "detail",
+        "invoice_id",
+        "invoice_number",
+        "receipt_number",
+        "patient_name",
+        "movement_kind",
+        "reference"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "entry_type": {
+          "type": "string",
+          "enum": [
+            "PAYMENT",
+            "CASH_MOVEMENT",
+            "PAYMENT_REVERSAL",
+            "REFUND"
+          ]
+        },
+        "occurred_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        },
+        "signed_amount": {
+          "$ref": "../../schemas/common.json#/$defs/SignedMoneyXaf"
+        },
+        "method": {
+          "$ref": "../../schemas/enums.json#/$defs/payments.method"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        },
+        "detail": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 500
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "invoice_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "invoice_number": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 64
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "receipt_number": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 64
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "patient_name": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 180
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "movement_kind": {
+          "anyOf": [
+            {
+              "$ref": "../../schemas/enums.json#/$defs/cash_movements.kind"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reference": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 180
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
     "CashSessionReport": {
-      "description": "Relevé d'une session : tiroir espèces (encaissés, contre-écritures, remboursés, mouvements), encaissements de la session et, hors tiroir, les autres modes encaissés par la même caissière pendant la session. Session ouverte : relevé provisoire. Source du PDF produit sur le poste.",
+      "description": "Relevé d'une session : tiroir espèces (encaissés, contre-écritures, remboursés, mouvements), encaissements de la session, journal chronologique unifié et, hors tiroir, les autres modes encaissés par la même caissière pendant la session. Session ouverte : relevé provisoire. Source du PDF produit sur le poste.",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -4353,6 +4474,7 @@
         "movements",
         "payments",
         "other_methods",
+        "journal",
         "generated_at"
       ],
       "properties": {
@@ -4504,6 +4626,13 @@
                 "$ref": "../../schemas/common.json#/$defs/SignedMoneyXaf"
               }
             }
+          }
+        },
+        "journal": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/CashSessionJournalEntry"
           }
         },
         "generated_at": {

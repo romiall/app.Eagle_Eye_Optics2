@@ -73,12 +73,11 @@ final class FinancialReportTest extends TestCase
      */
     private function twoDays(): array
     {
-        [$old] = $this->issuedInvoice([$this->line($this->item['lens'], '1', 1, 80000)], $this->manager);
+        [$old] = $this->issuedUncollectedInvoice([$this->line($this->item['lens'], '1', 1, 80000)], $this->manager);
         $this->pay($old, 1, 30000, 'MTN_MOMO', [], $this->cashier)->assertCreated();
 
         $this->goTo('2026-10-25 09:30:00');
-        [$sale, $total, $version] = $this->draft([$this->line($this->item['exam'], '2')], $this->cashier);
-        $this->write('POST', '/api/v1/invoices/'.$sale.'/issue', $this->issueBody($sale, $version, $total, ['issued_at' => '2026-10-25T09:29:00.000Z']), $this->cashier)->assertOk();
+        [$sale] = $this->issuedUncollectedInvoice([$this->line($this->item['exam'], '2')], $this->cashier);
         $this->pay($old, $this->ledgerVersion($old), 50000, 'MTN_MOMO', ['effective_at' => '2026-10-25T09:30:00.000Z'], $this->cashier)->assertCreated();
         $this->pay($sale, $this->ledgerVersion($sale), 10000, 'MTN_MOMO', ['effective_at' => '2026-10-25T09:30:00.000Z'], $this->manager)->assertCreated();
         $this->writeReauthenticated('POST', '/api/v1/invoices/'.$sale.'/credit-notes', $this->creditNoteBody($sale, $this->ledgerVersion($sale), [$this->creditLine($this->firstLine($sale), 5000)]), $this->manager)->assertCreated();
@@ -142,7 +141,7 @@ final class FinancialReportTest extends TestCase
 
     public function test_plusieurs_paiements_avoirs_contre_ecritures_et_remboursements_ne_se_multiplient_pas(): void
     {
-        [$invoice] = $this->issuedInvoice([$this->line($this->item['lens'], '1', 1, 80000)], $this->manager);
+        [$invoice] = $this->issuedUncollectedInvoice([$this->line($this->item['lens'], '1', 1, 80000)], $this->manager);
         $this->pay($invoice, 1, 50000)->assertCreated();
         $this->pay($invoice, 2, 30000)->assertCreated();
         $payments = DB::table('payments')->where('invoice_id', $invoice)->orderBy('effective_at')->orderBy('created_at')->pluck('id')->all();
@@ -170,7 +169,7 @@ final class FinancialReportTest extends TestCase
 
     public function test_les_dates_effectives_et_les_bornes_du_jour_sont_celles_du_cabinet(): void
     {
-        [$invoice] = $this->issuedInvoice([$this->line($this->item['lens'], '1', 1, 80000)], $this->manager);
+        [$invoice] = $this->issuedUncollectedInvoice([$this->line($this->item['lens'], '1', 1, 80000)], $this->manager);
         // 23 h 59 la veille à Douala (UTC+1), saisi en retard ; puis 00 h 00 le jour même (borne incluse du jour).
         $this->pay($invoice, 1, 10000, 'MTN_MOMO', ['effective_at' => '2026-10-21T22:59:00.000Z', 'retroactive_reason' => 'Reçu papier de la veille saisi en retard'])->assertCreated();
         $this->pay($invoice, 2, 20000, 'MTN_MOMO', ['effective_at' => '2026-10-21T23:00:00.000Z'])->assertCreated();
@@ -191,8 +190,8 @@ final class FinancialReportTest extends TestCase
         $legacy = (string) $this->actingAsReauthenticated($this->manager)->withHeaders(['Idempotency-Key' => Ulid::generate()])
             ->postJson('/api/v1/imports/legacy-balances', ['dry_run' => false, 'evidence_file_id' => $evidence, 'rows' => [$row]])
             ->assertCreated()->json('data.created_ids.0');
-        // Une vente du jour, non payée, à côté de la reprise.
-        $this->issuedInvoice([$this->line($this->item['lens'], '1', 1, 10000)], $this->manager);
+        // Une vente du jour, non encaissée hors ligne, à côté de la reprise.
+        $this->issuedUncollectedInvoice([$this->line($this->item['lens'], '1', 1, 10000)], $this->manager);
 
         $before = $this->data($this->finance('?from=2026-10-22&to=2026-10-22')->assertOk());
         $this->assertSame(['count' => 1, 'total_gross' => 10000], $before['revenue']['issued'], 'la reprise de 50 000 n\'est pas une vente');
@@ -214,7 +213,7 @@ final class FinancialReportTest extends TestCase
     public function test_une_session_cloturee_donne_son_attendu_fige_son_compte_son_ecart_et_les_corrections_apres_cloture(): void
     {
         $session = $this->openedSession($this->cashier, 10000);
-        [$invoice] = $this->issuedInvoice([$this->line($this->item['lens'], '1', 1, 80000)], $this->manager);
+        [$invoice] = $this->issuedUncollectedInvoice([$this->line($this->item['lens'], '1', 1, 80000)], $this->manager);
         $this->pay($invoice, 1, 30000, 'CASH', ['cash_session_id' => $session], $this->cashier)->assertCreated();
         // Ouverture 10 000 + espèces 30 000 = 40 000 attendus ; 39 500 comptés : écart de −500, motivé.
         $this->write('POST', '/api/v1/cash-sessions/'.$session.'/close', $this->closeSessionBody($session, 39500, 40000, 'Écart de monnaie (fictif)'), $this->cashier)->assertOk();
@@ -265,7 +264,7 @@ final class FinancialReportTest extends TestCase
 
     public function test_sans_periode_c_est_aujourd_hui_au_fuseau_du_cabinet_et_une_periode_illisible_est_refusee(): void
     {
-        [$invoice] = $this->issuedInvoice([$this->line($this->item['lens'], '1', 1, 80000)], $this->manager);
+        [$invoice] = $this->issuedUncollectedInvoice([$this->line($this->item['lens'], '1', 1, 80000)], $this->manager);
         $this->pay($invoice, 1, 30000)->assertCreated();
         // 22 octobre, 23 h 30 UTC = 00 h 30 le 23 à Douala : « aujourd'hui » est le 23, jour sans encaissement.
         $this->goTo('2026-10-22 23:30:00');
@@ -318,5 +317,18 @@ final class FinancialReportTest extends TestCase
         $this->assertSame(7500, $report['expenses']['other_methods']);
         $this->assertSame([['method' => 'CASH', 'count' => 1, 'amount' => 4000], ['method' => 'MTN_MOMO', 'count' => 1, 'amount' => 7500]], $report['expenses']['by_method']);
         $this->assertSame([['category_id' => $catId, 'code' => 'CHARGES', 'name' => 'Charges (fictif)', 'count' => 2, 'amount' => 11500]], $report['expenses']['by_category']);
+    }
+
+    public function test_une_facture_emise_integre_immediatement_le_ca_et_les_encaissements_en_especes(): void
+    {
+        $this->issuedInvoice([$this->line($this->item['exam'], '2')], $this->cashier);
+
+        $report = $this->data($this->finance('?from=2026-10-22&to=2026-10-22')->assertOk());
+
+        $this->assertSame(30000, $report['revenue']['net']);
+        $this->assertSame(30000, $report['collections']['net_total']);
+        $this->assertSame(0, $report['receivables']['amount_due']);
+        $this->assertSame('CASH', $report['collections']['by_method'][0]['method']);
+        $this->assertSame(30000, $report['collections']['by_method'][0]['net_amount']);
     }
 }

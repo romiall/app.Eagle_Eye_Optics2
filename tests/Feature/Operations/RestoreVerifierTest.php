@@ -58,11 +58,10 @@ final class RestoreVerifierTest extends TestCase
         self::fail('Contrôle absent : '.$code);
     }
 
-    /** Vente réelle : facture émise et un paiement avec son reçu. Rend le numéro du reçu. */
+    /** Vente réelle : facture émise (encaissée automatiquement en espèces A1) avec son reçu. Rend le numéro du reçu. */
     private function sale(): string
     {
         [$invoice, $total] = $this->issuedInvoice([$this->line($this->item['lens'], '1', 1, 80000)], $this->manager);
-        $this->pay($invoice, $this->ledgerVersion($invoice), 30000, 'MTN_MOMO', [], $this->manager)->assertCreated();
         $this->assertSame(80000, $total);
 
         return (string) DB::table('receipts')->where('invoice_id', $invoice)->value('number');
