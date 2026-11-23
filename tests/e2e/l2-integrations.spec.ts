@@ -213,7 +213,11 @@ test.describe('intégrations et communication (L2D01–L2D10)', () => {
       .selectOption('MARKETING')
     await templatesCard.getByRole('button', { name: 'Créer le modèle' }).click()
 
-    const tplRow = templatesCard.locator('div.rounded-xl', { hasText: tplCode })
+    // La LIGNE du modèle se repère par son titre : le message de succès « Modèle créé » est lui aussi un bloc arrondi
+    // qui cite le code, et un filtre sur le texte seul trouvait alors deux éléments (mode strict, CI du 2026-11-19).
+    const tplRow = templatesCard
+      .locator('div.rounded-xl')
+      .filter({ has: page.getByRole('heading', { level: 3 }).filter({ hasText: tplCode }) })
     await expect(tplRow).toBeVisible()
     await tplRow.getByRole('button', { name: 'Nouvelle révision' }).click()
 

@@ -165,7 +165,9 @@ test.describe('P04 : parcours entre profils sur le poste principal (AT02, AT05, 
 
       // --- 2b. La CAISSE retrouve la MÊME fiche, facture, émet et encaisse ------------------------------------------------
       await unlockProfile(page, demoAccount('CASHIER').login, SECRETS.CASHIER)
-      expect(await menuEntries(page)).toEqual(['Accueil', 'Patients'])
+      // Sans réseau, le menu ne garde que les écrans qui savent travailler sans le serveur (`offlineCapable`) : la
+      // caisse y ajoute « Dépenses » (L1D05), que ni l'accueil ni le professionnel n'ont (aucun droit de caisse).
+      expect(await menuEntries(page)).toEqual(['Accueil', 'Patients', 'Dépenses'])
       await openFromSearch(page, patientName)
       expect(new URL(page.url()).pathname, 'même identifiant de fiche pour la caisse').toBe(
         patientPath,
