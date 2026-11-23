@@ -1,6 +1,6 @@
 # Vérification unique du projet (`tools/dev/tester-projet.sh`)
 
-**État : DERNIÈRE VÉRIFICATION sur `claude/l1-stock-complet` le 2026-11-16 (`340736a`) : verdict `PARTIEL` (aucun échec — 18 étapes exécutables sur 18 réussies en 1 h 37 min ; seule `ci` est `IGNORE` car la branche n’est pas poussée). Précédent jalon sur `main` : verdict `STABLE` le 2026-11-10 (`edad1ed`, 19 étapes sur 19, 1 h 28 min).** Consigne du demandeur (2026-11-10) : un seul script qui rejoue, d'un coup, tous les contrôles qui ont validé les modules et les chantiers livrés ; tant que la branche n’est pas poussée à la demande explicite du demandeur, `ci` reste naturellement `IGNORE`.
+**État : DERNIÈRE VÉRIFICATION COMPLÈTE sur `main` le 2026-11-23 (`709af45`) : verdict `INSTABLE` (e2e `124` sur `125` et CI rouge, une seule cause : l'attente périmée du test P04 après l'ajout de l'écran Dépenses, défaut du test et non de l'application ; corrigée par `7a75036`, tests seulement, passage ciblé OK : section « Passage du 2026-11-23 »). Vérification précédente, sur `claude/l1-stock-complet` le 2026-11-16 (`340736a`) : verdict `PARTIEL` (aucun échec — 18 étapes exécutables sur 18 réussies en 1 h 37 min ; seule `ci` est `IGNORE` car la branche n’est pas poussée). Précédent jalon sur `main` : verdict `STABLE` le 2026-11-10 (`edad1ed`, 19 étapes sur 19, 1 h 28 min).** Consigne du demandeur (2026-11-10) : un seul script qui rejoue, d'un coup, tous les contrôles qui ont validé les modules et les chantiers livrés ; tant que la branche n’est pas poussée à la demande explicite du demandeur, `ci` reste naturellement `IGNORE`.
 
 Rejouer : `bash tools/dev/tester-projet.sh` (le verdict est la dernière ligne ; `--rapide` sans les parcours navigateur, `--ci` pour un verdict immédiat, `--seulement a,b` pour rejouer une ou deux étapes, `--liste` pour les connaître). Détail du fonctionnement et des limites : `docs/implementation/testing.md`, section « Vérification unique du projet ».
 
@@ -13,6 +13,22 @@ Rejouer : `bash tools/dev/tester-projet.sh` (le verdict est la dernière ligne ;
 - **Sécurité des dépendances et outils** : avis Composer et npm (production), syntaxe de tous les scripts shell et Node suivis par git.
 - **En ligne** : contrôle anonyme de `https://app-eagleseye.com` (`tools/deploy/smoke.sh <url> --anonyme`) et comparaison du build servi avec le commit testé : le code déployé doit être celui du commit.
 - **CI** : lecture de la CI GitHub du commit (API publique).
+
+## Passage du 2026-11-23 sur `main` (`709af45`) : INSTABLE, cause corrigée
+
+Exécuté via `bash tools/dev/tester-projet.sh` sur `main` (`709af4569098836795ee1d7e4cfc4b83af7d1eee`, copie propre, durée totale `1h19m`) :
+
+- `preparation`, `installation`, `mysql`, `contrats`, `baseline`, `schema` : OK (migrations identiques aux scripts SQL, schéma livré = migrations) ;
+- `pint`, `phpstan`, `vue-tsc`, `eslint`, `prettier`, `build`, `avis`, `scripts` : OK ;
+- `phpunit` : OK en 20 min 42 s (`Tests: 2725`, `Assertions: 84382`, `Skipped: 1` sous Windows : création de lien symbolique) ;
+- `vitest` : OK en 12 min 57 s (`187` fichiers, `3561` tests passés, `2` ignorés) ;
+- `e2e` : **ECHEC** en 24 min 54 s (`124 passed`, `1 failed`) : `profile-flow.spec.ts:168` (P04), en échec aussi à la reprise ;
+- `en-ligne` : OK (la production sert `709af45`, le commit testé) ;
+- `ci` : **ECHEC** (run `44479464500`, `709af45`) : jobs PHP et Frontend verts, job E2E rouge sur le même test, plus un test instable passé à la reprise (`l2-integrations.spec.ts:217`, violation du mode strict : le message de succès « Modèle créé » est un bloc arrondi qui cite le code du modèle, comme sa ligne).
+
+- **Cause** : `23cdf93` (2026-11-18) a ajouté l'écran Dépenses (`/ventes/depenses`, `offlineCapable`) ; le menu hors ligne du profil caisse l'affiche donc. `shell.spec`, `navigation.test` et `expenses.spec` avaient été mis à jour, pas P04, qui attendait `['Accueil', 'Patients']`. Défaut du TEST, pas de l'application ; l'accueil et le professionnel n'ont aucun droit de caisse et gardent `['Accueil', 'Patients']`.
+- **Correction** (`7a75036`, tests seulement) : P04 attend `['Accueil', 'Patients', 'Dépenses']` ; dans `l2-integrations.spec.ts` la ligne du modèle se repère par son titre (`h3`) et non par le texte seul.
+- **Preuve de la correction** : `--seulement prettier,eslint,vue-tsc,e2e --e2e profile-flow,l2-integrations` sur `7a75036` : toutes OK, 3 parcours sur 3 sans reprise ; P04 va jusqu'au bout (45,9 s), y compris ses étapes après la ligne 168 que ni la CI ni le passage complet n'avaient atteintes. Ce passage ciblé est `PARTIEL` par construction (11 étapes non rejouées) : il vaut pour ces deux specs et ces trois contrôles de qualité, pas pour tout le projet. Pas de nouveau passage complet : la CI du commit de fusion (PHP, Frontend, E2E) fait foi avant l'avance de `main`.
 
 ## Dernier passage complet — L1+G5, L2+G6, L3+G7 (commit `340736a`, 2026-11-16)
 
