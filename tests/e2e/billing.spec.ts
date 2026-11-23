@@ -229,10 +229,17 @@ test.describe('facturation et encaissement (B02 à B05) sur la vraie application
 
   test('la gérante contre-passe un paiement, émet un avoir puis rembourse le crédit, sans toucher au reçu', async ({
     browser,
-  }) => {
+  }, testInfo) => {
     // Parcours long (émission, encaissement, trois corrections avec confirmation du mot de passe, rechargement).
     test.setTimeout(240_000)
-    const patientPath = await createPatient(browser, 'Correction Parcours', '+237 600 00 07 77')
+    // Une reprise de la CI retrouve la base de la première tentative : une identité et un téléphone par essai, sinon la
+    // détection de doublon refuse la création et la reprise échoue pour une autre raison que l'échec d'origine.
+    const retried = testInfo.retry > 0
+    const patientPath = await createPatient(
+      browser,
+      retried ? 'Rectification Reprise' : 'Correction Parcours',
+      retried ? '+237 600 00 07 78' : '+237 600 00 07 77',
+    )
 
     const context = await browser.newContext()
     const page = await context.newPage()
@@ -242,16 +249,15 @@ test.describe('facturation et encaissement (B02 à B05) sur la vraie application
     const main = page.getByRole('main')
 
     // Contre-écriture partielle du règlement espèces auto-encaissé, puis ré-encaissement du solde par Mobile Money.
-    await page.goto('/ventes/caisse')
-    if (
-      await page
-        .getByRole('main')
-        .getByText('Aucune session de caisse ouverte')
-        .isVisible()
-        .catch(() => false)
-    ) {
-      await ensureCashOpen(page)
-    }
+    // L'émission encaisse en espèces dans une session ouverte du cabinet : celle de la caissière, la caisse étant unique
+    // (la gérante n'en ouvre pas une seconde, le serveur la refuse). On la garantit côté caissière, jamais par un test de
+    // visibilité immédiat sur la page de la gérante : « Aucune session de caisse ouverte » s'y affiche dès la lecture
+    // faite, donc, selon l'instant du rendu, le test tentait d'ouvrir une seconde session et échouait (CI du 2026-11-23).
+    const cashierContext = await browser.newContext()
+    const cashierPage = await cashierContext.newPage()
+    await signIn(cashierPage, 'CASHIER')
+    await ensureCashOpen(cashierPage)
+    await cashierContext.close()
 
     await page.goto(patientPath)
     await page.getByRole('link', { name: 'Créer une facture' }).click()
